@@ -1,0 +1,170 @@
+'use client'
+
+import { useId, useMemo, useRef, useState } from 'react'
+import type { ComboboxOption } from './combobox'
+
+/**
+ * Searchable multi-select: chosen items render as removable chips, the input
+ * filters the remaining options as you type. Controlled via value/onChange.
+ */
+export function MultiCombobox({
+  options,
+  value,
+  onChange,
+  placeholder,
+  noResultsLabel,
+}: {
+  options: ComboboxOption[]
+  value: string[]
+  onChange: (next: string[]) => void
+  placeholder: string
+  noResultsLabel: string
+}) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const [highlight, setHighlight] = useState(0)
+  const [openUp, setOpenUp] = useState(false)
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listId = useId()
+
+  function openList() {
+    const el = inputRef.current
+    if (el) {
+      let bottomLimit = window.innerHeight
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        const oy = getComputedStyle(p).overflowY
+        if (oy === 'auto' || oy === 'scroll' || oy === 'hidden') {
+          bottomLimit = Math.min(bottomLimit, p.getBoundingClientRect().bottom)
+          break
+        }
+      }
+      const rect = el.getBoundingClientRect()
+      setOpenUp(bottomLimit - rect.bottom < 240 && rect.top > 240)
+    }
+    setOpen(true)
+  }
+
+  const selected = useMemo(
+    () => value.map((v) => options.find((o) => o.value === v)).filter((o): o is ComboboxOption => !!o),
+    [value, options]
+  )
+  const available = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return options.filter(
+      (o) => !value.includes(o.value) && (!q || o.label.toLowerCase().includes(q))
+    )
+  }, [options, value, query])
+
+  function add(option: ComboboxOption) {
+    onChange([...value, option.value])
+    setQuery('')
+    setHighlight(0)
+  }
+
+  function remove(v: string) {
+    onChange(value.filter((x) => x !== v))
+  }
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Backspace' && !query && value.length) {
+      remove(value[value.length - 1])
+      return
+    }
+    if (!open && (e.key === 'ArrowDown' || e.key === 'Enter')) {
+      openList()
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlight((h) => Math.min(h + 1, available.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlight((h) => Math.max(h - 1, 0))
+    } else if (e.key === 'Enter') {
+      if (open && available[highlight]) {
+        e.preventDefault()
+        add(available[highlight])
+      }
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <div className="mt-1 flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-border bg-background px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+        {selected.map((o) => (
+          <span
+            key={o.value}
+            className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-sm font-medium text-accent"
+          >
+            {o.label}
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => remove(o.value)}
+              aria-label={`× ${o.label}`}
+              className="rounded-full px-1 hover:bg-accent/20"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          value={query}
+          placeholder={selected.length === 0 ? placeholder : ''}
+          ref={inputRef}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            openList()
+            setHighlight(0)
+          }}
+          onFocus={openList}
+          onKeyDown={onKeyDown}
+          onBlur={() => {
+            blurTimer.current = setTimeout(() => setOpen(false), 150)
+          }}
+          className="min-w-24 flex-1 bg-transparent px-1 py-1 text-sm focus:outline-none"
+        />
+      </div>
+      {open && (
+        <ul
+          id={listId}
+          role="listbox"
+          className={`absolute z-20 max-h-56 w-full overflow-auto rounded-md border border-border bg-surface py-1 shadow-lg ${
+            openUp ? 'bottom-full mb-1' : 'mt-1'
+          }`}
+        >
+          {available.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-muted">{noResultsLabel}</li>
+          ) : (
+            available.map((o, i) => (
+              <li
+                key={o.value}
+                role="option"
+                aria-selected={false}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  if (blurTimer.current) clearTimeout(blurTimer.current)
+                  add(o)
+                }}
+                onMouseEnter={() => setHighlight(i)}
+                className={`cursor-pointer px-3 py-2 text-sm ${
+                  i === highlight ? 'bg-accent text-accent-foreground' : ''
+                }`}
+              >
+                {o.label}
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  )
+}

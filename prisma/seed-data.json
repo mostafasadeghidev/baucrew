@@ -1,0 +1,132 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "admin1234",
+      "role": "ADMIN",
+      "canViewFinancials": true
+    },
+    {
+      "username": "buero",
+      "password": "buero1234",
+      "role": "MANAGER"
+    },
+    {
+      "username": "lager",
+      "password": "lager1234",
+      "role": "EMPLOYEE"
+    }
+  ],
+  "workCategories": [
+    [
+      "Malern",
+      "Painting"
+    ],
+    [
+      "Gestaltung / Technik",
+      "Design / Technique"
+    ],
+    [
+      "Putz",
+      "Plaster"
+    ],
+    [
+      "Trockenbau",
+      "Drywall"
+    ],
+    [
+      "Lackierarbeiten",
+      "Lacquer work"
+    ],
+    [
+      "Abbruch",
+      "Demolition"
+    ],
+    [
+      "Bodenbeläge",
+      "Flooring"
+    ],
+    [
+      "Außenfassade",
+      "Exterior facade"
+    ],
+    [
+      "WDVS",
+      "ETICS insulation"
+    ],
+    [
+      "Gerüstbau",
+      "Scaffolding"
+    ],
+    [
+      "Renovierung",
+      "Renovation"
+    ],
+    [
+      "Individuell",
+      "Custom"
+    ]
+  ],
+  "catalogItems": [
+    {
+      "kind": "TOOL",
+      "name": "Leiter",
+      "category": "Zugang"
+    },
+    {
+      "kind": "TOOL",
+      "name": "Gerüst",
+      "category": "Zugang"
+    },
+    {
+      "kind": "TOOL",
+      "name": "Spritzgerät",
+      "category": "Maschinen"
+    },
+    {
+      "kind": "TOOL",
+      "name": "Farbroller",
+      "category": "Handwerkzeug"
+    },
+    {
+      "kind": "TOOL",
+      "name": "Pinsel-Set",
+      "category": "Handwerkzeug"
+    },
+    {
+      "kind": "TOOL",
+      "name": "Schutzkleidung",
+      "category": "Arbeitsschutz"
+    },
+    {
+      "kind": "MATERIAL",
+      "name": "Außenfarbe weiß",
+      "unit": "Liter",
+      "category": "Farben"
+    },
+    {
+      "kind": "MATERIAL",
+      "name": "Innenfarbe weiß",
+      "unit": "Liter",
+      "category": "Farben"
+    },
+    {
+      "kind": "MATERIAL",
+      "name": "Grundierung",
+      "unit": "Liter",
+      "category": "Farben"
+    },
+    {
+      "kind": "MATERIAL",
+      "name": "Abdeckfolie",
+      "unit": "Rolle",
+      "category": "Verbrauch"
+    },
+    {
+      "kind": "MATERIAL",
+      "name": "Klebeband",
+      "unit": "Rolle",
+      "category": "Verbrauch"
+    }
+  ]
+}
