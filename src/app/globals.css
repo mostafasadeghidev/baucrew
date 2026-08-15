@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantic color tokens. Components use ONLY these (via the @theme mapping
+   below) so light/dark stay consistent everywhere. */
+:root {
+  --background: #f4f4f5;
+  --surface: #ffffff;
+  --surface-hover: #f4f4f5;
+  --border: #e4e4e7;
+  --foreground: #18181b;
+  --muted: #71717a;
+  --accent: #1d4ed8;
+  --accent-hover: #1e40af;
+  --accent-foreground: #ffffff;
+  --danger: #dc2626;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #101012;
+  --surface: #1b1b1f;
+  --surface-hover: #26262b;
+  --border: #2e2e33;
+  --foreground: #ececee;
+  --muted: #9d9da6;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-foreground: #ffffff;
+  --danger: #f87171;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
+
+/* Printing: always black on white, regardless of the screen theme. */
+@media print {
+  :root,
+  .dark {
+    --background: #ffffff;
+    --surface: #ffffff;
+    --border: #000000;
+    --foreground: #000000;
+    --muted: #333333;
+    color-scheme: light;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}

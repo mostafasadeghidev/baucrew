@@ -1,0 +1,22 @@
+# Development database only. The app runs with `npm run dev` on the host.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: baucrew-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: baucrew
+      POSTGRES_PASSWORD: baucrew_dev
+      POSTGRES_DB: baucrew
+    ports:
+      - "5432:5432"
+    volumes:
+      - baucrew_pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baucrew -d baucrew"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  baucrew_pgdata_dev:
