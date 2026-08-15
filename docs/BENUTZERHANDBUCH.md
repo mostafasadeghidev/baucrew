@@ -1,8 +1,8 @@
-# Benutzerhandbuch — Einsatz- und Projektverwaltung
+# BauCrew — Benutzerhandbuch
 
-*Stand: 15. August 2026*
+*Version 1.0 · Stand: 16. August 2026*
 
-Dieses Handbuch erklärt alle Bereiche der Anwendung Schritt für Schritt — für die Verwaltung (Büro), für das Lager und für die Mitarbeiter.
+Dieses Handbuch erklärt alle Bereiche der Anwendung Schritt für Schritt — für die Geschäftsführung, das Büro, das Lager und die Mitarbeiter auf der Baustelle. Die Oberfläche ist Deutsch (Standard) oder Englisch; die Bezeichnungen im Handbuch entsprechen der deutschen Oberfläche.
 
 ---
 
@@ -10,28 +10,29 @@ Dieses Handbuch erklärt alle Bereiche der Anwendung Schritt für Schritt — f�
 
 1. [Grundprinzip](#1-grundprinzip)
 2. [Anmeldung, Rollen und Rechte](#2-anmeldung-rollen-und-rechte)
-3. [Bedienung: Sprache, Design, Menü, Suche](#3-bedienung-sprache-design-menü-suche)
+3. [Bedienung: Sprache, Design, Menü, Suche, Speichern](#3-bedienung-sprache-design-menü-suche-speichern)
 4. [Übersicht (Dashboard)](#4-übersicht-dashboard)
 5. [Kunden](#5-kunden)
 6. [Projekte](#6-projekte)
 7. [Arbeitsauftrag (Druck / PDF / QR-Code)](#7-arbeitsauftrag-druck--pdf--qr-code)
 8. [Vorlagen](#8-vorlagen)
-9. [Mitarbeiter](#9-mitarbeiter)
+9. [Mitarbeiter und Benutzerkonten](#9-mitarbeiter-und-benutzerkonten)
 10. [Fahrzeuge](#10-fahrzeuge)
 11. [Lager: Werkzeug- und Materialkatalog](#11-lager-werkzeug--und-materialkatalog)
 12. [Einsatzplanung (Wochenplan)](#12-einsatzplanung-wochenplan)
 13. [Tagesvorbereitung — Bildschirm im Lager](#13-tagesvorbereitung--bildschirm-im-lager)
 14. [Mein Bereich — für Mitarbeiter](#14-mein-bereich--für-mitarbeiter)
-15. [Berichte und Excel-Export](#15-berichte-und-excel-export)
+15. [Berichte](#15-berichte)
 16. [Einstellungen](#16-einstellungen)
 17. [Typische Abläufe im Alltag](#17-typische-abläufe-im-alltag)
 18. [Häufige Fragen](#18-häufige-fragen)
+19. [Für den Administrator: Installation, Update, Sicherung](#19-für-den-administrator-installation-update-sicherung)
 
 ---
 
 ## 1. Grundprinzip
 
-**Alles wird nur einmal eingegeben.** Ein Projekt ist der zentrale Datensatz: Kunde, Adresse, Team, Fahrzeug, Werkzeug/Material, Termine. Aus diesem einen Datensatz entstehen automatisch:
+**Alles wird nur einmal eingegeben.** Das Projekt ist der zentrale Datensatz: Kunde, Baustellenadresse, Team, Fahrzeug, Werkzeug und Material, Termine, Auftragswert. Aus diesem einen Datensatz entstehen automatisch
 
 - der Wochenplan (Einsatzplanung),
 - der Bildschirm im Lager (was heute gepackt werden muss),
@@ -39,7 +40,7 @@ Dieses Handbuch erklärt alle Bereiche der Anwendung Schritt für Schritt — f�
 - der Bereich für die Mitarbeiter (wer arbeitet heute wo),
 - die Berichte und der Excel-Export.
 
-Wird etwas geändert (z. B. ein Einsatz wegen Regen verschoben), sind alle Stellen sofort aktuell — nichts muss doppelt gepflegt werden.
+Wird etwas geändert — z. B. ein Einsatz wegen Regen verschoben — sind alle Stellen sofort aktuell. Nichts muss doppelt gepflegt werden, nichts kann auseinanderlaufen.
 
 ---
 
@@ -53,34 +54,38 @@ Anmeldung mit **Benutzername** und **Passwort**. Die Sitzung bleibt 30 Tage best
 
 | | Administrator | Büro / Verwaltung | Mitarbeiter |
 |---|---|---|---|
-| Kunden, Projekte, Mitarbeiter, Fahrzeuge, Lager, Einsatzplanung | ✓ | ✓ | – |
-| **Preise (Auftragswert) und Umsatzberichte** | ✓ | nur mit Freigabe „Finanzdaten sichtbar“ | **niemals** |
+| Kunden, Projekte, Mitarbeiter, Fahrzeuge, Lager, Einsatzplanung, Vorlagen | ✓ | ✓ | – |
+| **Auftragswerte, Umsätze, Kundenumsätze** | ✓ | nur mit Freigabe „Finanzdaten sichtbar“ | **niemals** |
 | Projekte löschen | ✓ | – | – |
-| Einstellungen (Benutzer, Logo, Backup, Import) | ✓ | – | – |
+| Benutzerkonten anlegen / ändern / löschen | ✓ | – | – |
+| Einstellungen (Systemkonten, Logo, Backup, Import, Kategorien) | ✓ | – | – |
 | Mein Bereich, Tagesvorbereitung, Arbeitsauftrag | ✓ | ✓ | ✓ (nur eigene / anstehende Einsätze) |
 
 Preise sind für Mitarbeiter nicht nur ausgeblendet, sondern werden gar nicht erst an ihr Gerät übertragen. Auch der Arbeitsauftrag enthält bewusst keine Preise und keine internen Notizen.
 
-### Vorhandene Konten (Erstinstallation)
+### Konten nach der Installation
 
 | Benutzer | Rolle | Verwendung |
 |---|---|---|
-| `admin` | Administrator | Inhaber |
-| `buero` | Büro / Verwaltung | Büro, ohne Preise |
+| `admin` | Administrator | Geschäftsführung — sieht und darf alles |
+| `buero` | Büro / Verwaltung | Büro, ohne Preise (Freigabe möglich) |
 | `lager` | Mitarbeiter | gemeinsames Konto für den Bildschirm im Lager |
 
-> **Wichtig:** Alle Anfangs-Passwörter vor dem echten Betrieb ändern (Systemkonten unter *Einstellungen*, Mitarbeiterkonten auf der Mitarbeiterseite).
+Konten für Mitarbeiter werden **auf der Mitarbeiterseite** angelegt (Kapitel 9). Ein persönliches Administrator-Konto mit eigenem Namen anlegen und `admin` danach löschen ist möglich — siehe Kapitel 16.
+
+> **Wichtig:** Alle Anfangs-Passwörter vor dem echten Betrieb ändern.
 
 ---
 
-## 3. Bedienung: Sprache, Design, Menü, Suche
+## 3. Bedienung: Sprache, Design, Menü, Suche, Speichern
 
-- **Sprache:** oben rechts **DE | EN** (Deutsch ist die Standardsprache).
-- **Design:** Sonnen-/Mond-Symbol → hell, dunkel oder Systemeinstellung.
-- **Menü:** links; auf dem Handy über das ☰-Symbol oben links.
-- **Suche:** Alle Suchfelder filtern **sofort beim Tippen** — kein Suchen-Knopf nötig. Auswahlfelder (Kunde, Projekt, Fahrzeug, Werkzeug …) sind ebenfalls durchsuchbar: einfach anfangen zu tippen.
-- **Listen** zeigen 20 Einträge pro Seite; unten kann geblättert werden.
-- **Speichern:** Formulare, die auf derselben Seite bleiben (Einstellungen, Benutzerkonto eines Mitarbeiters), bestätigen mit einem kurzen grünen **„✓ Gespeichert“** neben dem Knopf; die Meldung verschwindet nach wenigen Sekunden von selbst. Alle anderen Formulare öffnen nach dem Speichern direkt die Detailseite.
+- **Sprache:** oben rechts **DE | EN**. Deutsch ist Standard; die Auswahl gilt pro Gerät.
+- **Design:** Symbol neben der Sprache → hell, dunkel oder Systemeinstellung.
+- **Menü:** links; auf dem Handy über ☰ oben links.
+- **Suche:** Alle Suchfelder filtern **sofort beim Tippen** — kein Suchen-Knopf. Auswahlfelder (Kunde, Projekt, Fahrzeug, Werkzeug, Ort …) sind ebenfalls durchsuchbar: einfach anfangen zu tippen. Wo es sinnvoll ist, kann direkt aus dem Feld ein neuer Eintrag angelegt werden („… als neuen Kunden anlegen“).
+- **Listen** zeigen 20 Einträge pro Seite; unten kann geblättert werden. Filter setzen die Seite automatisch zurück.
+- **Speichern:** Formulare, die zu einer Detailseite führen (Projekt, Kunde, Mitarbeiter, Fahrzeug …), öffnen diese nach dem Speichern. Formulare, die auf derselben Seite bleiben (Einstellungen, Benutzerkonto, Vorlage), bestätigen mit einem kurzen grünen **„✓ Gespeichert“** neben dem Knopf, das nach wenigen Sekunden verschwindet.
+- **Dialogfenster** schließen nur über ✕ oder Abbrechen — nicht durch Klicken daneben — damit nichts versehentlich verloren geht.
 
 ---
 
@@ -88,11 +93,11 @@ Preise sind für Mitarbeiter nicht nur ausgeblendet, sondern werden gar nicht er
 
 ![Übersicht](screenshots/02-dashboard.png)
 
-Die Startseite nach der Anmeldung beantwortet die Tagesfragen auf einen Blick:
+Die Startseite beantwortet die Tagesfragen auf einen Blick:
 
 - **Kennzahlen** (anklickbar): laufende / geplante Projekte, Mitarbeiter und Fahrzeuge heute im Einsatz, Kunden.
-- **⚠ Konflikte diese Woche:** Mitarbeiter oder Fahrzeuge, die am selben Tag doppelt eingeplant sind. Gelb = Handlungsbedarf, ✓ = alles frei.
-- **Wetter:** Regenwarnungen (≥ 60 %) für Außenarbeiten dieser Woche.
+- **⚠ Konflikte diese Woche:** Mitarbeiter oder Fahrzeuge, die am selben Tag mit überschneidenden Zeiten doppelt eingeplant sind, oder Fahrzeuge, die nicht verfügbar sind. Gelb = Handlungsbedarf, ✓ = alles frei.
+- **Wetter:** Regenwarnungen (≥ 60 % Regenwahrscheinlichkeit, bis 16 Tage im Voraus) für Einsätze mit Außenarbeiten (Außenfassade, WDVS, Gerüstbau).
 - **Bereitstellung heute:** Fortschritt der Lagervorbereitung je heutigem Einsatz („2 von 4 gepackt · 1 fehlt“).
 - **Projekte mit offener Zuordnung:** anstehende Projekte ohne Team oder ohne Fahrzeug.
 - **Heutige Einsätze:** Uhrzeit, Projekt, Kunde, Fahrzeug, Team.
@@ -103,11 +108,13 @@ Die Startseite nach der Anmeldung beantwortet die Tagesfragen auf einen Blick:
 
 ![Kunden](screenshots/07-kunden.png)
 
-**Kunden → Neuer Kunde:** Name (Pflicht), Firma, Ansprechpartner, Telefon, E-Mail, Adresse, Notizen.
+Name, Firma, Ansprechpartner, Telefon, E-Mail, Adresse, Notizen. Die Kundenseite zeigt alle Projekte des Kunden. Kunden mit Projekten können nicht gelöscht werden.
 
-Die Kundenseite zeigt alle Kontaktdaten und **alle Projekte dieses Kunden** mit Status. Ein Kunde kann nur gelöscht werden, wenn ihm keine Projekte zugeordnet sind.
+![Kunde anlegen — Ort wählen](screenshots/25-kunde-neu-ort.png)
 
-**Tipp:** Kunden müssen nicht vorab angelegt werden — im Projektformular kann ein neuer Kunde direkt angelegt werden (siehe Kapitel 6).
+**Ort richtig erfassen:** Das Feld *Ort* schlägt beim Tippen echte Orte in Deutschland vor (mit PLZ und Bundesland). Wählen Sie den Ort **aus der Liste** — dann wird er einheitlich geschrieben, die PLZ ergänzt (falls leer) und die Position gespeichert. Darunter erscheint **„✓ Ort erkannt — Wetterdaten verfügbar“**. Freier Text ist erlaubt, aber ohne Treffer steht **„⚠ Ort nicht gefunden“** und für Projekte an dieser Adresse ist keine Wetterwarnung möglich. Ein sauber erfasster Kunde spart Arbeit: seine Adresse wird beim Anlegen eines Projekts übernommen (Kapitel 6.2).
+
+Neue Kunden können auch direkt aus dem Projektformular angelegt werden (Kundenfeld → „… als neuen Kunden anlegen“).
 
 ---
 
@@ -117,40 +124,40 @@ Die Kundenseite zeigt alle Kontaktdaten und **alle Projekte dieses Kunden** mit 
 
 ![Projektliste](screenshots/03-projekte-liste.png)
 
-- **Status-Reiter** oben (Alle · Anfrage · Beauftragt · Geplant · In Ausführung · Abgeschlossen …) mit Anzahl.
-- **Suche** nach Nummer, Name, Kunde, Ort, Straße.
-- Projektnummern werden automatisch vergeben (`2026-0001`, `2026-0002` …).
+Reiter nach **Status** (Alle · Anfrage · Angebot · Beauftragt · Geplant · In Ausführung · Abgeschlossen · Abgerechnet · Bezahlt · Storniert) mit Anzahl, darunter Live-Suche nach Nummer, Name, Kunde, Ort. Auftragswerte erscheinen nur mit Finanzfreigabe. Der Knopf **Vorlagen** führt zu den Projektvorlagen.
 
 ### 6.2 Neues Projekt anlegen
 
 ![Projekt anlegen](screenshots/04-projekt-neu.png)
 
-**Baustellenadresse:** Sobald ein Kunde gewählt ist und die Adressfelder leer sind, wird **„Wie Kundenadresse“** automatisch angehakt und Straße, PLZ, Ort und Telefon vom Kunden übernommen (grau, nicht editierbar); nur der *Ansprechpartner vor Ort* bleibt frei. Haken entfernen = andere Baustellenadresse: die Felder werden geleert und sind frei editierbar. Beim Bearbeiten eines Projekts ist der Haken standardmäßig aus (bestehende Adressen werden nicht überschrieben).
+- **Aus Vorlage erstellen** (oben): Vorlage wählen → Name, Kategorie und die empfohlene Werkzeug-/Materialliste sind vorbelegt.
+- **Grunddaten:** Projektname, Kunde (Live-Suche, neuer Kunde direkt anlegbar), Status, Auftragsart, Objektart, **Bezeichnung der Arbeit** (mehrere Kategorien), **Subunternehmer (SUB)** — SUB-Projekte werden in den Berichten getrennt ausgewiesen.
+- Die Projektnummer (`2026-0031`) wird automatisch vergeben.
 
-**Ort:** Das Feld *Ort* schlägt beim Tippen echte Orte vor (Deutschland). Wählen Sie aus der Liste — dann wird der Ort einheitlich geschrieben, die PLZ ggf. ergänzt und die Koordinaten gespeichert; darunter erscheint **„✓ Ort erkannt — Wetterdaten verfügbar“**. Bei freiem Text ohne Treffer steht **„⚠ Ort nicht gefunden“** — dann ist keine Wetterwarnung möglich. Dasselbe Feld gibt es beim Kunden; ein dort korrekt gewählter Ort wandert über „Wie Kundenadresse“ in die Projekte. Alte Projekte mit unauffindbarem Ort listet *Berichte → Datenqualität*.
+![Baustellenadresse — wie Kundenadresse](screenshots/23-projekt-adresse.png)
 
-**Projekte → Neues Projekt.** Optional zuerst oben **„Aus Vorlage erstellen“** wählen — dann sind Name, Kategorie, Beschreibung und die Werkzeug-/Materialliste schon ausgefüllt.
+- **Baustellenadresse:** Sobald ein Kunde mit Adresse gewählt ist und die Felder noch leer sind, wird **„Wie Kundenadresse“** automatisch angehakt: Straße, PLZ, Ort und Telefon kommen vom Kunden (grau, nicht editierbar); nur der **Ansprechpartner vor Ort** bleibt frei. Haken entfernen = andere Baustellenadresse: die Felder werden geleert und sind frei editierbar; Haken wieder setzen holt die Kundenadresse zurück. Hat der Kunde keine Adresse, ist der Haken gesperrt. Beim *Bearbeiten* eines Projekts ist der Haken standardmäßig aus, damit vorhandene Adressen nicht überschrieben werden.
 
-| Bereich | Felder |
-|---|---|
-| **Grunddaten** | Projektname*, Kunde* (durchsuchbar; unbekannter Name → „… als neuen Kunden anlegen“ oder **+**-Knopf öffnet ein Fenster zum Anlegen), Status, Auftragsart (Privat/Gewerblich), Objektart (Neubau/Altbau), Bezeichnung der Arbeit (mehrere möglich), Subunternehmer (SUB) |
-| **Baustellenadresse** | Straße, PLZ, **Ort** (wichtig für die Wetterwarnung!), Telefon Baustelle, Ansprechpartner vor Ort |
-| **Termine und Preis** | Beginn/Ende geplant und tatsächlich, **Auftragswert** (nur mit Finanzfreigabe sichtbar) |
-| **Zuordnung** | Baustellenverantwortlicher, Fahrzeug, Mitarbeiter (Team) — alle durchsuchbar |
-| **Beschreibung und Notizen** | Beschreibung (sichtbar für Mitarbeiter, auf dem Arbeitsauftrag), **Interne Notizen (nur Verwaltung)** |
+![Ort mit Vorschlägen](screenshots/30-projekt-ort-vorschlaege.png)
+
+- **Ort:** wie beim Kunden — aus der Liste wählen, dann „✓ Ort erkannt“. Nur so sind Wetterwarnungen für dieses Projekt möglich.
+- **Termine und Preis:** Beginn/Ende geplant und tatsächlich, **Auftragswert** (nur mit Finanzfreigabe sichtbar). *Ende (tatsächlich)* wird später für die Auswertung „Plan vs. Ist“ genutzt.
+- **Zuordnung:** Baustellenverantwortlicher, Fahrzeug, Mitarbeiter (Team). Diese Werte werden beim Planen von Einsätzen vorbelegt.
+
+![Empfohlene Werkzeuge und Materialien aus der Vorlage](screenshots/24-projekt-vorlage-artikel.png)
+
+- **Empfohlene Werkzeuge und Materialien** (nur bei Vorlage): zunächst zugeklappt mit Anzahl. Aufklappen, um Artikel zu entfernen (✕) oder weitere hinzuzufügen (Suche + Menge). Genau diese Liste wird mit dem Projekt gespeichert.
+- **Beschreibung** (erscheint auf dem Arbeitsauftrag) und **Interne Notizen** (nur Verwaltung, nie auf dem Arbeitsauftrag).
 
 ### 6.3 Projektseite
 
 ![Projektseite](screenshots/05-projekt-detail.png)
 
-Die zentrale Seite eines Projekts:
-
-- **Status** direkt im Kopf ändern (farbiges Auswahlfeld) — ohne das Bearbeiten-Formular.
-- Knöpfe **Arbeitsauftrag**, **Bearbeiten**, **Löschen** (nur Administrator).
-- **Übersicht** und **Termine / Zuordnung**.
-- **Werkzeug und Material:** Artikel hinzufügen (durchsuchbar, mit Menge), Status je Artikel (Benötigt / Gepackt / Fehlt), entfernen. Diese Liste erscheint auf dem Arbeitsauftrag und im Lager.
-- **Geplante Einsätze:** alle Termine dieses Projekts. **„+ Einsatz planen“** öffnet direkt das Einsatzfenster — Team und Fahrzeug sind aus dem Projekt bereits vorbelegt.
-- **Interne Notizen** (nur Verwaltung, gelb hinterlegt).
+- Kopf: Nummer, Name, **Status als Auswahl** — direkt umschaltbar (z. B. Geplant → In Ausführung), ohne das Formular zu öffnen.
+- Karten: Übersicht (Kunde, Kategorien, SUB, Auftragswert), Adresse, Termine, Zuordnung, Beschreibung/Notizen.
+- **Werkzeug und Material:** Liste für dieses Projekt (Artikel, Menge, Status *Erforderlich / Gepackt / Fehlt*). Hier hinzufügen oder entfernen — die Liste gilt für alle Einsätze des Projekts und erscheint im Lager und auf dem Arbeitsauftrag.
+- **Geplante Einsätze** mit Datum, Uhrzeit, Team, Fahrzeugen. **+ Einsatz planen** öffnet das Einsatzfenster mit Team, Fahrzeug und Uhrzeiten aus dem Projekt vorbelegt (Kapitel 12.2).
+- **Arbeitsauftrag** (Druckersymbol) und **Bearbeiten**; Löschen nur für Administratoren.
 
 ---
 
@@ -158,12 +165,12 @@ Die zentrale Seite eines Projekts:
 
 ![Arbeitsauftrag](screenshots/06-arbeitsauftrag.png)
 
-Der digitale Nachfolger des Papier-Arbeitsauftrags — gleicher Aufbau: Logo, Auftrag vom, Fahrzeug, Auftraggeber/Kunde, Anschrift, Telefon, Baustelleneinrichtung (Privat/Gewerblich/Neubau/Altbau), Bezeichnung der Arbeit (angekreuzt), Baustellenverantwortlicher, Mitarbeiter, Beginn, voraussichtliches Ende, Werkzeugliste/Materialliste, weitere Notizen.
+Der Arbeitsauftrag ist die A4-Seite fürs Fahrzeug und die Baustelle — im Aufbau wie das bisherige Papierformular: Firmenlogo, Projektnummer, Kunde, Baustellenadresse und Telefon, Ansprechpartner, Termine, Baustellenverantwortlicher, Fahrzeuge, Team, Bezeichnung der Arbeit (angekreuzt), Werkzeug- und Materialliste als Checkliste, Beschreibung, Unterschriftsfelder. **Keine Preise, keine internen Notizen.**
 
-- **Drucken / PDF:** öffnet den Druckdialog des Browsers; dort „Als PDF speichern“ wählen. Gedruckt wird immer schwarz auf weiß, ohne Menüs.
-- **QR-Code** oben rechts: mit dem Handy scannen → derselbe Arbeitsauftrag öffnet sich auf dem Handy.
-- **Zurück** führt immer zur vorherigen Seite (Einsatzplanung, Projekt …).
-- Erreichbar von: Projektseite, jeder Karte in der Einsatzplanung (Drucker-Symbol), dem Einsatzfenster, der Tagesvorbereitung und „Mein Bereich“.
+- Öffnen: Projektseite → Druckersymbol, Einsatzkarte im Wochenplan → Druckersymbol, Tagesvorbereitung, Mein Bereich. Der Auftrag öffnet im gleichen Fenster; **← Zurück** führt zur vorherigen Seite.
+- **Drucken / PDF:** Knopf oben oder Strg+P; „Als PDF speichern“ im Druckdialog.
+- **QR-Code** oben rechts: mit dem Handy scannen → derselbe Arbeitsauftrag öffnet sich (Anmeldung erforderlich).
+- Mitarbeiter sehen nur Aufträge ihrer eigenen Projekte bzw. von Einsätzen zwischen gestern und in 7 Tagen.
 
 ---
 
@@ -171,44 +178,40 @@ Der digitale Nachfolger des Papier-Arbeitsauftrags — gleicher Aufbau: Logo, Au
 
 ![Vorlagen](screenshots/17-vorlagen.png)
 
-**Projekte → Vorlagen.** Für wiederkehrende Arbeiten (z. B. „Außenfassade streichen“): Bezeichnung, Kategorie, Beschreibung und die **empfohlenen Werkzeuge und Materialien** mit Mengen.
+*Projekte → Vorlagen.* Eine Vorlage hat Bezeichnung, Kategorie, Beschreibung und eine **empfohlene Werkzeug- und Materialliste** (Artikel mit Menge). Typische Vorlagen: „Außenfassade streichen“, „Wohnung Innenanstrich“, „WDVS“.
 
-Beim Anlegen eines Projekts „Aus Vorlage erstellen“ wählen → alles wird übernommen und kann anschließend frei angepasst werden.
-
----
-
-**Projekt aus Vorlage anlegen:** Unter *Projekte → Neues Projekt* die Vorlage wählen. Der Bereich **Empfohlene Werkzeuge und Materialien** ist zunächst zugeklappt und zeigt die Anzahl; aufklappen, um vor dem Speichern Artikel zu entfernen oder weitere hinzuzufügen. Beim Speichern der Vorlage selbst erscheint kurz „✓ Gespeichert“.
+- **Neue Vorlage** anlegen, speichern („✓ Gespeichert“), dann unten Artikel hinzufügen (Live-Suche + Menge) oder entfernen.
+- Beim Anlegen eines Projekts die Vorlage wählen (Kapitel 6.2) — die Liste kann dort vor dem Speichern noch angepasst werden.
+- Vorlagen können deaktiviert werden; deaktivierte erscheinen nicht mehr in der Auswahl.
 
 ---
 
-## 9. Mitarbeiter
+## 9. Mitarbeiter und Benutzerkonten
 
 ![Mitarbeiter](screenshots/08-mitarbeiter.png)
 
-Vorname, Nachname, Telefon, E-Mail, **Fähigkeiten** (mit Komma trennen, z. B. „Malern, WDVS“), aktiv/inaktiv, Notizen. Suche findet auch Teile einer Fähigkeit („fass“ → Fassade).
+Vorname, Nachname, Telefon, E-Mail, **Fähigkeiten** (mit Komma trennen, z. B. „Malern, WDVS“), aktiv/inaktiv, Notizen. Die Suche findet auch Teile einer Fähigkeit („fass“ → Fassade). Die Spalte **Konto** zeigt, wer sich anmelden kann.
 
-Die Spalte **Konto** in der Liste zeigt, welche Mitarbeiter sich anmelden können (Benutzername; bei Büro-/Administratorrechten zusätzlich die Rolle).
+Mitarbeiter, die Projekten oder Einsätzen zugeordnet sind, können nicht gelöscht werden — stattdessen auf **inaktiv** setzen (die Historie bleibt erhalten).
 
 ### 9.1 Mitarbeiterseite
-Die Mitarbeiterseite zeigt Kontaktdaten, **kommende Einsätze**, alle Projekte und den Bereich **Benutzerkonto**.
+
+Kontaktdaten, **kommende Einsätze**, alle Projekte und der Bereich **Benutzerkonto**.
 
 ### 9.2 Benutzerkonto eines Mitarbeiters (nur Administrator)
 
-![Benutzerkonto anlegen](screenshots/22-mitarbeiter-konto-anlegen.png)
+![Benutzerkonto](screenshots/21-mitarbeiter-konto.png)
 
-**Konto anlegen:** Haken **„Benutzerkonto aktivieren“** setzen → Benutzername (Kleinbuchstaben, Zahlen, Punkt, Minus, Unterstrich), Passwort (min. 8 Zeichen), Rolle (normalerweise *Mitarbeiter*) und optional **„Finanzdaten sichtbar“** eingeben → **Konto anlegen**. Ab sofort kann sich der Mitarbeiter am Handy anmelden und sieht „Mein Bereich“.
+**Konto anlegen:** Haken **„Benutzerkonto aktivieren“** → Benutzername (Kleinbuchstaben, Zahlen, Punkt, Minus, Unterstrich), Passwort (min. 8 Zeichen), Rolle (normalerweise *Mitarbeiter*), optional „Finanzdaten sichtbar“ → **Konto anlegen**. Ab sofort kann sich der Mitarbeiter am Handy anmelden und sieht „Mein Bereich“.
 
-![Benutzerkonto verwalten](screenshots/21-mitarbeiter-konto.png)
-
-**Bestehendes Konto:** Oben rechts im Kasten stehen die Kennzeichen — Benutzername, Rolle und, falls freigegeben, **„€ Finanzdaten sichtbar“**; ein deaktiviertes Konto ist als „Konto deaktiviert“ markiert. Im Formular darunter lassen sich ändern:
-- **Rolle** (Mitarbeiter / Büro / Administrator),
+**Bestehendes Konto:** Kennzeichen oben rechts (Benutzername, Rolle, ggf. „€ Finanzdaten sichtbar“, „Konto deaktiviert“). Im Formular ändern:
+- **Rolle** — Mitarbeiter / Büro / Administrator,
 - **Neues Passwort** — leer lassen, um es nicht zu ändern; ein neues Passwort meldet den Mitarbeiter auf allen anderen Geräten ab,
 - **Finanzdaten sichtbar**,
-- **Aktiv** — Haken entfernen sperrt die Anmeldung, ohne den Mitarbeiter oder seine Historie zu löschen (z. B. beim Ausscheiden).
+- **Aktiv** — Haken entfernen sperrt die Anmeldung, ohne den Mitarbeiter oder seine Historie zu löschen (z. B. beim Ausscheiden),
+- **Konto löschen** — entfernt das Konto endgültig; Protokolleinträge bleiben. Schutzregeln siehe Kapitel 16.
 
-Nach **Speichern** erscheint kurz „✓ Gespeichert“. Büro-Konten (Rolle Büro / Verwaltung) sehen den Bereich nur lesend.
-
-Mitarbeiter, die Projekten oder Einsätzen zugeordnet sind, können nicht gelöscht werden — stattdessen auf **inaktiv** setzen (die Historie bleibt erhalten).
+Nach **Speichern** erscheint „✓ Gespeichert“. Büro-Konten sehen den Bereich nur lesend.
 
 ---
 
@@ -216,9 +219,7 @@ Mitarbeiter, die Projekten oder Einsätzen zugeordnet sind, können nicht gelös
 
 ![Fahrzeuge](screenshots/09-fahrzeuge.png)
 
-Bezeichnung, Kennzeichen, Typ, **Status** (Verfügbar / In Wartung / Außer Betrieb), aktiv, Notizen. Der Status kann auf der Fahrzeugseite direkt im Kopf geändert werden.
-
-Wird ein Fahrzeug eingeplant, das **In Wartung** oder **Außer Betrieb** ist, warnt die Einsatzplanung.
+Name, Kennzeichen, Typ, Notizen, **Status** (Verfügbar · Im Einsatz · Werkstatt · Außer Betrieb) — auf der Fahrzeugseite direkt umschaltbar. Die Fahrzeugseite zeigt kommende Einsätze. Ein Fahrzeug, das nicht *Verfügbar* ist, aber eingeplant wird, erzeugt einen Konflikt-Hinweis. Fahrzeuge in Einsätzen können nicht gelöscht werden — auf *Außer Betrieb* setzen.
 
 ---
 
@@ -226,9 +227,7 @@ Wird ein Fahrzeug eingeplant, das **In Wartung** oder **Außer Betrieb** ist, wa
 
 ![Lager](screenshots/10-lager-katalog.png)
 
-**Lager** = alle Artikel, die das Unternehmen besitzt: Werkzeuge und Materialien mit Kategorie, Einheit, Bestand, Mindestbestand, Lagerort. Filter nach Art (Werkzeug/Material), Suche nach Bezeichnung/Kategorie/Lagerort.
-
-Aus diesem Katalog werden Artikel den Projekten (und Vorlagen) zugeordnet. Der Knopf **Tagesvorbereitung** führt zum Lagerbildschirm (Kapitel 13).
+Der Katalog aller Werkzeuge (z. B. Leiter, Gerüst, Spritzgerät) und Materialien (Farbe, Grundierung, Folie …) mit Art, Kategorie, Einheit, optional Bestand/Mindestbestand/Lagerort. Live-Suche und Filter nach Art. Deaktivierte Artikel bleiben in alten Projekten erhalten, sind aber nicht mehr auswählbar. Aus diesem Katalog werden Projektlisten und Vorlagen bestückt.
 
 ---
 
@@ -238,42 +237,35 @@ Aus diesem Katalog werden Artikel den Projekten (und Vorlagen) zugeordnet. Der K
 
 ![Wochenansicht](screenshots/11-einsatzplanung-woche.png)
 
-Fünf Spalten Montag–Freitag, eine Karte je Einsatz (Projekt, Nummer, Kunde, Uhrzeit, Fahrzeug, Team). Der heutige Tag ist hervorgehoben.
+Fünf Tagesspalten (Mo–Fr) mit Einsatzkarten: Projekt, Nummer, Kunde, Uhrzeit, Fahrzeuge, Team. Oben **Woche | Monat | Übersicht**, ← → sowie **Aktuelle Woche**.
 
-- **← Aktuelle Woche →**: Wochen wechseln. Ansicht umschalten: **Woche | Monat | Übersicht**.
-- **+** in einer Spalte: neuen Einsatz an diesem Tag anlegen.
-- **Klick auf eine Karte:** Einsatz bearbeiten / löschen.
-- **Drucker-Symbol** auf der Karte: Arbeitsauftrag öffnen.
-- **Verschieben per Ziehen (Drag & Drop):** Karte mit der Maus auf einen anderen Tag ziehen. Auf dem Handy/Tablet: Karte **kurz gedrückt halten** (ca. ¼ Sekunde), dann verschieben.
-- **⚠ Konflikte:** gelber Kasten oben und ⚠ auf betroffenen Karten, wenn ein Mitarbeiter oder Fahrzeug am selben Tag doppelt eingeplant ist oder ein Fahrzeug nicht verfügbar ist. Das ist eine **Warnung** — die Entscheidung bleibt beim Planer.
-- **🌧 Wetter-Hinweise:** Regenwahrscheinlichkeit ≥ 60 % für Außenarbeiten (Außenfassade, WDVS, Gerüstbau) — der Ort kommt aus der Baustellenadresse des Projekts.
+- **Verschieben:** Karte mit der Maus auf einen anderen Tag ziehen; auf dem Handy/Tablet die Karte kurz gedrückt halten und ziehen.
+- **+** in der Tagesspalte legt einen neuen Einsatz an diesem Tag an; Klick auf eine Karte öffnet sie zum Bearbeiten.
+- **⚠ Konflikte in dieser Woche** (oben): Mitarbeiter/Fahrzeug am selben Tag mit überschneidenden Zeiten mehrfach eingeplant, oder Fahrzeug nicht verfügbar. Betroffene Karten sind gelb markiert. Konflikte sind **Warnungen** — die Planung bleibt möglich, die Verwaltung entscheidet.
+- **Wetter:** Regenwarnungen für Einsätze mit Außenarbeiten und erkanntem Ort.
+- Druckersymbol auf der Karte → Arbeitsauftrag.
 
 ### 12.2 Einsatz anlegen / bearbeiten
 
 ![Einsatzfenster](screenshots/12-einsatz-dialog.png)
 
-| Feld | Bedeutung |
-|---|---|
-| **Projekt*** | durchsuchbar. Beim Auswählen werden **Team und Fahrzeug aus dem Projekt übernommen** — für diesen Tag anpassbar. |
-| **Datum, Beginn, Ende** | Ohne Beginn und Ende gilt der Einsatz **ganztägig**. Mit Zeiten (z. B. 07:00–12:00 und 12:30–16:30) darf dasselbe Team am selben Tag zwei Einsätze haben, ohne Konflikt. |
-| **Fahrzeug** | eines oder mehrere (Chips), durchsuchbar |
-| **Mitarbeiter** | Häkchen |
-| **Notiz** | kurzer Hinweis für diesen Tag |
-| **Werkzeug und Material** | die Liste des Projekts — hier direkt bearbeitbar |
-
-Dasselbe Projekt kann nur einmal pro Tag eingeplant werden.
+- **Projekt** (Live-Suche) — bei Auswahl werden Team, Fahrzeug und Uhrzeiten aus dem Projekt vorbelegt.
+- **Datum**, **Beginn**, **Ende**: ohne Zeiten gilt der Einsatz ganztägig; mit Zeiten werden Konflikte nur bei zeitlicher Überschneidung gemeldet (zwei Einsätze desselben Teams 07:00–12:00 und 12:30–16:30 sind kein Konflikt).
+- **Fahrzeuge** (mehrere möglich, Live-Suche), **Mitarbeiter** (Ankreuzen), **Notiz**.
+- **Werkzeug und Material:** die Projektliste, direkt hier bearbeitbar (gilt für alle Einsätze des Projekts).
+- **Arbeitsauftrag** öffnen, **Löschen** des Einsatzes (nicht des Projekts).
 
 ### 12.3 Monatsansicht
 
 ![Monatsansicht](screenshots/13-einsatzplanung-monat.png)
 
-Kalenderraster Montag–Freitag; jede Zeile eine Kalenderwoche (KW anklickbar → Wochenansicht). Bis zu drei Einsätze je Tag, „+N“ bei mehr, ⚠ bei Konflikten.
+Kalenderraster mit allen Einsätzen des Monats; Klick auf einen Tag wechselt in die Woche.
 
 ### 12.4 Übersicht (mehrere Wochen)
 
 ![Übersicht](screenshots/14-einsatzplanung-uebersicht.png)
 
-Vier Wochen nebeneinander — wie der bisherige Papier-Wochenplan: je Projekt eine Zeile mit Wochentagsbereich („Mo–Mi“), Kunde, Fahrzeug, Anzahl der Konflikte. Klick auf eine Woche öffnet die Wochenansicht.
+Mehrere Wochen untereinander im Stil des bisherigen Papier-Wochenplans — für den Blick nach vorn und den Ausdruck.
 
 ---
 
@@ -281,18 +273,11 @@ Vier Wochen nebeneinander — wie der bisherige Papier-Wochenplan: je Projekt ei
 
 ![Tagesvorbereitung](screenshots/15-tagesvorbereitung.png)
 
-Für den Bildschirm/Touchscreen im Lager gedacht (große Schrift, große Tasten). Auf dem Bildschirm einmal mit dem Konto **`lager`** anmelden und **Tagesvorbereitung** öffnen (Menü *Lager → Tagesvorbereitung* oder Adresse `/today`).
+*Menü → Lager → Tagesvorbereitung* bzw. direkt `/today`, gedacht für einen Bildschirm oder ein Tablet im Lager mit dem gemeinsamen Konto `lager` (nur Lesen der Planung, Abhaken erlaubt, keine Preise).
 
-Je Einsatz des Tages eine Karte: **Fahrzeug** groß, Beginn, **Team**, Projekt, Kunde, Adresse und die **Packliste**:
-
-- Auf einen Artikel tippen → **✓ gepackt** (grün, durchgestrichen). Nochmal tippen → zurück.
-- **Fehlt** → rot markieren.
-- Fortschritt „2 von 4 gepackt“; sind alle gepackt: **✓ ALLES GEPACKT**.
-- Knopf **Arbeitsauftrag** je Einsatz → Blatt ansehen und am Drucker im Lager ausdrucken.
-- **← Heute →**: Vortag / Folgetag (z. B. abends schon für morgen packen).
-- Die Seite aktualisiert sich automatisch jede Minute — Änderungen aus dem Büro erscheinen von selbst.
-
-Der Status (Gepackt/Fehlt) ist überall derselbe: Projektseite, Arbeitsauftrag, Dashboard und „Mein Bereich“ zeigen ihn ebenfalls.
+- Zeigt alle **heutigen Einsätze** (Datum wechselbar) mit Team, Fahrzeugen und der **Packliste**.
+- Große Schaltflächen je Artikel: **Gepackt** ✓ oder **Fehlt** ⚠; Fortschritt je Einsatz („3 von 5“). Der Status ist sofort auf dem Dashboard und im Mitarbeiterbereich sichtbar.
+- Aktualisiert sich selbst; **Arbeitsauftrag** je Einsatz druckbar.
 
 ---
 
@@ -300,33 +285,47 @@ Der Status (Gepackt/Fehlt) ist überall derselbe: Projektseite, Arbeitsauftrag, 
 
 ![Mein Bereich](screenshots/20-mein-bereich-mobil.png)
 
-Mitarbeiter melden sich mit ihrem eigenen Konto an (am Handy) und sehen **Mein Bereich**:
+Was ein Mitarbeiter nach der Anmeldung am Handy sieht (Rolle *Mitarbeiter*):
 
-- Begrüßung mit Namen, Datum, **← Heute →** zum Blättern (gestern / morgen).
-- Je Einsatz: Projekt, Kunde, Uhrzeit, **Adresse mit „In Karten öffnen“** (Navigation), **Telefon mit Anruf-Knopf**, Verantwortlicher, Fahrzeug, Kollegen, Hinweise zum Auftrag, **Werkzeug/Material** mit Packstatus, Knopf **Arbeitsauftrag**.
-- **Nächster Einsatz** unten — auch an freien Tagen.
-- Oben rechts: Link zur **Tagesvorbereitung**, Sprache, Design, Abmelden.
-
-Mitarbeiter sehen **keine Preise, keine internen Notizen und keine fremden Projekte** — nur eigene und aktuell anstehende Einsätze.
+- **Heute** (Standard) mit Blättern zu gestern / morgen, **Kommende Einsätze** und **Nächster Einsatz**.
+- Je Einsatz: Uhrzeit, Projekt, Kunde, **Adresse mit „In Karten öffnen“**, **Anrufen** (Baustelle/Kunde), Fahrzeug, Team, Baustellenverantwortlicher, Hinweise, **Werkzeug und Material** mit Packstatus, **Arbeitsauftrag**.
+- Große Schrift, große Schaltflächen — für die Bedienung mit dem Daumen. **Keine Preise**, keine internen Notizen.
+- Voraussetzung: dem Benutzerkonto ist ein Mitarbeiter zugeordnet (Kapitel 9.2).
 
 ---
 
-## 15. Berichte und Excel-Export
+## 15. Berichte
 
-![Berichte](screenshots/16-berichte.png)
+![Berichte — Übersicht](screenshots/16-berichte.png)
 
-**Zeitraum:** oben rechts Jahr und Zeitraum wählen — *Ganzes Jahr*, ein **Quartal**, ein **Halbjahr** oder ein einzelner **Monat**. Die Auswahl gilt für alle Reiter, den Excel-Export und den Druck (**Drucken / PDF** druckt den aktuellen Reiter ohne Menü — so entsteht z. B. eine Monatsübersicht mit einem Klick).
+**Zeitraum:** oben rechts Jahr und Zeitraum wählen — *Ganzes Jahr*, ein **Quartal**, ein **Halbjahr** oder ein **Monat**. Die Auswahl gilt für alle Reiter, den **Excel-Export** und den Druck. **Drucken / PDF** druckt den aktuellen Reiter ohne Menü — so entsteht z. B. eine Monatsübersicht mit einem Klick.
 
-Die Seite hat sechs Reiter:
+**Übersicht:** Umsatz des Zeitraums (bei „Ganzes Jahr“ und laufendem Jahr: bis zum aktuellen Monat) mit Veränderung zum **gleichen Zeitraum des Vorjahres**, SUB-Anteil, **Offener Auftragsbestand** in drei Stufen — *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen* (unabhängig vom Zeitraum) — und das **Monatsdiagramm**: blau = laufendes Jahr (dunkel eigene Leute, hell SUB), grau = Vorjahr; der gewählte Zeitraum ist hervorgehoben. Gibt es Datenprobleme, erscheint darunter ein Hinweis mit Anzahl.
 
-- **Übersicht:** Umsatz des Zeitraums mit Veränderung zum gleichen Zeitraum des Vorjahres, SUB-Anteil, offener Auftragsbestand in drei Stufen (*Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*, unabhängig vom Zeitraum) und das Monatsdiagramm (blau = laufendes Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr; der gewählte Zeitraum ist hervorgehoben). Gibt es Datenprobleme, erscheint darunter ein Hinweis mit Anzahl.
-- **Umsatz:** der Monatsplanumsatz als Monatskarten (nur die Monate des Zeitraums).
-- **Projekte:** *Abgeschlossene Projekte — Plan vs. Ist*: geplante Arbeitstage (Mo–Fr zwischen geplantem Beginn und Ende), tatsächliche Einsatztage aus der Einsatzplanung, Personentage und **€ pro Personentag** (Auftragswert ÷ Personentage — der beste Hinweis auf die Wirtschaftlichkeit ohne Kostenerfassung); *Verzug (Ende)* nur, wenn im Projekt „Ende (tatsächlich)“ eingetragen ist. Die Durchschnittszeile ist bei € pro Personentag gewichtet. Daneben die Projekte nach Status.
-- **Kunden:** Kunden nach Umsatz im Zeitraum mit Anteil (über 30 % = Warnung „hohe Abhängigkeit“) und die Liste **Kunden ohne Projekt seit über 12 Monaten** — sortiert nach dem letzten Projekt, als Anlass für einen Anruf.
-- **Auslastung:** Mitarbeiter und Fahrzeuge in **Prozent** (Einsatztage ÷ Arbeitstage Mo–Fr des Zeitraums, bei laufendem Zeitraum bis heute). Unter 50 % gelb, über 90 % grün.
-- **Datenqualität:** Punkte, die die Zahlen verfälschen — Projekte *In Ausführung* ohne Einsatz in den nächsten 14 Tagen, abgeschlossene Projekte **ohne Auftragswert** (fehlen im Umsatz!), Projekte ohne Ort (keine Wetterwarnung), Artikel, die in mehreren Projekten fehlen. Jeder Eintrag ist ein Link zum Korrigieren.
+**Umsatz:** der Monatsplanumsatz als Monatskarten mit allen Projekten (eigene Leute und SUB getrennt), nur die Monate des Zeitraums.
 
-Preise und Kundenumsätze erscheinen nur mit Finanzfreigabe. **Excel-Export** enthält vier Blätter (Monatsplanumsatz, Auslastung, Plan vs Ist, Kunden) für den gewählten Zeitraum.
+![Berichte — Plan vs. Ist](screenshots/26-berichte-projekte.png)
+
+**Projekte:** *Abgeschlossene Projekte — Plan vs. Ist*: geplante Arbeitstage (Mo–Fr zwischen geplantem Beginn und Ende), tatsächliche Einsatztage aus der Einsatzplanung, Personentage (Summe der eingeplanten Mitarbeiter) und **€ pro Personentag** (Auftragswert ÷ Personentage — der beste Hinweis auf die Wirtschaftlichkeit, ohne Kosten erfassen zu müssen). *Verzug (Ende)* vergleicht das tatsächliche mit dem geplanten Ende (nur, wenn im Projekt „Ende (tatsächlich)“ eingetragen ist). Die Durchschnittszeile ist bei € pro Personentag gewichtet (Gesamtwert ÷ Gesamt-Personentage). Daneben die Projekte nach Status.
+
+![Berichte — Kunden](screenshots/27-berichte-kunden.png)
+
+**Kunden:** Kunden nach Umsatz im Zeitraum mit Anteil (Balken); über 30 % Anteil erscheint die Warnung „hohe Abhängigkeit von einem Kunden“. Rechts die Liste **Kunden ohne Projekt seit über 12 Monaten** — sortiert nach dem letzten Projekt, als Anlass für einen Anruf.
+
+![Berichte — Auslastung](screenshots/28-berichte-auslastung.png)
+
+**Auslastung:** Mitarbeiter und Fahrzeuge in **Prozent** = Einsatztage ÷ Arbeitstage (Mo–Fr) des Zeitraums, bei laufendem Zeitraum bis heute. Unter 50 % gelb, über 90 % grün.
+
+![Berichte — Datenqualität](screenshots/29-berichte-datenqualitaet.png)
+
+**Datenqualität:** Punkte, die die Zahlen verfälschen — jeder Eintrag ist ein Link zum Korrigieren:
+- Projekte *In Ausführung* ohne Einsatz in den nächsten 14 Tagen,
+- abgeschlossene Projekte **ohne Auftragswert** (fehlen im Umsatz!),
+- Projekte ohne Ort (keine Wetterwarnung möglich),
+- Projekte, deren Ort nicht auffindbar ist (Tippfehler — Ort aus der Liste wählen),
+- Artikel, die aktuell in mehreren Projekten fehlen.
+
+Preise, Umsätze und Kundenumsätze erscheinen nur mit Finanzfreigabe. **Excel-Export:** vier Blätter — Monatsplanumsatz, Auslastung, Plan vs Ist, Kunden — für den gewählten Zeitraum.
 
 ---
 
@@ -337,13 +336,15 @@ Preise und Kundenumsätze erscheinen nur mit Finanzfreigabe. **Excel-Export** en
 Nur für Administratoren.
 
 ### Systemkonten (ohne Mitarbeiter)
-Hier stehen nur Konten, die **keinem Mitarbeiter** gehören: Verwaltung (`admin`), Büro (`buero`) und der Lagerbildschirm (`lager`). Anlegen/bearbeiten: Benutzername, Passwort (min. 8 Zeichen), Rolle, **Finanzdaten sichtbar**, aktiv/inaktiv; **Konto löschen** entfernt ein Konto endgültig (Protokolleinträge bleiben). Zwei Schutzregeln: das Konto, mit dem Sie gerade angemeldet sind, kann nicht gelöscht werden (abmelden, mit einem anderen Administrator anmelden, dann löschen), und das letzte aktive Administrator-Konto kann nicht gelöscht werden — legen Sie zuerst ein neues an. So lässt sich z. B. `admin` durch ein Konto mit eigenem Namen ersetzen. Konten von Mitarbeitern werden **auf der jeweiligen Mitarbeiterseite** verwaltet (siehe Kapitel Mitarbeiter). Ein Passwortwechsel meldet den Benutzer auf allen anderen Geräten ab. Das eigene Konto kann nicht deaktiviert oder herabgestuft werden.
+Konten, die keinem Mitarbeiter gehören: Verwaltung (`admin`), Büro (`buero`), Lagerbildschirm (`lager`). Anlegen/bearbeiten: Benutzername, Passwort (min. 8 Zeichen), Rolle, **Finanzdaten sichtbar**, aktiv/inaktiv, **Konto löschen**. Konten von Mitarbeitern werden auf der jeweiligen Mitarbeiterseite verwaltet (Kapitel 9). Ein Passwortwechsel meldet den Benutzer auf allen anderen Geräten ab.
+
+**Schutzregeln beim Löschen** (gelten überall): Das Konto, mit dem Sie gerade angemeldet sind, kann nicht gelöscht werden — abmelden, mit einem anderen Administrator anmelden, dann löschen. Das **letzte aktive Administrator-Konto** kann nie gelöscht werden — zuerst ein weiteres anlegen (oder einem bestehenden Konto die Rolle Administrator geben). So lässt sich z. B. `admin` durch ein Konto mit eigenem Namen ersetzen: neues Administrator-Konto anlegen → abmelden → mit dem neuen Konto anmelden → `admin` löschen.
 
 ### Konten mit erweiterten Rechten
-Eine Übersicht **aller** Konten, die Administrator sind oder Finanzdaten sehen dürfen — egal ob Systemkonto oder Mitarbeiter. So sieht der Geschäftsführer auf einen Blick, wer Preise und Umsätze einsehen kann. „Zum Mitarbeiter“ führt direkt zur Seite, auf der die Rechte geändert werden.
+Übersicht **aller** Konten, die Administrator sind oder Finanzdaten sehen dürfen — Systemkonten und Mitarbeiter. So sieht die Geschäftsführung auf einen Blick, wer Preise und Umsätze einsehen kann; „Zum Mitarbeiter“ führt direkt zur Seite, auf der die Rechte geändert werden.
 
 ### Firmenname und Logo
-Name erscheint überall (Menü, Anmeldung, Arbeitsauftrag, Browser-Titel). Logo hochladen (PNG/JPG/WebP, max. 1 MB) oder entfernen — ohne Logo wird der Firmenname angezeigt. Beide Formulare bestätigen mit „✓ Gespeichert“.
+Der Name erscheint überall (Menü, Anmeldung, Arbeitsauftrag, Browser-Titel). Logo hochladen (PNG/JPG/WebP, max. 1 MB) oder entfernen — ohne Logo wird der Firmenname angezeigt. Beide Formulare bestätigen mit „✓ Gespeichert“.
 
 ### Datensicherung
 - **Backup herunterladen (JSON):** alle Daten in einer Datei (Projekte, Kunden, Preise, Mitarbeiter, Fahrzeuge, Werkzeug, Einsätze, Benutzer, Logo, Änderungsprotokoll). Sicher aufbewahren — die Datei enthält vertrauliche Daten.
@@ -352,23 +353,23 @@ Name erscheint überall (Menü, Anmeldung, Arbeitsauftrag, Browser-Titel). Logo 
 ### Import aus Trello
 ![Import](screenshots/19-import-trello.png)
 
-Einmaliger Import bestehender Trello-Boards: In Trello *Menü ⋯ → Print, export and share → Export as JSON*, Datei hier hochladen, je Trello-Liste einen Projektstatus zuordnen, **Import starten**. Ergebnis: neue Projekte und Kunden; bereits vorhandene Projekte werden übersprungen.
+Einmaliger Import bestehender Trello-Boards: In Trello *Menü ⋯ → Print, export and share → Export as JSON*, Datei hier hochladen, je Trello-Liste einen Projektstatus zuordnen, **Import starten**. Ergebnis: neue Projekte und Kunden (erstes Wort des Kartentitels = Kunde); bereits vorhandene Projekte werden übersprungen.
 
 ### Arbeitskategorien
-Kategorien (Malern, Putz, WDVS, Gerüstbau …) umbenennen, deaktivieren, neue hinzufügen — sie erscheinen im Projektformular und auf dem Arbeitsauftrag. Jede Zeile hat einen eigenen **Speichern**-Knopf („✓ Gespeichert“); nach **Kategorie hinzufügen** werden die Eingabefelder für die nächste Kategorie geleert.
+Kategorien (Malern, Putz, WDVS, Gerüstbau …) umbenennen, deaktivieren, neue hinzufügen — sie erscheinen im Projektformular und auf dem Arbeitsauftrag. Jede Zeile hat einen eigenen Speichern-Knopf („✓ Gespeichert“).
 
 ---
 
 ## 17. Typische Abläufe im Alltag
 
 **Neuer Auftrag kommt herein**
-1. Projekte → Neues Projekt (ggf. aus Vorlage). Kunde tippen — falls neu, direkt anlegen.
-2. Adresse mit **Ort**, Termine, Preis, Team, Fahrzeug eintragen. Speichern.
+1. Projekte → Neues Projekt (ggf. aus Vorlage). Kunde tippen — falls neu, direkt anlegen (Ort aus der Liste wählen).
+2. „Wie Kundenadresse“ prüfen; Ansprechpartner vor Ort, Termine, Preis, Team, Fahrzeug eintragen. Speichern.
 3. Auf der Projektseite Werkzeug/Material prüfen, **+ Einsatz planen** → Tage festlegen (Team/Fahrzeug sind vorbelegt).
 4. Fertig: Wochenplan, Lager, Arbeitsauftrag und Mitarbeiterbereich sind aktuell.
 
 **Morgens im Büro**
-Übersicht prüfen: Konflikte? Wetter? Ist im Lager alles gepackt? Offene Zuordnungen? → Einsatzplanung, Drucker-Symbol auf der Karte → Arbeitsauftrag drucken.
+Übersicht prüfen: Konflikte? Wetter? Ist im Lager alles gepackt? Offene Zuordnungen? → Einsatzplanung, Druckersymbol auf der Karte → Arbeitsauftrag drucken.
 
 **Es regnet — Einsatz verschieben**
 Einsatzplanung → Karte auf einen anderen Tag ziehen (oder Klick → Datum ändern). Konflikte werden sofort angezeigt. Team und Lager sehen die Änderung sofort.
@@ -379,32 +380,70 @@ Tagesvorbereitung am Bildschirm → Artikel abhaken, fehlende markieren → Arbe
 **Mitarbeiter unterwegs**
 Mein Bereich → Adresse „In Karten öffnen“, bei Bedarf anrufen, Packliste prüfen, Arbeitsauftrag ansehen.
 
+**Projekt abgeschlossen**
+Projektseite → Status auf *Abgeschlossen*, „Ende (tatsächlich)“ und Auftragswert prüfen — sonst fehlt das Projekt im Umsatz und in „Plan vs. Ist“ (Berichte → Datenqualität erinnert daran).
+
 **Neuer Mitarbeiter mit Handy-Zugang**
 1. Mitarbeiter → Neuer Mitarbeiter (Name, Telefon, Fähigkeiten). Speichern.
-2. Auf der Mitarbeiterseite: **Benutzerkonto aktivieren** → Benutzername + Passwort → Konto anlegen.
-3. Zugangsdaten mitteilen; der Mitarbeiter meldet sich am Handy an und sieht „Mein Bereich“.
+2. Mitarbeiterseite: **Benutzerkonto aktivieren** → Benutzername + Passwort → Konto anlegen.
+3. Zugangsdaten mitteilen; der Mitarbeiter meldet sich am Handy an.
 
 **Mitarbeiter scheidet aus**
 Mitarbeiterseite → Benutzerkonto: Haken **Aktiv** entfernen → Speichern (Anmeldung gesperrt). Mitarbeiter selbst auf **inaktiv** setzen — Projekte und Einsätze der Vergangenheit bleiben erhalten.
 
 **Monatsende**
-Berichte → Excel-Export.
+Berichte → Zeitraum = Monat → Übersicht drucken (PDF) und Excel-Export ablegen. Reiter Datenqualität leeren.
+
+**Quartal / Halbjahr**
+Berichte → Zeitraum = Quartal oder Halbjahr → Übersicht (Vergleich zum Vorjahr), Kunden (Abhängigkeit, ruhende Kunden), Auslastung (unter 50 % / über 90 %).
 
 **Regelmäßig**
-Einstellungen → Backup herunterladen.
+Einstellungen → Backup herunterladen (mindestens wöchentlich, vor Updates immer).
 
 ---
 
 ## 18. Häufige Fragen
 
-**Warum sehe ich keinen Preis?** Ihr Konto hat keine Finanzfreigabe. Der Administrator kann sie auf Ihrer Mitarbeiterseite (bzw. unter *Einstellungen → Systemkonten*) setzen.
+**Warum sehe ich keinen Preis?** Ihr Konto hat keine Finanzfreigabe. Der Administrator kann sie auf Ihrer Mitarbeiterseite bzw. unter *Einstellungen → Systemkonten* setzen.
 
-**Warum erscheint keine Wetterwarnung?** Nur wenn das Projekt einen **Ort** hat, eine Außen-Kategorie (Außenfassade, WDVS, Gerüstbau) trägt und die Regenwahrscheinlichkeit ≥ 60 % ist.
+**Warum erscheint keine Wetterwarnung?** Nur wenn das Projekt einen **erkannten Ort** hat („✓ Ort erkannt“ — aus der Liste gewählt oder eindeutig geschrieben), eine Außen-Kategorie (Außenfassade, WDVS, Gerüstbau) trägt, der Einsatz innerhalb der nächsten 16 Tage liegt und die Regenwahrscheinlichkeit ≥ 60 % ist. *Berichte → Datenqualität* listet Projekte mit unauffindbarem Ort.
+
+**Die Kundenadresse wurde nicht übernommen.** Der Haken „Wie Kundenadresse“ wird nur automatisch gesetzt, wenn die Adressfelder leer sind und der Kunde eine Adresse hat. Haken manuell setzen oder beim Kunden die Adresse nachtragen.
 
 **Ein Mitarbeiter/Fahrzeug lässt sich nicht löschen.** Weil noch Projekte oder Einsätze zugeordnet sind — stattdessen auf inaktiv / Außer Betrieb setzen.
 
-**Zwei Einsätze desselben Teams an einem Tag werden als Konflikt gemeldet.** Beiden Einsätzen Beginn **und** Ende geben (z. B. 07:00–12:00 und 12:30–16:30); überschneiden sich die Zeiten nicht, verschwindet die Warnung.
+**Zwei Einsätze desselben Teams an einem Tag werden als Konflikt gemeldet.** Beiden Einsätzen Beginn **und** Ende geben; überschneiden sich die Zeiten nicht, verschwindet die Warnung.
+
+**Ich kann mein eigenes Konto nicht löschen / herabstufen.** Absicht: Mit einem anderen Administrator-Konto anmelden und von dort ändern. Das letzte aktive Administrator-Konto ist immer geschützt.
 
 **Wer hat etwas geändert?** Jede Änderung (Status, Termine, Packstatus, Passwörter …) wird mit Benutzer und Zeitpunkt protokolliert. Am Lagerbildschirm erscheint das gemeinsame Konto `lager`; wer namentlich erfasst werden soll, meldet sich mit dem eigenen Konto am Handy an.
 
 **Handy statt Computer?** Ja — Menü über ☰, alle Listen und die Einsatzplanung (Ziehen per Gedrückthalten) funktionieren auf dem Handy.
+
+**Was passiert bei einer Vorlage, wenn ich Artikel entferne?** Nur die Liste des neuen Projekts ändert sich; die Vorlage bleibt unverändert.
+
+---
+
+## 19. Für den Administrator: Installation, Update, Sicherung
+
+Die Anwendung läuft in Docker (App + PostgreSQL) auf einem eigenen Server oder VPS; keine Bindung an einen Anbieter.
+
+**Installation (einmalig)**
+```bash
+git clone https://github.com/mostafasadeghidev/baucrew.git /opt/baucrew && cd /opt/baucrew
+cp .env.example .env        # POSTGRES_PASSWORD und SESSION_SECRET setzen
+docker compose up -d --build
+```
+Beim ersten Start werden die Datenbank angelegt, alle Migrationen ausgeführt und die Basisdaten (Konten `admin`/`buero`/`lager`, Arbeitskategorien, Werkzeugkatalog) automatisch erzeugt. Die App hört auf Port 3000 — davor einen Reverse-Proxy mit HTTPS (Beispiel Caddy in `DEPLOYMENT.md`).
+
+**Update auf eine neue Version**
+```bash
+cd /opt/baucrew && git pull && docker compose up -d --build
+```
+Migrationen laufen automatisch; die Daten bleiben erhalten. Vorher ein Backup herunterladen.
+
+**Sicherung**
+Täglich per Cron `pg_dump` (Befehl in `DEPLOYMENT.md`) oder regelmäßig *Einstellungen → Backup herunterladen*. Kopien außerhalb des Servers aufbewahren.
+
+**Sprachen**
+Ausgeliefert werden Deutsch und Englisch. Weitere Sprachen für Tests lassen sich lokal ohne Codeänderung aktivieren (Datei `messages/<code>.json` + `NEXT_PUBLIC_EXTRA_LOCALES=<code>` in `.env`).
