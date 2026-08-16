@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.2 · Stand: 16. August 2026*
+*Version 1.2.1 · Stand: 16. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -283,6 +283,10 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 
 - Fünf Spalten Montag bis Freitag. Jede **Karte** ist ein Einsatz: Projekt, Nummer, Kunde, Uhrzeit, Fahrzeuge, Team.
 - **Wochenende:** Liegt in einer Woche ein Einsatz auf Samstag oder Sonntag, erscheinen automatisch zwei weitere (gestrichelte) Spalten **Sa** und **So**. Ohne solche Einsätze bleibt es bei fünf Spalten; mit dem Knopf **+ Wochenende** oben rechts können Sie die beiden Spalten trotzdem öffnen (z. B. um eine Karte auf den Samstag zu ziehen). Wählen Sie im Einsatzfenster ein Wochenend-Datum, weist ein gelber Hinweis darauf hin. Die Monatsansicht zeigt Sa/So ebenfalls nur, wenn der Monat Wochenend-Einsätze hat.
+
+![Woche mit Wochenend-Spalte](screenshots/39-woche-wochenende.png)
+
+![Knopf + Wochenende](screenshots/40-wochenende-knopf.png)
 - Oben: **Woche | Monat | Übersicht**, Pfeile **← →** für die Wochen, **Aktuelle Woche**.
 - **Einsatz verschieben:** Karte mit der Maus packen und auf einen anderen Tag ziehen. Am Tablet/Handy: Karte kurz gedrückt halten, dann ziehen.
 - **Neuer Einsatz:** **+** oben in der Tagesspalte.
