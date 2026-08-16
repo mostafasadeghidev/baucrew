@@ -3,6 +3,11 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.0.2] — 2026-08-16
+
+### Added
+- **Vercel support** without touching the Docker flow: `npm run build` now runs `prisma generate` first (the generated client is not committed), and — only when `VERCEL` is set — `prisma migrate deploy` + base-data bootstrap against `DATABASE_URL` before `next build`. Docker keeps doing both at container start. Docs in DEPLOYMENT.md.
+
 ## [1.0.1] — 2026-08-16
 
 ### Docs
@@ -62,5 +67,6 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.0.2]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.0.2
 [1.0.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.0.1
 [1.0.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.0.0

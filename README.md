@@ -146,6 +146,10 @@ cp .env.example .env   # set POSTGRES_PASSWORD and SESSION_SECRET
 docker compose up -d --build
 ```
 
+**Vercel** also works (same code): connect the repo, set `DATABASE_URL` (hosted
+PostgreSQL) and `SESSION_SECRET`, deploy — migrations and base data run during
+the build. Details in [DEPLOYMENT.md](DEPLOYMENT.md#alternative-vercel-managed-hosting).
+
 ## Documentation
 
 - [Benutzerhandbuch (DE)](docs/BENUTZERHANDBUCH.md) · [راهنمای فارسی](docs/RAHNAMA-FA.md)
