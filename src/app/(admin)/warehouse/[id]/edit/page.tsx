@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { DeleteButton } from '@/components/delete-button'
 import { deleteItem, updateItem } from '../../actions'
+import { listCategories } from '../../actions'
 import { ItemForm } from '../../item-form'
 
 export default async function EditItemPage({
@@ -11,7 +12,7 @@ export default async function EditItemPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [t, tc] = await Promise.all([getTranslations('warehouse'), getTranslations('common')])
+  const [t, tc, categories] = await Promise.all([getTranslations('warehouse'), getTranslations('common'), listCategories()])
   const item = await db.catalogItem.findUnique({ where: { id } })
   if (!item) notFound()
 
@@ -31,6 +32,7 @@ export default async function EditItemPage({
       <ItemForm
         action={updateItem.bind(null, item.id)}
         cancelHref="/warehouse"
+        categories={categories.map((c) => c.name)}
         initial={{
           kind: item.kind,
           name: item.name,

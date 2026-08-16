@@ -1,9 +1,9 @@
 import { getTranslations } from 'next-intl/server'
-import { createItem } from '../actions'
+import { createItem, listCategories } from '../actions'
 import { ItemForm } from '../item-form'
 
 export default async function NewItemPage() {
-  const t = await getTranslations('warehouse')
+  const [t, categories] = await Promise.all([getTranslations('warehouse'), listCategories()])
 
   return (
     <div className="space-y-4">
@@ -11,6 +11,7 @@ export default async function NewItemPage() {
       <ItemForm
         action={createItem}
         cancelHref="/warehouse"
+        categories={categories.map((c) => c.name)}
         initial={{
           kind: 'TOOL',
           name: '',

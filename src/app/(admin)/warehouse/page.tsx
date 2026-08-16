@@ -5,6 +5,8 @@ import { LiveSearchInput, LiveSelect } from '@/components/live-search'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { ItemKind } from '@/generated/prisma/enums'
+import { listCategories } from './actions'
+import { CategoryManager } from './category-manager'
 
 export default async function WarehousePage({
   searchParams,
@@ -44,6 +46,7 @@ export default async function WarehousePage({
     }),
     db.catalogItem.count({ where }),
   ])
+  const categories = await listCategories()
 
   return (
     <div className="space-y-4">
@@ -147,6 +150,7 @@ export default async function WarehousePage({
       </div>
 
       <Pagination page={page} total={total} />
+      <CategoryManager categories={categories} />
     </div>
   )
 }

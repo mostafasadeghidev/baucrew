@@ -490,7 +490,16 @@
     "editTitle": "Edit item",
     "deleteConfirm": "Really delete this item?",
     "cannotDeleteInUse": "This item is used in projects or templates. Set it to \"Inactive\" instead.",
-    "nameRequired": "Please enter a name."
+    "nameRequired": "Please enter a name.",
+    "createCategory": "Create \"{name}\" as a new category",
+    "categoriesTitle": "Manage categories",
+    "categoriesHint": "Categories exist as soon as an item uses them. Renaming updates all items of that category; removing sets those items to \"no category\".",
+    "renameCategory": "Rename",
+    "removeCategory": "Remove",
+    "removeCategoryConfirm": "Remove category \"{name}\" from {count} items? The items are kept.",
+    "itemsCount": "{count} items",
+    "noCategories": "No categories yet.",
+    "categoryNameRequired": "Please enter a name."
   },
   "itemKind": {
     "TOOL": "Tool",
