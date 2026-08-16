@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { backLinkClass } from './back-link'
 
 export function BackButton({ label }: { label: string }) {
   const router = useRouter()
@@ -8,9 +9,10 @@ export function BackButton({ label }: { label: string }) {
     <button
       type="button"
       onClick={() => router.back()}
-      className="text-sm text-muted hover:text-foreground"
+      className={backLinkClass}
     >
-      ← {label}
+      <span aria-hidden className="text-base leading-none">←</span>
+      {label}
     </button>
   )
 }

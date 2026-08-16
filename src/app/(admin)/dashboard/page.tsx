@@ -118,8 +118,8 @@ export default async function DashboardPage() {
   const stats = [
     { label: t('activeProjects'), value: activeProjects, href: '/projects?status=IN_PROGRESS' },
     { label: t('plannedProjects'), value: plannedProjects, href: '/projects?status=PLANNED' },
-    { label: t('employeesToday'), value: employeesToday, href: '/today' },
-    { label: t('vehiclesToday'), value: vehiclesToday, href: '/today' },
+    { label: t('employeesToday'), value: employeesToday, href: '/dashboard/today#mitarbeiter' },
+    { label: t('vehiclesToday'), value: vehiclesToday, href: '/dashboard/today#fahrzeuge' },
     { label: t('customers'), value: customerCount, href: '/customers' },
   ]
 
