@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.1 · Stand: 16. August 2026*
+*Version 1.2 · Stand: 16. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -91,6 +91,9 @@ Sie bleiben 30 Tage angemeldet. **Abmelden** oben rechts beendet die Sitzung sof
 Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 
 - **Kennzahlen** oben (anklickbar): laufende und geplante Projekte, Mitarbeiter und Fahrzeuge heute im Einsatz, Kunden. Ein Klick auf **Mitarbeiter / Fahrzeuge heute im Einsatz** öffnet die Unterseite **Heute im Einsatz**: jeder Mitarbeiter und jedes Fahrzeug in einer Zeile mit dem Projekt, der Uhrzeit und dem Ort daneben (mit ← → auch für andere Tage). Zurück zur Übersicht über den Knopf **← Übersicht** oben links.
+
+![Heute im Einsatz](screenshots/31-heute-im-einsatz.png)
+
 - **⚠ Konflikte diese Woche:** Wenn ein Mitarbeiter oder ein Fahrzeug am selben Tag doppelt verplant ist. Gelb = bitte ansehen. Grün mit ✓ = alles in Ordnung.
 - **Wetter:** Regenwarnung für Außenarbeiten in den nächsten Tagen.
 - **Bereitstellung heute:** Ist im Lager schon alles für heute gepackt?
@@ -178,7 +181,9 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 
 ![Projektliste](screenshots/03-projekte-liste.png)
 
-- Oben **Reiter nach Status** (Alle · Anfrage · Angebot · Beauftragt · Geplant · In Ausführung · Abgeschlossen · Abgerechnet · Bezahlt · Storniert) mit Anzahl. Ein Klick filtert.
+- Oben **Reiter nach Status** mit Anzahl. Der erste Reiter **Vorbereitung** fasst alles zusammen, was noch nicht geplant ist (*Anfrage · Angebot · Beauftragt*); danach die einzelnen Status (*Geplant · In Ausführung · Abgeschlossen · Abgerechnet · Bezahlt · Storniert*). Ein Klick filtert.
+
+![Reiter Vorbereitung](screenshots/32-projekte-vorbereitung.png)
 - Darunter das **Suchfeld** (Nummer, Name, Kunde, Ort).
 - Die Spalte **Auftragswert** sehen nur Konten mit Finanzfreigabe.
 - **Vorlagen** oben rechts führt zu den Projektvorlagen (Kapitel 12).
@@ -224,6 +229,8 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 ![Werkzeug und Material aus der Vorlage](screenshots/24-projekt-vorlage-artikel.png)
 
 - Ein zugeklappter Kasten mit Anzahl. Ohne Vorlage leer, mit Vorlage vorbelegt („Empfohlene Werkzeuge und Materialien · 7“).
+
+![Werkzeug und Material ohne Vorlage](screenshots/33-projekt-neu-werkzeug.png)
 - Aufklappen: Artikel entfernen (**✕**) oder hinzufügen (ins Feld tippen, Artikel wählen, Menge, **Hinzufügen**). Diese Liste wird mit dem Projekt gespeichert und kann später auf der Projektseite weiter geändert werden.
 
 **Beschreibung und Notizen**
@@ -236,17 +243,33 @@ Zum Schluss **Speichern** → die Projektseite öffnet sich.
 
 ![Projektseite](screenshots/05-projekt-detail.png)
 
-- **Kopf:** Nummer, Name und der **Status als Auswahlfeld** — hier schalten Sie z. B. von *Geplant* auf *In Ausführung* oder *Abgeschlossen*, ohne das Formular zu öffnen.
+- **Kopf:** Nummer, Name und der **Status als Auswahlfeld** — hier schalten Sie z. B. auf *Abgeschlossen*, ohne das Formular zu öffnen. Vieles passiert dabei **von selbst** (siehe 6.5).
 - **Karten:** Übersicht (Kunde, Kategorien, SUB, Auftragswert), Adresse, Termine, Zuordnung, Beschreibung.
 - **Werkzeug und Material:** die Liste dieses Projekts. Jeder Artikel hat einen Status (*Erforderlich · Gepackt · Fehlt*), den das Lager setzt. Artikel hinzufügen oder entfernen wie oben. Diese eine Liste gilt für **alle** Einsätze des Projekts.
 - **Geplante Einsätze:** Datum, Uhrzeit, Team, Fahrzeuge. **+ Einsatz planen** öffnet das Einsatzfenster mit vorbelegtem Team, Fahrzeug und Uhrzeit (Kapitel 7.2).
 - **Arbeitsauftrag** (Druckersymbol), **Bearbeiten**, **Löschen** (nur Administrator; löscht auch alle Einsätze).
 
-### 6.4 Projekt abschließen — bitte drei Dinge
+### 6.4 Projekt abschließen
 
-1. Status auf **Abgeschlossen** (später *Abgerechnet* / *Bezahlt*).
-2. **Ende (tatsächlich)** eintragen (Bearbeiten → Termine).
-3. **Auftragswert** prüfen — sonst fehlt das Projekt im Umsatz. Die Berichte erinnern Sie daran (Kapitel 14, „Datenqualität“).
+Zwei Wege — beide setzen Status **Abgeschlossen** und tragen **Ende (tatsächlich)** ein:
+
+- **Aus dem Wochenplan (empfohlen):** Karte des letzten Einsatzes anklicken → unten **✓ Projekt abschließen** → bestätigen. Das Datum dieses Einsatzes wird als tatsächliches Ende gespeichert (Kapitel 7.2).
+- **Auf der Projektseite:** Status-Auswahl auf *Abgeschlossen*. Ist „Ende (tatsächlich)“ leer, nimmt BauCrew den letzten Einsatztag (spätestens heute).
+
+Danach bitte den **Auftragswert** prüfen — sonst fehlt das Projekt im Umsatz. Die Berichte erinnern Sie daran (Kapitel 14, „Datenqualität“). Später Status auf *Abgerechnet* und *Bezahlt* setzen.
+
+### 6.5 Was BauCrew von selbst erledigt (Status-Automatik)
+
+Sie müssen den Status nur noch selten anfassen:
+
+| Wann | Was passiert |
+|---|---|
+| Sie planen den **ersten Einsatz** für ein Projekt (Anfrage / Angebot / Beauftragt) | Status springt auf **Geplant** |
+| Der **erste Einsatztag ist erreicht** (Projekt ist *Geplant*) | Status springt auf **In Ausführung**, **Beginn (tatsächlich)** = dieser Tag |
+| Sie setzen von Hand *In Ausführung* / *Abgeschlossen* … und die tatsächlichen Daten sind leer | Beginn / Ende (tatsächlich) werden aus dem Wochenplan übernommen |
+| **✓ Projekt abschließen** im Einsatzfenster | Status **Abgeschlossen**, Ende (tatsächlich) = Datum des Einsatzes |
+
+Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Geplant*), überschreibt **nie** Daten, die Sie selbst eingetragen haben, und wird protokolliert. Ein Einsatz im Wochenplan heißt „geplant“, nicht „gewesen“ — fällt ein Tag aus, verschieben oder löschen Sie den Einsatz, dann stimmt auch die Automatik.
 
 ---
 
@@ -275,7 +298,9 @@ Zum Schluss **Speichern** → die Projektseite öffnet sich.
 2. **Datum**, **Beginn**, **Ende**. Ohne Uhrzeiten gilt der Einsatz ganztägig. Mit Uhrzeiten meldet BauCrew Konflikte nur, wenn sich Zeiten wirklich überschneiden — dasselbe Team kann also 07:00–12:00 auf Baustelle A und 12:30–16:30 auf Baustelle B sein.
 3. **Fahrzeuge** (mehrere möglich), **Mitarbeiter** ankreuzen, **Notiz**.
 4. **Werkzeug und Material** — die Projektliste, hier direkt änderbar.
-5. **Speichern**. Oben rechts: **Arbeitsauftrag** öffnen; unten **Löschen** (nur den Einsatz, nicht das Projekt).
+5. **Speichern**. Oben rechts: **Arbeitsauftrag** öffnen; unten **Löschen** (nur den Einsatz, nicht das Projekt) und **✓ Projekt abschließen** (Kapitel 6.4).
+
+![Projekt abschließen im Einsatzfenster](screenshots/38-einsatz-abschliessen.png)
 
 ### 7.3 Monat und Übersicht
 
@@ -315,7 +340,11 @@ Der Katalog ist die Liste aller Werkzeuge (Leiter, Gerüst, Spritzgerät …) un
 
 **Artikel anlegen:** **Neuer Artikel** → **Bezeichnung**, **Art** (Werkzeug oder Material), **Kategorie**, **Einheit** (Liter, Rolle, Stück …), optional Bestand, Mindestbestand, Lagerort → **Speichern**.
 
+![Kategorie mit Vorschlägen](screenshots/34-lager-kategorie.png)
+
 **Kategorie:** Ins Feld tippen — vorhandene Kategorien werden vorgeschlagen; anklicken. Ist es eine neue, erscheint unten „**＋ „X“ als neue Kategorie anlegen**“ — anklicken, fertig. Kategorien müssen nirgends extra angelegt werden.
+
+![Kategorien verwalten](screenshots/35-kategorien-verwalten.png)
 
 **Kategorien aufräumen:** Ganz unten auf der Lagerseite der Kasten **Kategorien verwalten** (aufklappen). Dort können Sie eine Kategorie **umbenennen** (ändert alle Artikel dieser Kategorie) oder **entfernen** (die Artikel bleiben, nur ohne Kategorie).
 
@@ -347,7 +376,11 @@ Die Liste zeigt Name, Telefon, Fähigkeiten, Status und in der Spalte **Konto**,
 2. **Fähigkeiten:** ins Feld tippen. Vorhandene Fähigkeiten werden vorgeschlagen — anklicken. Neue Fähigkeit: tippen und **Enter** drücken (oder „**＋ „X“ als neue Fähigkeit anlegen**“ wählen). Jede Fähigkeit wird als kleines Kärtchen angezeigt; **×** entfernt sie.
 3. **Aktiv** angehakt lassen, Notizen nach Bedarf → **Speichern**.
 
+![Fähigkeiten mit Vorschlägen](screenshots/36-mitarbeiter-faehigkeiten.png)
+
 **Fähigkeiten aufräumen:** Unten auf der Mitarbeiterliste der Kasten **Fähigkeiten verwalten** — eine Fähigkeit bei allen Mitarbeitern **umbenennen** oder **entfernen**.
+
+![Fähigkeiten verwalten](screenshots/37-faehigkeiten-verwalten.png)
 
 ### 10.2 Die Mitarbeiterseite
 
@@ -504,6 +537,9 @@ Absicht. Mit einem anderen Administrator-Konto anmelden und von dort ändern.
 **… ein Projekt im Umsatzbericht fehlt?**
 Es hat keinen Auftragswert oder den Status *Storniert*. *Berichte → Datenqualität* listet abgeschlossene Projekte ohne Auftragswert.
 
+**… sich der Projektstatus „von selbst“ geändert hat?**
+Das ist die Status-Automatik (Kapitel 6.5): erster Einsatz geplant → *Geplant*; erster Einsatztag erreicht → *In Ausführung*. Im Protokoll steht es als „automatisch“. Wollen Sie einen anderen Status, setzen Sie ihn einfach von Hand.
+
 **… ich wissen will, wer etwas geändert hat?**
 Jede Änderung wird mit Benutzer und Zeitpunkt protokolliert. Am Lagerbildschirm erscheint das gemeinsame Konto `lager`.
 
@@ -529,6 +565,8 @@ Geht überall: Menü über ☰, Listen, Formulare, Wochenplan (Karten per Gedrü
 | **Status** | Stufe eines Projekts: Anfrage → Angebot → Beauftragt → Geplant → In Ausführung → Abgeschlossen → Abgerechnet → Bezahlt (oder Storniert) |
 | **Personentag** | ein Mitarbeiter an einem Einsatztag; 3 Leute × 2 Tage = 6 Personentage |
 | **Backup** | Sicherungskopie aller Daten als Datei |
+| **Vorbereitung** | Reiter in der Projektliste: Anfrage + Angebot + Beauftragt — noch nichts geplant |
+| **Status-Automatik** | BauCrew setzt *Geplant* / *In Ausführung* und die tatsächlichen Daten selbst (Kapitel 6.5) |
 
 ---
 
