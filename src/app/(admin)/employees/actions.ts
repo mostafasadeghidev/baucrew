@@ -245,3 +245,44 @@ export async function deleteEmployee(
   revalidatePath('/employees')
   redirect('/employees')
 }
+
+// ── Skills (free text on employees; managed as a set of distinct values) ──
+
+export type SkillState = { error?: 'nameRequired' | 'saveFailed'; savedAt?: number }
+
+/** Distinct skills across all employees with how many employees have each. */
+export async function listSkills(): Promise<Array<{ name: string; count: number }>> {
+  const employees = await db.employee.findMany({ select: { skills: true } })
+  const counts = new Map<string, number>()
+  for (const e of employees) for (const s of e.skills) {
+    const k = s.trim()
+    if (k) counts.set(k, (counts.get(k) ?? 0) + 1)
+  }
+  return [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name, 'de'))
+}
+
+export async function renameSkill(from: string, _prev: SkillState, formData: FormData): Promise<SkillState> {
+  const user = await requireManagement()
+  const to = String(formData.get('name') ?? '').trim().slice(0, 100)
+  if (!to) return { error: 'nameRequired' }
+  if (to === from) return { savedAt: Date.now() }
+  const affected = await db.employee.findMany({ where: { skills: { has: from } }, select: { id: true, skills: true } })
+  for (const e of affected) {
+    const next = [...new Set(e.skills.map((s) => (s === from ? to : s)))]
+    await db.employee.update({ where: { id: e.id }, data: { skills: next } })
+  }
+  await audit({ userId: user.id, action: 'skill.rename', entity: 'Employee', entityId: from, oldValue: from, newValue: `${to} (${affected.length})` })
+  revalidatePath('/employees')
+  return { savedAt: Date.now() }
+}
+
+export async function removeSkill(name: string, _prev: { error?: string }, _formData: FormData): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  const affected = await db.employee.findMany({ where: { skills: { has: name } }, select: { id: true, skills: true } })
+  for (const e of affected) {
+    await db.employee.update({ where: { id: e.id }, data: { skills: e.skills.filter((s) => s !== name) } })
+  }
+  await audit({ userId: user.id, action: 'skill.remove', entity: 'Employee', entityId: name, oldValue: `${name} (${affected.length})` })
+  revalidatePath('/employees')
+  return {}
+}

@@ -1,9 +1,9 @@
 import { getTranslations } from 'next-intl/server'
-import { createEmployee } from '../actions'
+import { createEmployee, listSkills } from '../actions'
 import { EmployeeForm } from '../employee-form'
 
 export default async function NewEmployeePage() {
-  const t = await getTranslations('employees')
+  const [t, skills] = await Promise.all([getTranslations('employees'), listSkills()])
 
   return (
     <div className="space-y-4">
@@ -11,6 +11,7 @@ export default async function NewEmployeePage() {
       <EmployeeForm
         action={createEmployee}
         cancelHref="/employees"
+        skillSuggestions={skills.map((s) => s.name)}
         initial={{
           firstName: '',
           lastName: '',

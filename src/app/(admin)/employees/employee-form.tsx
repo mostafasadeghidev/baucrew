@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { EmployeeFormState } from './actions'
+import { TagsPicker } from '@/components/tags-picker'
 
 export type EmployeeFormValues = {
   firstName: string
@@ -22,10 +23,13 @@ export function EmployeeForm({
   action,
   initial,
   cancelHref,
+  skillSuggestions = [],
 }: {
   action: (prev: EmployeeFormState, formData: FormData) => Promise<EmployeeFormState>
   initial: EmployeeFormValues
   cancelHref: string
+  /** Existing skills for live suggestions. */
+  skillSuggestions?: string[]
 }) {
   const t = useTranslations('employees')
   const tc = useTranslations('common')
@@ -72,11 +76,15 @@ export function EmployeeForm({
             <input id="email" name="email" type="email" defaultValue={initial.email} className={inputClass} />
           </div>
           <div className="sm:col-span-2">
-            <label htmlFor="skills" className="block text-sm font-medium">
-              {t('skills')}
-            </label>
-            <input id="skills" name="skills" defaultValue={initial.skills} className={inputClass} />
-            <p className="mt-1 text-xs text-muted">{t('skillsHint')}</p>
+            <TagsPicker
+              name="skills"
+              label={t('skills')}
+              defaultValues={initial.skills.split(/[,،]/).map((s) => s.trim()).filter(Boolean)}
+              suggestions={skillSuggestions}
+              createLabel={(v) => t('createSkill', { name: v })}
+              removeLabel={t('removeSkill')}
+              hint={t('skillsHint')}
+            />
           </div>
           <div className="sm:col-span-2">
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">

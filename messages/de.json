@@ -210,7 +210,7 @@
     "phone": "Telefon",
     "email": "E-Mail",
     "skills": "Fähigkeiten",
-    "skillsHint": "Mehrere Fähigkeiten mit Komma trennen, z. B. „Malern, Trockenbau“",
+    "skillsHint": "Tippen und aus der Liste wählen oder mit Enter/Komma eine neue Fähigkeit hinzufügen.",
     "status": "Status",
     "notes": "Notizen",
     "createTitle": "Mitarbeiter anlegen",
@@ -236,7 +236,16 @@
     "reactivateAccount": "Konto reaktivieren",
     "accountDeactivated": "Konto deaktiviert",
     "accountColumn": "Konto",
-    "deleteAccount": "Konto löschen"
+    "deleteAccount": "Konto löschen",
+    "createSkill": "„{name}“ als neue Fähigkeit anlegen",
+    "removeSkill": "Entfernen",
+    "skillsTitle": "Fähigkeiten verwalten",
+    "skillsManageHint": "Fähigkeiten entstehen automatisch, sobald ein Mitarbeiter sie hat. Umbenennen ändert alle Mitarbeiter mit dieser Fähigkeit; Entfernen nimmt sie allen Mitarbeitern weg.",
+    "renameSkill": "Umbenennen",
+    "removeSkillConfirm": "Fähigkeit „{name}“ bei {count} Mitarbeitern entfernen?",
+    "employeesCount": "{count} Mitarbeiter",
+    "noSkills": "Noch keine Fähigkeiten.",
+    "skillNameRequired": "Bitte einen Namen angeben."
   },
   "vehicles": {
     "title": "Fahrzeuge",

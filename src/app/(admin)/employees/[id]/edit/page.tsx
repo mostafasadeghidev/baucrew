@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
-import { updateEmployee } from '../../actions'
+import { listSkills, updateEmployee } from '../../actions'
 import { EmployeeForm } from '../../employee-form'
 
 export default async function EditEmployeePage({
@@ -10,7 +10,7 @@ export default async function EditEmployeePage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const t = await getTranslations('employees')
+  const [t, skills] = await Promise.all([getTranslations('employees'), listSkills()])
   const employee = await db.employee.findUnique({ where: { id } })
   if (!employee) notFound()
 
@@ -22,6 +22,7 @@ export default async function EditEmployeePage({
       <EmployeeForm
         action={updateEmployee.bind(null, employee.id)}
         cancelHref={`/employees/${employee.id}`}
+        skillSuggestions={skills.map((s) => s.name)}
         initial={{
           firstName: employee.firstName,
           lastName: employee.lastName,
