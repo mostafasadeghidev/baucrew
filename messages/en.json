@@ -197,7 +197,10 @@
     "sameAsCustomerHint": "Take street, postal code, city and phone from the customer. Untick for a different site address.",
     "sameAsCustomerNoAddress": "The customer has no address on file.",
     "copyFromCustomer": "Copy from customer",
-    "itemsNewHint": "Optional — can also be maintained later on the project page"
+    "itemsNewHint": "Optional — can also be maintained later on the project page",
+    "tabPreparation": "Preparation",
+    "tabPreparationHint": "Lead, quoted, ordered — no assignment planned yet",
+    "autoStatusHint": "Status is set automatically: “Planned” on the first assignment, “In progress” on the first assignment day."
   },
   "employees": {
     "title": "Employees",
@@ -478,7 +481,10 @@
     "viewMonth": "Month",
     "planEntry": "Plan assignment",
     "prefilledFromProject": "Team and vehicle were taken from the project — adjustable for this day.",
-    "itemsInDialogHint": "The tool/material list belongs to the project and applies to all its assignments."
+    "itemsInDialogHint": "The tool/material list belongs to the project and applies to all its assignments.",
+    "completeProject": "Complete project",
+    "completeProjectConfirm": "Mark project “{project}” as completed? Actual end will be set to {date}.",
+    "completeProjectDone": "Project completed"
   },
   "warehouse": {
     "title": "Warehouse",

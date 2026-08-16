@@ -197,7 +197,10 @@
     "sameAsCustomerHint": "Straße, PLZ, Ort und Telefon vom Kunden übernehmen. Haken entfernen für eine andere Baustellenadresse.",
     "sameAsCustomerNoAddress": "Der Kunde hat keine Adresse hinterlegt.",
     "copyFromCustomer": "Vom Kunden übernehmen",
-    "itemsNewHint": "Optional — kann auch später auf der Projektseite gepflegt werden"
+    "itemsNewHint": "Optional — kann auch später auf der Projektseite gepflegt werden",
+    "tabPreparation": "Vorbereitung",
+    "tabPreparationHint": "Anfrage, Angebot, Beauftragt — noch kein Einsatz geplant",
+    "autoStatusHint": "Status wird automatisch gesetzt: „Geplant“ beim ersten Einsatz, „In Ausführung“ am ersten Einsatztag."
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -478,7 +481,10 @@
     "viewMonth": "Monat",
     "planEntry": "Einsatz planen",
     "prefilledFromProject": "Team und Fahrzeug wurden aus dem Projekt übernommen — für diesen Tag anpassbar.",
-    "itemsInDialogHint": "Die Werkzeug-/Materialliste gehört zum Projekt und gilt für alle Einsätze."
+    "itemsInDialogHint": "Die Werkzeug-/Materialliste gehört zum Projekt und gilt für alle Einsätze.",
+    "completeProject": "Projekt abschließen",
+    "completeProjectConfirm": "Projekt „{project}“ als abgeschlossen markieren? Ende (tatsächlich) wird auf den {date} gesetzt.",
+    "completeProjectDone": "Projekt abgeschlossen"
   },
   "warehouse": {
     "title": "Lager",
