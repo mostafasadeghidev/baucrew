@@ -35,10 +35,10 @@ const ENTRY_INCLUDE = {
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; view?: string }>
+  searchParams: Promise<{ week?: string; view?: string; weekend?: string }>
 }) {
   await requireManagement()
-  const { week, view } = await searchParams
+  const { week, view, weekend } = await searchParams
   const [t, tVehicleStatus, locale] = await Promise.all([
     getTranslations('schedule'),
     getTranslations('vehicleStatus'),
@@ -58,10 +58,13 @@ export default async function SchedulePage({
       include: ENTRY_INCLUDE,
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     })
+    // Sa/So columns only when the month actually has weekend assignments.
+    const monthShowWeekend = monthEntries.some((e) => [0, 6].includes(e.date.getUTCDay()))
     const monthConflicts = detectConflicts(monthEntries)
     const conflicted = new Set(monthConflicts.flatMap((c) => c.entryIds))
     return (
       <MonthView
+        showWeekend={monthShowWeekend}
         monthStartIso={iso(start)}
         gridStartIso={iso(gridStart)}
         gridEndIso={iso(gridEnd)}
@@ -94,8 +97,9 @@ export default async function SchedulePage({
     )
   }
 
-  const days: string[] = Array.from({ length: 5 }, (_, i) => iso(addDays(monday, i)))
-  const weekEnd = addDays(monday, 5)
+  // Always load the full 7-day week; Saturday/Sunday columns are shown only
+  // when an assignment falls on them (or when the user asks via ?weekend=1).
+  const weekEnd = addDays(monday, 7)
 
   const [entries, projects, employees, vehicles] = await Promise.all([
     db.scheduleEntry.findMany({
@@ -119,6 +123,10 @@ export default async function SchedulePage({
       select: { id: true, name: true, status: true },
     }),
   ])
+
+  const hasWeekendEntries = entries.some((e) => [0, 6].includes(e.date.getUTCDay()))
+  const showWeekend = hasWeekendEntries || weekend === '1'
+  const days: string[] = Array.from({ length: showWeekend ? 7 : 5 }, (_, i) => iso(addDays(monday, i)))
 
   const dateFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
     weekday: 'short',
@@ -189,6 +197,13 @@ export default async function SchedulePage({
   return (
     <ScheduleBoard
       days={days}
+      weekendToggle={
+        hasWeekendEntries
+          ? null
+          : showWeekend
+            ? { href: `/schedule?week=${iso(monday)}`, active: true }
+            : { href: `/schedule?week=${iso(monday)}&weekend=1`, active: false }
+      }
       weekNumber={isoWeek(monday)}
       prevWeekHref={`/schedule?week=${iso(addDays(monday, -7))}`}
       nextWeekHref={`/schedule?week=${iso(addDays(monday, 7))}`}

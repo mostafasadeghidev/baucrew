@@ -17,6 +17,7 @@ export type { BoardEntry } from './entry-dialog'
 
 export function ScheduleBoard({
   days,
+  weekendToggle,
   weekNumber,
   prevWeekHref,
   nextWeekHref,
@@ -33,6 +34,8 @@ export function ScheduleBoard({
   locale,
 }: {
   days: string[]
+  /** null = weekend columns are forced on by existing entries; otherwise a link to show/hide them. */
+  weekendToggle: { href: string; active: boolean } | null
   weekNumber: number
   prevWeekHref: string
   nextWeekHref: string
@@ -219,6 +222,19 @@ export function ScheduleBoard({
           >
             →
           </Link>
+          {weekendToggle && (
+            <Link
+              href={weekendToggle.href}
+              title={t('weekendHint')}
+              className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+                weekendToggle.active
+                  ? 'border-accent bg-accent/10 text-accent hover:bg-accent/15'
+                  : 'border-border text-muted hover:bg-surface-hover hover:text-foreground'
+              }`}
+            >
+              {weekendToggle.active ? t('hideWeekend') : t('showWeekend')}
+            </Link>
+          )}
         </div>
       </div>
 
@@ -250,10 +266,11 @@ export function ScheduleBoard({
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+      <div className={`grid grid-cols-1 gap-3 ${days.length > 5 ? 'md:grid-cols-7' : 'md:grid-cols-5'}`}>
         {days.map((date) => {
           const dayEntries = entries.filter((e) => e.date === date)
           const isToday = date === todayIso
+          const isWeekend = [0, 6].includes(new Date(`${date}T00:00:00.000Z`).getUTCDay())
           return (
             <div
               key={date}
@@ -264,9 +281,9 @@ export function ScheduleBoard({
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null)
               }}
               onDrop={(e) => onDrop(date, e)}
-              className={`flex min-h-64 flex-col rounded-lg border bg-surface shadow-sm transition-colors ${
-                dropTarget === date ? 'border-accent ring-1 ring-accent' : 'border-border'
-              }`}
+              className={`flex min-h-64 flex-col rounded-lg border shadow-sm transition-colors ${
+                isWeekend ? 'border-dashed bg-surface/60' : 'bg-surface'
+              } ${dropTarget === date ? 'border-accent ring-1 ring-accent' : 'border-border'}`}
             >
               <div
                 className={`flex items-center justify-between border-b border-border px-3 py-2 ${

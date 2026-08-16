@@ -282,6 +282,7 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 ![Wochenansicht](screenshots/11-einsatzplanung-woche.png)
 
 - Fünf Spalten Montag bis Freitag. Jede **Karte** ist ein Einsatz: Projekt, Nummer, Kunde, Uhrzeit, Fahrzeuge, Team.
+- **Wochenende:** Liegt in einer Woche ein Einsatz auf Samstag oder Sonntag, erscheinen automatisch zwei weitere (gestrichelte) Spalten **Sa** und **So**. Ohne solche Einsätze bleibt es bei fünf Spalten; mit dem Knopf **+ Wochenende** oben rechts können Sie die beiden Spalten trotzdem öffnen (z. B. um eine Karte auf den Samstag zu ziehen). Wählen Sie im Einsatzfenster ein Wochenend-Datum, weist ein gelber Hinweis darauf hin. Die Monatsansicht zeigt Sa/So ebenfalls nur, wenn der Monat Wochenend-Einsätze hat.
 - Oben: **Woche | Monat | Übersicht**, Pfeile **← →** für die Wochen, **Aktuelle Woche**.
 - **Einsatz verschieben:** Karte mit der Maus packen und auf einen anderen Tag ziehen. Am Tablet/Handy: Karte kurz gedrückt halten, dann ziehen.
 - **Neuer Einsatz:** **+** oben in der Tagesspalte.

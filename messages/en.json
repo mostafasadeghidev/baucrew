@@ -487,7 +487,11 @@
     "itemsInDialogHint": "The tool/material list belongs to the project and applies to all its assignments.",
     "completeProject": "Complete project",
     "completeProjectConfirm": "Mark project “{project}” as completed? Actual end will be set to {date}.",
-    "completeProjectDone": "Project completed"
+    "completeProjectDone": "Project completed",
+    "showWeekend": "+ Weekend",
+    "hideWeekend": "Hide weekend",
+    "weekendHint": "Weekend — Saturday and Sunday appear in the week view only when an assignment falls on them (or via “+ Weekend”).",
+    "weekendDayHint": "Note: this day is a weekend."
   },
   "warehouse": {
     "title": "Warehouse",

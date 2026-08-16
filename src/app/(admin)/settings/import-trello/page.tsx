@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { BackLink } from '@/components/back-link'
 import { getTranslations } from 'next-intl/server'
 import { requireAdmin } from '@/lib/authz'
