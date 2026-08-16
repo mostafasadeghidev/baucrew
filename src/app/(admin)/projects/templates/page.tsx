@@ -1,13 +1,15 @@
 import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 
 export default async function TemplatesPage() {
   await requireManagement()
-  const [t, tc, locale] = await Promise.all([
+  const [t, tc, tProjects, locale] = await Promise.all([
     getTranslations('templates'),
     getTranslations('common'),
+    getTranslations('projects'),
     getLocale(),
   ])
 
@@ -23,9 +25,7 @@ export default async function TemplatesPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/projects" className="text-sm text-muted hover:text-foreground">
-            ← {tc('back')}
-          </Link>
+          <BackLink href="/projects" label={tProjects('title')} />
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('title')}</h1>
         </div>
         <Link

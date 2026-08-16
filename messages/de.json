@@ -79,7 +79,10 @@
     "needsAttention": "Projekte mit offener Zuordnung",
     "nothingNeedsAttention": "Alle anstehenden Projekte haben Team und Fahrzeug.",
     "noTeam": "kein Team",
-    "noVehicleAssigned": "kein Fahrzeug"
+    "noVehicleAssigned": "kein Fahrzeug",
+    "todayOverviewTitle": "Heute im Einsatz",
+    "todayWord": "Heute",
+    "entriesWord": "Einsätze"
   },
   "my": {
     "title": "Mein Bereich",

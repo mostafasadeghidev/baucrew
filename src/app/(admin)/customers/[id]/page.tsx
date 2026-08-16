@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
@@ -52,9 +53,7 @@ export default async function CustomerDetailPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link href="/customers" className="text-sm text-muted hover:text-foreground">
-            ← {t('title')}
-          </Link>
+          <BackLink href="/customers" label={t('title')} />
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">{customer.name}</h1>
         </div>
         <div className="flex items-center gap-2">

@@ -79,7 +79,10 @@
     "needsAttention": "Projects with open assignments",
     "nothingNeedsAttention": "All upcoming projects have a team and a vehicle.",
     "noTeam": "no team",
-    "noVehicleAssigned": "no vehicle"
+    "noVehicleAssigned": "no vehicle",
+    "todayOverviewTitle": "Working today",
+    "todayWord": "Today",
+    "entriesWord": "assignments"
   },
   "my": {
     "title": "My area",

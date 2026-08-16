@@ -90,7 +90,7 @@ Sie bleiben 30 Tage angemeldet. **Abmelden** oben rechts beendet die Sitzung sof
 
 Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 
-- **Kennzahlen** oben (anklickbar): laufende und geplante Projekte, Mitarbeiter und Fahrzeuge heute im Einsatz, Kunden.
+- **Kennzahlen** oben (anklickbar): laufende und geplante Projekte, Mitarbeiter und Fahrzeuge heute im Einsatz, Kunden. Ein Klick auf **Mitarbeiter / Fahrzeuge heute im Einsatz** öffnet die Unterseite **Heute im Einsatz**: jeder Mitarbeiter und jedes Fahrzeug in einer Zeile mit dem Projekt, der Uhrzeit und dem Ort daneben (mit ← → auch für andere Tage). Zurück zur Übersicht über den Knopf **← Übersicht** oben links.
 - **⚠ Konflikte diese Woche:** Wenn ein Mitarbeiter oder ein Fahrzeug am selben Tag doppelt verplant ist. Gelb = bitte ansehen. Grün mit ✓ = alles in Ordnung.
 - **Wetter:** Regenwarnung für Außenarbeiten in den nächsten Tagen.
 - **Bereitstellung heute:** Ist im Lager schon alles für heute gepackt?
