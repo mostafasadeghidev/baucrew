@@ -3,7 +3,7 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [1.2.0] — 2026-08-16
 
 ### Added
 - **Automatic project status:** creating the first assignment moves a project from Lead / Quoted / Ordered to **Planned**; when the first assignment day arrives, a Planned project becomes **In progress** and *Start (actual)* is filled with that day. Setting a status by hand (quick status or edit form) fills empty *Start/End (actual)* from the schedule (first day / last day up to today). Never moves backwards; every change is audited as `project.status.auto`.
@@ -11,6 +11,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 - Dashboard sub page **"Working today"** (`/dashboard/today`): one row per employee and per vehicle with the project(s), times and place next to it; day navigation; the dashboard cards "employees / vehicles today" link there instead of the warehouse screen.
 - Consistent **back button** (pill with ←) on all detail pages (project, customer, employee, vehicle, templates, Trello import, work order).
 - Project list: new **Preparation** tab (Lead + Quoted + Ordered — nothing planned yet).
+
+### Docs
+- German and Persian user manuals rewritten for beginners (18 chapters, 38 screenshots), covering every feature of 1.2.
 
 ## [1.1.0] — 2026-08-16
 
@@ -85,6 +88,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.2.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.1.0
 [1.0.2]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.0.2
 [1.0.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.0.1
