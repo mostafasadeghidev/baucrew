@@ -50,6 +50,27 @@ Then sign in as `admin`, **change all passwords** (*Einstellungen*), set company
 name and logo, and enter or import your data. Employee accounts are created on
 the respective employee page.
 
+## Alternative: Vercel (managed hosting)
+
+Docker on your own server is the primary, recommended setup. The app can also
+run on Vercel — same code, no changes:
+
+1. **Database:** create a hosted PostgreSQL (e.g. Neon or Supabase; use the
+   *pooled* connection string) — Vercel itself has no database.
+2. **Vercel → New Project → Import** the GitHub repository. Framework: Next.js
+   (auto-detected). Build command stays `npm run build`.
+3. **Environment variables** (Settings → Environment Variables, all environments):
+   - `DATABASE_URL` — the PostgreSQL connection string
+   - `SESSION_SECRET` — random, ≥ 32 chars (`openssl rand -hex 32`)
+4. **Deploy.** The build script runs `prisma generate`, then — only on Vercel —
+   `prisma migrate deploy` and the base-data bootstrap (accounts, categories,
+   catalog) against `DATABASE_URL`, then `next build`. Every later deploy applies
+   new migrations automatically. Sign in as `admin / admin1234` and change the
+   passwords.
+
+Notes: serverless functions have execution-time limits — very large backups or
+Trello imports may need to be split; keep the Docker path for heavy use.
+
 ## Backups
 
 The database is the single source of truth; uploaded documents (later phase)
