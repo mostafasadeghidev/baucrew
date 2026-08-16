@@ -227,7 +227,9 @@ Name, Kennzeichen, Typ, Notizen, **Status** (Verfügbar · Im Einsatz · Werksta
 
 ![Lager](screenshots/10-lager-katalog.png)
 
-Der Katalog aller Werkzeuge (z. B. Leiter, Gerüst, Spritzgerät) und Materialien (Farbe, Grundierung, Folie …) mit Art, Kategorie, Einheit, optional Bestand/Mindestbestand/Lagerort. Live-Suche und Filter nach Art. Deaktivierte Artikel bleiben in alten Projekten erhalten, sind aber nicht mehr auswählbar. Aus diesem Katalog werden Projektlisten und Vorlagen bestückt.
+Der Katalog aller Werkzeuge (z. B. Leiter, Gerüst, Spritzgerät) und Materialien (Farbe, Grundierung, Folie …) mit Art, Kategorie, Einheit, optional Bestand/Mindestbestand/Lagerort. Live-Suche und Filter nach Art.
+
+**Kategorie:** freies Textfeld mit Live-Vorschlägen aus den bereits verwendeten Kategorien; steht der Text noch nicht in der Liste, erscheint „„X“ als neue Kategorie anlegen“ — die Kategorie existiert, sobald ein Artikel sie trägt. Unten auf der Lagerseite **Kategorien verwalten** (aufklappbar): Kategorie **umbenennen** (ändert alle Artikel dieser Kategorie) oder **entfernen** (die Artikel bleiben, nur ohne Kategorie). Deaktivierte Artikel bleiben in alten Projekten erhalten, sind aber nicht mehr auswählbar. Aus diesem Katalog werden Projektlisten und Vorlagen bestückt.
 
 ---
 

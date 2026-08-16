@@ -131,3 +131,56 @@ export async function deleteItem(
   revalidatePath('/warehouse')
   redirect('/warehouse')
 }
+
+// ── Categories (free text on items; managed as a set of distinct values) ──
+
+export type CategoryState = { error?: 'nameRequired' | 'saveFailed'; savedAt?: number }
+
+/** Distinct, non-empty categories currently used by catalog items (sorted). */
+export async function listCategories(): Promise<Array<{ name: string; count: number }>> {
+  const rows = await db.catalogItem.groupBy({
+    by: ['category'],
+    where: { category: { not: null } },
+    _count: { _all: true },
+  })
+  return rows
+    .filter((r): r is typeof r & { category: string } => !!r.category && r.category.trim().length > 0)
+    .map((r) => ({ name: r.category, count: r._count._all }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+}
+
+export async function renameCategory(
+  from: string,
+  _prev: CategoryState,
+  formData: FormData
+): Promise<CategoryState> {
+  const user = await requireManagement()
+  const to = String(formData.get('name') ?? '').trim().slice(0, 100)
+  if (!to) return { error: 'nameRequired' }
+  if (to === from) return { savedAt: Date.now() }
+  const res = await db.catalogItem.updateMany({ where: { category: from }, data: { category: to } })
+  await audit({
+    userId: user.id,
+    action: 'catalogCategory.rename',
+    entity: 'CatalogItem',
+    entityId: from,
+    oldValue: from,
+    newValue: `${to} (${res.count})`,
+  })
+  revalidatePath('/warehouse')
+  return { savedAt: Date.now() }
+}
+
+export async function removeCategory(name: string, _prev: { error?: string }, _formData: FormData): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  const res = await db.catalogItem.updateMany({ where: { category: name }, data: { category: null } })
+  await audit({
+    userId: user.id,
+    action: 'catalogCategory.remove',
+    entity: 'CatalogItem',
+    entityId: name,
+    oldValue: `${name} (${res.count})`,
+  })
+  revalidatePath('/warehouse')
+  return {}
+}

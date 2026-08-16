@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { ItemFormState } from './actions'
+import { CategoryPicker } from '@/components/category-picker'
 
 export type ItemFormValues = {
   kind: string
@@ -24,10 +25,13 @@ export function ItemForm({
   action,
   initial,
   cancelHref,
+  categories = [],
 }: {
   action: (prev: ItemFormState, formData: FormData) => Promise<ItemFormState>
   initial: ItemFormValues
   cancelHref: string
+  /** Existing categories for live suggestions. */
+  categories?: string[]
 }) {
   const t = useTranslations('warehouse')
   const tc = useTranslations('common')
@@ -53,12 +57,7 @@ export function ItemForm({
               <option value="MATERIAL">{tKind('MATERIAL')}</option>
             </select>
           </div>
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium">
-              {t('category')}
-            </label>
-            <input id="category" name="category" defaultValue={initial.category} className={inputClass} />
-          </div>
+          <CategoryPicker name="category" label={t('category')} defaultValue={initial.category} categories={categories} />
           <div>
             <label htmlFor="unit" className="block text-sm font-medium">
               {t('unit')}

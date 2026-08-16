@@ -490,7 +490,16 @@
     "editTitle": "Artikel bearbeiten",
     "deleteConfirm": "Diesen Artikel wirklich löschen?",
     "cannotDeleteInUse": "Dieser Artikel wird in Projekten oder Vorlagen verwendet. Setzen Sie ihn stattdessen auf „Inaktiv“.",
-    "nameRequired": "Bitte eine Bezeichnung angeben."
+    "nameRequired": "Bitte eine Bezeichnung angeben.",
+    "createCategory": "„{name}“ als neue Kategorie anlegen",
+    "categoriesTitle": "Kategorien verwalten",
+    "categoriesHint": "Kategorien entstehen automatisch, sobald ein Artikel sie verwendet. Umbenennen ändert alle Artikel dieser Kategorie; Entfernen setzt die Artikel auf „ohne Kategorie“.",
+    "renameCategory": "Umbenennen",
+    "removeCategory": "Entfernen",
+    "removeCategoryConfirm": "Kategorie „{name}“ von {count} Artikeln entfernen? Die Artikel bleiben erhalten.",
+    "itemsCount": "{count} Artikel",
+    "noCategories": "Noch keine Kategorien.",
+    "categoryNameRequired": "Bitte einen Namen angeben."
   },
   "itemKind": {
     "TOOL": "Werkzeug",
