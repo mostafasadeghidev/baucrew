@@ -14,9 +14,12 @@ export type DraftItem = { catalogItemId: string; name: string; unit: string | nu
 export function TemplateItemsSection({
   initialItems,
   options,
+  fromTemplate = false,
 }: {
   initialItems: DraftItem[]
   options: ComboboxOption[]
+  /** True when the list was prefilled from a template (changes title/hint). */
+  fromTemplate?: boolean
 }) {
   const t = useTranslations('projects')
   const tT = useTranslations('templates')
@@ -61,13 +64,13 @@ export function TemplateItemsSection({
         className="flex w-full items-center justify-between px-5 py-3 text-left"
       >
         <span className="text-sm font-semibold">
-          {tT('itemsTitle')}{' '}
+          {fromTemplate ? tT('itemsTitle') : t('itemsTitle')}{' '}
           <span className="ml-1 rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium tabular-nums">
             {items.length}
           </span>
         </span>
         <span className="flex items-center gap-2 text-xs text-muted">
-          {tT('itemsFromTemplateHint')}
+          {fromTemplate ? tT('itemsFromTemplateHint') : t('itemsNewHint')}
           <span aria-hidden className={`transition-transform ${open ? 'rotate-180' : ''}`}>
             ▾
           </span>

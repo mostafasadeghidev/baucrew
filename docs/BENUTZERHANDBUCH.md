@@ -146,7 +146,7 @@ Reiter nach **Status** (Alle · Anfrage · Angebot · Beauftragt · Geplant · I
 
 ![Empfohlene Werkzeuge und Materialien aus der Vorlage](screenshots/24-projekt-vorlage-artikel.png)
 
-- **Empfohlene Werkzeuge und Materialien** (nur bei Vorlage): zunächst zugeklappt mit Anzahl. Aufklappen, um Artikel zu entfernen (✕) oder weitere hinzuzufügen (Suche + Menge). Genau diese Liste wird mit dem Projekt gespeichert.
+- **Werkzeug und Material:** zunächst zugeklappt mit Anzahl — ohne Vorlage leer, mit Vorlage vorbelegt („Empfohlene Werkzeuge und Materialien“). Aufklappen, um Artikel hinzuzufügen (Suche + Menge) oder zu entfernen (✕). Genau diese Liste wird mit dem Projekt gespeichert; sie kann später auf der Projektseite weiter gepflegt werden.
 - **Beschreibung** (erscheint auf dem Arbeitsauftrag) und **Interne Notizen** (nur Verwaltung, nie auf dem Arbeitsauftrag).
 
 ### 6.3 Projektseite

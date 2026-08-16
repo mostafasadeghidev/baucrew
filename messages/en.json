@@ -196,7 +196,8 @@
     "sameAsCustomer": "Same as customer address",
     "sameAsCustomerHint": "Take street, postal code, city and phone from the customer. Untick for a different site address.",
     "sameAsCustomerNoAddress": "The customer has no address on file.",
-    "copyFromCustomer": "Copy from customer"
+    "copyFromCustomer": "Copy from customer",
+    "itemsNewHint": "Optional — can also be maintained later on the project page"
   },
   "employees": {
     "title": "Employees",
