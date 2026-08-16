@@ -487,7 +487,11 @@
     "itemsInDialogHint": "Die Werkzeug-/Materialliste gehört zum Projekt und gilt für alle Einsätze.",
     "completeProject": "Projekt abschließen",
     "completeProjectConfirm": "Projekt „{project}“ als abgeschlossen markieren? Ende (tatsächlich) wird auf den {date} gesetzt.",
-    "completeProjectDone": "Projekt abgeschlossen"
+    "completeProjectDone": "Projekt abgeschlossen",
+    "showWeekend": "+ Wochenende",
+    "hideWeekend": "Wochenende ausblenden",
+    "weekendHint": "Wochenende — Samstag und Sonntag werden im Wochenplan nur angezeigt, wenn ein Einsatz darauf liegt (oder über „+ Wochenende“).",
+    "weekendDayHint": "Achtung: dieser Tag ist ein Wochenende."
   },
   "warehouse": {
     "title": "Lager",

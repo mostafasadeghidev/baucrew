@@ -14,6 +14,7 @@ export type MonthEntry = {
 const MAX_PER_DAY = 3
 
 export async function MonthView({
+  showWeekend = false,
   monthStartIso,
   gridStartIso,
   gridEndIso,
@@ -26,6 +27,7 @@ export async function MonthView({
   entries,
   locale,
 }: {
+  showWeekend?: boolean
   monthStartIso: string
   gridStartIso: string
   gridEndIso: string
@@ -50,10 +52,11 @@ export async function MonthView({
     timeZone: 'UTC',
   })
 
-  // Build week rows (Mon–Fri only, like the paper Wochenplan).
+  // Week rows Mon–Fri like the paper Wochenplan; Sa/So added when the month has weekend assignments.
+  const dayCount = showWeekend ? 7 : 5
   const weeks: string[][] = []
   for (let d = utcDate(gridStartIso); d < utcDate(gridEndIso); d = addDays(d, 7)) {
-    weeks.push(Array.from({ length: 5 }, (_, i) => iso(addDays(d, i))))
+    weeks.push(Array.from({ length: dayCount }, (_, i) => iso(addDays(d, i))))
   }
   const byDay = new Map<string, MonthEntry[]>()
   for (const e of entries) byDay.set(e.date, [...(byDay.get(e.date) ?? []), e])

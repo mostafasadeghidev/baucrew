@@ -231,6 +231,11 @@ export function EntryDialog({
             </div>
           </div>
           <p className="-mt-2 text-xs text-muted">{t('timeHint')}</p>
+          {date && [0, 6].includes(new Date(`${date}T00:00:00.000Z`).getUTCDay()) && (
+            <p className="-mt-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400">
+              ⚠ {t('weekendDayHint')} {t('weekendHint')}
+            </p>
+          )}
 
           <div>
             <label className="block text-sm font-medium">{t('vehicle')}</label>
