@@ -196,7 +196,8 @@
     "sameAsCustomer": "Wie Kundenadresse",
     "sameAsCustomerHint": "Straße, PLZ, Ort und Telefon vom Kunden übernehmen. Haken entfernen für eine andere Baustellenadresse.",
     "sameAsCustomerNoAddress": "Der Kunde hat keine Adresse hinterlegt.",
-    "copyFromCustomer": "Vom Kunden übernehmen"
+    "copyFromCustomer": "Vom Kunden übernehmen",
+    "itemsNewHint": "Optional — kann auch später auf der Projektseite gepflegt werden"
   },
   "employees": {
     "title": "Mitarbeiter",

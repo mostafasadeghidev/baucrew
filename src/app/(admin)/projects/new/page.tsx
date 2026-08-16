@@ -54,13 +54,11 @@ export default async function NewProjectPage({
         })
       : null,
   ])
-  const catalog = template
-    ? await db.catalogItem.findMany({
-        where: { active: true },
-        orderBy: [{ kind: 'asc' }, { name: 'asc' }],
-        select: { id: true, name: true, unit: true },
-      })
-    : []
+  const catalog = await db.catalogItem.findMany({
+    where: { active: true },
+    orderBy: [{ kind: 'asc' }, { name: 'asc' }],
+    select: { id: true, name: true, unit: true },
+  })
 
   return (
     <div className="space-y-4">
@@ -80,17 +78,17 @@ export default async function NewProjectPage({
         showPrice={canViewFinancials(user)}
         templateId={template?.id}
         extraSection={
-          template ? (
-            <TemplateItemsSection
-              initialItems={template.items.map((it) => ({
-                catalogItemId: it.catalogItem.id,
-                name: it.catalogItem.name,
-                unit: it.catalogItem.unit,
-                quantity: it.quantity != null ? Number(it.quantity) : null,
-              }))}
-              options={catalog.map((c) => ({ value: c.id, label: c.unit ? `${c.name} (${c.unit})` : c.name }))}
-            />
-          ) : null
+          <TemplateItemsSection
+            key={template?.id ?? 'blank'}
+            initialItems={(template?.items ?? []).map((it) => ({
+              catalogItemId: it.catalogItem.id,
+              name: it.catalogItem.name,
+              unit: it.catalogItem.unit,
+              quantity: it.quantity != null ? Number(it.quantity) : null,
+            }))}
+            options={catalog.map((c) => ({ value: c.id, label: c.unit ? `${c.name} (${c.unit})` : c.name }))}
+            fromTemplate={!!template}
+          />
         }
         customers={customers.map((c) => ({ value: c.id, label: c.name }))}
         customerAddresses={Object.fromEntries(
