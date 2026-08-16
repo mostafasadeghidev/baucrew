@@ -2,10 +2,13 @@ import { requireManagement } from '@/lib/authz'
 import { getBranding } from '@/lib/branding'
 import { Sidebar } from '@/components/sidebar'
 import { Topbar } from '@/components/topbar'
+import { syncProjectsInProgress } from '@/lib/project-lifecycle'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireManagement()
   const branding = await getBranding()
+  // Planned projects whose first assignment day has arrived become "In Ausführung" (throttled).
+  await syncProjectsInProgress()
 
   return (
     <div className="flex min-h-screen">

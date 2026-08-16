@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireAdmin, requireManagement, canViewFinancials } from '@/lib/authz'
 import { audit } from '@/lib/audit'
+import { actualDatesForStatus } from '@/lib/project-lifecycle'
 import { ProjectStatus, ClientType, BuildingType } from '@/generated/prisma/enums'
 
 export type ProjectFormState = {
@@ -286,6 +287,10 @@ export async function updateProject(
       plannedEnd: d.plannedEnd,
       actualStart: d.actualStart,
       actualEnd: d.actualEnd,
+      // Status moved forward by hand and the actual dates were left empty → derive them.
+      ...(before.status !== d.status
+        ? await actualDatesForStatus(id, d.status, { actualStart: d.actualStart, actualEnd: d.actualEnd })
+        : {}),
       managerId: d.managerId,
       vehicleId: d.vehicleId,
       description: d.description,
@@ -329,10 +334,14 @@ export async function updateProject(
 export async function setProjectStatus(id: string, status: string): Promise<{ error?: string }> {
   const user = await requireManagement()
   if (!(status in ProjectStatus)) return { error: 'saveFailed' }
-  const before = await db.project.findUnique({ where: { id }, select: { status: true, number: true } })
+  const before = await db.project.findUnique({
+    where: { id },
+    select: { status: true, number: true, actualStart: true, actualEnd: true },
+  })
   if (!before) return { error: 'saveFailed' }
   if (before.status === status) return {}
-  await db.project.update({ where: { id }, data: { status: status as ProjectStatus } })
+  const derived = await actualDatesForStatus(id, status as ProjectStatus, before)
+  await db.project.update({ where: { id }, data: { status: status as ProjectStatus, ...derived } })
   await audit({
     userId: user.id,
     action: 'project.status',

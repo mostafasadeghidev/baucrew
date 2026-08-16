@@ -3,6 +3,8 @@
 import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { completeProjectFromEntry } from './actions'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { MultiCombobox } from '@/components/multi-combobox'
 import { ProjectItemsEditor, type ProjectItemRow } from '../projects/[id]/project-items'
@@ -58,6 +60,8 @@ export function EntryDialog({
 }) {
   const t = useTranslations('schedule')
   const tc = useTranslations('common')
+  const router = useRouter()
+  const [completing, setCompleting] = useState(false)
   const tProjects = useTranslations('projects')
   const tSheet = useTranslations('sheet')
   const tVehicles = useTranslations('vehicles')
@@ -303,16 +307,39 @@ export function EntryDialog({
                 {tc('cancel')}
               </button>
             </div>
-            {isEdit && onDelete && (
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => onDelete(entry!.id)}
-                className="rounded-md border border-danger/40 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-60"
-              >
-                {tc('delete')}
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {isEdit && (
+                <button
+                  type="button"
+                  disabled={pending || completing}
+                  onClick={async () => {
+                    const projectLabel = projects.find((p) => p.value === projectId)?.label ?? ''
+                    const dateLabel = new Date(`${date}T00:00:00.000Z`).toLocaleDateString('de-DE', { timeZone: 'UTC' })
+                    if (!confirm(t('completeProjectConfirm', { project: projectLabel, date: dateLabel }))) return
+                    setCompleting(true)
+                    const res = await completeProjectFromEntry(entry!.id)
+                    setCompleting(false)
+                    if (!res.error) {
+                      router.refresh()
+                      onClose()
+                    }
+                  }}
+                  className="rounded-md border border-emerald-600/40 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-60 dark:text-emerald-400"
+                >
+                  ✓ {t('completeProject')}
+                </button>
+              )}
+              {isEdit && onDelete && (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => onDelete(entry!.id)}
+                  className="rounded-md border border-danger/40 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-60"
+                >
+                  {tc('delete')}
+                </button>
+              )}
+            </div>
           </div>
         </form>
       </div>

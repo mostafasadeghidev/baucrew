@@ -5,6 +5,8 @@ import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { StatusBadge } from '@/components/status-badge'
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
+import { PREPARATION_STATUSES } from '@/lib/project-lifecycle-rules'
+import type { Prisma } from '@/generated/prisma/client'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -31,10 +33,17 @@ export default async function ProjectsPage({
   const statusFilter = STATUSES.includes(status as ProjectStatus)
     ? (status as ProjectStatus)
     : undefined
+  // "prep" = combined tab for LEAD / QUOTED / APPROVED (nothing planned yet).
+  const prepFilter = status === 'prep'
   const showPrice = canViewFinancials(user)
 
-  const where = {
-    ...(statusFilter ? { status: statusFilter } : {}),
+  const statusWhere: Prisma.ProjectWhereInput = statusFilter
+    ? { status: statusFilter }
+    : prepFilter
+      ? { status: { in: [...PREPARATION_STATUSES] as ProjectStatus[] } }
+      : {}
+  const where: Prisma.ProjectWhereInput = {
+    ...statusWhere,
     ...(query
       ? {
           OR: [
@@ -87,11 +96,18 @@ export default async function ProjectsPage({
       <StatusTabs
         allLabel={t('allStatuses')}
         allCount={allCount}
-        tabs={STATUSES.filter((s) => (countByStatus.get(s) ?? 0) > 0 || s === statusFilter).map((s) => ({
-          value: s,
-          label: tStatus(s),
-          count: countByStatus.get(s) ?? 0,
-        }))}
+        tabs={[
+          {
+            value: 'prep',
+            label: t('tabPreparation'),
+            count: PREPARATION_STATUSES.reduce((sum, s) => sum + (countByStatus.get(s as ProjectStatus) ?? 0), 0),
+          },
+          ...STATUSES.filter((s) => (countByStatus.get(s) ?? 0) > 0 || s === statusFilter).map((s) => ({
+            value: s,
+            label: tStatus(s),
+            count: countByStatus.get(s) ?? 0,
+          })),
+        ]}
       />
 
       <div className="flex max-w-md">

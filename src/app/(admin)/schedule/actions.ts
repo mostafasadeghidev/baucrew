@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
+import { promoteToPlanned, actualDatesForStatus } from '@/lib/project-lifecycle'
 
 export type EntryResult = { error?: 'duplicateEntry' | 'projectRequired' | 'saveFailed' }
 
@@ -88,7 +89,48 @@ export async function createScheduleEntry(input: EntryInput): Promise<EntryResul
   } catch (e) {
     return { error: isUniqueConflict(e) ? 'duplicateEntry' : 'saveFailed' }
   }
+  // First planning step: preparation statuses become "Geplant" automatically.
+  await promoteToPlanned(d.projectId, user.id)
   revalidateBoard(d.projectId)
+  revalidatePath('/projects')
+  return {}
+}
+
+/**
+ * "Projekt abschließen" from the entry dialog: marks the project COMPLETED,
+ * sets actualEnd to this entry's date (when empty) and actualStart to the
+ * first scheduled day (when empty). Projects already invoiced/paid are left alone.
+ */
+export async function completeProjectFromEntry(entryId: string): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  const entry = await db.scheduleEntry.findUnique({
+    where: { id: entryId },
+    include: { project: { select: { id: true, number: true, status: true, actualStart: true, actualEnd: true } } },
+  })
+  if (!entry) return { error: 'saveFailed' }
+  const p = entry.project
+  if (p.status === 'INVOICED' || p.status === 'PAID' || p.status === 'CANCELLED') return {}
+  const derived = await actualDatesForStatus(p.id, 'COMPLETED', { actualStart: p.actualStart, actualEnd: p.actualEnd })
+  await db.project.update({
+    where: { id: p.id },
+    data: {
+      status: 'COMPLETED',
+      ...(derived.actualStart ? { actualStart: derived.actualStart } : {}),
+      // The clicked entry is the day the work ended.
+      ...(p.actualEnd ? {} : { actualEnd: entry.date }),
+    },
+  })
+  await audit({
+    userId: user.id,
+    action: 'project.status',
+    entity: 'Project',
+    entityId: p.id,
+    field: 'status',
+    oldValue: p.status,
+    newValue: `COMPLETED (aus Einsatz ${entry.date.toISOString().slice(0, 10)})`,
+  })
+  revalidateBoard(p.id)
+  revalidatePath('/projects')
   return {}
 }
 
