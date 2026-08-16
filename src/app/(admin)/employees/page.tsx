@@ -4,6 +4,8 @@ import { db } from '@/lib/db'
 import { LiveSearchInput } from '@/components/live-search'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
+import { listSkills } from './actions'
+import { SkillManager } from './skill-manager'
 
 export default async function EmployeesPage({
   searchParams,
@@ -159,6 +161,8 @@ export default async function EmployeesPage({
       </div>
 
       <Pagination page={page} total={total} />
+
+      <SkillManager skills={await listSkills()} />
     </div>
   )
 }

@@ -210,7 +210,7 @@
     "phone": "Phone",
     "email": "Email",
     "skills": "Skills",
-    "skillsHint": "Separate multiple skills with commas, e.g. \"Painting, Drywall\"",
+    "skillsHint": "Type and pick from the list, or press Enter/comma to add a new skill.",
     "status": "Status",
     "notes": "Notes",
     "createTitle": "Create employee",
@@ -236,7 +236,16 @@
     "reactivateAccount": "Reactivate account",
     "accountDeactivated": "Account deactivated",
     "accountColumn": "Account",
-    "deleteAccount": "Delete account"
+    "deleteAccount": "Delete account",
+    "createSkill": "Create \"{name}\" as a new skill",
+    "removeSkill": "Remove",
+    "skillsTitle": "Manage skills",
+    "skillsManageHint": "Skills exist as soon as an employee has them. Renaming updates every employee with that skill; removing takes it away from all employees.",
+    "renameSkill": "Rename",
+    "removeSkillConfirm": "Remove skill \"{name}\" from {count} employees?",
+    "employeesCount": "{count} employees",
+    "noSkills": "No skills yet.",
+    "skillNameRequired": "Please enter a name."
   },
   "vehicles": {
     "title": "Vehicles",

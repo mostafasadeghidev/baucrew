@@ -190,7 +190,7 @@ Der Arbeitsauftrag ist die A4-Seite fürs Fahrzeug und die Baustelle — im Aufb
 
 ![Mitarbeiter](screenshots/08-mitarbeiter.png)
 
-Vorname, Nachname, Telefon, E-Mail, **Fähigkeiten** (mit Komma trennen, z. B. „Malern, WDVS“), aktiv/inaktiv, Notizen. Die Suche findet auch Teile einer Fähigkeit („fass“ → Fassade). Die Spalte **Konto** zeigt, wer sich anmelden kann.
+Vorname, Nachname, Telefon, E-Mail, **Fähigkeiten**, aktiv/inaktiv, Notizen. Fähigkeiten werden als Chips erfasst: tippen → Live-Vorschläge aus den bereits vorhandenen Fähigkeiten; steht der Text noch nicht in der Liste, erscheint „„X“ als neue Fähigkeit anlegen“ (auch Enter oder Komma fügt hinzu, × entfernt). Unten auf der Mitarbeiterliste **Fähigkeiten verwalten** (aufklappbar): eine Fähigkeit bei allen Mitarbeitern **umbenennen** oder **entfernen**. Die Suche findet auch Teile einer Fähigkeit („fass“ → Fassade). Die Spalte **Konto** zeigt, wer sich anmelden kann.
 
 Mitarbeiter, die Projekten oder Einsätzen zugeordnet sind, können nicht gelöscht werden — stattdessen auf **inaktiv** setzen (die Historie bleibt erhalten).
 
