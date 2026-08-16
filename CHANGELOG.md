@@ -3,7 +3,7 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [1.2.1] — 2026-08-16
 
 ### Fixed
 - Assignments on Saturday/Sunday were invisible in the week and month views (Mon–Fri only). Both views now add the weekend columns automatically when an assignment falls on them; the week view also has a "+ Wochenende" toggle to open the columns by hand, and the assignment dialog warns when a weekend date is chosen.
@@ -93,6 +93,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.2.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.2.1
 [1.2.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.1.0
 [1.0.2]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.0.2
