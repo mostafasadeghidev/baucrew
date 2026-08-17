@@ -83,6 +83,7 @@ Sie bleiben 30 Tage angemeldet. **Abmelden** oben rechts beendet die Sitzung sof
 3. **Speichern:** Bei Formularen, die zu einer neuen Seite führen (z. B. Projekt anlegen), öffnet sich danach die fertige Seite. Bei Formularen, die auf der Seite bleiben (Einstellungen, Benutzerkonto), erscheint kurz ein grünes **„✓ Gespeichert“** — dann ist es sicher gespeichert.
 4. **Fenster schließen:** Dialogfenster gehen nur über **✕** oder **Abbrechen** zu, nicht durch Klicken daneben. So verlieren Sie nichts aus Versehen.
 5. **Blättern:** Lange Listen zeigen 20 Einträge; unten können Sie weiterblättern.
+6. **Zurück:** Der Knopf **←** oben links auf Detailseiten bringt Sie dorthin zurück, wo Sie herkamen — z. B. aus der Bereitstellung zum Projekt und wieder zurück zur Bereitstellung. Kommen Sie direkt aus der Liste, führt er zur Liste.
 
 ### 2.4 Die Startseite („Übersicht“)
 

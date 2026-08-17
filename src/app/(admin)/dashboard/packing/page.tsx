@@ -23,11 +23,12 @@ export default async function PackingOverviewPage({
 }) {
   await requireManagement()
   const { date: dateParam } = await searchParams
-  const [t, tNav, tToday, tItem, locale] = await Promise.all([
+  const [t, tNav, tToday, tItem, tSheet, locale] = await Promise.all([
     getTranslations('dashboard'),
     getTranslations('nav'),
     getTranslations('today'),
     getTranslations('itemStatus'),
+    getTranslations('sheet'),
     getLocale(),
   ])
   const day = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? utcDate(dateParam) : todayUtc()
@@ -49,7 +50,9 @@ export default async function PackingOverviewPage({
         },
       },
       vehicles: { include: { vehicle: { select: { name: true } } } },
-      employees: { include: { employee: { select: { firstName: true, lastName: true } } } },
+      employees: {
+        include: { employee: { select: { firstName: true, lastName: true } } },
+      },
     },
     orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
   })
@@ -120,7 +123,9 @@ export default async function PackingOverviewPage({
         <p className="text-sm text-muted">
           {t('packedOf', { done: totals.done, total: totals.total })}
           {totals.missing > 0 && (
-            <span className="ml-2 text-red-700 dark:text-red-400">· {t('missingCount', { count: totals.missing })}</span>
+            <span className="ml-2 text-red-700 dark:text-red-400">
+              · {t('missingCount', { count: totals.missing })}
+            </span>
           )}
         </p>
       )}
@@ -137,7 +142,10 @@ export default async function PackingOverviewPage({
               <section key={e.id} className={card}>
                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border px-4 py-3">
                   <div className="min-w-0">
-                    <Link href={`/projects/${e.project.id}`} className="font-semibold text-accent hover:underline">
+                    <Link
+                      href={`/projects/${e.project.id}`}
+                      className="font-semibold text-accent hover:underline"
+                    >
                       {e.project.number} — {e.project.name}
                     </Link>
                     <p className="text-xs text-muted">
@@ -146,22 +154,50 @@ export default async function PackingOverviewPage({
                       {e.vehicles.length > 0 ? ` · ${e.vehicles.map((v) => v.vehicle.name).join(', ')}` : ''}
                     </p>
                     <p className="text-xs text-muted">
-                      {e.employees.map((x) => `${x.employee.firstName} ${x.employee.lastName}`.trim()).join(', ')}
+                      {e.employees
+                        .map((x) => `${x.employee.firstName} ${x.employee.lastName}`.trim())
+                        .join(', ')}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${
-                      items.length === 0
-                        ? 'bg-surface-hover text-muted'
-                        : missing > 0
-                          ? 'bg-red-500/15 text-red-700 dark:text-red-400'
-                          : done === items.length
-                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                            : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
-                    }`}
-                  >
-                    {items.length === 0 ? t('noItems') : done === items.length ? t('allPacked') : t('packedOf', { done, total: items.length })}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Link
+                      href={`/projects/${e.project.id}/sheet`}
+                      title={tSheet('title')}
+                      aria-label={tSheet('title')}
+                      className="rounded-md border border-border p-1.5 text-muted hover:bg-surface-hover hover:text-foreground"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                        <rect x="6" y="14" width="12" height="8" />
+                      </svg>
+                    </Link>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${
+                        items.length === 0
+                          ? 'bg-surface-hover text-muted'
+                          : missing > 0
+                            ? 'bg-red-500/15 text-red-700 dark:text-red-400'
+                            : done === items.length
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                              : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                      }`}
+                    >
+                      {items.length === 0
+                        ? t('noItems')
+                        : done === items.length
+                          ? t('allPacked')
+                          : t('packedOf', { done, total: items.length })}
+                    </span>
+                  </div>
                 </div>
                 {items.length > 0 && (
                   <ul className="divide-y divide-border">
@@ -176,7 +212,9 @@ export default async function PackingOverviewPage({
                             </span>
                           )}
                         </span>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[it.status] ?? ''}`}>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[it.status] ?? ''}`}
+                        >
                           {tItem(it.status)}
                         </span>
                       </li>

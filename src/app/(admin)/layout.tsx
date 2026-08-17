@@ -2,6 +2,8 @@ import { requireManagement } from '@/lib/authz'
 import { getBranding } from '@/lib/branding'
 import { Sidebar } from '@/components/sidebar'
 import { Topbar } from '@/components/topbar'
+import { NavHistory } from '@/components/nav-history'
+import { Suspense } from 'react'
 import { syncProjectsInProgress } from '@/lib/project-lifecycle'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +14,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen">
+      <Suspense fallback={null}>
+        <NavHistory />
+      </Suspense>
       <Sidebar
         isAdmin={user.role === 'ADMIN'}
         brandName={branding.companyName}
