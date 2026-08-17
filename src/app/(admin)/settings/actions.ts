@@ -12,6 +12,7 @@ import { audit } from '@/lib/audit'
 import { Role } from '@/generated/prisma/enums'
 import type { SaveState } from '@/components/saved-form'
 import { deleteUserBlockReason } from '@/lib/user-guards'
+import { PREP_TAB_KEY, prepTabConfigFromForm, serializePrepTabConfig } from '@/lib/prep-tab'
 
 export type UserFormState = {
   error?: 'usernameTaken' | 'usernameInvalid' | 'passwordTooShort' | 'selfProtected' | 'saveFailed'
@@ -434,6 +435,18 @@ export async function updateRainThreshold(formData: FormData): Promise<SaveState
   await audit({ userId: admin.id, action: 'settings.rainThreshold', entity: 'AppSetting', entityId: 'rainThreshold', newValue: value })
   revalidatePath('/dashboard')
   revalidatePath('/schedule')
+  revalidatePath('/settings')
+  return { savedAt: Date.now() }
+}
+
+// ── Project list: "Zur Vorbereitung" tab ─────────────────────
+
+export async function updatePrepTab(formData: FormData): Promise<SaveState> {
+  const admin = await requireAdmin()
+  const value = serializePrepTabConfig(prepTabConfigFromForm((n) => formData.get(n)))
+  await db.appSetting.upsert({ where: { key: PREP_TAB_KEY }, update: { value }, create: { key: PREP_TAB_KEY, value } })
+  await audit({ userId: admin.id, action: 'settings.prepTab', entity: 'AppSetting', entityId: PREP_TAB_KEY, newValue: value })
+  revalidatePath('/projects')
   revalidatePath('/settings')
   return { savedAt: Date.now() }
 }

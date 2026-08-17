@@ -9,6 +9,7 @@ import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { MultiCombobox } from '@/components/multi-combobox'
 import { ProjectItemsEditor, type ProjectItemRow } from '../projects/[id]/project-items'
 import { getProjectScheduleDefaults, type EntryInput } from './actions'
+import { MAX_RANGE_DAYS, expandDateRange, isWeekendIso } from '@/lib/schedule-range'
 
 export type BoardEntry = {
   id: string
@@ -81,6 +82,8 @@ export function EntryDialog({
     entry?.projectId ?? (dialog.mode === 'create' ? (dialog.projectId ?? '') : '')
   )
   const [date, setDate] = useState(entry?.date ?? (dialog.mode === 'create' ? dialog.date : ''))
+  const [endDate, setEndDate] = useState('')
+  const [skipWeekends, setSkipWeekends] = useState(true)
   const [vehicleIds, setVehicleIds] = useState<string[]>(entry?.vehicles.map((v) => v.id) ?? [])
   const [startTime, setStartTime] = useState(entry?.startTime ?? '07:00')
   const [endTime, setEndTime] = useState(entry?.endTime ?? '')
@@ -146,10 +149,26 @@ export function EntryDialog({
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onSubmit(
-      { projectId, date, vehicleIds, employeeIds: [...selectedEmployees], startTime, endTime, note },
+      {
+        projectId,
+        date,
+        ...(!isEdit && endDate && endDate !== date ? { endDate, skipWeekends } : {}),
+        vehicleIds,
+        employeeIds: [...selectedEmployees],
+        startTime,
+        endTime,
+        note,
+      },
       entry?.id
     )
   }
+
+  const range = !isEdit && date && endDate && endDate !== date ? expandDateRange(date, endDate, skipWeekends) : null
+  const rangeError = range?.error
+  const rangeCount = range && !range.error ? range.dates.length : 0
+  const touchesWeekend = range
+    ? !range.error && range.dates.some(isWeekendIso)
+    : Boolean(date) && isWeekendIso(date)
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
@@ -203,10 +222,10 @@ export function EntryDialog({
             {prefilled && <p className="mt-1 text-xs text-accent">{t('prefilledFromProject')}</p>}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className={`grid gap-3 ${isEdit ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
             <div>
               <label htmlFor="entry-date" className="block text-sm font-medium">
-                {t('date')}
+                {isEdit ? t('date') : t('dateFrom')}
               </label>
               <input
                 id="entry-date"
@@ -217,6 +236,21 @@ export function EntryDialog({
                 className={inputClass}
               />
             </div>
+            {!isEdit && (
+              <div>
+                <label htmlFor="entry-end-date" className="block text-sm font-medium">
+                  {t('dateTo')} <span className="font-normal text-muted">({tc('optional')})</span>
+                </label>
+                <input
+                  id="entry-end-date"
+                  type="date"
+                  value={endDate}
+                  min={date || undefined}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            )}
             <div>
               <label htmlFor="entry-time" className="block text-sm font-medium">
                 {t('startTime')}
@@ -231,7 +265,27 @@ export function EntryDialog({
             </div>
           </div>
           <p className="-mt-2 text-xs text-muted">{t('timeHint')}</p>
-          {date && [0, 6].includes(new Date(`${date}T00:00:00.000Z`).getUTCDay()) && (
+          {range && (
+            <div className="-mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-accent/40 bg-accent/5 px-3 py-2 text-xs">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={skipWeekends}
+                  onChange={(e) => setSkipWeekends(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                {t('rangeSkipWeekends')}
+              </label>
+              {rangeError ? (
+                <span className="font-medium text-danger">
+                  {rangeError === 'rangeTooLong' ? t('rangeTooLong', { max: MAX_RANGE_DAYS }) : rangeError === 'noWorkingDays' ? t('rangeNoWorkingDays') : t('rangeInvalid')}
+                </span>
+              ) : (
+                <span className="font-medium text-accent">{t('rangeCount', { count: rangeCount })}</span>
+              )}
+            </div>
+          )}
+          {touchesWeekend && (
             <p className="-mt-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400">
               ⚠ {t('weekendDayHint')} {t('weekendHint')}
             </p>
@@ -299,10 +353,10 @@ export function EntryDialog({
             <div className="flex items-center gap-3">
               <button
                 type="submit"
-                disabled={pending}
+                disabled={pending || Boolean(rangeError)}
                 className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
               >
-                {tc('save')}
+                {rangeCount > 1 ? t('createEntries', { count: rangeCount }) : tc('save')}
               </button>
               <button
                 type="button"

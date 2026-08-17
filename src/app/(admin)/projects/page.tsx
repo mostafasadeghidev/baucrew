@@ -5,7 +5,7 @@ import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { StatusBadge } from '@/components/status-badge'
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
-import { PREPARATION_STATUSES } from '@/lib/project-lifecycle-rules'
+import { getPrepTabConfig } from '@/lib/prep-tab-db'
 import type { Prisma } from '@/generated/prisma/client'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
@@ -29,19 +29,21 @@ export default async function ProjectsPage({
     getLocale(),
   ])
 
+  const prepTab = await getPrepTabConfig()
   const query = q?.trim() ?? ''
   const statusFilter = STATUSES.includes(status as ProjectStatus)
     ? (status as ProjectStatus)
     : undefined
-  // "prep" = combined tab for LEAD / QUOTED / APPROVED (nothing planned yet).
-  const prepFilter = status === 'prep'
+  // "prep" = configurable combined tab (Settings → Projektliste), default
+  // LEAD / QUOTED / APPROVED = "Zur Vorbereitung".
+  const prepFilter = prepTab.enabled && status === 'prep'
   const showPrice = canViewFinancials(user)
+  const prepWhere: Prisma.ProjectWhereInput = {
+    status: { in: prepTab.statuses as ProjectStatus[] },
+    ...(prepTab.unscheduledOnly ? { scheduleEntries: { none: {} } } : {}),
+  }
 
-  const statusWhere: Prisma.ProjectWhereInput = statusFilter
-    ? { status: statusFilter }
-    : prepFilter
-      ? { status: { in: [...PREPARATION_STATUSES] as ProjectStatus[] } }
-      : {}
+  const statusWhere: Prisma.ProjectWhereInput = statusFilter ? { status: statusFilter } : prepFilter ? prepWhere : {}
   const where: Prisma.ProjectWhereInput = {
     ...statusWhere,
     ...(query
@@ -58,8 +60,8 @@ export default async function ProjectsPage({
   }
 
   // Tab counts respect the search query but not the status filter itself.
-  const { status: _ignored, ...whereWithoutStatus } = where
-  const [projects, total, statusCounts] = await Promise.all([
+  const { status: _ignored, scheduleEntries: _ignoredEntries, ...whereWithoutStatus } = where
+  const [projects, total, statusCounts, prepCount] = await Promise.all([
     db.project.findMany({
       where,
       include: { customer: { select: { name: true } } },
@@ -69,6 +71,7 @@ export default async function ProjectsPage({
     }),
     db.project.count({ where }),
     db.project.groupBy({ by: ['status'], where: whereWithoutStatus, _count: { _all: true } }),
+    prepTab.enabled ? db.project.count({ where: { ...whereWithoutStatus, ...prepWhere } }) : Promise.resolve(0),
   ])
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
   const allCount = statusCounts.reduce((sum, s) => sum + s._count._all, 0)
@@ -97,11 +100,9 @@ export default async function ProjectsPage({
         allLabel={t('allStatuses')}
         allCount={allCount}
         tabs={[
-          {
-            value: 'prep',
-            label: t('tabPreparation'),
-            count: PREPARATION_STATUSES.reduce((sum, s) => sum + (countByStatus.get(s as ProjectStatus) ?? 0), 0),
-          },
+          ...(prepTab.enabled
+            ? [{ value: 'prep', label: prepTab.label || t('tabPreparation'), count: prepCount }]
+            : []),
           ...STATUSES.filter((s) => (countByStatus.get(s) ?? 0) > 0 || s === statusFilter).map((s) => ({
             value: s,
             label: tStatus(s),

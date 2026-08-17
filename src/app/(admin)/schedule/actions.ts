@@ -6,8 +6,13 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { promoteToPlanned, actualDatesForStatus } from '@/lib/project-lifecycle'
+import { expandDateRange } from '@/lib/schedule-range'
 
-export type EntryResult = { error?: 'duplicateEntry' | 'projectRequired' | 'saveFailed' }
+export type EntryResult = {
+  error?: 'duplicateEntry' | 'projectRequired' | 'saveFailed' | 'invalidRange' | 'rangeTooLong' | 'noWorkingDays'
+  /** Number of entries created (range mode). */
+  created?: number
+}
 
 const timeField = z
   .string()
@@ -24,6 +29,13 @@ const timeField = z
 const entrySchema = z.object({
   projectId: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .or(z.literal(''))
+    .transform((v) => (v ? v : null)),
+  skipWeekends: z.boolean().optional().default(true),
   vehicleIds: z.array(z.string().min(1)).max(20),
   employeeIds: z.array(z.string().min(1)).max(50),
   startTime: timeField,
@@ -38,6 +50,10 @@ const entrySchema = z.object({
 export type EntryInput = {
   projectId: string
   date: string
+  /** Create mode only: last day of a "from – to" range (one entry per day). */
+  endDate?: string
+  /** Range mode: leave Saturdays/Sundays out (default true). */
+  skipWeekends?: boolean
   vehicleIds: string[]
   employeeIds: string[]
   startTime: string
@@ -66,26 +82,68 @@ export async function createScheduleEntry(input: EntryInput): Promise<EntryResul
     }
   }
   const d = parsed.data
+  const range = expandDateRange(d.date, d.endDate, d.skipWeekends)
+  if (range.error) return { error: range.error }
+  const isRange = range.dates.length > 1
+  let created = 0
   try {
-    const entry = await db.scheduleEntry.create({
-      data: {
-        projectId: d.projectId,
-        date: new Date(`${d.date}T00:00:00.000Z`),
-        startTime: d.startTime,
-        endTime: d.endTime,
-        note: d.note,
-        employees: { create: d.employeeIds.map((id) => ({ employeeId: id })) },
-        vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
-      },
-      include: { project: { select: { number: true } } },
-    })
-    await audit({
-      userId: user.id,
-      action: 'schedule.create',
-      entity: 'ScheduleEntry',
-      entityId: entry.id,
-      newValue: `${entry.project.number} @ ${d.date}`,
-    })
+    if (!isRange) {
+      const entry = await db.scheduleEntry.create({
+        data: {
+          projectId: d.projectId,
+          date: new Date(`${d.date}T00:00:00.000Z`),
+          startTime: d.startTime,
+          endTime: d.endTime,
+          note: d.note,
+          employees: { create: d.employeeIds.map((id) => ({ employeeId: id })) },
+          vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
+        },
+        include: { project: { select: { number: true } } },
+      })
+      created = 1
+      await audit({
+        userId: user.id,
+        action: 'schedule.create',
+        entity: 'ScheduleEntry',
+        entityId: entry.id,
+        newValue: `${entry.project.number} @ ${d.date}`,
+      })
+    } else {
+      // Range: one entry per day; days that already have an entry for this
+      // project are left untouched (unique projectId+date).
+      const existing = await db.scheduleEntry.findMany({
+        where: { projectId: d.projectId, date: { in: range.dates.map((x) => new Date(`${x}T00:00:00.000Z`)) } },
+        select: { date: true },
+      })
+      const taken = new Set(existing.map((e) => e.date.toISOString().slice(0, 10)))
+      const todo = range.dates.filter((x) => !taken.has(x))
+      if (todo.length === 0) return { error: 'duplicateEntry' }
+      const project = await db.project.findUnique({ where: { id: d.projectId }, select: { number: true } })
+      const ids = await db.$transaction(
+        todo.map((x) =>
+          db.scheduleEntry.create({
+            data: {
+              projectId: d.projectId,
+              date: new Date(`${x}T00:00:00.000Z`),
+              startTime: d.startTime,
+              endTime: d.endTime,
+              note: d.note,
+              employees: { create: d.employeeIds.map((id) => ({ employeeId: id })) },
+              vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
+            },
+            select: { id: true },
+          })
+        )
+      )
+      created = ids.length
+      await audit({
+        userId: user.id,
+        action: 'schedule.createRange',
+        entity: 'ScheduleEntry',
+        entityId: ids[0].id,
+        newValue: `${project?.number ?? d.projectId} @ ${todo[0]} – ${todo[todo.length - 1]} (${todo.length})`,
+      })
+    }
   } catch (e) {
     return { error: isUniqueConflict(e) ? 'duplicateEntry' : 'saveFailed' }
   }
@@ -93,7 +151,7 @@ export async function createScheduleEntry(input: EntryInput): Promise<EntryResul
   await promoteToPlanned(d.projectId, user.id)
   revalidateBoard(d.projectId)
   revalidatePath('/projects')
-  return {}
+  return { created }
 }
 
 /**
