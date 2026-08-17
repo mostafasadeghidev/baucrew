@@ -88,8 +88,9 @@ imported from Trello under *Einstellungen*).
 > ⚠️ Change these passwords before any real use (system accounts under
 > *Einstellungen*, employee accounts on the employee page).
 
-> The dev server uses port **4700** because Windows often reserves port 3000
-> for Hyper-V/WSL (`netsh interface ipv4 show excludedportrange protocol=tcp`).
+> The dev server uses port **4700** and the dev database is published on
+> **5532** (`DATABASE_URL=…@localhost:5532/…`) because Windows often reserves
+> 3000 and 5432 for Hyper-V/WSL (`netsh interface ipv4 show excludedportrange protocol=tcp`).
 
 ## Scripts
 
