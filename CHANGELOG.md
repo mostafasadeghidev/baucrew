@@ -3,7 +3,7 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [1.3.0] — 2026-08-17
 
 ### Added
 - **Month view is now interactive:** click a chip to open the assignment dialog, "+" on any day to create, drag & drop (mouse and touch) to move — same as the week view; "+N" expands the day.
@@ -113,6 +113,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.3.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.3.0
 [1.2.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.2.1
 [1.2.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.1.0
