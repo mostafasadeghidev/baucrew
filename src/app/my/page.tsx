@@ -3,6 +3,7 @@ import { getTranslations, getLocale } from 'next-intl/server'
 import { requireUser } from '@/lib/authz'
 import { db } from '@/lib/db'
 import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
+import { StockWarning } from '@/components/stock-warning'
 
 const ITEM_STYLE: Record<'REQUIRED' | 'COLLECTED' | 'MISSING', string> = {
   REQUIRED: 'border-border text-muted',
@@ -39,7 +40,7 @@ export default async function MyAreaPage({
                 customer: { select: { name: true, phone: true, contactPerson: true } },
                 manager: { select: { firstName: true, lastName: true, phone: true } },
                 items: {
-                  include: { catalogItem: { select: { name: true, unit: true } } },
+                  include: { catalogItem: { select: { name: true, unit: true, stockQuantity: true } } },
                   orderBy: { catalogItem: { name: 'asc' } },
                 },
               },
@@ -270,6 +271,15 @@ export default async function MyAreaPage({
                               {' '}
                               {Number(item.quantity)}
                               {item.catalogItem.unit ? ` ${item.catalogItem.unit}` : ''}
+                            </span>
+                          )}
+                          {item.status !== 'COLLECTED' && (
+                            <span className="ml-1">
+                              <StockWarning
+                                needed={item.quantity != null ? Number(item.quantity) : null}
+                                stock={item.catalogItem.stockQuantity != null ? Number(item.catalogItem.stockQuantity) : null}
+                                unit={item.catalogItem.unit}
+                              />
                             </span>
                           )}
                         </li>

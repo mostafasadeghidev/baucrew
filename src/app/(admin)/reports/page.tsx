@@ -558,7 +558,9 @@ export default async function ReportsPage({
                             ? t('qNoCity')
                             : q.key === 'cityNotFound'
                               ? t('qCityNotFound')
-                              : t('qMissingItems')}
+                              : q.key === 'stockShort'
+                                ? t('qStockShort')
+                                : t('qMissingItems')}
                     </h3>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${
@@ -579,7 +581,7 @@ export default async function ReportsPage({
                       {q.items.map((it) => (
                         <li key={it.id} className="px-3 py-1.5 text-[13px]">
                           <Link
-                            href={q.key === 'missingItems' ? `/warehouse/${it.id}/edit` : `/projects/${it.id}`}
+                            href={q.key === 'missingItems' || q.key === 'stockShort' ? `/warehouse/${it.id}/edit` : `/projects/${it.id}`}
                             className="text-accent hover:underline"
                           >
                             {it.label}

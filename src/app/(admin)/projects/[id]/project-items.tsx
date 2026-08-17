@@ -4,12 +4,15 @@ import { useRef, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { addProjectItem, removeProjectItem, setProjectItemStatus } from '../actions'
+import { StockWarning } from '@/components/stock-warning'
 
 export type ProjectItemRow = {
   id: string
   name: string
   unit: string | null
   quantity: number | null
+  /** Warehouse stock (null = unknown) — for the shortage warning. */
+  stock: number | null
   status: 'REQUIRED' | 'COLLECTED' | 'MISSING'
 }
 
@@ -74,6 +77,11 @@ export function ProjectItemsEditor({
                   <span className="ml-2 text-xs text-muted">
                     {t('quantity')}: {item.quantity}
                     {item.unit ? ` ${item.unit}` : ''}
+                  </span>
+                )}
+                {item.status !== 'COLLECTED' && (
+                  <span className="ml-2">
+                    <StockWarning needed={item.quantity} stock={item.stock} unit={item.unit} />
                   </span>
                 )}
               </span>

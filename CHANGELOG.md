@@ -3,6 +3,11 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.5.0] — 2026-08-17
+
+### Added
+- **Stock shortage warning** (hint only, never blocks): when a project needs more of an item than the warehouse lists as stock, a yellow badge "⚠ Bestand 2 — 5 benötigt" appears next to the item — on the project page, in the assignment dialog, on the warehouse packing screen, the packing overview and in "Mein Bereich" (hidden once the item is packed). Reports → Data quality lists items whose stock is lower than the open demand of active projects (stock / demand, linked to the item). Items without a stock value never warn.
+
 ## [1.4.1] — 2026-08-17
 
 ### Fixed
@@ -126,6 +131,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.5.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.5.0
 [1.4.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.4.1
 [1.4.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.4.0
 [1.3.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.3.1

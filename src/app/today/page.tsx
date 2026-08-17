@@ -52,7 +52,7 @@ export default async function TodayBoardPage({
           city: true,
           customer: { select: { name: true } },
           items: {
-            include: { catalogItem: { select: { name: true, unit: true } } },
+            include: { catalogItem: { select: { name: true, unit: true, stockQuantity: true } } },
             orderBy: { catalogItem: { name: 'asc' } },
           },
         },
@@ -140,6 +140,7 @@ export default async function TodayBoardPage({
               name: item.catalogItem.name,
               unit: item.catalogItem.unit,
               quantity: item.quantity != null ? Number(item.quantity) : null,
+              stock: item.catalogItem.stockQuantity != null ? Number(item.catalogItem.stockQuantity) : null,
               status: item.status,
             }))
             return (

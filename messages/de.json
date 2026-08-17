@@ -429,7 +429,8 @@
     "qMissingItems": "Artikel, die aktuell in mehreren Projekten fehlen",
     "qualityAllGood": "Keine Auffälligkeiten.",
     "print": "Drucken / PDF",
-    "qCityNotFound": "Ort nicht auffindbar — keine Wetterwarnung möglich"
+    "qCityNotFound": "Ort nicht auffindbar — keine Wetterwarnung möglich",
+    "qStockShort": "Lagerbestand kleiner als Bedarf (offene Projekte, noch nicht gepackt) — Bestand / Bedarf"
   },
   "sheet": {
     "title": "Arbeitsauftrag",
@@ -549,7 +550,9 @@
     "removeCategoryConfirm": "Kategorie „{name}“ von {count} Artikeln entfernen? Die Artikel bleiben erhalten.",
     "itemsCount": "{count} Artikel",
     "noCategories": "Noch keine Kategorien.",
-    "categoryNameRequired": "Bitte einen Namen angeben."
+    "categoryNameRequired": "Bitte einen Namen angeben.",
+    "stockShort": "Bestand {stock} — {needed} benötigt",
+    "stockShortTitle": "Es fehlen {short} im Lager (nur Hinweis, keine Sperre)"
   },
   "itemKind": {
     "TOOL": "Werkzeug",

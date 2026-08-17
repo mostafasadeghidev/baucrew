@@ -2,6 +2,7 @@ import 'server-only'
 import { db } from './db'
 import { computeEfficiency, type EfficiencyResult, type MonthRange } from './reports-calc'
 import { geocodeCity } from './geocode'
+import { stockShortage } from './stock'
 
 export type RevenueProject = {
   id: string
@@ -327,7 +328,7 @@ export async function getCustomerReport(
 // ── Data quality: things that make the numbers wrong ─────────
 
 export type QualityIssue = {
-  key: 'inProgressNoSchedule' | 'finishedNoPrice' | 'noCity' | 'cityNotFound' | 'missingItems'
+  key: 'inProgressNoSchedule' | 'finishedNoPrice' | 'noCity' | 'cityNotFound' | 'missingItems' | 'stockShort'
   count: number
   items: Array<{ id: string; label: string }>
 }
@@ -336,7 +337,7 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
   const today = new Date()
   const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
   const in14 = new Date(todayUtc.getTime() + 14 * 86_400_000)
-  const [inProgressNoSchedule, finishedNoPrice, noCity, missing, cityCandidates] = await Promise.all([
+  const [inProgressNoSchedule, finishedNoPrice, noCity, missing, cityCandidates, demand] = await Promise.all([
     db.project.findMany({
       where: { status: 'IN_PROGRESS', scheduleEntries: { none: { date: { gte: todayUtc, lte: in14 } } } },
       select: { id: true, number: true, name: true },
@@ -372,7 +373,33 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
       orderBy: { number: 'asc' },
       take: 40,
     }),
+    // Open demand (not yet packed) of active projects per catalog item — compared with stock below.
+    db.projectItem.groupBy({
+      by: ['catalogItemId'],
+      where: {
+        status: { in: ['REQUIRED', 'MISSING'] },
+        quantity: { not: null },
+        project: { status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] } },
+      },
+      _sum: { quantity: true },
+    }),
   ])
+  const demandIds = demand.map((d) => d.catalogItemId)
+  const stockRows = demandIds.length
+    ? await db.catalogItem.findMany({
+        where: { id: { in: demandIds }, stockQuantity: { not: null } },
+        select: { id: true, name: true, unit: true, stockQuantity: true },
+      })
+    : []
+  const demandFor = new Map(demand.map((d) => [d.catalogItemId, Number(d._sum.quantity ?? 0)]))
+  const stockShort = stockRows
+    .map((c) => {
+      const need = demandFor.get(c.id) ?? 0
+      const short = stockShortage(need, Number(c.stockQuantity))
+      return short == null ? null : { id: c.id, name: c.name, unit: c.unit, need, stock: Number(c.stockQuantity) }
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
+    .sort((a, b) => a.name.localeCompare(b.name))
   const cityCache = new Map<string, boolean>()
   const cityNotFound: Array<{ id: string; number: string; name: string; city: string | null }> = []
   for (const p of cityCandidates) {
@@ -405,6 +432,14 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
       key: 'missingItems',
       count: missingItems.length,
       items: missingItems.map((i) => ({ id: i.id, label: `${i.name} (${countFor.get(i.id) ?? 0}×)` })),
+    },
+    {
+      key: 'stockShort',
+      count: stockShort.length,
+      items: stockShort.map((i) => ({
+        id: i.id,
+        label: `${i.name} — ${i.stock}${i.unit ? ' ' + i.unit : ''} / ${i.need}${i.unit ? ' ' + i.unit : ''}`,
+      })),
     },
   ]
 }

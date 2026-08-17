@@ -3,12 +3,14 @@
 import { useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { setItemStatusFromBoard } from './actions'
+import { StockWarning } from '@/components/stock-warning'
 
 export type PackingItem = {
   id: string
   name: string
   unit: string | null
   quantity: number | null
+  stock: number | null
   status: 'REQUIRED' | 'COLLECTED' | 'MISSING'
 }
 
@@ -74,6 +76,11 @@ export function PackingList({ items }: { items: PackingItem[] }) {
                   <span className="text-base text-muted">
                     {item.quantity}
                     {item.unit ? ` ${item.unit}` : ''}
+                  </span>
+                )}
+                {item.status !== 'COLLECTED' && (
+                  <span className="ml-2">
+                    <StockWarning needed={item.quantity} stock={item.stock} unit={item.unit} size="lg" />
                   </span>
                 )}
               </span>

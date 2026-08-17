@@ -70,6 +70,7 @@ export default async function ProjectDetailPage({
     name: item.catalogItem.name,
     unit: item.catalogItem.unit,
     quantity: item.quantity != null ? Number(item.quantity) : null,
+    stock: item.catalogItem.stockQuantity != null ? Number(item.catalogItem.stockQuantity) : null,
     status: item.status,
   }))
 
