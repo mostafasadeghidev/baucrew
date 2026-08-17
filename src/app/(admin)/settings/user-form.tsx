@@ -139,7 +139,7 @@ export function UserForm({
           {tc('save')}
         </button>
         <Link
-          href="/settings"
+          href="/settings?tab=accounts"
           className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
         >
           {tc('cancel')}

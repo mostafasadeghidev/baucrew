@@ -10,7 +10,7 @@ export default async function ImportTrelloPage() {
   return (
     <div className="space-y-4">
       <div>
-        <BackLink href="/settings" label={tNav('settings')} />
+        <BackLink href="/settings?tab=data" label={tNav('settings')} />
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('title')}</h1>
       </div>
       <ImportWizard />

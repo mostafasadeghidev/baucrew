@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.3 · Stand: 17. August 2026*
+*Version 1.4 · Stand: 17. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -141,7 +141,7 @@ Menü **Projekte** → **Neues Projekt** → Projektname (z. B. „Fassade Muste
 Auf der Projektseite unter **Werkzeug und Material** fehlende Artikel hinzufügen (ins Feld tippen, auswählen, Menge, **Hinzufügen**).
 
 **Schritt 4 — Einsätze planen**
-Auf der Projektseite **+ Einsatz planen** → Datum wählen (Team, Fahrzeug, Uhrzeit sind schon eingetragen) → **Speichern**. Für jeden weiteren Tag wiederholen — oder im Wochenplan die Karte auf weitere Tage ziehen.
+Auf der Projektseite **+ Einsatz planen** → **Von** wählen und bei mehrtägigen Arbeiten **Bis** (Team, Fahrzeug, Uhrzeit sind schon eingetragen) → **Speichern** bzw. **N Einsätze anlegen**. Einzelne Tage lassen sich später im Wochenplan verschieben oder löschen.
 
 **Fertig.** Jetzt steht der Einsatz im Wochenplan, das Lager sieht die Packliste, der Arbeitsauftrag ist druckbar, und die Mitarbeiter sehen den Einsatz auf dem Handy.
 
@@ -182,9 +182,9 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 
 ![Projektliste](screenshots/03-projekte-liste.png)
 
-- Oben **Reiter nach Status** mit Anzahl. Der erste Reiter **Vorbereitung** fasst alles zusammen, was noch nicht geplant ist (*Anfrage · Angebot · Beauftragt*); danach die einzelnen Status (*Geplant · In Ausführung · Abgeschlossen · Abgerechnet · Bezahlt · Storniert*). Ein Klick filtert.
+- Oben **Reiter nach Status** mit Anzahl. Der erste Reiter **Zur Vorbereitung** fasst alles zusammen, was noch nicht geplant ist (*Anfrage · Angebot · Beauftragt*) — Name, enthaltene Status und Sichtbarkeit dieses Reiters sind unter **Einstellungen → Projektliste – Sammel-Tab** einstellbar (Kapitel 12); danach die einzelnen Status (*Geplant · In Ausführung · Abgeschlossen · Abgerechnet · Bezahlt · Storniert*). Ein Klick filtert.
 
-![Reiter Vorbereitung](screenshots/32-projekte-vorbereitung.png)
+![Reiter Zur Vorbereitung](screenshots/32-projekte-vorbereitung.png)
 - Darunter das **Suchfeld** (Nummer, Name, Kunde, Ort).
 - Die Spalte **Auftragswert** sehen nur Konten mit Finanzfreigabe.
 - **Vorlagen** oben rechts führt zu den Projektvorlagen (Kapitel 12).
@@ -301,7 +301,7 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 ![Einsatzfenster](screenshots/12-einsatz-dialog.png)
 
 1. **Projekt** wählen (tippen). Team, Fahrzeug und Uhrzeiten aus dem Projekt werden eingetragen.
-2. **Datum**, **Beginn**, **Ende**. Ohne Uhrzeiten gilt der Einsatz ganztägig. Mit Uhrzeiten meldet BauCrew Konflikte nur, wenn sich Zeiten wirklich überschneiden — dasselbe Team kann also 07:00–12:00 auf Baustelle A und 12:30–16:30 auf Baustelle B sein.
+2. **Von**, **Bis** (optional), **Beginn**, **Ende**. Für mehrtägige Arbeiten ein **Bis**-Datum eintragen: BauCrew legt dann **einen Einsatz pro Tag** an (Wochenenden werden übersprungen, solange das Häkchen **Wochenende überspringen** gesetzt ist; die Zahl der Einsätze steht direkt darunter, maximal 31 Tage am Stück). Tage, an denen das Projekt schon einen Einsatz hat, bleiben unverändert. Ohne Uhrzeiten gilt der Einsatz ganztägig. Mit Uhrzeiten meldet BauCrew Konflikte nur, wenn sich Zeiten wirklich überschneiden — dasselbe Team kann also 07:00–12:00 auf Baustelle A und 12:30–16:30 auf Baustelle B sein.
 3. **Fahrzeuge** (mehrere möglich), **Mitarbeiter** ankreuzen, **Notiz**.
 4. **Werkzeug und Material** — die Projektliste, hier direkt änderbar.
 5. **Speichern**. Oben rechts: **Arbeitsauftrag** öffnen; unten **Löschen** (nur den Einsatz, nicht das Projekt) und **✓ Projekt abschließen** (Kapitel 6.4).
@@ -517,7 +517,9 @@ Die Reiter:
 
 **Wetterwarnung** — ab welcher Regenwahrscheinlichkeit (in %) gewarnt wird; Standard 60. Darunter steht, woher die Daten kommen: Open-Meteo mit den Modellen des Deutschen Wetterdienstes (DWD ICON), kostenlos, bis 16 Tage im Voraus, geprüft wird die maximale Regenwahrscheinlichkeit des Tages am Ort des Projekts. Für die nächsten 1–2 Tage verlässlich, weiter voraus eine Tendenz. Wer weniger Warnungen möchte, stellt z. B. 70 % ein.
 
-**Änderungsprotokoll** — **Protokoll öffnen** zeigt jede Änderung in BauCrew: Zeit, Benutzer, Aktion, Bereich und alter → neuer Wert. Suchfeld (z. B. Benutzername oder Projektnummer) und Filter nach Bereich; ein Klick auf den Bereich öffnet den betroffenen Datensatz. „System“ als Benutzer = automatische Änderung (Status-Automatik).
+**Änderungsprotokoll** — **Protokoll öffnen** zeigt jede Änderung in BauCrew in Klartext: Zeit, Benutzer, Aktion („Einsatz verschoben“, „Projektstatus geändert“ …), Bereich und alter → neuer Wert. Suchfeld (z. B. Benutzername oder Projektnummer) und Filter nach Bereich; ein Klick auf den Bereich öffnet den betroffenen Datensatz. „System“ als Benutzer = automatische Änderung (Status-Automatik). Oben rechts: **Älter als 90 Tage löschen** oder **Protokoll leeren** (mit Rückfrage; das Leeren selbst wird protokolliert).
+
+Die Einstellungen sind in vier Reiter gegliedert: **Allgemein** (Firmenname, Logo, Wetterwarnung, Sammel-Tab der Projektliste) · **Benutzerkonten** · **Arbeitsbereiche** · **Daten & Protokoll** (Backup, Trello-Import, Änderungsprotokoll).
 
 ---
 
@@ -575,7 +577,7 @@ Geht überall: Menü über ☰, Listen, Formulare, Wochenplan (Karten per Gedrü
 | **Status** | Stufe eines Projekts: Anfrage → Angebot → Beauftragt → Geplant → In Ausführung → Abgeschlossen → Abgerechnet → Bezahlt (oder Storniert) |
 | **Personentag** | ein Mitarbeiter an einem Einsatztag; 3 Leute × 2 Tage = 6 Personentage |
 | **Backup** | Sicherungskopie aller Daten als Datei |
-| **Vorbereitung** | Reiter in der Projektliste: Anfrage + Angebot + Beauftragt — noch nichts geplant |
+| **Zur Vorbereitung** | Sammel-Reiter in der Projektliste (Standard: Anfrage + Angebot + Beauftragt); Name und Status unter Einstellungen anpassbar |
 | **Status-Automatik** | BauCrew setzt *Geplant* / *In Ausführung* und die tatsächlichen Daten selbst (Kapitel 6.5) |
 
 ---
