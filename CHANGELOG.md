@@ -3,22 +3,21 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- Month view shows up to 5 assignments per day; the "+N weitere" expander is now a visible dashed pill.
+- Mobile: week, month and overview headers wrap cleanly (arrows + "Aktuelle Woche" stay grouped, weekend toggle and week selector no longer overflow the screen).
+
 ## [1.3.0] — 2026-08-17
 
 ### Added
 - **Month view is now interactive:** click a chip to open the assignment dialog, "+" on any day to create, drag & drop (mouse and touch) to move — same as the week view; "+N" expands the day.
 - **Multi-week overview:** choose 4 / 6 / 8 / 12 weeks (default 6).
 - **Weather sensitivity setting** (Settings → Wetterwarnung): rain-probability threshold in %, default 60, with a hint about the source (Open-Meteo / DWD ICON, up to 16 days). Used by dashboard, scheduling and data quality.
-- **Smart back button:** the ← pill on detail pages returns to the page you actually came from (e.g. packing overview → project → back to packing); falls back to the list.
-- Packing overview: work-order (print) button per assignment.
-
-### Added
+- **Smart back button:** the ← pill on detail and sub pages returns to the page you actually came from (e.g. packing overview → project → back to packing); opened directly or from its own list, it still links to that list.
 - **Audit log page** (Settings → Änderungsprotokoll, administrators): every change with time, user, action, area and old → new value; live search and area filter; links to the changed record.
-- Dashboard sub page **"Bereitstellung heute"** (`/dashboard/packing`): packing status per assignment and item, day navigation, back link — the dashboard card links there (the warehouse kiosk stays one click away).
-
-### Added
-- **Smart back button:** detail and sub pages return to the page you actually came from (e.g. project opened from the packing overview → back to the packing overview); reads "Zurück". Opened directly or from its own list, it still links to that list.
-- Packing overview: work-order print button per assignment.
+- Dashboard sub page **"Bereitstellung heute"** (`/dashboard/packing`): packing status per assignment and item, day navigation, work-order (print) button per assignment — the dashboard card links there (the warehouse kiosk stays one click away).
 
 ### Changed
 - Dashboard card links ("Zur Einsatzplanung", "Zur Bereitstellung") styled as small pills.

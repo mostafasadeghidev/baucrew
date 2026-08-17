@@ -369,7 +369,7 @@ async function OverviewView({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center overflow-hidden rounded-md border border-border text-sm font-medium">
             <Link
               href={`/schedule?week=${weeks[0].mondayIso}`}
@@ -385,27 +385,29 @@ async function OverviewView({
             </Link>
             <span className="bg-accent px-3 py-1.5 text-accent-foreground">{t('viewOverview')}</span>
           </div>
-          <Link
-            href={`/schedule?view=overview&week=${iso(addDays(monday, -7))}&weeks=${weeksCount}`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
-            title={t('prevWeek')}
-          >
-            ←
-          </Link>
-          <Link
-            href={`/schedule?view=overview&weeks=${weeksCount}`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
-          >
-            {t('currentWeek')}
-          </Link>
-          <Link
-            href={`/schedule?view=overview&week=${iso(addDays(monday, 7))}&weeks=${weeksCount}`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
-            title={t('nextWeek')}
-          >
-            →
-          </Link>
-          <div className="ml-1 flex items-center overflow-hidden rounded-md border border-border text-sm font-medium">
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/schedule?view=overview&week=${iso(addDays(monday, -7))}&weeks=${weeksCount}`}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              title={t('prevWeek')}
+            >
+              ←
+            </Link>
+            <Link
+              href={`/schedule?view=overview&weeks=${weeksCount}`}
+              className="whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            >
+              {t('currentWeek')}
+            </Link>
+            <Link
+              href={`/schedule?view=overview&week=${iso(addDays(monday, 7))}&weeks=${weeksCount}`}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              title={t('nextWeek')}
+            >
+              →
+            </Link>
+          </div>
+          <div className="flex items-center overflow-hidden rounded-md border border-border text-sm font-medium">
             {OVERVIEW_WEEK_OPTIONS.map((n) => (
               <Link
                 key={n}

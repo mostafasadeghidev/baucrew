@@ -7,7 +7,7 @@ import type { ComboboxOption } from '@/components/combobox'
 import { createScheduleEntry, deleteScheduleEntry, moveScheduleEntry, updateScheduleEntry } from './actions'
 import { EntryDialog, type BoardEntry, type DialogState } from './entry-dialog'
 
-const MAX_PER_DAY = 3
+const MAX_PER_DAY = 5
 
 /**
  * Interactive month calendar: same dialog, create (+) and drag & drop as the
@@ -167,15 +167,17 @@ export function MonthBoard({
               {t('viewOverview')}
             </Link>
           </div>
-          <Link href={prevHref} className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover">
-            ←
-          </Link>
-          <Link href={currentHref} className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover">
-            {t('currentWeek')}
-          </Link>
-          <Link href={nextHref} className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover">
-            →
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link href={prevHref} className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover">
+              ←
+            </Link>
+            <Link href={currentHref} className="whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover">
+              {t('currentWeek')}
+            </Link>
+            <Link href={nextHref} className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover">
+              →
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -282,9 +284,9 @@ export function MonthBoard({
                           <button
                             type="button"
                             onClick={() => setExpandedDay(day)}
-                            className="block px-1 text-[11px] text-muted hover:text-foreground"
+                            className="mt-0.5 block w-full rounded border border-dashed border-accent/60 bg-accent/5 px-1 py-0.5 text-center text-[11px] font-medium text-accent hover:bg-accent/15"
                           >
-                            +{extra}
+                            {t('moreEntries', { count: extra })}
                           </button>
                         )}
                       </div>

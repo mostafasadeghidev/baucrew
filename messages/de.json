@@ -499,7 +499,8 @@
     "hideWeekend": "Wochenende ausblenden",
     "weekendHint": "Wochenende — Samstag und Sonntag werden im Wochenplan nur angezeigt, wenn ein Einsatz darauf liegt (oder über „+ Wochenende“).",
     "weekendDayHint": "Achtung: dieser Tag ist ein Wochenende.",
-    "weeksShown": "{count} Wochen"
+    "weeksShown": "{count} Wochen",
+    "moreEntries": "+{count} weitere"
   },
   "warehouse": {
     "title": "Lager",

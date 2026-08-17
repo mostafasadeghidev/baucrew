@@ -186,7 +186,7 @@ export function ScheduleBoard({
             {t('weekLabel', { week: weekNumber })}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center overflow-hidden rounded-md border border-border text-sm font-medium">
             <span className="bg-accent px-3 py-1.5 text-accent-foreground">{t('viewWeek')}</span>
             <Link
@@ -202,31 +202,33 @@ export function ScheduleBoard({
               {t('viewOverview')}
             </Link>
           </div>
-          <Link
-            href={prevWeekHref}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
-            title={t('prevWeek')}
-          >
-            ←
-          </Link>
-          <Link
-            href={currentWeekHref}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
-          >
-            {t('currentWeek')}
-          </Link>
-          <Link
-            href={nextWeekHref}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
-            title={t('nextWeek')}
-          >
-            →
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              href={prevWeekHref}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              title={t('prevWeek')}
+            >
+              ←
+            </Link>
+            <Link
+              href={currentWeekHref}
+              className="whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            >
+              {t('currentWeek')}
+            </Link>
+            <Link
+              href={nextWeekHref}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              title={t('nextWeek')}
+            >
+              →
+            </Link>
+          </div>
           {weekendToggle && (
             <Link
               href={weekendToggle.href}
               title={t('weekendHint')}
-              className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+              className={`whitespace-nowrap rounded-md border px-3 py-1.5 text-sm font-medium ${
                 weekendToggle.active
                   ? 'border-accent bg-accent/10 text-accent hover:bg-accent/15'
                   : 'border-border text-muted hover:bg-surface-hover hover:text-foreground'
