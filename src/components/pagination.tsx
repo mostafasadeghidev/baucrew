@@ -6,12 +6,12 @@ import { useTranslations } from 'next-intl'
 import { PAGE_SIZE } from '@/lib/pagination'
 
 /** Query-param based pager that preserves active search/filter params. */
-export function Pagination({ page, total }: { page: number; total: number }) {
+export function Pagination({ page, total, pageSize = PAGE_SIZE }: { page: number; total: number; pageSize?: number }) {
   const tc = useTranslations('common')
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
   if (totalPages <= 1) return null
 
   function hrefFor(target: number) {
