@@ -82,7 +82,8 @@
     "noVehicleAssigned": "no vehicle",
     "todayOverviewTitle": "Working today",
     "todayWord": "Today",
-    "entriesWord": "assignments"
+    "entriesWord": "assignments",
+    "openPacking": "Open preparation"
   },
   "my": {
     "title": "My area",
@@ -318,7 +319,10 @@
     "deleteUserConfirm": "Really delete this user account? The user will no longer be able to sign in. Audit entries are kept.",
     "cannotDeleteSelf": "You cannot delete the account you are currently signed in with. Sign out, sign in with another administrator account and delete this account from there.",
     "cannotDeleteLastAdmin": "This is the only active administrator account. First create another administrator account (or give an existing account the Administrator role), then delete this one.",
-    "userDeleted": "Account deleted."
+    "userDeleted": "Account deleted.",
+    "auditTitle": "Audit log",
+    "auditHint": "Who changed what and when — searchable and filterable.",
+    "openAudit": "Open log"
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -610,5 +614,19 @@
     "found": "Place recognised — weather data available",
     "notFound": "Place not found — no weather warning possible. Please pick from the list.",
     "typeToPick": "Pick from the list to enable weather data."
+  },
+  "audit": {
+    "title": "Audit log",
+    "hint": "Every change with user, time and old/new value. “System” = automatic (e.g. status automation).",
+    "searchPlaceholder": "Search action, user, value …",
+    "allEntities": "All areas",
+    "time": "Time",
+    "user": "User",
+    "action": "Action",
+    "entity": "Area",
+    "change": "Change",
+    "empty": "No entries.",
+    "system": "System",
+    "total": "{count} entries"
   }
 }

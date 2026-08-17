@@ -181,6 +181,18 @@ export default async function SettingsPage() {
         <BackupRestore />
       </section>
 
+      {/* Audit log */}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">{t('auditTitle')}</h2>
+        <p className="text-xs text-muted">{t('auditHint')}</p>
+        <Link
+          href="/settings/audit"
+          className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+        >
+          {t('openAudit')}
+        </Link>
+      </section>
+
       {/* Import */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{tImport('title')}</h2>

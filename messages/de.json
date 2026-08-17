@@ -82,7 +82,8 @@
     "noVehicleAssigned": "kein Fahrzeug",
     "todayOverviewTitle": "Heute im Einsatz",
     "todayWord": "Heute",
-    "entriesWord": "Einsätze"
+    "entriesWord": "Einsätze",
+    "openPacking": "Zur Bereitstellung"
   },
   "my": {
     "title": "Mein Bereich",
@@ -318,7 +319,10 @@
     "deleteUserConfirm": "Dieses Benutzerkonto wirklich löschen? Der Benutzer kann sich danach nicht mehr anmelden. Protokolleinträge bleiben erhalten.",
     "cannotDeleteSelf": "Sie können das Konto, mit dem Sie gerade angemeldet sind, nicht löschen. Melden Sie sich ab, melden Sie sich mit einem anderen Administrator-Konto an und löschen Sie dieses Konto von dort.",
     "cannotDeleteLastAdmin": "Dies ist das einzige aktive Administrator-Konto. Legen Sie zuerst ein weiteres Administrator-Konto an (oder geben Sie einem bestehenden Konto die Rolle Administrator) und löschen Sie dieses Konto danach.",
-    "userDeleted": "Konto gelöscht."
+    "userDeleted": "Konto gelöscht.",
+    "auditTitle": "Änderungsprotokoll",
+    "auditHint": "Wer hat wann was geändert — mit Suche und Filter.",
+    "openAudit": "Protokoll öffnen"
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -610,5 +614,19 @@
     "found": "Ort erkannt — Wetterdaten verfügbar",
     "notFound": "Ort nicht gefunden — keine Wetterwarnung möglich. Bitte aus der Liste wählen.",
     "typeToPick": "Aus der Liste wählen, damit Wetterdaten möglich sind."
+  },
+  "audit": {
+    "title": "Änderungsprotokoll",
+    "hint": "Jede Änderung mit Benutzer, Zeitpunkt und altem/neuem Wert. „System“ = automatisch (z. B. Status-Automatik).",
+    "searchPlaceholder": "Suchen nach Aktion, Benutzer, Wert …",
+    "allEntities": "Alle Bereiche",
+    "time": "Zeit",
+    "user": "Benutzer",
+    "action": "Aktion",
+    "entity": "Bereich",
+    "change": "Änderung",
+    "empty": "Keine Einträge.",
+    "system": "System",
+    "total": "{count} Einträge"
   }
 }

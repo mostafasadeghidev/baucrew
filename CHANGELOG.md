@@ -3,6 +3,15 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Audit log page** (Settings → Änderungsprotokoll, administrators): every change with time, user, action, area and old → new value; live search and area filter; links to the changed record.
+- Dashboard sub page **"Bereitstellung heute"** (`/dashboard/packing`): packing status per assignment and item, day navigation, back link — the dashboard card links there (the warehouse kiosk stays one click away).
+
+### Changed
+- Dashboard card links ("Zur Einsatzplanung", "Zur Bereitstellung") styled as small pills.
+
 ## [1.2.1] — 2026-08-16
 
 ### Fixed

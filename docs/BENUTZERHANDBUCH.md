@@ -96,7 +96,7 @@ Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 
 - **⚠ Konflikte diese Woche:** Wenn ein Mitarbeiter oder ein Fahrzeug am selben Tag doppelt verplant ist. Gelb = bitte ansehen. Grün mit ✓ = alles in Ordnung.
 - **Wetter:** Regenwarnung für Außenarbeiten in den nächsten Tagen.
-- **Bereitstellung heute:** Ist im Lager schon alles für heute gepackt?
+- **Bereitstellung heute:** Ist im Lager schon alles für heute gepackt? **Zur Bereitstellung →** öffnet die Unterseite mit jedem Einsatz, seiner Packliste und dem Status jedes Artikels (mit ← → für andere Tage); von dort **Zur Tagesvorbereitung** zum Lagerbildschirm.
 - **Projekte mit offener Zuordnung:** Projekte, denen noch Team oder Fahrzeug fehlt.
 - **Heutige Einsätze:** Wer ist heute wo, womit, ab wann.
 
@@ -514,6 +514,8 @@ Die Reiter:
 
 **Arbeitskategorien** — die Kreuze im Projektformular (Malern, Putz, WDVS …) umbenennen, deaktivieren, ergänzen.
 
+**Änderungsprotokoll** — **Protokoll öffnen** zeigt jede Änderung in BauCrew: Zeit, Benutzer, Aktion, Bereich und alter → neuer Wert. Suchfeld (z. B. Benutzername oder Projektnummer) und Filter nach Bereich; ein Klick auf den Bereich öffnet den betroffenen Datensatz. „System“ als Benutzer = automatische Änderung (Status-Automatik).
+
 ---
 
 ## 16. Was tun, wenn …? — Hilfe bei Problemen
@@ -546,7 +548,7 @@ Es hat keinen Auftragswert oder den Status *Storniert*. *Berichte → Datenquali
 Das ist die Status-Automatik (Kapitel 6.5): erster Einsatz geplant → *Geplant*; erster Einsatztag erreicht → *In Ausführung*. Im Protokoll steht es als „automatisch“. Wollen Sie einen anderen Status, setzen Sie ihn einfach von Hand.
 
 **… ich wissen will, wer etwas geändert hat?**
-Jede Änderung wird mit Benutzer und Zeitpunkt protokolliert. Am Lagerbildschirm erscheint das gemeinsame Konto `lager`.
+*Einstellungen → Änderungsprotokoll → Protokoll öffnen* (Administrator). Jede Änderung ist dort mit Benutzer und Zeitpunkt aufgeführt. Am Lagerbildschirm erscheint das gemeinsame Konto `lager`.
 
 **… ich am Handy arbeiten möchte?**
 Geht überall: Menü über ☰, Listen, Formulare, Wochenplan (Karten per Gedrückthalten ziehen).
