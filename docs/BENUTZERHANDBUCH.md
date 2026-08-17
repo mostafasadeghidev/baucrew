@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.4 · Stand: 17. August 2026*
+*Version 1.5 · Stand: 17. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -303,7 +303,7 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 1. **Projekt** wählen (tippen). Team, Fahrzeug und Uhrzeiten aus dem Projekt werden eingetragen.
 2. **Von**, **Bis** (optional), **Beginn**, **Ende**. Für mehrtägige Arbeiten ein **Bis**-Datum eintragen: BauCrew legt dann **einen Einsatz pro Tag** an (Wochenenden werden übersprungen, solange das Häkchen **Wochenende überspringen** gesetzt ist; die Zahl der Einsätze steht direkt darunter, maximal 31 Tage am Stück). Tage, an denen das Projekt schon einen Einsatz hat, bleiben unverändert. Ohne Uhrzeiten gilt der Einsatz ganztägig. Mit Uhrzeiten meldet BauCrew Konflikte nur, wenn sich Zeiten wirklich überschneiden — dasselbe Team kann also 07:00–12:00 auf Baustelle A und 12:30–16:30 auf Baustelle B sein.
 3. **Fahrzeuge** (mehrere möglich), **Mitarbeiter** ankreuzen, **Notiz**.
-4. **Werkzeug und Material** — die Projektliste, hier direkt änderbar.
+4. **Werkzeug und Material** — die Projektliste, hier direkt änderbar. Ist im Lager ein **Bestand** hinterlegt und das Projekt braucht mehr, steht neben dem Artikel ein gelber Hinweis **⚠ Bestand 2 — 5 benötigt** (auch auf Projektseite, Lagerbildschirm und im Bereich „Mein Bereich“). Das ist nur ein Hinweis — gespeichert wird trotzdem, denn Material wird oft nachgekauft.
 5. **Speichern**. Oben rechts: **Arbeitsauftrag** öffnen; unten **Löschen** (nur den Einsatz, nicht das Projekt) und **✓ Projekt abschließen** (Kapitel 6.4).
 
 ![Projekt abschließen im Einsatzfenster](screenshots/38-einsatz-abschliessen.png)

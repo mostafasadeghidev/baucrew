@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
 import { BackLink } from '@/components/back-link'
+import { StockWarning } from '@/components/stock-warning'
 
 const card = 'overflow-hidden rounded-lg border border-border bg-surface shadow-sm'
 const STATUS_STYLE: Record<string, string> = {
@@ -44,7 +45,7 @@ export default async function PackingOverviewPage({
           name: true,
           customer: { select: { name: true } },
           items: {
-            include: { catalogItem: { select: { name: true, unit: true } } },
+            include: { catalogItem: { select: { name: true, unit: true, stockQuantity: true } } },
             orderBy: { catalogItem: { name: 'asc' } },
           },
         },
@@ -209,6 +210,15 @@ export default async function PackingOverviewPage({
                             <span className="ml-2 text-xs text-muted">
                               {Number(it.quantity)}
                               {it.catalogItem.unit ? ` ${it.catalogItem.unit}` : ''}
+                            </span>
+                          )}
+                          {it.status !== 'COLLECTED' && (
+                            <span className="ml-2">
+                              <StockWarning
+                                needed={it.quantity != null ? Number(it.quantity) : null}
+                                stock={it.catalogItem.stockQuantity != null ? Number(it.catalogItem.stockQuantity) : null}
+                                unit={it.catalogItem.unit}
+                              />
                             </span>
                           )}
                         </span>

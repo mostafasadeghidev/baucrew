@@ -281,7 +281,14 @@ export async function moveScheduleEntry(id: string, newDate: string): Promise<En
 export async function getProjectScheduleDefaults(projectId: string): Promise<{
   employeeIds: string[]
   vehicleIds: string[]
-  items: Array<{ id: string; name: string; unit: string | null; quantity: number | null; status: 'REQUIRED' | 'COLLECTED' | 'MISSING' }>
+  items: Array<{
+    id: string
+    name: string
+    unit: string | null
+    quantity: number | null
+    stock: number | null
+    status: 'REQUIRED' | 'COLLECTED' | 'MISSING'
+  }>
   catalogOptions: Array<{ value: string; label: string }>
 } | null> {
   await requireManagement()
@@ -291,7 +298,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
       vehicleId: true,
       team: { select: { employeeId: true, employee: { select: { active: true } } } },
       items: {
-        include: { catalogItem: { select: { name: true, unit: true } } },
+        include: { catalogItem: { select: { name: true, unit: true, stockQuantity: true } } },
         orderBy: { catalogItem: { name: 'asc' } },
       },
     },
@@ -311,6 +318,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
       name: i.catalogItem.name,
       unit: i.catalogItem.unit,
       quantity: i.quantity != null ? Number(i.quantity) : null,
+      stock: i.catalogItem.stockQuantity != null ? Number(i.catalogItem.stockQuantity) : null,
       status: i.status,
     })),
     catalogOptions: catalog

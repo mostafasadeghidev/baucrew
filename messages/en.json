@@ -429,7 +429,8 @@
     "qMissingItems": "Items currently missing in several projects",
     "qualityAllGood": "Nothing to report.",
     "print": "Print / PDF",
-    "qCityNotFound": "City cannot be located — no weather warning possible"
+    "qCityNotFound": "City cannot be located — no weather warning possible",
+    "qStockShort": "Stock lower than demand (open projects, not yet packed) — stock / demand"
   },
   "sheet": {
     "title": "Work order",
@@ -549,7 +550,9 @@
     "removeCategoryConfirm": "Remove category \"{name}\" from {count} items? The items are kept.",
     "itemsCount": "{count} items",
     "noCategories": "No categories yet.",
-    "categoryNameRequired": "Please enter a name."
+    "categoryNameRequired": "Please enter a name.",
+    "stockShort": "stock {stock} — {needed} needed",
+    "stockShortTitle": "{short} short in the warehouse (hint only, never blocks)"
   },
   "itemKind": {
     "TOOL": "Tool",
