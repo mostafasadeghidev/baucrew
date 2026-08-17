@@ -322,7 +322,10 @@
     "userDeleted": "Account deleted.",
     "auditTitle": "Audit log",
     "auditHint": "Who changed what and when — searchable and filterable.",
-    "openAudit": "Open log"
+    "openAudit": "Open log",
+    "weatherTitle": "Weather warning",
+    "weatherThresholdLabel": "Rain warning from (rain probability in %)",
+    "weatherHint": "Source: Open-Meteo (open-meteo.com) using the German Weather Service models (DWD ICON), free and keyless, up to 16 days ahead. The day's maximum rain probability at the project's location is checked (exact when the place is recognised, otherwise by name). Recommended: 60–70 %. Affects dashboard, scheduling and data quality; outdoor work only (façade, ETICS, scaffolding)."
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -495,7 +498,8 @@
     "showWeekend": "+ Weekend",
     "hideWeekend": "Hide weekend",
     "weekendHint": "Weekend — Saturday and Sunday appear in the week view only when an assignment falls on them (or via “+ Weekend”).",
-    "weekendDayHint": "Note: this day is a weekend."
+    "weekendDayHint": "Note: this day is a weekend.",
+    "weeksShown": "{count} weeks"
   },
   "warehouse": {
     "title": "Warehouse",

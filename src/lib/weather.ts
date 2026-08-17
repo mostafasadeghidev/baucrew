@@ -1,11 +1,23 @@
 import 'server-only'
 import { geocodeCity } from './geocode'
+import { db } from './db'
 
 // Rain-probability lookups via the free, keyless Open-Meteo API.
 // Failures (offline, timeout, unknown city) must never break the schedule
 // board — this module degrades to "no warnings".
 
-const RAIN_THRESHOLD = 60 // %
+const DEFAULT_RAIN_THRESHOLD = 60 // %
+
+/** Rain-probability threshold (%) from Settings, default 60. */
+export async function getRainThreshold(): Promise<number> {
+  try {
+    const row = await db.appSetting.findUnique({ where: { key: 'rainThreshold' } })
+    const n = row ? Number(row.value) : NaN
+    return Number.isFinite(n) && n >= 0 && n <= 100 ? n : DEFAULT_RAIN_THRESHOLD
+  } catch {
+    return DEFAULT_RAIN_THRESHOLD
+  }
+}
 const FORECAST_DAYS = 16 // Open-Meteo daily forecast horizon
 
 type Coords = { latitude: number; longitude: number }
@@ -43,7 +55,7 @@ export type RainWarning = { city: string; date: string; probability: number }
 export type WeatherPair = { city: string; date: string; latitude?: number | null; longitude?: number | null }
 
 /**
- * Returns rain warnings (probability >= 60 %) for the given city/date pairs.
+ * Returns rain warnings (probability >= configured threshold, default 60 %) for the given city/date pairs.
  * Pairs with stored coordinates skip geocoding (exact + faster); others are
  * geocoded by name. Dates outside the forecast horizon are skipped.
  */
@@ -56,6 +68,7 @@ export async function getRainWarnings(pairs: WeatherPair[]): Promise<RainWarning
 
   const inRange = pairs.filter((p) => p.date >= todayIso && p.date <= horizonIso && p.city.trim())
   if (inRange.length === 0) return []
+  const threshold = await getRainThreshold()
 
   // Group by location key: coordinates when known, otherwise the city name.
   const groups = new Map<string, { city: string; coords: Coords | null; dates: string[] }>()
@@ -80,7 +93,7 @@ export async function getRainWarnings(pairs: WeatherPair[]): Promise<RainWarning
       const probs = await rainProbabilities(coords, sorted[0], sorted[sorted.length - 1])
       for (const date of new Set(g.dates)) {
         const p = probs.get(date)
-        if (p != null && p >= RAIN_THRESHOLD) {
+        if (p != null && p >= threshold) {
           warnings.push({ city: g.city, date, probability: p })
         }
       }

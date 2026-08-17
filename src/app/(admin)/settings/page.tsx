@@ -3,7 +3,8 @@ import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { getBranding } from '@/lib/branding'
-import { createCategory, updateCategory, updateCompanyName } from './actions'
+import { createCategory, updateCategory, updateCompanyName, updateRainThreshold } from './actions'
+import { getRainThreshold } from '@/lib/weather'
 import { LogoUploader } from './logo-uploader'
 import { BackupRestore } from './backup-restore'
 import { SavedForm } from '@/components/saved-form'
@@ -30,6 +31,7 @@ export default async function SettingsPage() {
     getBranding(),
   ])
 
+  const rainThreshold = await getRainThreshold()
   const systemUsers = users.filter((u) => !u.employee)
   const privileged = users.filter((u) => u.role === 'ADMIN' || u.canViewFinancials)
 
@@ -173,6 +175,34 @@ export default async function SettingsPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t('logoTitle')}</h2>
         <LogoUploader hasLogo={branding.hasLogo} />
+      </section>
+
+      {/* Weather */}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">{t('weatherTitle')}</h2>
+        <SavedForm action={updateRainThreshold} className="flex max-w-2xl flex-wrap items-center gap-2">
+          <label htmlFor="rainThreshold" className="text-sm">
+            {t('weatherThresholdLabel')}
+          </label>
+          <input
+            id="rainThreshold"
+            name="rainThreshold"
+            type="number"
+            min={0}
+            max={100}
+            step={5}
+            defaultValue={rainThreshold}
+            className={`${inputClass} w-24`}
+          />
+          <span className="text-sm text-muted">%</span>
+          <button
+            type="submit"
+            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+          >
+            {tc('save')}
+          </button>
+        </SavedForm>
+        <p className="max-w-2xl text-xs text-muted">{t('weatherHint')}</p>
       </section>
 
       {/* Backup & restore */}
