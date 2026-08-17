@@ -35,8 +35,11 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   })
   if (!parsed.success) return { error: 'invalidCredentials' }
 
-  const { username, password } = parsed.data
-  if (isThrottled(username.toLowerCase())) return { error: 'tooManyAttempts' }
+  // Usernames are stored lowercase (see account creation) — accept any casing
+  // here, mobile keyboards like to capitalise the first letter.
+  const username = parsed.data.username.toLowerCase()
+  const { password } = parsed.data
+  if (isThrottled(username)) return { error: 'tooManyAttempts' }
 
   const user = await db.user.findUnique({ where: { username } })
   // Always run a compare to keep timing consistent for unknown users

@@ -3,6 +3,12 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.4.1] — 2026-08-17
+
+### Fixed
+- **Login failed for newly created employee accounts** when the username was typed with capital letters (e.g. auto-capitalised on phones): usernames are stored lowercase, but the login compared case-sensitively. Login now ignores casing; the login field also disables auto-capitalisation/auto-correct.
+- Employee page: the "delete account" button was nested inside the account form (`<form>` in `<form>` → hydration error in the browser console). Moved outside the form.
+
 ## [1.4.0] — 2026-08-17
 
 ### Added
@@ -120,6 +126,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.4.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.4.1
 [1.4.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.4.0
 [1.3.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.3.1
 [1.3.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.3.0
