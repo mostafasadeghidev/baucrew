@@ -499,7 +499,8 @@
     "hideWeekend": "Hide weekend",
     "weekendHint": "Weekend — Saturday and Sunday appear in the week view only when an assignment falls on them (or via “+ Weekend”).",
     "weekendDayHint": "Note: this day is a weekend.",
-    "weeksShown": "{count} weeks"
+    "weeksShown": "{count} weeks",
+    "moreEntries": "+{count} more"
   },
   "warehouse": {
     "title": "Warehouse",
