@@ -5,11 +5,12 @@ import { requireManagement } from '@/lib/authz'
 import { detectConflicts } from '@/lib/schedule-conflicts'
 import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, addMonths, iso, isoWeek, mondayOf, monthStart, utcDate } from '@/lib/dates'
-import { MonthView } from './month-view'
+import { MonthBoard } from './month-board'
 import { ScheduleBoard, type BoardEntry } from './schedule-board'
 
 const OPEN_STATUSES = ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] as const
-const OVERVIEW_WEEKS = 4
+const OVERVIEW_WEEK_OPTIONS = [4, 6, 8, 12] as const
+const DEFAULT_OVERVIEW_WEEKS = 6
 
 const ENTRY_INCLUDE = {
   project: {
@@ -35,10 +36,10 @@ const ENTRY_INCLUDE = {
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; view?: string; weekend?: string }>
+  searchParams: Promise<{ week?: string; view?: string; weekend?: string; weeks?: string }>
 }) {
   await requireManagement()
-  const { week, view, weekend } = await searchParams
+  const { week, view, weekend, weeks: weeksParam } = await searchParams
   const [t, tVehicleStatus, locale] = await Promise.all([
     getTranslations('schedule'),
     getTranslations('vehicleStatus'),
@@ -53,36 +54,61 @@ export default async function SchedulePage({
     const start = monthStart(base)
     const gridStart = mondayOf(start)
     const gridEnd = addDays(mondayOf(addDays(addMonths(start, 1), -1)), 7)
-    const monthEntries = await db.scheduleEntry.findMany({
-      where: { date: { gte: gridStart, lt: gridEnd } },
-      include: ENTRY_INCLUDE,
-      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-    })
+    const [monthEntries, projects, employees, vehicles] = await Promise.all([
+      db.scheduleEntry.findMany({
+        where: { date: { gte: gridStart, lt: gridEnd } },
+        include: ENTRY_INCLUDE,
+        orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      }),
+      db.project.findMany({
+        where: { status: { in: [...OPEN_STATUSES] } },
+        orderBy: { number: 'desc' },
+        select: { id: true, number: true, name: true },
+      }),
+      db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
+      db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, status: true } }),
+    ])
     // Sa/So columns only when the month actually has weekend assignments.
     const monthShowWeekend = monthEntries.some((e) => [0, 6].includes(e.date.getUTCDay()))
     const monthConflicts = detectConflicts(monthEntries)
     const conflicted = new Set(monthConflicts.flatMap((c) => c.entryIds))
+    const dayCount = monthShowWeekend ? 7 : 5
+    const weeks: string[][] = []
+    for (let d = gridStart; d < gridEnd; d = addDays(d, 7)) {
+      weeks.push(Array.from({ length: dayCount }, (_, i) => iso(addDays(d, i))))
+    }
+    const weekdayFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { weekday: 'short', timeZone: 'UTC' })
+    const monthLabel = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(start)
     return (
-      <MonthView
-        showWeekend={monthShowWeekend}
-        monthStartIso={iso(start)}
-        gridStartIso={iso(gridStart)}
-        gridEndIso={iso(gridEnd)}
+      <MonthBoard
+        weeks={weeks}
+        monthKey={iso(start).slice(0, 7)}
+        monthLabel={monthLabel}
+        weekdayLabels={weeks[0].map((d) => weekdayFmt.format(utcDate(d)))}
+        weekNumbers={weeks.map((w) => isoWeek(utcDate(w[0])))}
         todayIso={iso(new Date())}
         prevHref={`/schedule?view=month&week=${iso(addMonths(start, -1))}`}
         nextHref={`/schedule?view=month&week=${iso(addMonths(start, 1))}`}
         currentHref="/schedule?view=month"
         weekHref={`/schedule?week=${iso(monday)}`}
         overviewHref={`/schedule?view=overview&week=${iso(monday)}`}
-        entries={monthEntries.map((e) => ({
-          id: e.id,
-          date: iso(e.date),
-          projectName: e.project.name,
-          time: [e.startTime, e.endTime].filter(Boolean).join('–'),
-          vehicles: e.vehicles.map((v) => v.vehicle.name).join(', '),
-          hasConflict: conflicted.has(e.id),
+        entries={monthEntries.map((entry) => ({
+          id: entry.id,
+          date: iso(entry.date),
+          projectId: entry.project.id,
+          projectNumber: entry.project.number,
+          projectName: entry.project.name,
+          customerName: entry.project.customer.name,
+          vehicles: entry.vehicles.map((ev) => ({ id: ev.vehicle.id, name: ev.vehicle.name })),
+          startTime: entry.startTime ?? '',
+          endTime: entry.endTime ?? '',
+          note: entry.note ?? '',
+          employees: entry.employees.map((ee) => ({ id: ee.employee.id, name: `${ee.employee.firstName} ${ee.employee.lastName}`.trim() })),
+          hasConflict: conflicted.has(entry.id),
         }))}
-        locale={locale}
+        projects={projects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+        employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
+        vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
       />
     )
   }
@@ -91,6 +117,7 @@ export default async function SchedulePage({
     return (
       <OverviewView
         monday={monday}
+        weeksCount={OVERVIEW_WEEK_OPTIONS.includes(Number(weeksParam) as 4) ? Number(weeksParam) : DEFAULT_OVERVIEW_WEEKS}
         locale={locale}
         t={t}
       />
@@ -233,14 +260,16 @@ export default async function SchedulePage({
 
 async function OverviewView({
   monday,
+  weeksCount,
   locale,
   t,
 }: {
   monday: Date
+  weeksCount: number
   locale: string
   t: Awaited<ReturnType<typeof getTranslations<'schedule'>>>
 }) {
-  const overviewEnd = addDays(monday, OVERVIEW_WEEKS * 7)
+  const overviewEnd = addDays(monday, weeksCount * 7)
   const entries = await db.scheduleEntry.findMany({
     where: { date: { gte: monday, lt: overviewEnd } },
     include: ENTRY_INCLUDE,
@@ -276,7 +305,7 @@ async function OverviewView({
   const currentMondayIso = iso(mondayOf(new Date()))
   const weeks: WeekSummary[] = []
 
-  for (let w = 0; w < OVERVIEW_WEEKS; w++) {
+  for (let w = 0; w < weeksCount; w++) {
     const start = addDays(monday, w * 7)
     const end = addDays(start, 7)
     const weekEntries = entries.filter((e) => e.date >= start && e.date < end)
@@ -357,25 +386,37 @@ async function OverviewView({
             <span className="bg-accent px-3 py-1.5 text-accent-foreground">{t('viewOverview')}</span>
           </div>
           <Link
-            href={`/schedule?view=overview&week=${iso(addDays(monday, -7))}`}
+            href={`/schedule?view=overview&week=${iso(addDays(monday, -7))}&weeks=${weeksCount}`}
             className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
             title={t('prevWeek')}
           >
             ←
           </Link>
           <Link
-            href="/schedule?view=overview"
+            href={`/schedule?view=overview&weeks=${weeksCount}`}
             className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
           >
             {t('currentWeek')}
           </Link>
           <Link
-            href={`/schedule?view=overview&week=${iso(addDays(monday, 7))}`}
+            href={`/schedule?view=overview&week=${iso(addDays(monday, 7))}&weeks=${weeksCount}`}
             className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
             title={t('nextWeek')}
           >
             →
           </Link>
+          <div className="ml-1 flex items-center overflow-hidden rounded-md border border-border text-sm font-medium">
+            {OVERVIEW_WEEK_OPTIONS.map((n) => (
+              <Link
+                key={n}
+                href={`/schedule?view=overview&week=${iso(monday)}&weeks=${n}`}
+                className={`px-2.5 py-1.5 ${n === weeksCount ? 'bg-accent text-accent-foreground' : 'text-muted hover:bg-surface-hover hover:text-foreground'}`}
+                title={t('weeksShown', { count: n })}
+              >
+                {n}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 

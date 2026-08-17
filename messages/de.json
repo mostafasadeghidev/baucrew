@@ -322,7 +322,10 @@
     "userDeleted": "Konto gelöscht.",
     "auditTitle": "Änderungsprotokoll",
     "auditHint": "Wer hat wann was geändert — mit Suche und Filter.",
-    "openAudit": "Protokoll öffnen"
+    "openAudit": "Protokoll öffnen",
+    "weatherTitle": "Wetterwarnung",
+    "weatherThresholdLabel": "Regenwarnung ab (Regenwahrscheinlichkeit in %)",
+    "weatherHint": "Quelle: Open-Meteo (open-meteo.com) mit den Vorhersagemodellen des Deutschen Wetterdienstes (DWD ICON), kostenlos und ohne Anmeldung, bis 16 Tage im Voraus. Geprüft wird die maximale Regenwahrscheinlichkeit des Tages am Ort des Projekts (bei erkanntem Ort exakt, sonst per Ortsname). Empfehlung: 60–70 %. Betrifft Übersicht, Einsatzplanung und Datenqualität; nur Außenarbeiten (Außenfassade, WDVS, Gerüstbau)."
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -495,7 +498,8 @@
     "showWeekend": "+ Wochenende",
     "hideWeekend": "Wochenende ausblenden",
     "weekendHint": "Wochenende — Samstag und Sonntag werden im Wochenplan nur angezeigt, wenn ein Einsatz darauf liegt (oder über „+ Wochenende“).",
-    "weekendDayHint": "Achtung: dieser Tag ist ein Wochenende."
+    "weekendDayHint": "Achtung: dieser Tag ist ein Wochenende.",
+    "weeksShown": "{count} Wochen"
   },
   "warehouse": {
     "title": "Lager",

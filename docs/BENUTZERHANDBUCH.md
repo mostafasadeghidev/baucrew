@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.2.1 · Stand: 16. August 2026*
+*Version 1.3 · Stand: 17. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -96,7 +96,7 @@ Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 ![Heute im Einsatz](screenshots/31-heute-im-einsatz.png)
 
 - **⚠ Konflikte diese Woche:** Wenn ein Mitarbeiter oder ein Fahrzeug am selben Tag doppelt verplant ist. Gelb = bitte ansehen. Grün mit ✓ = alles in Ordnung.
-- **Wetter:** Regenwarnung für Außenarbeiten in den nächsten Tagen.
+- **Wetter:** Regenwarnung für Außenarbeiten in den nächsten Tagen (Schwelle einstellbar unter Einstellungen → Wetterwarnung; Quelle Open-Meteo/DWD).
 - **Bereitstellung heute:** Ist im Lager schon alles für heute gepackt? **Zur Bereitstellung →** öffnet die Unterseite mit jedem Einsatz, seiner Packliste und dem Status jedes Artikels (mit ← → für andere Tage); von dort **Zur Tagesvorbereitung** zum Lagerbildschirm.
 - **Projekte mit offener Zuordnung:** Projekte, denen noch Team oder Fahrzeug fehlt.
 - **Heutige Einsätze:** Wer ist heute wo, womit, ab wann.
@@ -312,11 +312,11 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 
 ![Monatsansicht](screenshots/13-einsatzplanung-monat.png)
 
-**Monat:** Kalender mit allen Einsätzen; Klick auf einen Tag springt in die Woche.
+**Monat:** Kalender mit allen Einsätzen — und genauso bedienbar wie die Woche: Klick auf einen Eintrag öffnet das Einsatzfenster, **+** neben der Tageszahl legt einen neuen Einsatz an, Einträge lassen sich per Ziehen auf einen anderen Tag verschieben (am Tablet gedrückt halten). „+2“ klappt einen vollen Tag auf; die KW-Nummer links springt in die Woche.
 
 ![Übersicht](screenshots/14-einsatzplanung-uebersicht.png)
 
-**Übersicht:** mehrere Wochen untereinander — wie der frühere Papier-Wochenplan, gut zum Ausdrucken und für den Blick nach vorn.
+**Übersicht:** mehrere Wochen nebeneinander — wie der frühere Papier-Wochenplan, gut zum Ausdrucken und für den Blick nach vorn. Rechts oben wählen Sie, wie viele Wochen: **4 · 6 · 8 · 12** (Standard 6).
 
 ---
 
@@ -514,6 +514,8 @@ Die Reiter:
 **Import aus Trello** — einmalig bestehende Trello-Boards übernehmen: In Trello *Menü ⋯ → Print, export and share → Export as JSON*, Datei hier hochladen, je Liste einen Status wählen, **Import starten**.
 
 **Arbeitskategorien** — die Kreuze im Projektformular (Malern, Putz, WDVS …) umbenennen, deaktivieren, ergänzen.
+
+**Wetterwarnung** — ab welcher Regenwahrscheinlichkeit (in %) gewarnt wird; Standard 60. Darunter steht, woher die Daten kommen: Open-Meteo mit den Modellen des Deutschen Wetterdienstes (DWD ICON), kostenlos, bis 16 Tage im Voraus, geprüft wird die maximale Regenwahrscheinlichkeit des Tages am Ort des Projekts. Für die nächsten 1–2 Tage verlässlich, weiter voraus eine Tendenz. Wer weniger Warnungen möchte, stellt z. B. 70 % ein.
 
 **Änderungsprotokoll** — **Protokoll öffnen** zeigt jede Änderung in BauCrew: Zeit, Benutzer, Aktion, Bereich und alter → neuer Wert. Suchfeld (z. B. Benutzername oder Projektnummer) und Filter nach Bereich; ein Klick auf den Bereich öffnet den betroffenen Datensatz. „System“ als Benutzer = automatische Änderung (Status-Automatik).
 

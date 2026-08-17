@@ -422,3 +422,18 @@ export async function updateCategory(id: string, formData: FormData): Promise<Sa
   revalidatePath('/settings')
   return { savedAt: Date.now() }
 }
+
+// ── Weather threshold ────────────────────────────────────────
+
+export async function updateRainThreshold(formData: FormData): Promise<SaveState> {
+  const admin = await requireAdmin()
+  const n = Number(String(formData.get('rainThreshold') ?? '').replace(',', '.'))
+  if (!Number.isFinite(n) || n < 0 || n > 100) return { error: 'saveFailed' }
+  const value = String(Math.round(n))
+  await db.appSetting.upsert({ where: { key: 'rainThreshold' }, update: { value }, create: { key: 'rainThreshold', value } })
+  await audit({ userId: admin.id, action: 'settings.rainThreshold', entity: 'AppSetting', entityId: 'rainThreshold', newValue: value })
+  revalidatePath('/dashboard')
+  revalidatePath('/schedule')
+  revalidatePath('/settings')
+  return { savedAt: Date.now() }
+}
