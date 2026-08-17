@@ -9,6 +9,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 - **Audit log page** (Settings → Änderungsprotokoll, administrators): every change with time, user, action, area and old → new value; live search and area filter; links to the changed record.
 - Dashboard sub page **"Bereitstellung heute"** (`/dashboard/packing`): packing status per assignment and item, day navigation, back link — the dashboard card links there (the warehouse kiosk stays one click away).
 
+### Added
+- **Smart back button:** detail and sub pages return to the page you actually came from (e.g. project opened from the packing overview → back to the packing overview); reads "Zurück". Opened directly or from its own list, it still links to that list.
+- Packing overview: work-order print button per assignment.
+
 ### Changed
 - Dashboard card links ("Zur Einsatzplanung", "Zur Bereitstellung") styled as small pills.
 
