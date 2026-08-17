@@ -214,20 +214,22 @@ export function AccountSection({
               {tc('save')}
             </button>
             <SavedToast trigger={updateState.savedAt} />
-            <span className="ml-auto">
-              <DeleteButton
-                action={deleteUser.bind(null, account.id)}
-                label={t('deleteAccount')}
-                confirmMessage={ts('deleteUserConfirm')}
-                errorLabels={{
-                  selfDelete: ts('cannotDeleteSelf'),
-                  lastAdmin: ts('cannotDeleteLastAdmin'),
-                  saveFailed: tc('saveFailed'),
-                }}
-              />
-            </span>
           </div>
         </form>
+      )}
+      {isAdmin && (
+        <div className="mt-3 flex justify-end">
+          <DeleteButton
+            action={deleteUser.bind(null, account.id)}
+            label={t('deleteAccount')}
+            confirmMessage={ts('deleteUserConfirm')}
+            errorLabels={{
+              selfDelete: ts('cannotDeleteSelf'),
+              lastAdmin: ts('cannotDeleteLastAdmin'),
+              saveFailed: tc('saveFailed'),
+            }}
+          />
+        </div>
       )}
     </section>
   )
