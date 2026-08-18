@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
-import { ItemKind } from '@/generated/prisma/enums'
 
 const optional = z
   .string()
@@ -28,7 +27,7 @@ const optionalNumber = z
   })
 
 const itemSchema = z.object({
-  kind: z.enum(ItemKind),
+  kind: z.string().trim().min(1).max(40),
   name: z.string().trim().min(1).max(200),
   category: optional,
   unit: optional,
@@ -203,7 +202,7 @@ export async function quickCreateCatalogItem(input: {
   const name = input.name.trim().slice(0, 200)
   const unit = (input.unit ?? '').trim().slice(0, 300) || null
   if (!name) return { error: 'nameRequired' }
-  const kind = input.kind === 'TOOL' ? ItemKind.TOOL : ItemKind.MATERIAL
+  const kind = input.kind.trim() || 'MATERIAL'
   try {
     const item = await db.catalogItem.create({ data: { name, kind, unit } })
     await audit({

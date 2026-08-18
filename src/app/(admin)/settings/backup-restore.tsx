@@ -1,14 +1,18 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { restoreBackup, type RestoreState } from './actions'
 import { btn } from '@/components/ui/button'
+import { AlertDialog } from '@/components/ui/alert-dialog'
 
 export function BackupRestore() {
   const t = useTranslations('settings')
   const tc = useTranslations('common')
   const [state, formAction, pending] = useActionState<RestoreState, FormData>(restoreBackup, {})
+  const [confirming, setConfirming] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  const confirmed = useRef(false)
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -23,9 +27,16 @@ export function BackupRestore() {
         <p className="text-sm font-semibold">{t('restoreBackup')}</p>
         <p className="mt-1 text-sm text-muted">{t('restoreHint')}</p>
         <form
+          ref={formRef}
           action={formAction}
           onSubmit={(e) => {
-            if (!confirm(t('restoreConfirm'))) e.preventDefault()
+            // Confirm through the app dialog, then submit programmatically.
+            if (!confirmed.current) {
+              e.preventDefault()
+              setConfirming(true)
+              return
+            }
+            confirmed.current = false
           }}
           className="mt-3 flex flex-wrap items-center gap-2"
         >
@@ -50,6 +61,22 @@ export function BackupRestore() {
           </p>
         )}
       </div>
+
+      <AlertDialog
+        open={confirming}
+        title={t('restoreBackup')}
+        description={t('restoreConfirm')}
+        confirmLabel={t('restoreBackup')}
+        cancelLabel={tc('cancel')}
+        destructive
+        pending={pending}
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false)
+          confirmed.current = true
+          formRef.current?.requestSubmit()
+        }}
+      />
     </div>
   )
 }

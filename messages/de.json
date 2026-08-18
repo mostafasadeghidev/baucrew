@@ -24,7 +24,8 @@
     "nextPage": "Nächste Seite",
     "saved": "Gespeichert",
     "optional": "optional",
-    "pagination": "Seitennavigation"
+    "pagination": "Seitennavigation",
+    "clear": "Auswahl entfernen"
   },
   "auth": {
     "loginTitle": "Anmeldung",
@@ -344,7 +345,19 @@
     "tabCategories": "Arbeitsbereiche",
     "tabData": "Daten & Protokoll",
     "accentTitle": "Firmenfarbe",
-    "accentHint": "Farbe für Knöpfe, aktive Reiter und Hervorhebungen — wählen Sie Ihre Hausfarbe. Wirkt sofort in der ganzen App."
+    "accentHint": "Farbe für Knöpfe, aktive Reiter und Hervorhebungen — wählen Sie Ihre Hausfarbe. Wirkt sofort in der ganzen App.",
+    "brandingTitle": "Firmenauftritt",
+    "brandingHint": "Name, Farbe und Logo — erscheinen in der App und auf dem Arbeitsauftrag.",
+    "clientTypesTitle": "Auftraggeber-Arten",
+    "clientTypesHint": "Auswahl im Projekt (z. B. Privat, Gewerblich, Öffentlich). Bestehende Projekte behalten ihre Zuordnung.",
+    "buildingTypesTitle": "Bauarten",
+    "buildingTypesHint": "Auswahl im Projekt (z. B. Neubau, Altbau/Sanierung, Brücke, Straße).",
+    "itemKindsTitle": "Artikelarten",
+    "itemKindsHint": "Arten im Lager (z. B. Werkzeug, Material, Warnschild, Absperrband). „Werkzeug“ steht auf dem Arbeitsauftrag in der linken Spalte, alles andere rechts.",
+    "optionLabelDe": "Bezeichnung (DE)",
+    "optionLabelEn": "Bezeichnung (EN)",
+    "optionAdd": "Eintrag hinzufügen",
+    "optionBuiltIn": "Standard"
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -530,7 +543,9 @@
     "createEntries": "{count} Einsätze anlegen",
     "planSaturday": "Samstag einplanen",
     "planSunday": "Sonntag einplanen",
-    "managerHint": "Gilt für das ganze Projekt — wird sofort gespeichert."
+    "managerHint": "Gilt für das ganze Projekt — wird sofort gespeichert.",
+    "currentMonth": "Aktueller Monat",
+    "deleteEntryConfirm": "Diesen Einsatz wirklich löschen? Das Projekt bleibt bestehen."
   },
   "warehouse": {
     "title": "Lager",

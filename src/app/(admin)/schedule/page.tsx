@@ -19,6 +19,7 @@ const ENTRY_INCLUDE = {
       id: true,
       number: true,
       name: true,
+      status: true,
       city: true,
       latitude: true,
       longitude: true,
@@ -106,6 +107,7 @@ export default async function SchedulePage({
           note: entry.note ?? '',
           employees: entry.employees.map((ee) => ({ id: ee.employee.id, name: `${ee.employee.firstName} ${ee.employee.lastName}`.trim() })),
           hasConflict: conflicted.has(entry.id),
+          projectStatus: entry.project.status,
         }))}
         projects={projects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
@@ -220,6 +222,7 @@ export default async function SchedulePage({
       name: `${ee.employee.firstName} ${ee.employee.lastName}`.trim(),
     })),
     hasConflict: conflictedEntryIds.has(entry.id),
+    projectStatus: entry.project.status,
   }))
 
   return (

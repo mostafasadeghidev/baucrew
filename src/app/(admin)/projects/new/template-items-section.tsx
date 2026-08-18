@@ -18,6 +18,7 @@ export function TemplateItemsSection({
   options,
   fromTemplate = false,
   defaultOpen = false,
+  formId,
 }: {
   initialItems: DraftItem[]
   options: ComboboxOption[]
@@ -25,6 +26,8 @@ export function TemplateItemsSection({
   fromTemplate?: boolean
   /** Start expanded (new template page). */
   defaultOpen?: boolean
+  /** Submit the hidden `items` field with a form elsewhere in the document. */
+  formId?: string
 }) {
   const t = useTranslations('projects')
   const tT = useTranslations('templates')
@@ -62,6 +65,7 @@ export function TemplateItemsSection({
     <div className="rounded-lg border border-border bg-surface shadow-sm">
       <input
         type="hidden"
+        form={formId}
         name="items"
         value={JSON.stringify(items.map((i) => ({ catalogItemId: i.catalogItemId, quantity: i.quantity })))}
       />

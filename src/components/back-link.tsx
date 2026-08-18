@@ -8,7 +8,7 @@ import { readPreviousPath, subscribeNav } from './nav-history'
 
 /** Consistent "← back" pill used at the top of detail/sub pages. */
 export const backLinkClass =
-  'inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 text-sm font-medium text-muted shadow-sm transition-colors hover:bg-surface-hover hover:text-foreground'
+  'mb-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 text-sm font-medium text-muted shadow-sm transition-colors hover:bg-surface-hover hover:text-foreground'
 
 /**
  * Smart back link: if the user arrived from another page of the app (tracked

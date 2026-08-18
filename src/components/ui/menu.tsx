@@ -79,7 +79,9 @@ export function Menu({
           <div
             ref={panelRef}
             role="menu"
-            onClick={() => setOpen(false)}
+            // Close after the click was handled (a form inside must still
+            // submit — unmounting first would cancel it).
+            onClick={() => setTimeout(() => setOpen(false), 0)}
             style={{
               position: 'fixed',
               left: box.left,

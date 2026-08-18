@@ -7,7 +7,7 @@ import { db } from '@/lib/db'
 import { requireAdmin, requireManagement, canViewFinancials } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
-import { ProjectStatus, ClientType, BuildingType } from '@/generated/prisma/enums'
+import { ProjectStatus } from '@/generated/prisma/enums'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -45,12 +45,9 @@ const projectSchema = z
     customerId: z.string().min(1),
     status: z.enum(ProjectStatus),
     isSub: z.string().transform((v) => v === 'on'),
-    clientType: z
-      .string()
-      .transform((v) => (v && v in ClientType ? (v as ClientType) : null)),
-    buildingType: z
-      .string()
-      .transform((v) => (v && v in BuildingType ? (v as BuildingType) : null)),
+    // Values come from the configurable lists in Settings — stored as text.
+    clientType: optional,
+    buildingType: optional,
     street: optional,
     postalCode: optional,
     city: optional,

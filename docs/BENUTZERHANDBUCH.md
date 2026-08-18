@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.8 · Stand: 19. August 2026*
+*Version 1.9 · Stand: 19. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -302,7 +302,7 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 
 1. **Projekt** wählen (tippen). Team, Fahrzeug und Uhrzeiten aus dem Projekt werden eingetragen.
 2. **Von**, **Bis** (optional), **Beginn**, **Ende**. Für mehrtägige Arbeiten ein **Bis**-Datum eintragen: BauCrew legt dann **einen Einsatz pro Tag** an (maximal 31 Tage am Stück, die Zahl der Einsätze steht direkt darunter). Fällt in den Zeitraum ein Samstag oder Sonntag, erscheint dafür ein Häkchen (**Samstag einplanen** / **Sonntag einplanen**) — getrennt, damit Sie z. B. samstags arbeiten und sonntags frei haben. Ohne Häkchen bleiben diese Tage leer. Tage, an denen das Projekt schon einen Einsatz hat, bleiben unverändert. Ohne Uhrzeiten gilt der Einsatz ganztägig. Mit Uhrzeiten meldet BauCrew Konflikte nur, wenn sich Zeiten wirklich überschneiden — dasselbe Team kann also 07:00–12:00 auf Baustelle A und 12:30–16:30 auf Baustelle B sein.
-3. **Baustellenverantwortlicher** (gilt für das ganze Projekt, wird sofort gespeichert), **Fahrzeuge** (mehrere möglich), **Mitarbeiter** ankreuzen, **Notiz**.
+3. **Baustellenverantwortlicher** (gilt für das ganze Projekt, wird sofort gespeichert; das ✕ im Feld nimmt die Auswahl wieder zurück — der Haken beim Team verschwindet dann ebenfalls), **Fahrzeuge** (mehrere möglich), **Mitarbeiter** ankreuzen, **Notiz**.
 4. **Werkzeug und Material** — die Projektliste, hier direkt änderbar. Ist im Lager ein **Bestand** hinterlegt und das Projekt braucht mehr, steht neben dem Artikel ein gelber Hinweis **⚠ Bestand 2 — 5 benötigt** (auch auf Projektseite, Lagerbildschirm und im Bereich „Mein Bereich“). Das ist nur ein Hinweis — gespeichert wird trotzdem, denn Material wird oft nachgekauft.
 5. **Speichern**. Oben rechts: **Arbeitsauftrag** öffnen; unten **Löschen** (nur den Einsatz, nicht das Projekt) und **✓ Projekt abschließen** (Kapitel 6.4).
 
@@ -519,7 +519,9 @@ Die Reiter:
 
 **Änderungsprotokoll** — **Protokoll öffnen** zeigt jede Änderung in BauCrew in Klartext: Zeit, Benutzer, Aktion („Einsatz verschoben“, „Projektstatus geändert“ …), Bereich und alter → neuer Wert. Suchfeld (z. B. Benutzername oder Projektnummer) und Filter nach Bereich; ein Klick auf den Bereich öffnet den betroffenen Datensatz. „System“ als Benutzer = automatische Änderung (Status-Automatik). Oben rechts: **Älter als 90 Tage löschen** oder **Protokoll leeren** (mit Rückfrage; das Leeren selbst wird protokolliert).
 
-Die Einstellungen sind in vier Reiter gegliedert: **Allgemein** (Firmenname, Logo, Wetterwarnung, Sammel-Tab der Projektliste) · **Benutzerkonten** · **Arbeitsbereiche** · **Daten & Protokoll** (Backup, Trello-Import, Änderungsprotokoll).
+Die Einstellungen sind in vier Reiter gegliedert: **Allgemein** (Firmenauftritt — Name, **Firmenfarbe** und Logo in einer Karte —, Wetterwarnung, Sammel-Tab der Projektliste) · **Benutzerkonten** · **Arbeitsbereiche** · **Daten & Protokoll** (Backup, Trello-Import, Änderungsprotokoll).
+
+Unter **Arbeitsbereiche** legen Sie außerdem die Auswahllisten selbst fest: **Auftraggeber-Arten** (Privat, Gewerblich, Öffentlich …), **Bauarten** (Neubau, Sanierung, Brücke, Straße …), **Artikelarten** im Lager (Werkzeug, Material, Warnschild, Absperrband …) und die **Arbeitsbereiche** selbst. Vorschläge fügen Sie mit einem Klick hinzu; Standard-Einträge lassen sich umbenennen, aber nicht löschen, damit bestehende Projekte lesbar bleiben. Auf dem Arbeitsauftrag steht „Werkzeug“ in der linken Spalte, alle anderen Artikelarten rechts.
 
 ---
 

@@ -5,6 +5,8 @@ import { createProject } from '../actions'
 import { ProjectForm } from '../project-form'
 import { TemplatePicker } from './template-picker'
 import { TemplateItemsSection } from './template-items-section'
+import { getOptionLists } from '@/lib/option-lists-db'
+import { optionLabel } from '@/lib/option-lists'
 
 export default async function NewProjectPage({
   searchParams,
@@ -15,6 +17,7 @@ export default async function NewProjectPage({
   const { template: templateId } = await searchParams
   const t = await getTranslations('projects')
   const locale = await getLocale()
+  const lists = await getOptionLists()
 
   const [customers, employees, vehicles, categories, templates, template] = await Promise.all([
     db.customer.findMany({
@@ -102,6 +105,8 @@ export default async function NewProjectPage({
         )}
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
+        clientTypes={lists.clientTypes.map((e) => ({ value: e.value, label: optionLabel(lists.clientTypes, e.value, locale) }))}
+        buildingTypes={lists.buildingTypes.map((e) => ({ value: e.value, label: optionLabel(lists.buildingTypes, e.value, locale) }))}
         categories={categories.map((c) => ({
           value: c.id,
           label: locale === 'en' ? c.nameEn : c.nameDe,

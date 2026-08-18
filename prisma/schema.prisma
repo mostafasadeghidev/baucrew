@@ -107,16 +107,6 @@ enum ProjectStatus {
   CANCELLED
 }
 
-enum ClientType {
-  PRIVAT
-  GEWERBLICH
-}
-
-enum BuildingType {
-  NEUBAU
-  ALTBAU_SANIERUNG
-}
-
 // Configurable work categories (Malern, Putz, Trockenbau, ...). Admin-managed.
 model WorkCategory {
   id        String  @id @default(cuid())
@@ -137,8 +127,9 @@ model Project {
   customerId    String
   customer      Customer      @relation(fields: [customerId], references: [id])
   status        ProjectStatus @default(LEAD)
-  clientType    ClientType?
-  buildingType  BuildingType?
+  // Configurable in Settings (AppSetting `clientTypes` / `buildingTypes`)
+  clientType    String?
+  buildingType  String?
 
   // Site address (may differ from customer address)
   street     String?
@@ -243,14 +234,10 @@ model Vehicle {
 // Tools & Materials (one catalog, two kinds)
 // ─────────────────────────────────────────────
 
-enum ItemKind {
-  TOOL
-  MATERIAL
-}
-
 model CatalogItem {
   id       String   @id @default(cuid())
-  kind     ItemKind
+  // Configurable in Settings (AppSetting `itemKinds`) — TOOL / MATERIAL by default
+  kind     String
   name     String
   category String?
   unit     String?

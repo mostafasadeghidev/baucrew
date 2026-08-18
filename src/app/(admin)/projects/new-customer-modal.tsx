@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { createCustomerInline } from '../customers/actions'
+import { CityPicker, type CityValue } from '@/components/city-picker'
 import { btn } from '@/components/ui/button'
 
 const inputClass =
@@ -29,6 +30,8 @@ export function NewCustomerModal({
   const t = useTranslations('customers')
   const tc = useTranslations('common')
   const [error, setError] = useState<string | null>(null)
+  const [city, setCity] = useState<CityValue>({ city: '', latitude: null, longitude: null })
+  const [postalCode, setPostalCode] = useState('')
   const [pending, startTransition] = useTransition()
 
   // Lock background scrolling while the modal is open.
@@ -54,10 +57,10 @@ export function NewCustomerModal({
         phone: value('phone'),
         email: value('email'),
         street: value('street'),
-        postalCode: value('postalCode'),
-        city: value('city'),
-        latitude: value('latitude') ? Number(value('latitude')) : null,
-        longitude: value('longitude') ? Number(value('longitude')) : null,
+        postalCode,
+        city: city.city,
+        latitude: city.latitude,
+        longitude: city.longitude,
       })
       if ('error' in result) {
         setError(result.error === 'nameRequired' ? t('nameRequired') : tc('saveFailed'))
@@ -124,13 +127,24 @@ export function NewCustomerModal({
               <label htmlFor="nc-postal" className="block text-sm font-medium">
                 {t('postalCode')}
               </label>
-              <input id="nc-postal" name="postalCode" className={inputClass} />
+              <input
+                id="nc-postal"
+                name="postalCode"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
-              <label htmlFor="nc-city" className="block text-sm font-medium">
-                {t('city')}
-              </label>
-              <input id="nc-city" name="city" className={inputClass} />
+              {/* Same picker as everywhere else: recognises the place and
+                  stores the coordinates for the weather warnings. */}
+              <CityPicker
+                label={t('city')}
+                name="city"
+                value={city}
+                onChange={setCity}
+                onPostcode={(plz) => setPostalCode((prev) => prev || plz)}
+              />
             </div>
           </div>
 

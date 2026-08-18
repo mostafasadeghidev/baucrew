@@ -13,6 +13,8 @@ import { deleteProject, setProjectStatus } from '../actions'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
 import { PlanEntryButton } from './plan-entry-button'
 import { btn } from '@/components/ui/button'
+import { getOptionLists } from '@/lib/option-lists-db'
+import { optionLabel } from '@/lib/option-lists'
 
 export default async function ProjectDetailPage({
   params,
@@ -21,14 +23,13 @@ export default async function ProjectDetailPage({
 }) {
   const user = await requireManagement()
   const { id } = await params
-  const [t, tc, tClient, tBuilding, tSheet, tStatus, locale] = await Promise.all([
+  const [t, tc, tSheet, tStatus, locale, lists] = await Promise.all([
     getTranslations('projects'),
     getTranslations('common'),
-    getTranslations('clientType'),
-    getTranslations('buildingType'),
     getTranslations('sheet'),
     getTranslations('status'),
     getLocale(),
+    getOptionLists(),
   ])
 
   const project = await db.project.findUnique({
@@ -91,7 +92,7 @@ export default async function ProjectDetailPage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <BackLink href="/projects" label={t('title')} />
-          <div className="mt-1 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight">
               <span className="mr-2 text-muted">{project.number}</span>
               {project.name}
@@ -144,11 +145,11 @@ export default async function ProjectDetailPage({
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex gap-2">
               <dt className="w-44 shrink-0 text-muted">{t('clientType')}</dt>
-              <dd>{project.clientType ? tClient(project.clientType) : '—'}</dd>
+              <dd>{optionLabel(lists.clientTypes, project.clientType, locale) || '—'}</dd>
             </div>
             <div className="flex gap-2">
               <dt className="w-44 shrink-0 text-muted">{t('buildingType')}</dt>
-              <dd>{project.buildingType ? tBuilding(project.buildingType) : '—'}</dd>
+              <dd>{optionLabel(lists.buildingTypes, project.buildingType, locale) || '—'}</dd>
             </div>
             <div className="flex gap-2">
               <dt className="w-44 shrink-0 text-muted">{t('workCategories')}</dt>

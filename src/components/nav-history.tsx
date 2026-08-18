@@ -42,12 +42,15 @@ export function NavHistory() {
     const full = qs ? `${pathname}?${qs}` : pathname
     try {
       const stack: string[] = JSON.parse(sessionStorage.getItem(KEY) ?? '[]')
-      if (stack[stack.length - 1] !== full) {
-        stack.push(full)
-        while (stack.length > MAX) stack.shift()
-        sessionStorage.setItem(KEY, JSON.stringify(stack))
-        window.dispatchEvent(new Event(EVENT))
-      }
+      if (stack[stack.length - 1] === full) return
+      // Returning to a page that is already in the stack (cancel, back) pops
+      // everything above it — otherwise "back" would lead forward again.
+      const seen = stack.findIndex((entry) => entry.split('?')[0] === pathname)
+      if (seen !== -1) stack.length = seen
+      stack.push(full)
+      while (stack.length > MAX) stack.shift()
+      sessionStorage.setItem(KEY, JSON.stringify(stack))
+      window.dispatchEvent(new Event(EVENT))
     } catch {
       // ignore
     }

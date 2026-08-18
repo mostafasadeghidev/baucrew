@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { completeProjectFromEntry } from './actions'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
+import { AlertDialog } from '@/components/ui/alert-dialog'
 import { MultiCombobox } from '@/components/multi-combobox'
 import { ProjectItemsEditor, type ProjectItemRow } from '../projects/[id]/project-items'
 import { getProjectScheduleDefaults, setProjectManager, type EntryInput } from './actions'
@@ -25,6 +26,8 @@ export type BoardEntry = {
   note: string
   employees: Array<{ id: string; name: string }>
   hasConflict: boolean
+  /** Project status — completed projects are shown muted/green on the board. */
+  projectStatus?: string
 }
 
 export type DialogState =
@@ -64,6 +67,8 @@ export function EntryDialog({
   const tc = useTranslations('common')
   const router = useRouter()
   const [completing, setCompleting] = useState(false)
+  const [confirmComplete, setConfirmComplete] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const tProjects = useTranslations('projects')
   const tSheet = useTranslations('sheet')
   const tVehicles = useTranslations('vehicles')
@@ -322,12 +327,20 @@ export function EntryDialog({
               defaultValue={managerId}
               placeholder={tc('none')}
               noResultsLabel={tEmployees('noResults')}
+              clearable
+              clearLabel={tc('clear')}
               onSelect={(id) => {
-                setManagerId(id)
-                // The site manager belongs to the project — save right away and
-                // tick them in the team of this assignment.
+                // The site manager belongs to the project — save right away.
                 if (projectId) void setProjectManager(projectId, id)
-                if (id) setSelectedEmployees((prev) => new Set(prev).add(id))
+                setSelectedEmployees((prev) => {
+                  const next = new Set(prev)
+                  // The previous manager loses the automatic tick again …
+                  if (managerId && managerId !== id) next.delete(managerId)
+                  // … and the new one gets it.
+                  if (id) next.add(id)
+                  return next
+                })
+                setManagerId(id)
               }}
             />
             <p className="mt-1 text-xs text-muted">{t('managerHint')}</p>
@@ -378,11 +391,14 @@ export function EntryDialog({
                 <p className="text-sm font-semibold">{tProjects('itemsTitle')}</p>
                 <p className="text-xs text-muted">{t('itemsInDialogHint')}</p>
               </div>
-              {items === null || loadingDefaults ? (
+              {/* Only the very first load swaps in the placeholder — reloading
+                  after an add keeps the editor mounted (scroll position, focus). */}
+              {items === null ? (
                 <p className="px-4 py-3 text-sm text-muted">{tc('loading')}</p>
               ) : (
                 <ProjectItemsEditor
                   projectId={projectId}
+                  pending={loadingDefaults}
                   items={items}
                   options={catalogOptions}
                   onChanged={() => loadDefaults(projectId, false)}
@@ -413,18 +429,7 @@ export function EntryDialog({
                 <button
                   type="button"
                   disabled={pending || completing}
-                  onClick={async () => {
-                    const projectLabel = projects.find((p) => p.value === projectId)?.label ?? ''
-                    const dateLabel = new Date(`${date}T00:00:00.000Z`).toLocaleDateString('de-DE', { timeZone: 'UTC' })
-                    if (!confirm(t('completeProjectConfirm', { project: projectLabel, date: dateLabel }))) return
-                    setCompleting(true)
-                    const res = await completeProjectFromEntry(entry!.id)
-                    setCompleting(false)
-                    if (!res.error) {
-                      router.refresh()
-                      onClose()
-                    }
-                  }}
+                  onClick={() => setConfirmComplete(true)}
                   className="rounded-md border border-emerald-600/40 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-60 dark:text-emerald-400"
                 >
                   ✓ {t('completeProject')}
@@ -434,7 +439,7 @@ export function EntryDialog({
                 <button
                   type="button"
                   disabled={pending}
-                  onClick={() => onDelete(entry!.id)}
+                  onClick={() => setConfirmDelete(true)}
                   className={btn.danger}
                 >
                   {tc('delete')}
@@ -444,6 +449,43 @@ export function EntryDialog({
           </div>
         </form>
       </div>
+
+      <AlertDialog
+        open={confirmComplete}
+        title={t('completeProject')}
+        description={t('completeProjectConfirm', {
+          project: projects.find((p) => p.value === projectId)?.label ?? '',
+          date: date ? new Date(`${date}T00:00:00.000Z`).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '',
+        })}
+        confirmLabel={t('completeProject')}
+        cancelLabel={tc('cancel')}
+        pending={completing}
+        onCancel={() => setConfirmComplete(false)}
+        onConfirm={async () => {
+          setConfirmComplete(false)
+          setCompleting(true)
+          const res = await completeProjectFromEntry(entry!.id)
+          setCompleting(false)
+          if (!res.error) {
+            router.refresh()
+            onClose()
+          }
+        }}
+      />
+
+      <AlertDialog
+        open={confirmDelete}
+        title={tc('delete')}
+        description={t('deleteEntryConfirm')}
+        confirmLabel={tc('delete')}
+        cancelLabel={tc('cancel')}
+        destructive
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          setConfirmDelete(false)
+          if (entry && onDelete) onDelete(entry.id)
+        }}
+      />
     </div>
   )
 }

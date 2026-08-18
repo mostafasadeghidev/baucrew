@@ -325,13 +325,16 @@ export function ScheduleBoard({
                     }}
                     style={{ touchAction: 'pan-y' }}
                     className={`cursor-grab rounded-md border p-2 text-left text-xs shadow-sm transition-colors hover:border-accent active:cursor-grabbing ${
-                      entry.hasConflict
-                        ? 'border-amber-500/60 bg-amber-500/10'
-                        : 'border-border bg-background'
+                      ['COMPLETED', 'INVOICED', 'PAID'].includes(entry.projectStatus ?? '')
+                        ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
+                        : entry.hasConflict
+                          ? 'border-amber-500/60 bg-amber-500/10'
+                          : 'border-border bg-background'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-1">
                       <p className="font-semibold">
+                        {['COMPLETED', 'INVOICED', 'PAID'].includes(entry.projectStatus ?? '') && <span title={t('completeProject')}>✓ </span>}
                         {entry.hasConflict && <span title={t('conflictsTitle')}>⚠ </span>}
                         {entry.projectName}
                       </p>
@@ -396,7 +399,6 @@ export function ScheduleBoard({
             })
           }}
           onDelete={(entryId) => {
-            if (!confirm(t('deleteConfirm'))) return
             startTransition(async () => {
               await deleteScheduleEntry(entryId)
               setDialog({ mode: 'closed' })
