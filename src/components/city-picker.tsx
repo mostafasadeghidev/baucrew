@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
+import { DropdownPortal } from './dropdown-portal'
 import { useTranslations } from 'next-intl'
 
 export type CityValue = { city: string; latitude: number | null; longitude: number | null }
@@ -41,6 +42,7 @@ export function CityPicker({
   const status = value.latitude != null && value.longitude != null ? 'found' : searchStatus
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -95,6 +97,7 @@ export function CityPicker({
       </label>
       <input
         id={id}
+        ref={inputRef}
         name={name}
         value={value.city}
         disabled={disabled}
@@ -127,12 +130,8 @@ export function CityPicker({
       />
       <input type="hidden" name="latitude" value={value.latitude ?? ''} />
       <input type="hidden" name="longitude" value={value.longitude ?? ''} />
-      {open && (
-        <ul
-          id={`${id}-list`}
-          role="listbox"
-          className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-surface py-1 text-sm shadow-lg"
-        >
+      <DropdownPortal anchorRef={inputRef} open={open} id={`${id}-list`}>
+        <>
           {suggestions.map((s, i) => (
             <li
               key={`${s.name}-${s.latitude}-${s.longitude}`}
@@ -143,7 +142,9 @@ export function CityPicker({
                 pick(s)
               }}
               onMouseEnter={() => setActive(i)}
-              className={`cursor-pointer px-3 py-1.5 ${i === active ? 'bg-accent/10 text-accent' : 'hover:bg-surface-hover'}`}
+              className={`mx-1 cursor-pointer rounded-md px-2 py-1.5 text-sm ${
+                i === active ? 'bg-surface-hover text-foreground' : 'hover:bg-surface-hover'
+              }`}
             >
               {s.name}
               <span className="ml-2 text-xs text-muted">
@@ -151,8 +152,8 @@ export function CityPicker({
               </span>
             </li>
           ))}
-        </ul>
-      )}
+        </>
+      </DropdownPortal>
       <p
         className={`mt-1 min-h-4 text-[11px] ${
           status === 'found'
