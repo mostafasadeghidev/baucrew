@@ -3,6 +3,29 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.9.0] — 2026-08-19
+
+### Added
+- **Configurable lists** (Settings → Arbeitsbereiche): client types (Privat, Gewerblich, Öffentlich …), building types (Neubau, Sanierung, Brücke, Straße …) and item kinds (Werkzeug, Material, Warnschild, Absperrband …) — rename, add, remove; suggestions are one click away. Details and rollback in `docs/CHANGE-configurable-types.md`.
+- **Confirmation dialogs** in the app's own style (shadcn alert-dialog) instead of the browser popup — deleting anything, completing a project, restoring a backup.
+- Templates: **back to the template list** on the create and the edit page; the tools/materials list now sits above the Save button on both.
+- Site manager fields have an **✕ to clear** the selection (project, template, assignment dialog).
+
+### Changed
+- Company name, company colour and logo are now **one card** in Settings.
+- Month view: the button reads **"Aktueller Monat"** and the current week's row is highlighted.
+- Schedule: assignments of completed projects are **green with a ✓** in the week and month view.
+- New customer (from the project form): the city field is the **place picker with weather recognition**, like everywhere else.
+- Warehouse: the "Tagesvorbereitung" button was removed (the kiosk is reached from the dashboard).
+- More air between the back pill and the page title.
+
+### Fixed
+- **Sign out** in the user menu did nothing (the menu closed before the form was submitted).
+- Assignment dialog: the item picker now really **scrolls back into view** after adding a tool/material (the editor no longer unmounts while the list reloads).
+- Selecting another site manager no longer **piles up crew ticks** — the previous manager is unticked, clearing the field removes the tick.
+- Back button after "new template → cancel" returned to the create page instead of the project list.
+- Template edit page contained a nested `<form>` (hydration warning).
+
 ## [1.8.0] — 2026-08-19
 
 ### Added
@@ -172,6 +195,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.9.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.9.0
 [1.8.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.8.0
 [1.7.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.7.0
 [1.6.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.6.0

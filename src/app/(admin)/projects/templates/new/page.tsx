@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { createTemplate } from '../actions'
 import { TemplateForm } from '../template-form'
+import { BackLink } from '@/components/back-link'
 import { TemplateItemsSection } from '../../new/template-items-section'
 
 export default async function NewTemplatePage() {
@@ -27,7 +28,10 @@ export default async function NewTemplatePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('createTitle')}</h1>
+      <div>
+        <BackLink href="/projects/templates" label={t('title')} />
+        <h1 className="text-2xl font-semibold tracking-tight">{t('createTitle')}</h1>
+      </div>
       <TemplateForm
         action={createTemplate}
         categories={categories.map((c) => ({
@@ -53,6 +57,7 @@ export default async function NewTemplatePage() {
             options={catalog.map((c) => ({ value: c.id, label: c.unit ? `${c.name} (${c.unit})` : c.name }))}
             fromTemplate
             defaultOpen
+            formId="template-form"
           />
         }
       />

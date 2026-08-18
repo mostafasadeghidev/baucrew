@@ -1,7 +1,7 @@
 'use client'
 
 import { useId, useMemo, useRef, useState } from 'react'
-import { Check, ChevronsUpDown, Plus } from 'lucide-react'
+import { Check, ChevronsUpDown, Plus, X } from 'lucide-react'
 import { DropdownPortal } from './dropdown-portal'
 
 export type ComboboxOption = { value: string; label: string }
@@ -12,6 +12,7 @@ export type ComboboxOption = { value: string; label: string }
  */
 export function Combobox({
   name,
+  formId,
   options,
   defaultValue = '',
   placeholder,
@@ -20,8 +21,12 @@ export function Combobox({
   onCreateNew,
   createLabel,
   onSelect,
+  clearable = false,
+  clearLabel = '✕',
 }: {
   name: string
+  /** Submit the hidden input with a form elsewhere in the document. */
+  formId?: string
   options: ComboboxOption[]
   defaultValue?: string
   placeholder: string
@@ -30,8 +35,12 @@ export function Combobox({
   /** When set, typing an unknown value offers a "create new" entry. */
   onCreateNew?: (query: string) => void
   createLabel?: (query: string) => string
-  /** Called whenever an option is chosen. */
+  /** Tooltip of the ✕ button. */
+  clearLabel?: string
+  /** Called whenever an option is chosen (empty string when cleared). */
   onSelect?: (value: string) => void
+  /** Show an ✕ that clears the selection (optional fields). */
+  clearable?: boolean
 }) {
   const initial = options.find((o) => o.value === defaultValue) ?? null
   const [selected, setSelected] = useState<ComboboxOption | null>(initial)
@@ -114,16 +123,35 @@ export function Combobox({
         }}
         className="mt-1 block w-full rounded-md border border-border bg-background py-2 pl-3 pr-9 text-sm shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
       />
-      <ChevronsUpDown
-        aria-hidden
-        onMouseDown={(e) => {
-          e.preventDefault()
-          inputRef.current?.focus()
-          openList()
-        }}
-        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 cursor-pointer text-muted"
-      />
-      <input type="hidden" name={name} value={selected?.value ?? ''} />
+      {clearable && (selected || query) ? (
+        <button
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault()
+            if (blurTimer.current) clearTimeout(blurTimer.current)
+            setSelected(null)
+            setQuery('')
+            setOpen(false)
+            onSelect?.('')
+          }}
+          title={clearLabel}
+          aria-label={clearLabel}
+          className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+        >
+          <X className="h-4 w-4" aria-hidden />
+        </button>
+      ) : (
+        <ChevronsUpDown
+          aria-hidden
+          onMouseDown={(e) => {
+            e.preventDefault()
+            inputRef.current?.focus()
+            openList()
+          }}
+          className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 cursor-pointer text-muted"
+        />
+      )}
+      <input type="hidden" form={formId} name={name} value={selected?.value ?? ''} />
       <DropdownPortal anchorRef={inputRef} open={open} id={listId}>
         <>
           {filtered.length === 0 && !onCreateNew ? (

@@ -15,10 +15,13 @@ const inputClass =
  */
 export function QuickItemModal({
   initialName,
+  kinds,
   onCreated,
   onClose,
 }: {
   initialName: string
+  /** Configured item kinds; falls back to tool/material. */
+  kinds?: Array<{ value: string; label: string }>
   onCreated: (item: { id: string; label: string }) => void
   onClose: () => void
 }) {
@@ -26,7 +29,14 @@ export function QuickItemModal({
   const tKind = useTranslations('itemKind')
   const tc = useTranslations('common')
   const [name, setName] = useState(initialName)
-  const [kind, setKind] = useState<'MATERIAL' | 'TOOL'>('MATERIAL')
+  const kindOptions =
+    kinds && kinds.length > 0
+      ? kinds
+      : [
+          { value: 'MATERIAL', label: tKind('MATERIAL') },
+          { value: 'TOOL', label: tKind('TOOL') },
+        ]
+  const [kind, setKind] = useState(kindOptions[0]?.value ?? 'MATERIAL')
   const [unit, setUnit] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -82,21 +92,21 @@ export function QuickItemModal({
           <fieldset>
             <legend className="text-sm font-medium">{t('kind')}</legend>
             <div className="mt-1 flex gap-2">
-              {(['MATERIAL', 'TOOL'] as const).map((k) => (
+              {kindOptions.map((k) => (
                 <label
-                  key={k}
+                  key={k.value}
                   className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${
-                    kind === k ? 'border-accent bg-accent/10 text-accent' : 'border-border hover:bg-surface-hover'
+                    kind === k.value ? 'border-accent bg-accent/10 text-accent' : 'border-border hover:bg-surface-hover'
                   }`}
                 >
                   <input
                     type="radio"
                     name="qi-kind"
-                    checked={kind === k}
-                    onChange={() => setKind(k)}
+                    checked={kind === k.value}
+                    onChange={() => setKind(k.value)}
                     className="h-4 w-4 accent-[var(--accent)]"
                   />
-                  {tKind(k)}
+                  {k.label}
                 </label>
               ))}
             </div>

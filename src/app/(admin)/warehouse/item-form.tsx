@@ -28,16 +28,18 @@ export function ItemForm({
   initial,
   cancelHref,
   categories = [],
+  kinds,
 }: {
   action: (prev: ItemFormState, formData: FormData) => Promise<ItemFormState>
   initial: ItemFormValues
   cancelHref: string
   /** Existing categories for live suggestions. */
   categories?: string[]
+  /** Configured item kinds (Settings → Arbeitsbereiche). */
+  kinds: Array<{ value: string; label: string }>
 }) {
   const t = useTranslations('warehouse')
   const tc = useTranslations('common')
-  const tKind = useTranslations('itemKind')
   const [state, formAction, pending] = useActionState<ItemFormState, FormData>(action, {})
 
   return (
@@ -55,8 +57,11 @@ export function ItemForm({
               {t('kind')}
             </label>
             <Select id="kind" name="kind" defaultValue={initial.kind} className="mt-1 w-full">
-              <option value="TOOL">{tKind('TOOL')}</option>
-              <option value="MATERIAL">{tKind('MATERIAL')}</option>
+              {kinds.map((k) => (
+                <option key={k.value} value={k.value}>
+                  {k.label}
+                </option>
+              ))}
             </Select>
           </div>
           <CategoryPicker name="category" label={t('category')} defaultValue={initial.category} categories={categories} />

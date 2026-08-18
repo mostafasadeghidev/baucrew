@@ -6,6 +6,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { deleteTemplate, updateTemplate } from '../actions'
 import { TemplateForm } from '../template-form'
 import { TemplateItemsEditor, type TemplateItemRow } from './template-items'
+import { BackLink } from '@/components/back-link'
 
 export default async function EditTemplatePage({
   params,
@@ -57,10 +58,13 @@ export default async function EditTemplatePage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('editTitle')} — {template.name}
-        </h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <BackLink href="/projects/templates" label={t('title')} />
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t('editTitle')} — {template.name}
+          </h1>
+        </div>
         <DeleteButton
           action={deleteTemplate.bind(null, template.id)}
           label={tc('delete')}
@@ -85,18 +89,21 @@ export default async function EditTemplatePage({
           vehicleIds: template.vehicles.map((tv) => tv.vehicleId),
           employeeIds: template.employees.map((te) => te.employeeId),
         }}
+        itemsSection={
+          // Same order as on the create page: the item list sits above the
+          // Save / Cancel buttons.
+          <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+            <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">{t('itemsTitle')}</h2>
+            <TemplateItemsEditor
+              templateId={template.id}
+              items={itemRows}
+              options={catalog
+                .filter((c) => !assignedIds.has(c.id))
+                .map((c) => ({ value: c.id, label: c.unit ? `${c.name} (${c.unit})` : c.name }))}
+            />
+          </section>
+        }
       />
-
-      <section className="max-w-2xl overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-        <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">{t('itemsTitle')}</h2>
-        <TemplateItemsEditor
-          templateId={template.id}
-          items={itemRows}
-          options={catalog
-            .filter((c) => !assignedIds.has(c.id))
-            .map((c) => ({ value: c.id, label: c.unit ? `${c.name} (${c.unit})` : c.name }))}
-        />
-      </section>
     </div>
   )
 }

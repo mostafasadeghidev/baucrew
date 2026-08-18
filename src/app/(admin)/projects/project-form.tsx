@@ -214,6 +214,8 @@ export function ProjectForm({
   employees,
   vehicles,
   categories,
+  clientTypes,
+  buildingTypes,
   showPrice,
   templateId,
   extraSection,
@@ -226,6 +228,9 @@ export function ProjectForm({
   employees: Option[]
   vehicles: Option[]
   categories: Option[]
+  /** Configurable lists from Settings. */
+  clientTypes: Option[]
+  buildingTypes: Option[]
   showPrice: boolean
   /** When creating from a template, its items are copied on save. */
   templateId?: string
@@ -237,8 +242,6 @@ export function ProjectForm({
   const t = useTranslations('projects')
   const tc = useTranslations('common')
   const tStatus = useTranslations('status')
-  const tClient = useTranslations('clientType')
-  const tBuilding = useTranslations('buildingType')
   const tCustomers = useTranslations('customers')
   const tEmployees = useTranslations('employees')
   const tVehicles = useTranslations('vehicles')
@@ -247,6 +250,7 @@ export function ProjectForm({
   const [vehicleIds, setVehicleIds] = useState<string[]>(initial.vehicleIds)
   const [teamIds, setTeamIds] = useState<string[]>(initial.teamIds)
   const [managerAdded, setManagerAdded] = useState(false)
+  const [managerId, setManagerId] = useState(initial.managerId)
   const [customerOptions, setCustomerOptions] = useState(customers)
   const [customerId, setCustomerId] = useState(initial.customerId)
   const [addresses, setAddresses] = useState(customerAddresses)
@@ -373,20 +377,14 @@ export function ProjectForm({
           label={t('clientType')}
           name="clientType"
           defaultValue={initial.clientType}
-          options={[
-            { value: 'PRIVAT', label: tClient('PRIVAT') },
-            { value: 'GEWERBLICH', label: tClient('GEWERBLICH') },
-          ]}
+          options={clientTypes}
           emptyOption={tc('none')}
         />
         <SelectField
           label={t('buildingType')}
           name="buildingType"
           defaultValue={initial.buildingType}
-          options={[
-            { value: 'NEUBAU', label: tBuilding('NEUBAU') },
-            { value: 'ALTBAU_SANIERUNG', label: tBuilding('ALTBAU_SANIERUNG') },
-          ]}
+          options={buildingTypes}
           emptyOption={tc('none')}
         />
         <CheckboxGroup
@@ -486,14 +484,17 @@ export function ProjectForm({
             defaultValue={initial.managerId}
             placeholder={tc('none')}
             noResultsLabel={tEmployees('noResults')}
+            clearable
+            clearLabel={tc('clear')}
             onSelect={(id) => {
-              // The site manager is part of the crew — tick them in the team list.
-              if (!id) return
+              // The site manager is part of the crew: tick the new one and drop
+              // the tick of the previous manager again.
               setTeamIds((prev) => {
-                if (prev.includes(id)) return prev
-                setManagerAdded(true)
-                return [...prev, id]
+                const next = prev.filter((x) => !managerId || x !== managerId)
+                return id && !next.includes(id) ? [...next, id] : next
               })
+              setManagerAdded(Boolean(id))
+              setManagerId(id)
             }}
           />
           {managerAdded && <p className="mt-1 text-xs text-accent">{t('managerAddedToTeam')}</p>}

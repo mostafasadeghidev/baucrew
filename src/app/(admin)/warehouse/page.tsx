@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
+import { getOptionList } from '@/lib/option-lists-db'
+import { optionLabel } from '@/lib/option-lists'
 import { db } from '@/lib/db'
 import { LiveSearchInput, LiveSelect } from '@/components/live-search'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
-import { ItemKind } from '@/generated/prisma/enums'
 import { listCategories } from './actions'
 import { CategoryManager } from './category-manager'
 import { btn } from '@/components/ui/button'
@@ -15,14 +16,15 @@ export default async function WarehousePage({
   searchParams: Promise<{ q?: string; kind?: string; page?: string }>
 }) {
   const { q, kind, page: pageParam } = await searchParams
-  const [t, tc, tKind, tToday] = await Promise.all([
+  const [t, tc, locale, kinds] = await Promise.all([
     getTranslations('warehouse'),
     getTranslations('common'),
-    getTranslations('itemKind'),
-    getTranslations('today'),
+    getLocale(),
+    getOptionList('itemKinds'),
   ])
+  const kindLabel = (value: string) => optionLabel(kinds, value, locale)
   const query = q?.trim() ?? ''
-  const kindFilter = kind === 'TOOL' || kind === 'MATERIAL' ? (kind as ItemKind) : undefined
+  const kindFilter = kinds.some((k) => k.value === kind) ? kind : undefined
   const page = parsePage(pageParam)
 
   const where = {
@@ -58,12 +60,6 @@ export default async function WarehousePage({
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/today"
-            className={btn.outline}
-          >
-            {tToday('title')}
-          </Link>
-          <Link
             href="/warehouse/new"
             className={btn.primary}
           >
@@ -77,10 +73,7 @@ export default async function WarehousePage({
         <LiveSelect
           param="kind"
           allLabel={t('allKinds')}
-          options={[
-            { value: 'TOOL', label: tKind('TOOL') },
-            { value: 'MATERIAL', label: tKind('MATERIAL') },
-          ]}
+          options={kinds.map((k) => ({ value: k.value, label: kindLabel(k.value) }))}
         />
       </div>
 
@@ -120,10 +113,12 @@ export default async function WarehousePage({
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         item.kind === 'TOOL'
                           ? 'bg-sky-500/15 text-sky-700 dark:text-sky-400'
-                          : 'bg-violet-500/15 text-violet-700 dark:text-violet-400'
+                          : item.kind === 'MATERIAL'
+                            ? 'bg-violet-500/15 text-violet-700 dark:text-violet-400'
+                            : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                       }`}
                     >
-                      {tKind(item.kind)}
+                      {kindLabel(item.kind)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted">{item.category ?? '—'}</td>

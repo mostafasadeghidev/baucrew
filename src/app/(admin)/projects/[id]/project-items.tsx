@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { addProjectItem, removeProjectItem, setProjectItemStatus } from '../actions'
@@ -26,6 +26,7 @@ export function ProjectItemsEditor({
   items,
   options,
   onChanged,
+  pending: externalPending = false,
 }: {
   projectId: string
   items: ProjectItemRow[]
@@ -33,12 +34,15 @@ export function ProjectItemsEditor({
   options: ComboboxOption[]
   /** Called after any successful change (used when embedded in a dialog). */
   onChanged?: () => void
+  /** The parent is reloading the list (dialog) — disables the controls. */
+  pending?: boolean
 }) {
   const t = useTranslations('projects')
   const tc = useTranslations('common')
   const tStatus = useTranslations('itemStatus')
   const tWarehouse = useTranslations('warehouse')
-  const [pending, startTransition] = useTransition()
+  const [ownPending, startTransition] = useTransition()
+  const pending = ownPending || externalPending
   const [error, setError] = useState<string | null>(null)
   // Remount the combobox after each add so it clears its input.
   const [addKey, setAddKey] = useState(0)
@@ -46,8 +50,16 @@ export function ProjectItemsEditor({
   const [quantity, setQuantity] = useState('')
   // Name typed into the picker that is not in the catalog yet → quick-create dialog.
   const [newItemName, setNewItemName] = useState<string | null>(null)
+  // Ref (not state) so the effect below stays side-effect only.
+  const scrollAfterAdd = useRef(false)
 
   const addRowRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!scrollAfterAdd.current) return
+    scrollAfterAdd.current = false
+    addRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [items.length])
 
   /** Adds a catalog item to the project (shared by the picker and the quick-create dialog). */
   function addById(catalogItemId: string) {
@@ -68,11 +80,13 @@ export function ProjectItemsEditor({
     })
   }
 
-  /** After adding, scroll the picker back into view (long lists in the dialog). */
+  /**
+   * After adding, scroll the picker back into view. The list is re-rendered by
+   * the server action, so the scroll has to wait for the new items — hence the
+   * effect below on `items.length` instead of scrolling inside the handler.
+   */
   function scrollAddRowIntoView() {
-    requestAnimationFrame(() => {
-      addRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    })
+    scrollAfterAdd.current = true
   }
 
   function submitAdd() {

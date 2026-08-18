@@ -9,6 +9,8 @@ import { getBranding } from '@/lib/branding'
 import { formatDate } from '@/lib/format'
 import { PrintButton } from '@/components/print-button'
 import { BackButton } from '@/components/back-button'
+import { getOptionLists } from '@/lib/option-lists-db'
+import { optionLabel } from '@/lib/option-lists'
 
 function Checkbox({ checked, label }: { checked: boolean; label: string }) {
   return (
@@ -47,11 +49,9 @@ export default async function ProjectSheetPage({
   const user = await requireUser()
   const { id } = await params
   const { entry: entryId } = await searchParams
-  const [t, tc, tClient, tBuilding, locale] = await Promise.all([
+  const [t, tc, locale] = await Promise.all([
     getTranslations('sheet'),
     getTranslations('common'),
-    getTranslations('clientType'),
-    getTranslations('buildingType'),
     getLocale(),
   ])
 
@@ -120,9 +120,9 @@ export default async function ProjectSheetPage({
     .filter(Boolean)
     .join(', ')
   const tools = project.items.filter((i) => i.catalogItem.kind === 'TOOL')
-  const materials = project.items.filter((i) => i.catalogItem.kind === 'MATERIAL')
+  const materials = project.items.filter((i) => i.catalogItem.kind !== 'TOOL')
 
-  const branding = await getBranding()
+  const [branding, lists] = await Promise.all([getBranding(), getOptionLists()])
 
   // QR code linking back to this project (scannable from the printed sheet)
   const headerStore = await headers()
@@ -207,14 +207,21 @@ export default async function ProjectSheetPage({
               {t('siteSetup')}
             </div>
             <div className="flex-1 px-2 py-1.5">
-              <Checkbox checked={project.clientType === 'PRIVAT'} label={tClient('PRIVAT')} />
-              <Checkbox checked={project.clientType === 'GEWERBLICH'} label={tClient('GEWERBLICH')} />
+              {lists.clientTypes.map((e) => (
+                <Checkbox
+                  key={e.value}
+                  checked={project.clientType === e.value}
+                  label={optionLabel(lists.clientTypes, e.value, locale)}
+                />
+              ))}
               <span className="mx-2 text-black/40">|</span>
-              <Checkbox checked={project.buildingType === 'NEUBAU'} label={tBuilding('NEUBAU')} />
-              <Checkbox
-                checked={project.buildingType === 'ALTBAU_SANIERUNG'}
-                label={tBuilding('ALTBAU_SANIERUNG')}
-              />
+              {lists.buildingTypes.map((e) => (
+                <Checkbox
+                  key={e.value}
+                  checked={project.buildingType === e.value}
+                  label={optionLabel(lists.buildingTypes, e.value, locale)}
+                />
+              ))}
             </div>
           </div>
 

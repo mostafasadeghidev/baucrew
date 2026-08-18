@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
+import { getOptionList } from '@/lib/option-lists-db'
+import { optionLabel } from '@/lib/option-lists'
 import { db } from '@/lib/db'
 import { DeleteButton } from '@/components/delete-button'
 import { deleteItem, updateItem } from '../../actions'
@@ -12,7 +14,13 @@ export default async function EditItemPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [t, tc, categories] = await Promise.all([getTranslations('warehouse'), getTranslations('common'), listCategories()])
+  const [t, tc, categories, kinds, locale] = await Promise.all([
+    getTranslations('warehouse'),
+    getTranslations('common'),
+    listCategories(),
+    getOptionList('itemKinds'),
+    getLocale(),
+  ])
   const item = await db.catalogItem.findUnique({ where: { id } })
   if (!item) notFound()
 
@@ -33,6 +41,7 @@ export default async function EditItemPage({
         action={updateItem.bind(null, item.id)}
         cancelHref="/warehouse"
         categories={categories.map((c) => c.name)}
+        kinds={kinds.map((k) => ({ value: k.value, label: optionLabel(kinds, k.value, locale) }))}
         initial={{
           kind: item.kind,
           name: item.name,

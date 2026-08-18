@@ -20,6 +20,8 @@ export type TemplateFormValues = {
   employeeIds: string[]
 }
 
+const FORM_ID = 'template-form'
+
 const inputClass =
   'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
@@ -50,7 +52,8 @@ export function TemplateForm({
   const [state, formAction, pending] = useActionState<TemplateFormState, FormData>(action, {})
 
   return (
-    <form action={formAction} className="max-w-2xl space-y-6">
+    <div className="max-w-2xl space-y-6">
+      <form id={FORM_ID} action={formAction} className="space-y-6">
       <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -95,6 +98,8 @@ export function TemplateForm({
         </div>
       </div>
 
+      </form>
+
       {/* Optional defaults — copied into a new project created from this template */}
       <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
         <h2 className="text-sm font-semibold">{tProjects('assignmentSection')}</h2>
@@ -103,14 +108,20 @@ export function TemplateForm({
           <div>
             <label className="block text-sm font-medium">{tProjects('manager')}</label>
             <Combobox
+              formId={FORM_ID}
               name="managerId"
               options={employees}
               defaultValue={managerId}
               placeholder={tc('none')}
               noResultsLabel={tEmployees('noResults')}
+              clearable
+              clearLabel={tc('clear')}
               onSelect={(id) => {
+                setEmployeeIds((prev) => {
+                  const next = prev.filter((x) => !managerId || x !== managerId)
+                  return id && !next.includes(id) ? [...next, id] : next
+                })
                 setManagerId(id)
-                if (id) setEmployeeIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
               }}
             />
           </div>
@@ -124,7 +135,7 @@ export function TemplateForm({
               noResultsLabel={tVehicles('noResults')}
             />
             {vehicleIds.map((v) => (
-              <input key={v} type="hidden" name="vehicleIds" value={v} />
+              <input key={v} type="hidden" form={FORM_ID} name="vehicleIds" value={v} />
             ))}
           </div>
           <div className="sm:col-span-2">
@@ -137,7 +148,7 @@ export function TemplateForm({
               noResultsLabel={tEmployees('noResults')}
             />
             {employeeIds.map((e) => (
-              <input key={e} type="hidden" name="employeeIds" value={e} />
+              <input key={e} type="hidden" form={FORM_ID} name="employeeIds" value={e} />
             ))}
           </div>
         </div>
@@ -154,6 +165,7 @@ export function TemplateForm({
       <div className="flex items-center gap-3">
         <button
           type="submit"
+          form={FORM_ID}
           disabled={pending}
           className={btn.primary}
         >
@@ -167,6 +179,6 @@ export function TemplateForm({
         </Link>
         <SavedToast trigger={state.savedAt} />
       </div>
-    </form>
+    </div>
   )
 }

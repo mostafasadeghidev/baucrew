@@ -24,7 +24,8 @@
     "nextPage": "Next page",
     "saved": "Saved",
     "optional": "optional",
-    "pagination": "Pagination"
+    "pagination": "Pagination",
+    "clear": "Clear selection"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -344,7 +345,19 @@
     "tabCategories": "Work categories",
     "tabData": "Data & log",
     "accentTitle": "Company colour",
-    "accentHint": "Colour of buttons, active tabs and highlights — pick your corporate colour. Applies everywhere immediately."
+    "accentHint": "Colour of buttons, active tabs and highlights — pick your corporate colour. Applies everywhere immediately.",
+    "brandingTitle": "Company branding",
+    "brandingHint": "Name, colour and logo — shown in the app and on the work order.",
+    "clientTypesTitle": "Client types",
+    "clientTypesHint": "Choice on a project (e.g. private, commercial, public). Existing projects keep their value.",
+    "buildingTypesTitle": "Building types",
+    "buildingTypesHint": "Choice on a project (e.g. new build, renovation, bridge, road).",
+    "itemKindsTitle": "Item kinds",
+    "itemKindsHint": "Kinds in the warehouse (e.g. tool, material, warning sign, barrier tape). \"Tool\" prints in the left column of the work order, everything else on the right.",
+    "optionLabelDe": "Label (DE)",
+    "optionLabelEn": "Label (EN)",
+    "optionAdd": "Add entry",
+    "optionBuiltIn": "Built-in"
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -530,7 +543,9 @@
     "createEntries": "Create {count} assignments",
     "planSaturday": "Include Saturday",
     "planSunday": "Include Sunday",
-    "managerHint": "Applies to the whole project — saved immediately."
+    "managerHint": "Applies to the whole project — saved immediately.",
+    "currentMonth": "Current month",
+    "deleteEntryConfirm": "Really delete this assignment? The project stays."
   },
   "warehouse": {
     "title": "Warehouse",

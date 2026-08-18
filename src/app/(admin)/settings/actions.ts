@@ -14,6 +14,12 @@ import type { SaveState } from '@/components/saved-form'
 import { deleteUserBlockReason } from '@/lib/user-guards'
 import { PREP_TAB_KEY, prepTabConfigFromForm, serializePrepTabConfig } from '@/lib/prep-tab'
 import { normalizeAccent } from "@/lib/branding";
+import {
+  optionListFromForm,
+  parseOptionList,
+  serializeOptionList,
+  type OptionList,
+} from "@/lib/option-lists";
 
 export type UserFormState = {
   error?: 'usernameTaken' | 'usernameInvalid' | 'passwordTooShort' | 'selfProtected' | 'saveFailed'
@@ -480,4 +486,42 @@ export async function updateAccentColor(formData: FormData): Promise<SaveState> 
   });
   revalidatePath("/", "layout");
   return { savedAt: Date.now() };
+}
+
+// ── Configurable option lists (client / building types, item kinds) ──
+
+async function updateOptionList(list: OptionList, formData: FormData): Promise<SaveState> {
+  const admin = await requireAdmin();
+  const entries = optionListFromForm((name) =>
+    formData.getAll(name).map((v) => String(v)),
+  );
+  const value = serializeOptionList(
+    entries.length > 0 ? entries : parseOptionList(list, null),
+  );
+  await db.appSetting.upsert({
+    where: { key: list },
+    update: { value },
+    create: { key: list, value },
+  });
+  await audit({
+    userId: admin.id,
+    action: "settings.optionList",
+    entity: "AppSetting",
+    entityId: list,
+    newValue: value.slice(0, 500),
+  });
+  revalidatePath("/", "layout");
+  return { savedAt: Date.now() };
+}
+
+export async function updateClientTypes(formData: FormData): Promise<SaveState> {
+  return updateOptionList("clientTypes", formData);
+}
+
+export async function updateBuildingTypes(formData: FormData): Promise<SaveState> {
+  return updateOptionList("buildingTypes", formData);
+}
+
+export async function updateItemKinds(formData: FormData): Promise<SaveState> {
+  return updateOptionList("itemKinds", formData);
 }

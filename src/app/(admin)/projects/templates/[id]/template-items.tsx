@@ -23,7 +23,6 @@ export function TemplateItemsEditor({
   options: ComboboxOption[]
 }) {
   const t = useTranslations('projects')
-  const tTemplates = useTranslations('templates')
   const tWarehouse = useTranslations('warehouse')
   const tc = useTranslations('common')
   const [pending, startTransition] = useTransition()
@@ -111,7 +110,6 @@ export function TemplateItemsEditor({
           </p>
         )}
       </form>
-      <p className="px-5 pb-3 text-xs text-muted">{tTemplates('itemsTitle')}</p>
     </div>
   )
 }

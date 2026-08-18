@@ -8,6 +8,9 @@ import {
   updateCategory,
   updateCompanyName,
   updateAccentColor,
+  updateBuildingTypes,
+  updateClientTypes,
+  updateItemKinds,
   updatePrepTab,
   updateRainThreshold,
 } from "./actions";
@@ -19,7 +22,10 @@ import { BackupRestore } from "./backup-restore";
 import { SavedForm } from "@/components/saved-form";
 import { ParamTabs } from "@/components/param-tabs";
 import { Card } from "@/components/ui/card";
-import { btn } from '@/components/ui/button'
+import { btn } from "@/components/ui/button";
+import { OptionListManager } from "./option-list-manager";
+import { getOptionLists } from "@/lib/option-lists-db";
+import { BUILT_IN, SUGGESTED } from "@/lib/option-lists";
 
 const inputClass =
   "block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
@@ -55,9 +61,10 @@ export default async function SettingsPage({
     getBranding(),
   ]);
 
-  const [rainThreshold, prepTab] = await Promise.all([
+  const [rainThreshold, prepTab, lists] = await Promise.all([
     getRainThreshold(),
     getPrepTabConfig(),
+    getOptionLists(),
   ]);
   const systemUsers = users.filter((u) => !u.employee);
   const privileged = users.filter(
@@ -93,10 +100,7 @@ export default async function SettingsPage({
                   {t("usersUnlinkedHint")}
                 </p>
               </div>
-              <Link
-                href="/settings/users/new"
-                className={btn.primary}
-              >
+              <Link href="/settings/users/new" className={btn.primary}>
                 {t("newUser")}
               </Link>
             </div>
@@ -224,56 +228,62 @@ export default async function SettingsPage({
 
       {tab === "" && (
         <div className="space-y-8">
-          {/* Branding */}
-          <Card
-            title={t("companyNameTitle")}
-            description={t("companyNameHint")}
-          >
-            <SavedForm
-              action={updateCompanyName}
-              className="flex max-w-2xl flex-wrap items-center gap-2"
-            >
-              <input
-                name="companyName"
-                defaultValue={branding.companyName}
-                maxLength={100}
-                aria-label={t("companyNameTitle")}
-                className={`${inputClass} min-w-64 flex-1`}
-              />
-              <button
-                type="submit"
-                className={btn.primarySm}
-              >
-                {tc("save")}
-              </button>
-            </SavedForm>
-          </Card>
+          {/* Branding: name, colour and logo in one card */}
+          <Card title={t("brandingTitle")} description={t("brandingHint")}>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-4">
+                <SavedForm action={updateCompanyName} className="space-y-1.5">
+                  <label
+                    htmlFor="companyName"
+                    className="block text-sm font-medium"
+                  >
+                    {t("companyNameTitle")}
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      id="companyName"
+                      name="companyName"
+                      defaultValue={branding.companyName}
+                      maxLength={100}
+                      className={`${inputClass} min-w-52 flex-1`}
+                    />
+                    <button type="submit" className={btn.primarySm}>
+                      {tc("save")}
+                    </button>
+                  </div>
+                </SavedForm>
 
-          {/* Logo */}
-          <Card title={t("accentTitle")} description={t("accentHint")}>
-            <SavedForm
-              action={updateAccentColor}
-              className="flex flex-wrap items-center gap-3"
-            >
-              <input
-                type="color"
-                id="accentColor"
-                name="accentColor"
-                defaultValue={branding.accentColor}
-                aria-label={t("accentTitle")}
-                className="h-10 w-16 cursor-pointer rounded-md border border-border bg-surface p-1"
-              />
-              <span className="font-mono text-xs uppercase text-muted">
-                {branding.accentColor}
-              </span>
-              <button type="submit" className={btn.primarySm}>
-                {tc("save")}
-              </button>
-            </SavedForm>
-          </Card>
+                <SavedForm action={updateAccentColor} className="space-y-1.5">
+                  <label
+                    htmlFor="accentColor"
+                    className="block text-sm font-medium"
+                  >
+                    {t("accentTitle")}
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="color"
+                      id="accentColor"
+                      name="accentColor"
+                      defaultValue={branding.accentColor}
+                      className="h-9 w-14 cursor-pointer rounded-md border border-border bg-surface p-1"
+                    />
+                    <span className="font-mono text-xs uppercase text-muted">
+                      {branding.accentColor}
+                    </span>
+                    <button type="submit" className={btn.primarySm}>
+                      {tc("save")}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted">{t("accentHint")}</p>
+                </SavedForm>
+              </div>
 
-          <Card title={t("logoTitle")}>
-            <LogoUploader hasLogo={branding.hasLogo} />
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium">{t("logoTitle")}</p>
+                <LogoUploader hasLogo={branding.hasLogo} />
+              </div>
+            </div>
           </Card>
 
           {/* Weather */}
@@ -296,10 +306,7 @@ export default async function SettingsPage({
                 className={`${inputClass.replace("w-full", "")} w-24`}
               />
               <span className="text-sm text-muted">%</span>
-              <button
-                type="submit"
-                className={btn.primarySm}
-              >
+              <button type="submit" className={btn.primarySm}>
                 {tc("save")}
               </button>
             </SavedForm>
@@ -359,10 +366,7 @@ export default async function SettingsPage({
                 />
                 {t("prepTabUnscheduledOnly")}
               </label>
-              <button
-                type="submit"
-                className={btn.primarySm}
-              >
+              <button type="submit" className={btn.primarySm}>
                 {tc("save")}
               </button>
             </SavedForm>
@@ -379,20 +383,14 @@ export default async function SettingsPage({
 
           {/* Audit log */}
           <Card title={t("auditTitle")} description={t("auditHint")}>
-            <Link
-              href="/settings/audit"
-              className={btn.outline}
-            >
+            <Link href="/settings/audit" className={btn.outline}>
               {t("openAudit")}
             </Link>
           </Card>
 
           {/* Import */}
           <Card title={tImport("title")}>
-            <Link
-              href="/settings/import-trello"
-              className={btn.outline}
-            >
+            <Link href="/settings/import-trello" className={btn.outline}>
               {tImport("settingsLink")}
             </Link>
           </Card>
@@ -402,6 +400,39 @@ export default async function SettingsPage({
       {tab === "categories" && (
         <div className="space-y-8">
           {/* Work categories */}
+          <Card
+            title={t("clientTypesTitle")}
+            description={t("clientTypesHint")}
+          >
+            <OptionListManager
+              action={updateClientTypes}
+              entries={lists.clientTypes}
+              suggestions={SUGGESTED.clientTypes}
+              builtIn={BUILT_IN.clientTypes.map((e) => e.value)}
+            />
+          </Card>
+
+          <Card
+            title={t("buildingTypesTitle")}
+            description={t("buildingTypesHint")}
+          >
+            <OptionListManager
+              action={updateBuildingTypes}
+              entries={lists.buildingTypes}
+              suggestions={SUGGESTED.buildingTypes}
+              builtIn={BUILT_IN.buildingTypes.map((e) => e.value)}
+            />
+          </Card>
+
+          <Card title={t("itemKindsTitle")} description={t("itemKindsHint")}>
+            <OptionListManager
+              action={updateItemKinds}
+              entries={lists.itemKinds}
+              suggestions={SUGGESTED.itemKinds}
+              builtIn={BUILT_IN.itemKinds.map((e) => e.value)}
+            />
+          </Card>
+
           <Card title={t("categoriesTitle")}>
             <div className="max-w-2xl space-y-2">
               {categories.map((c) => (
@@ -433,10 +464,7 @@ export default async function SettingsPage({
                     />
                     {tc("active")}
                   </label>
-                  <button
-                    type="submit"
-                    className={btn.outlineSm}
-                  >
+                  <button type="submit" className={btn.outlineSm}>
                     {tc("save")}
                   </button>
                 </SavedForm>
@@ -459,10 +487,7 @@ export default async function SettingsPage({
                   required
                   className={`${inputClass} min-w-40 flex-1`}
                 />
-                <button
-                  type="submit"
-                  className={btn.primarySm}
-                >
+                <button type="submit" className={btn.primarySm}>
                   {t("addCategory")}
                 </button>
               </SavedForm>

@@ -5,6 +5,8 @@ import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { toDateInputValue } from '@/lib/format'
 import { updateProject } from '../../actions'
 import { ProjectForm } from '../../project-form'
+import { getOptionLists } from '@/lib/option-lists-db'
+import { optionLabel } from '@/lib/option-lists'
 
 export default async function EditProjectPage({
   params,
@@ -15,6 +17,7 @@ export default async function EditProjectPage({
   const { id } = await params
   const t = await getTranslations('projects')
   const locale = await getLocale()
+  const lists = await getOptionLists()
 
   const [project, customers, employees, vehicles, categories] = await Promise.all([
     db.project.findUnique({
@@ -67,6 +70,8 @@ export default async function EditProjectPage({
         )}
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}` }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
+        clientTypes={lists.clientTypes.map((e) => ({ value: e.value, label: optionLabel(lists.clientTypes, e.value, locale) }))}
+        buildingTypes={lists.buildingTypes.map((e) => ({ value: e.value, label: optionLabel(lists.buildingTypes, e.value, locale) }))}
         categories={categories.map((c) => ({
           value: c.id,
           label: locale === 'en' ? c.nameEn : c.nameDe,
