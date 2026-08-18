@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Combobox } from '@/components/combobox'
 import type { UserFormState } from './actions'
+import { Select } from '@/components/ui/select'
 
 export type UserFormValues = {
   username: string
@@ -74,19 +75,13 @@ export function UserForm({
             <label htmlFor="role" className="block text-sm font-medium">
               {t('role')}
             </label>
-            <select
-              id="role"
-              name="role"
-              defaultValue={initial.role}
-              disabled={isSelf}
-              className={`${inputClass} disabled:opacity-60`}
-            >
+            <Select id="role" name="role" defaultValue={initial.role} disabled={isSelf} className="mt-1 w-full">
               {ROLES.map((r) => (
                 <option key={r} value={r}>
                   {tRoles(r)}
                 </option>
               ))}
-            </select>
+            </Select>
             {isSelf && <input type="hidden" name="role" value={initial.role} />}
           </div>
           <div>

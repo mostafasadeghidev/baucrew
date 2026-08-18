@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useMemo, useRef, useState } from 'react'
+import { Check, ChevronsUpDown } from 'lucide-react'
 import type { ComboboxOption } from './combobox'
 import { DropdownPortal } from './dropdown-portal'
 
@@ -83,12 +84,12 @@ export function MultiCombobox({
     <div className="relative">
       <div
         ref={boxRef}
-        className="mt-1 flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-border bg-background px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent"
+        className="relative mt-1 flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-border bg-background py-1 pl-2 pr-8 shadow-sm transition-colors focus-within:border-accent focus-within:ring-1 focus-within:ring-ring"
       >
         {selected.map((o) => (
           <span
             key={o.value}
-            className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-sm font-medium text-accent"
+            className="inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-0.5 text-sm font-medium text-accent"
           >
             {o.label}
             <button
@@ -123,11 +124,12 @@ export function MultiCombobox({
           }}
           className="min-w-24 flex-1 bg-transparent px-1 py-1 text-sm focus:outline-none"
         />
+        <ChevronsUpDown aria-hidden className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
       </div>
       <DropdownPortal anchorRef={boxRef} open={open} id={listId}>
         <>
           {available.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-muted">{noResultsLabel}</li>
+            <li className="px-2 py-6 text-center text-sm text-muted">{noResultsLabel}</li>
           ) : (
             available.map((o, i) => (
               <li
@@ -140,11 +142,12 @@ export function MultiCombobox({
                   add(o)
                 }}
                 onMouseEnter={() => setHighlight(i)}
-                className={`cursor-pointer px-3 py-2 text-sm ${
-                  i === highlight ? 'bg-accent text-accent-foreground' : ''
+                className={`mx-1 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
+                  i === highlight ? 'bg-surface-hover text-foreground' : ''
                 }`}
               >
-                {o.label}
+                <Check aria-hidden className="h-4 w-4 shrink-0 opacity-0" />
+                <span className="truncate">{o.label}</span>
               </li>
             ))
           )}

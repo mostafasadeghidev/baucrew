@@ -47,7 +47,9 @@
     "settings": "Settings",
     "myArea": "My area",
     "menu": "Menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "groupWork": "Operations",
+    "groupData": "Master data"
   },
   "theme": {
     "light": "Light theme",

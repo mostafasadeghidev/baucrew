@@ -17,6 +17,7 @@ import { LogoUploader } from "./logo-uploader";
 import { BackupRestore } from "./backup-restore";
 import { SavedForm } from "@/components/saved-form";
 import { ParamTabs } from "@/components/param-tabs";
+import { Card } from "@/components/ui/card";
 
 const inputClass =
   "block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
@@ -83,7 +84,7 @@ export default async function SettingsPage({
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold">
+                <h2 className="text-sm font-semibold">
                   {t("usersUnlinkedTitle")}
                 </h2>
                 <p className="mt-0.5 text-xs text-muted">
@@ -97,7 +98,7 @@ export default async function SettingsPage({
                 {t("newUser")}
               </Link>
             </div>
-            <div className="overflow-x-auto rounded-lg border border-border bg-surface shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
@@ -149,10 +150,10 @@ export default async function SettingsPage({
           {/* Privileged accounts overview (admins + financial access), read-only */}
           <section className="space-y-3">
             <div>
-              <h2 className="text-lg font-semibold">{t("privilegedTitle")}</h2>
+              <h2 className="text-sm font-semibold">{t("privilegedTitle")}</h2>
               <p className="mt-0.5 text-xs text-muted">{t("privilegedHint")}</p>
             </div>
-            <div className="overflow-x-auto rounded-lg border border-border bg-surface shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
@@ -222,8 +223,10 @@ export default async function SettingsPage({
       {tab === "" && (
         <div className="space-y-8">
           {/* Branding */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">{t("companyNameTitle")}</h2>
+          <Card
+            title={t("companyNameTitle")}
+            description={t("companyNameHint")}
+          >
             <SavedForm
               action={updateCompanyName}
               className="flex max-w-2xl flex-wrap items-center gap-2"
@@ -242,18 +245,15 @@ export default async function SettingsPage({
                 {tc("save")}
               </button>
             </SavedForm>
-            <p className="text-xs text-muted">{t("companyNameHint")}</p>
-          </section>
+          </Card>
 
           {/* Logo */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">{t("logoTitle")}</h2>
+          <Card title={t("logoTitle")}>
             <LogoUploader hasLogo={branding.hasLogo} />
-          </section>
+          </Card>
 
           {/* Weather */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">{t("weatherTitle")}</h2>
+          <Card title={t("weatherTitle")} description={t("weatherHint")}>
             <SavedForm
               action={updateRainThreshold}
               className="flex max-w-2xl flex-wrap items-center gap-2"
@@ -269,7 +269,7 @@ export default async function SettingsPage({
                 max={100}
                 step={5}
                 defaultValue={rainThreshold}
-                className={`${inputClass.replace('w-full', '')} w-24`}
+                className={`${inputClass.replace("w-full", "")} w-24`}
               />
               <span className="text-sm text-muted">%</span>
               <button
@@ -279,17 +279,11 @@ export default async function SettingsPage({
                 {tc("save")}
               </button>
             </SavedForm>
-            <p className="max-w-2xl text-xs text-muted">{t("weatherHint")}</p>
-          </section>
+          </Card>
 
           {/* Project list: "Zur Vorbereitung" tab */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">{t("prepTabTitle")}</h2>
-            <p className="max-w-2xl text-xs text-muted">{t("prepTabHint")}</p>
-            <SavedForm
-              action={updatePrepTab}
-              className="max-w-2xl space-y-3 rounded-lg border border-border bg-surface p-4 shadow-sm"
-            >
+          <Card title={t("prepTabTitle")} description={t("prepTabHint")}>
+            <SavedForm action={updatePrepTab} className="max-w-2xl space-y-3">
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -310,7 +304,7 @@ export default async function SettingsPage({
                   maxLength={40}
                   defaultValue={prepTab.label}
                   placeholder={tProjects("tabPreparation")}
-                  className={`${inputClass.replace('w-full', '')} w-64`}
+                  className={`${inputClass.replace("w-full", "")} w-64`}
                 />
               </div>
               <fieldset>
@@ -348,48 +342,43 @@ export default async function SettingsPage({
                 {tc("save")}
               </button>
             </SavedForm>
-          </section>
+          </Card>
         </div>
       )}
 
       {tab === "data" && (
         <div className="space-y-8">
           {/* Backup & restore */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">{t("backupTitle")}</h2>
+          <Card title={t("backupTitle")}>
             <BackupRestore />
-          </section>
+          </Card>
 
           {/* Audit log */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">{t("auditTitle")}</h2>
-            <p className="text-xs text-muted">{t("auditHint")}</p>
+          <Card title={t("auditTitle")} description={t("auditHint")}>
             <Link
               href="/settings/audit"
-              className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+              className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium shadow-sm hover:bg-surface-hover"
             >
               {t("openAudit")}
             </Link>
-          </section>
+          </Card>
 
           {/* Import */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">{tImport("title")}</h2>
+          <Card title={tImport("title")}>
             <Link
               href="/settings/import-trello"
-              className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+              className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium shadow-sm hover:bg-surface-hover"
             >
               {tImport("settingsLink")}
             </Link>
-          </section>
+          </Card>
         </div>
       )}
 
       {tab === "categories" && (
         <div className="space-y-8">
           {/* Work categories */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">{t("categoriesTitle")}</h2>
+          <Card title={t("categoriesTitle")}>
             <div className="max-w-2xl space-y-2">
               {categories.map((c) => (
                 <SavedForm
@@ -454,7 +443,7 @@ export default async function SettingsPage({
                 </button>
               </SavedForm>
             </div>
-          </section>
+          </Card>
         </div>
       )}
     </div>

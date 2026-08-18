@@ -3,6 +3,16 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.7.0] — 2026-08-18
+
+### Changed
+- **New look for navigation and controls, inspired by shadcn/ui:**
+  - **Sidebar** with icons and two groups (*Betrieb* / *Stammdaten*); the signed-in user sits at the bottom as a button with avatar and role that opens a menu with *Einstellungen* and *Abmelden* — the settings entry is no longer a plain list item.
+  - **Tabs** (project list, settings, reports, warehouse, schedule views) are a segmented control: subtle track, active tab as a raised pill.
+  - **Comboboxes** show a chevron, a check mark on the selected entry and a "+" row to create a new item; the list is an overlay that never gets clipped.
+  - **Selects** got the same frame, focus ring and chevron as the input fields.
+  - **Settings** sections are cards with title and description.
+
 ## [1.6.0] — 2026-08-18
 
 ### Added
@@ -143,6 +153,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.7.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.7.0
 [1.6.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.6.0
 [1.5.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.5.0
 [1.4.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.4.1

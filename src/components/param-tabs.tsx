@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { TabLink, TabsList } from './ui/tabs'
 
 export type ParamTab = { value: string; label: string; count?: number }
 
@@ -32,33 +32,16 @@ export function ParamTabs({
   }
 
   return (
-    <nav className="flex flex-wrap gap-1 overflow-x-auto border-b border-border" aria-label={ariaLabel}>
-      {tabs.map((tab) => {
-        const active = tab.value === current
-        return (
-          <Link
-            key={tab.value || '__default'}
-            href={hrefFor(tab.value)}
-            aria-current={active ? 'page' : undefined}
-            className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
-              active
-                ? 'border-accent text-accent'
-                : 'border-transparent text-muted hover:border-border hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-            {tab.count != null && (
-              <span
-                className={`rounded-full px-1.5 py-0.5 text-xs tabular-nums ${
-                  active ? 'bg-accent/10 text-accent' : 'bg-surface-hover text-muted'
-                }`}
-              >
-                {tab.count}
-              </span>
-            )}
-          </Link>
-        )
-      })}
-    </nav>
+    <TabsList ariaLabel={ariaLabel}>
+      {tabs.map((tab) => (
+        <TabLink
+          key={tab.value || '__default'}
+          href={hrefFor(tab.value)}
+          active={tab.value === current}
+          label={tab.label}
+          count={tab.count}
+        />
+      ))}
+    </TabsList>
   )
 }

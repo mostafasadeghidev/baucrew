@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import { requireManagement } from '@/lib/authz'
 import { getBranding } from '@/lib/branding'
 import { Sidebar } from '@/components/sidebar'
@@ -9,6 +10,7 @@ import { syncProjectsInProgress } from '@/lib/project-lifecycle'
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireManagement()
   const branding = await getBranding()
+  const tRoles = await getTranslations('roles')
   // Planned projects whose first assignment day has arrived become "In Ausführung" (throttled).
   await syncProjectsInProgress()
 
@@ -22,10 +24,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         brandName={branding.companyName}
         hasLogo={branding.hasLogo}
         username={user.username}
+        role={tRoles(user.role)}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
           username={user.username}
+          role={tRoles(user.role)}
           isAdmin={user.role === 'ADMIN'}
           brandName={branding.companyName}
           hasLogo={branding.hasLogo}

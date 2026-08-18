@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { VehicleFormState } from './actions'
+import { Select } from '@/components/ui/select'
 
 export type VehicleFormValues = {
   name: string
@@ -64,13 +65,13 @@ export function VehicleForm({
             <label htmlFor="status" className="block text-sm font-medium">
               {t('status')}
             </label>
-            <select id="status" name="status" defaultValue={initial.status} className={inputClass}>
+            <Select id="status" name="status" defaultValue={initial.status} className="mt-1 w-full">
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {tStatus(s)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="sm:col-span-2">
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">

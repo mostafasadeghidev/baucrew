@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.6 · Stand: 18. August 2026*
+*Version 1.7 · Stand: 18. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -72,7 +72,7 @@ Sie bleiben 30 Tage angemeldet. **Abmelden** ganz unten in der Menüleiste (link
 
 ### 2.2 So ist der Bildschirm aufgebaut
 
-- **Links das Menü:** Übersicht, Projekte, Kunden, Einsatzplanung, Mitarbeiter, Fahrzeuge, Lager, Berichte. Es bleibt beim Blättern stehen; **ganz unten** stehen Ihr Benutzername, **Einstellungen** (nur Administrator) und **Abmelden**. Am Handy versteckt sich das Menü hinter dem Symbol **☰** oben links.
+- **Links das Menü** mit Symbolen, in zwei Gruppen: **Betrieb** (Übersicht, Projekte, Einsatzplanung, Berichte) und **Stammdaten** (Kunden, Mitarbeiter, Fahrzeuge, Lager). Es bleibt beim Blättern stehen; **ganz unten** steht Ihr Benutzername — ein Klick darauf öffnet ein kleines Menü mit **Einstellungen** (nur Administrator) und **Abmelden**. Am Handy versteckt sich das Menü hinter dem Symbol **☰** oben links.
 - **Oben rechts:** Sprache **DE | EN** und Design (hell / dunkel / wie das Gerät).
 - **In der Mitte:** der aktuelle Bereich.
 

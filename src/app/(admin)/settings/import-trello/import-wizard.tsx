@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { trelloWizard, type PreviewState } from './actions'
+import { Select } from '@/components/ui/select'
 
 const STATUSES = [
   'LEAD',
@@ -17,8 +18,6 @@ const STATUSES = [
   'CANCELLED',
 ] as const
 
-const inputClass =
-  'block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 export function ImportWizard() {
   const t = useTranslations('importTrello')
@@ -92,10 +91,10 @@ export function ImportWizard() {
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums">{cardsByList.get(list.id) ?? 0}</td>
                   <td className="px-4 py-2">
-                    <select
+                    <Select
+                      className="w-full"
                       name={`list_${list.id}`}
                       defaultValue={list.closed ? 'SKIP' : (suggested[list.id] ?? 'LEAD')}
-                      className={inputClass}
                     >
                       <option value="SKIP">{t('skipList')}</option>
                       {STATUSES.map((s) => (
@@ -103,7 +102,7 @@ export function ImportWizard() {
                           {tStatus(s)}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </td>
                 </tr>
               ))}

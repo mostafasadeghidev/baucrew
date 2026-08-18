@@ -6,6 +6,7 @@ import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { addProjectItem, removeProjectItem, setProjectItemStatus } from '../actions'
 import { StockWarning } from '@/components/stock-warning'
 import { QuickItemModal } from '@/components/quick-item-modal'
+import { Select } from '@/components/ui/select'
 
 export type ProjectItemRow = {
   id: string
@@ -107,7 +108,8 @@ export function ProjectItemsEditor({
                 )}
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                <select
+                <Select
+                  compact
                   value={item.status}
                   disabled={pending}
                   onChange={(e) =>
@@ -116,7 +118,7 @@ export function ProjectItemsEditor({
                       onChanged?.()
                     })
                   }
-                  className={`rounded-md border border-border bg-background px-2 py-1 text-xs font-medium focus:border-accent focus:outline-none ${
+                  className={`w-auto min-w-28 ${
                     item.status === 'COLLECTED'
                       ? 'text-emerald-700 dark:text-emerald-400'
                       : item.status === 'MISSING'
@@ -129,7 +131,7 @@ export function ProjectItemsEditor({
                       {tStatus(s)}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <button
                   type="button"
                   disabled={pending}
