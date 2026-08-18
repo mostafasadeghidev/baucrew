@@ -5,6 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import type { ComboboxOption } from "@/components/combobox";
 import {
+  copyScheduleEntry,
   createScheduleEntry,
   deleteScheduleEntry,
   moveScheduleEntry,
@@ -71,18 +72,21 @@ export function MonthBoard({
     if (key === "projectRequired") return t("projectRequired");
     return tc("saveFailed");
   }
-  function moveTo(id: string, date: string) {
+  function moveTo(id: string, date: string, copy = false) {
     setDropTarget(null);
     setBoardError(null);
     startTransition(async () => {
-      const result = await moveScheduleEntry(id, date);
+      const result = copy
+        ? await copyScheduleEntry(id, date)
+        : await moveScheduleEntry(id, date);
       if (result.error) setBoardError(errorText(result.error));
     });
   }
   function onDrop(date: string, e: React.DragEvent) {
     e.preventDefault();
     const id = e.dataTransfer.getData("text/plain");
-    if (id) moveTo(id, date);
+    // Ctrl / ⌘ duplicates the assignment onto that day instead of moving it.
+    if (id) moveTo(id, date, e.ctrlKey || e.metaKey);
   }
 
   // Touch drag (long-press) — same approach as the week board.
@@ -287,17 +291,19 @@ export function MonthBoard({
                           >
                             {Number(day.slice(8, 10))}
                           </Link>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDialog({ mode: "create", date: day })
-                            }
-                            title={t("addEntry")}
-                            aria-label={t("addEntry")}
-                            className="flex h-5 w-5 items-center justify-center rounded border border-border text-[11px] text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-foreground focus:opacity-100 group-hover:opacity-100"
-                          >
-                            +
-                          </button>
+                          {day >= todayIso && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDialog({ mode: "create", date: day })
+                              }
+                              title={t("addEntry")}
+                              aria-label={t("addEntry")}
+                              className="flex h-5 w-5 items-center justify-center rounded border border-border text-[11px] text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-foreground focus:opacity-100 group-hover:opacity-100"
+                            >
+                              +
+                            </button>
+                          )}
                         </div>
                         <div className="space-y-0.5">
                           {shown.map((e) => (

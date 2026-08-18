@@ -144,9 +144,9 @@ export function ProjectItemsEditor({
                   }
                   className={`w-auto min-w-28 ${
                     item.status === 'COLLECTED'
-                      ? 'text-emerald-700 dark:text-emerald-400'
+                      ? '[&>select]:border-emerald-500/40 [&>select]:bg-emerald-500/10 [&>select]:font-medium [&>select]:text-emerald-700 dark:[&>select]:text-emerald-400'
                       : item.status === 'MISSING'
-                        ? 'text-red-700 dark:text-red-400'
+                        ? '[&>select]:border-red-500/40 [&>select]:bg-red-500/10 [&>select]:font-medium [&>select]:text-red-700 dark:[&>select]:text-red-400'
                         : ''
                   }`}
                 >

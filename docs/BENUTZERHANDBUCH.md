@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.9 · Stand: 19. August 2026*
+*Version 1.10 · Stand: 19. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -290,6 +290,9 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 ![Knopf + Wochenende](screenshots/40-wochenende-knopf.png)
 - Oben: **Woche | Monat | Übersicht**, Pfeile **← →** für die Wochen, **Aktuelle Woche**.
 - **Einsatz verschieben:** Karte mit der Maus packen und auf einen anderen Tag ziehen. Am Tablet/Handy: Karte kurz gedrückt halten, dann ziehen.
+- **Einsatz kopieren:** dasselbe Ziehen mit gedrückter **Strg**-Taste (⌘ am Mac) — der Einsatz bleibt am alten Tag und wird zusätzlich auf dem neuen Tag angelegt.
+- **Weitere Tage ergänzen:** einen bestehenden Einsatz anklicken und im Fenster ein **Bis**-Datum wählen — die folgenden Tage werden mit demselben Team, denselben Fahrzeugen und Zeiten angelegt.
+- **Vergangene Tage:** dort gibt es kein **+** mehr; geplant wird nach vorne. Bestehende Einsätze der Vergangenheit lassen sich weiterhin öffnen und bearbeiten.
 - **Neuer Einsatz:** **+** oben in der Tagesspalte.
 - **Einsatz ändern:** Karte anklicken.
 - **⚠ Konflikte in dieser Woche** (Kasten oben): Ein Mitarbeiter oder Fahrzeug ist am selben Tag mit überschneidenden Zeiten doppelt eingeplant, oder ein Fahrzeug ist in der Werkstatt. Die betroffenen Karten sind gelb. Das ist eine **Warnung**, kein Verbot — Sie entscheiden.

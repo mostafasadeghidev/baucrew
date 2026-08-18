@@ -170,7 +170,7 @@ export default async function TodayBoardPage({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-2xl font-bold">{entry.project.name}</p>
                     <Link
-                      href={`/projects/${entry.project.id}/sheet`}
+                      href={`/projects/${entry.project.id}/sheet?entry=${entry.id}`}
                       className="flex items-center gap-2 rounded-lg border-2 border-accent px-4 py-2.5 text-lg font-semibold text-accent hover:bg-accent hover:text-accent-foreground"
                     >
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

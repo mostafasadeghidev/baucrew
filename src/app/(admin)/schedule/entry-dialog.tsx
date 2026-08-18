@@ -44,6 +44,8 @@ const inputClass =
  * vehicle from the project record and shows the project's tool/material
  * list for editing right here (the list belongs to the project).
  */
+const todayIso = new Date().toISOString().slice(0, 10)
+
 export function EntryDialog({
   dialog,
   projects,
@@ -163,7 +165,7 @@ export function EntryDialog({
       {
         projectId,
         date,
-        ...(!isEdit && endDate && endDate !== date ? { endDate, saturday, sunday } : {}),
+        ...(endDate && endDate > date ? { endDate, saturday, sunday } : {}),
         vehicleIds,
         employeeIds: [...selectedEmployees],
         startTime,
@@ -174,7 +176,7 @@ export function EntryDialog({
     )
   }
 
-  const isRange = !isEdit && Boolean(date) && Boolean(endDate) && endDate !== date
+  const isRange = Boolean(date) && Boolean(endDate) && endDate > date
   const range = isRange ? expandDateRange(date, endDate, { saturday, sunday }) : null
   // Only offer the weekend switches when the chosen range really contains them.
   const weekendInRange = isRange ? weekendDaysInRange(date, endDate) : { saturday: false, sunday: false }
@@ -236,7 +238,7 @@ export function EntryDialog({
             {prefilled && <p className="mt-1 text-xs text-accent">{t('prefilledFromProject')}</p>}
           </div>
 
-          <div className={`grid gap-3 ${isEdit ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div>
               <label htmlFor="entry-date" className="block text-sm font-medium">
                 {isEdit ? t('date') : t('dateFrom')}
@@ -245,26 +247,28 @@ export function EntryDialog({
                 id="entry-date"
                 type="date"
                 value={date}
+                // Planning happens forward: past days are not selectable for
+                // new assignments (an existing one keeps its own date).
+                min={isEdit ? undefined : todayIso}
                 onChange={(e) => setDate(e.target.value)}
                 required
                 className={inputClass}
               />
             </div>
-            {!isEdit && (
-              <div>
-                <label htmlFor="entry-end-date" className="block text-sm font-medium">
-                  {t('dateTo')} <span className="font-normal text-muted">({tc('optional')})</span>
-                </label>
-                <input
-                  id="entry-end-date"
-                  type="date"
-                  value={endDate}
-                  min={date || undefined}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-            )}
+            <div>
+              <label htmlFor="entry-end-date" className="block text-sm font-medium">
+                {t('dateTo')} <span className="font-normal text-muted">({tc('optional')})</span>
+              </label>
+              <input
+                id="entry-end-date"
+                type="date"
+                value={endDate}
+                min={date || todayIso}
+                onChange={(e) => setEndDate(e.target.value)}
+                className={inputClass}
+              />
+              {isEdit && <p className="mt-1 text-xs text-muted">{t('extendHint')}</p>}
+            </div>
             <div>
               <label htmlFor="entry-time" className="block text-sm font-medium">
                 {t('startTime')}

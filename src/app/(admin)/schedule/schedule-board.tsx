@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { ComboboxOption } from '@/components/combobox'
 import {
+  copyScheduleEntry,
   createScheduleEntry,
   deleteScheduleEntry,
   moveScheduleEntry,
@@ -77,11 +78,11 @@ export function ScheduleBoard({
     return tc('saveFailed')
   }
 
-  function moveTo(id: string, date: string) {
+  function moveTo(id: string, date: string, copy = false) {
     setDropTarget(null)
     setBoardError(null)
     startTransition(async () => {
-      const result = await moveScheduleEntry(id, date)
+      const result = copy ? await copyScheduleEntry(id, date) : await moveScheduleEntry(id, date)
       if (result.error) setBoardError(errorText(result.error))
     })
   }
@@ -89,7 +90,8 @@ export function ScheduleBoard({
   function onDrop(date: string, e: React.DragEvent) {
     e.preventDefault()
     const id = e.dataTransfer.getData('text/plain')
-    if (id) moveTo(id, date)
+    // Ctrl / ⌘ while dropping duplicates the assignment instead of moving it.
+    if (id) moveTo(id, date, e.ctrlKey || e.metaKey)
   }
 
   // ── Touch drag (Pointer Events) ─────────────────────────────
@@ -293,6 +295,7 @@ export function ScheduleBoard({
                   </p>
                   <p className="text-xs text-muted">{dateFmt.format(new Date(`${date}T00:00:00.000Z`))}</p>
                 </div>
+                {date >= todayIso && (
                 <button
                   type="button"
                   onClick={() => setDialog({ mode: 'create', date })}
@@ -302,6 +305,7 @@ export function ScheduleBoard({
                 >
                   +
                 </button>
+                )}
               </div>
               <div className="flex flex-1 flex-col gap-2 p-2">
                 {dayEntries.map((entry) => (

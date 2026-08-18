@@ -240,9 +240,53 @@ export async function updateScheduleEntry(id: string, input: EntryInput): Promis
   } catch (e) {
     return { error: isUniqueConflict(e) ? 'duplicateEntry' : 'saveFailed' }
   }
+
+  // "Bis" in the edit dialog: add the following days with the same crew,
+  // vehicles and times — days that already have an entry stay untouched.
+  let created = 0
+  if (d.endDate && d.endDate > d.date) {
+    const range = expandDateRange(d.date, d.endDate, { saturday: d.saturday, sunday: d.sunday })
+    if (range.error) return { error: range.error }
+    const extraDays = range.dates.filter((x) => x !== d.date)
+    if (extraDays.length > 0) {
+      const existing = await db.scheduleEntry.findMany({
+        where: { projectId: d.projectId, date: { in: extraDays.map((x) => new Date(`${x}T00:00:00.000Z`)) } },
+        select: { date: true },
+      })
+      const taken = new Set(existing.map((e) => e.date.toISOString().slice(0, 10)))
+      const todo = extraDays.filter((x) => !taken.has(x))
+      if (todo.length > 0) {
+        const ids = await db.$transaction(
+          todo.map((x) =>
+            db.scheduleEntry.create({
+              data: {
+                projectId: d.projectId,
+                date: new Date(`${x}T00:00:00.000Z`),
+                startTime: d.startTime,
+                endTime: d.endTime,
+                note: d.note,
+                employees: { create: d.employeeIds.map((eid) => ({ employeeId: eid })) },
+                vehicles: { create: d.vehicleIds.map((vid) => ({ vehicleId: vid })) },
+              },
+              select: { id: true },
+            })
+          )
+        )
+        created = ids.length
+        await audit({
+          userId: user.id,
+          action: 'schedule.createRange',
+          entity: 'ScheduleEntry',
+          entityId: ids[0].id,
+          newValue: `${before.project.number} @ ${todo[0]} – ${todo[todo.length - 1]} (${todo.length})`,
+        })
+      }
+    }
+  }
+
   revalidateBoard(d.projectId)
   if (before.projectId !== d.projectId) revalidateBoard(before.projectId)
-  return {}
+  return { created }
 }
 
 export async function moveScheduleEntry(id: string, newDate: string): Promise<EntryResult> {
@@ -378,4 +422,46 @@ export async function setProjectManager(projectId: string, managerId: string): P
   revalidateBoard(projectId)
   revalidatePath('/projects')
   return {}
+}
+
+/**
+ * Ctrl/⌘ + drag on the board: duplicates an assignment (team, vehicles, times,
+ * note) onto another day instead of moving it.
+ */
+export async function copyScheduleEntry(id: string, date: string): Promise<EntryResult> {
+  const user = await requireManagement()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'saveFailed' }
+  const entry = await db.scheduleEntry.findUnique({
+    where: { id },
+    include: {
+      employees: { select: { employeeId: true } },
+      vehicles: { select: { vehicleId: true } },
+      project: { select: { number: true } },
+    },
+  })
+  if (!entry) return { error: 'saveFailed' }
+  try {
+    const copy = await db.scheduleEntry.create({
+      data: {
+        projectId: entry.projectId,
+        date: new Date(`${date}T00:00:00.000Z`),
+        startTime: entry.startTime,
+        endTime: entry.endTime,
+        note: entry.note,
+        employees: { create: entry.employees.map((e) => ({ employeeId: e.employeeId })) },
+        vehicles: { create: entry.vehicles.map((v) => ({ vehicleId: v.vehicleId })) },
+      },
+    })
+    await audit({
+      userId: user.id,
+      action: 'schedule.copy',
+      entity: 'ScheduleEntry',
+      entityId: copy.id,
+      newValue: `${entry.project.number} @ ${date}`,
+    })
+  } catch (e) {
+    return { error: isUniqueConflict(e) ? 'duplicateEntry' : 'saveFailed' }
+  }
+  revalidateBoard(entry.projectId)
+  return { created: 1 }
 }

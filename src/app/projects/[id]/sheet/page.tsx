@@ -93,15 +93,16 @@ export default async function ProjectSheetPage({
     : project.vehicles.map((pv) => pv.vehicle.name)
   const sheetDate = entry ? entry.date : project.createdAt
 
-  // Employees (incl. the shared warehouse account) may only open sheets of
-  // projects that are scheduled around now or that they are assigned to.
-  if (user.role === 'EMPLOYEE') {
+  // Personal employee accounts only see work orders of their own projects or
+  // of projects that are scheduled around now. The shared warehouse account
+  // (an employee login without a linked employee — `lager`) is the kiosk
+  // account: it prepares the material for everyone and may open every work
+  // order (the sheet never contains prices).
+  if (user.role === 'EMPLOYEE' && user.employee) {
     const now = new Date()
-    const from = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1))
-    const to = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 7))
-    const inTeam = user.employee
-      ? project.team.some((m) => m.employeeId === user.employee!.id)
-      : false
+    const from = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 14))
+    const to = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 30))
+    const inTeam = project.team.some((m) => m.employeeId === user.employee!.id)
     if (!inTeam) {
       const scheduled = await db.scheduleEntry.count({
         where: { projectId: project.id, date: { gte: from, lte: to } },
