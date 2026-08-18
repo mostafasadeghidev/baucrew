@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.5 · Stand: 17. August 2026*
+*Version 1.6 · Stand: 18. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -42,7 +42,7 @@ BauCrew ist das digitale Büro für Ihre Baustellen. Es ersetzt den Wochenplan a
 
 > **Jede Information wird nur einmal eingegeben.**
 
-Sie legen ein **Projekt** an (Kunde, Adresse, Termine, Team, Fahrzeug, Werkzeug). Daraus macht BauCrew von selbst:
+Sie legen ein **Projekt** an (Kunde, Adresse, Termine, Team, Fahrzeuge, Werkzeug). Daraus macht BauCrew von selbst:
 
 - den **Wochenplan** für das Büro,
 - die **Packliste** auf dem Bildschirm im Lager,
@@ -66,20 +66,20 @@ BauCrew läuft im **Browser** (Chrome, Edge, Safari, Firefox) — am Computer, a
 2. Geben Sie **Benutzername** und **Passwort** ein.
 3. Klicken Sie auf **Anmelden**.
 
-Sie bleiben 30 Tage angemeldet. **Abmelden** oben rechts beendet die Sitzung sofort — nutzen Sie das an fremden Geräten. Nach mehreren falschen Passwörtern ist die Anmeldung einige Minuten gesperrt; einfach warten und noch einmal versuchen.
+Sie bleiben 30 Tage angemeldet. **Abmelden** ganz unten in der Menüleiste (links, am Handy im ☰-Menü) beendet die Sitzung sofort — nutzen Sie das an fremden Geräten. Nach mehreren falschen Passwörtern ist die Anmeldung einige Minuten gesperrt; einfach warten und noch einmal versuchen.
 
 💡 Speichern Sie die Adresse als Lesezeichen — am Handy: „Zum Startbildschirm hinzufügen“, dann sieht BauCrew aus wie eine App.
 
 ### 2.2 So ist der Bildschirm aufgebaut
 
-- **Links das Menü:** Übersicht, Projekte, Kunden, Einsatzplanung, Mitarbeiter, Fahrzeuge, Lager, Berichte, Einstellungen. Am Handy versteckt sich das Menü hinter dem Symbol **☰** oben links.
-- **Oben rechts:** Sprache **DE | EN**, Design (hell / dunkel / wie das Gerät), Ihr Benutzername, **Abmelden**.
+- **Links das Menü:** Übersicht, Projekte, Kunden, Einsatzplanung, Mitarbeiter, Fahrzeuge, Lager, Berichte. Es bleibt beim Blättern stehen; **ganz unten** stehen Ihr Benutzername, **Einstellungen** (nur Administrator) und **Abmelden**. Am Handy versteckt sich das Menü hinter dem Symbol **☰** oben links.
+- **Oben rechts:** Sprache **DE | EN** und Design (hell / dunkel / wie das Gerät).
 - **In der Mitte:** der aktuelle Bereich.
 
 ### 2.3 Fünf Dinge, die überall gleich funktionieren
 
 1. **Suchen:** In jedes Suchfeld einfach tippen — die Liste filtert sich beim Tippen. Es gibt keinen Suchen-Knopf.
-2. **Auswahlfelder** (Kunde, Projekt, Fahrzeug, Ort, Werkzeug …) sind ebenfalls durchsuchbar: ins Feld klicken, anfangen zu tippen, aus der Liste wählen. Oft können Sie direkt aus dem Feld etwas Neues anlegen („… als neuen Kunden anlegen“).
+2. **Auswahlfelder** (Kunde, Projekt, Fahrzeug, Ort, Werkzeug …) sind ebenfalls durchsuchbar: ins Feld klicken, anfangen zu tippen, aus der Liste wählen. Oft können Sie direkt aus dem Feld etwas Neues anlegen („… als neuen Kunden anlegen“, „… als neuen Artikel anlegen“ — dort fragt ein kleines Fenster nach Bezeichnung, Werkzeug/Material und Einheit).
 3. **Speichern:** Bei Formularen, die zu einer neuen Seite führen (z. B. Projekt anlegen), öffnet sich danach die fertige Seite. Bei Formularen, die auf der Seite bleiben (Einstellungen, Benutzerkonto), erscheint kurz ein grünes **„✓ Gespeichert“** — dann ist es sicher gespeichert.
 4. **Fenster schließen:** Dialogfenster gehen nur über **✕** oder **Abbrechen** zu, nicht durch Klicken daneben. So verlieren Sie nichts aus Versehen.
 5. **Blättern:** Lange Listen zeigen 20 Einträge; unten können Sie weiterblättern.
@@ -223,7 +223,7 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 - **Auftragswert** — nur sichtbar mit Finanzfreigabe. Ohne Wert fehlt das Projekt im Umsatzbericht!
 
 **Zuordnung**
-- **Baustellenverantwortlicher**, **Fahrzeug**, **Mitarbeiter** (Team). Diese Auswahl wird beim Planen der Einsätze automatisch vorgeschlagen.
+- **Baustellenverantwortlicher**, **Fahrzeuge** (mehrere möglich — als Chips), **Mitarbeiter** (Team). Wer als Baustellenverantwortlicher gewählt wird, ist automatisch im Team angehakt. Diese Auswahl wird beim Planen der Einsätze automatisch vorgeschlagen.
 
 **Werkzeug und Material**
 
@@ -428,7 +428,7 @@ Ist ein Fahrzeug nicht *Verfügbar*, aber eingeplant, erscheint ein Konflikt-Hin
 
 Eine Vorlage ist ein Muster für wiederkehrende Aufträge — z. B. „Außenfassade streichen“ mit Leiter, Gerüst, Spritzgerät, 40 l Außenfarbe, 20 l Grundierung.
 
-**Vorlage anlegen:** **Neue Vorlage** → Bezeichnung, Kategorie, Beschreibung → **Speichern** („✓ Gespeichert“) → unten Artikel hinzufügen (tippen, wählen, Menge, **Hinzufügen**).
+**Vorlage anlegen:** **Neue Vorlage** → Bezeichnung, Kategorie, Beschreibung → gleich darunter **Werkzeuge und Materialien** auswählen (tippen, wählen, Menge, **Hinzufügen**; unbekannte Bezeichnung → „… als neuen Artikel anlegen“) → **Speichern**. Die Liste wird zusammen mit der Vorlage gespeichert.
 
 **Vorlage benutzen:** Neues Projekt → oben **Aus Vorlage erstellen** → Vorlage wählen. Name, Kategorie und Werkzeugliste sind vorbelegt; die Liste können Sie vor dem Speichern noch anpassen — die Vorlage selbst bleibt unverändert.
 

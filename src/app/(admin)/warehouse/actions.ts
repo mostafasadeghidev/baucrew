@@ -184,3 +184,38 @@ export async function removeCategory(name: string, _prev: { error?: string }, _f
   revalidatePath('/warehouse')
   return {}
 }
+
+// ── Quick create from a project/assignment item picker ───────
+
+export type QuickItemResult = { id?: string; label?: string; error?: 'nameRequired' | 'saveFailed' }
+
+/**
+ * Creates a catalog entry straight from an item picker (project page,
+ * assignment dialog, new project/template) so the user does not have to leave
+ * the form. Only name, kind and unit — the rest is filled in the warehouse.
+ */
+export async function quickCreateCatalogItem(input: {
+  name: string
+  kind: string
+  unit?: string
+}): Promise<QuickItemResult> {
+  const user = await requireManagement()
+  const name = input.name.trim().slice(0, 200)
+  const unit = (input.unit ?? '').trim().slice(0, 300) || null
+  if (!name) return { error: 'nameRequired' }
+  const kind = input.kind === 'TOOL' ? ItemKind.TOOL : ItemKind.MATERIAL
+  try {
+    const item = await db.catalogItem.create({ data: { name, kind, unit } })
+    await audit({
+      userId: user.id,
+      action: 'catalogItem.create',
+      entity: 'CatalogItem',
+      entityId: item.id,
+      newValue: `${item.name} (${kind})`,
+    })
+    revalidatePath('/warehouse')
+    return { id: item.id, label: unit ? `${name} (${unit})` : name }
+  } catch {
+    return { error: 'saveFailed' }
+  }
+}

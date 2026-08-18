@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, type ReactNode } from 'react'
 import { SavedToast } from '@/components/saved-toast'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -21,10 +21,13 @@ export function TemplateForm({
   action,
   initial,
   categories,
+  itemsSection,
 }: {
   action: (prev: TemplateFormState, formData: FormData) => Promise<TemplateFormState>
   initial: TemplateFormValues
   categories: ComboboxOption[]
+  /** Draft tools/materials, shown while creating (saved together with the template). */
+  itemsSection?: ReactNode
 }) {
   const t = useTranslations('templates')
   const tc = useTranslations('common')
@@ -75,6 +78,8 @@ export function TemplateForm({
           </div>
         </div>
       </div>
+
+      {itemsSection}
 
       {state.error && (
         <p role="alert" className="text-sm text-danger">

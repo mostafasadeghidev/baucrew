@@ -22,6 +22,7 @@ export default async function EditProjectPage({
       include: {
         workCategories: { select: { workCategoryId: true } },
         team: { select: { employeeId: true } },
+        vehicles: { select: { vehicleId: true } },
       },
     }),
     db.customer.findMany({
@@ -91,7 +92,7 @@ export default async function EditProjectPage({
           actualStart: toDateInputValue(project.actualStart),
           actualEnd: toDateInputValue(project.actualEnd),
           managerId: project.managerId ?? '',
-          vehicleId: project.vehicleId ?? '',
+          vehicleIds: project.vehicles.map((pv) => pv.vehicleId),
           description: project.description ?? '',
           internalNotes: project.internalNotes ?? '',
           categoryIds: project.workCategories.map((wc) => wc.workCategoryId),

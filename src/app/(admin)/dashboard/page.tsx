@@ -62,15 +62,14 @@ export default async function DashboardPage() {
     db.project.findMany({
       where: {
         status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] },
-        OR: [{ team: { none: {} } }, { vehicleId: null }],
+        OR: [{ team: { none: {} } }, { vehicles: { none: {} } }],
         plannedStart: { lte: addDays(today, 14) },
       },
       select: {
         id: true,
         number: true,
         name: true,
-        vehicleId: true,
-        _count: { select: { team: true } },
+        _count: { select: { team: true, vehicles: true } },
       },
       orderBy: { plannedStart: 'asc' },
       take: 8,
@@ -277,7 +276,7 @@ export default async function DashboardPage() {
                   <span className="shrink-0 text-xs text-muted">
                     {[
                       p._count.team === 0 ? t('noTeam') : null,
-                      p.vehicleId ? null : t('noVehicleAssigned'),
+                      p._count.vehicles === 0 ? t('noVehicleAssigned') : null,
                     ]
                       .filter(Boolean)
                       .join(' · ')}

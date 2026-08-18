@@ -205,7 +205,8 @@
     "itemsNewHint": "Optional — can also be maintained later on the project page",
     "tabPreparation": "To prepare",
     "tabPreparationHint": "Default: lead, quoted, ordered — configurable in Settings",
-    "autoStatusHint": "Status is set automatically: “Planned” on the first assignment, “In progress” on the first assignment day."
+    "autoStatusHint": "Status is set automatically: “Planned” on the first assignment, “In progress” on the first assignment day.",
+    "managerAddedToTeam": "Added to the team as site manager"
   },
   "employees": {
     "title": "Employees",
@@ -552,7 +553,12 @@
     "noCategories": "No categories yet.",
     "categoryNameRequired": "Please enter a name.",
     "stockShort": "stock {stock} — {needed} needed",
-    "stockShortTitle": "{short} short in the warehouse (hint only, never blocks)"
+    "stockShortTitle": "{short} short in the warehouse (hint only, never blocks)",
+    "quickCreateTitle": "Create new item",
+    "quickCreateHint": "Added to the catalog right away — stock, category and location can be filled in later under \"Warehouse\".",
+    "quickCreateSubmit": "Create and add",
+    "unitPlaceholder": "e.g. piece, roll, litre",
+    "createItemOption": "Create \"{name}\" as a new item"
   },
   "itemKind": {
     "TOOL": "Tool",

@@ -205,7 +205,8 @@
     "itemsNewHint": "Optional — kann auch später auf der Projektseite gepflegt werden",
     "tabPreparation": "Zur Vorbereitung",
     "tabPreparationHint": "Standard: Anfrage, Angebot, Beauftragt — anpassbar unter Einstellungen",
-    "autoStatusHint": "Status wird automatisch gesetzt: „Geplant“ beim ersten Einsatz, „In Ausführung“ am ersten Einsatztag."
+    "autoStatusHint": "Status wird automatisch gesetzt: „Geplant“ beim ersten Einsatz, „In Ausführung“ am ersten Einsatztag.",
+    "managerAddedToTeam": "Als Bauleiter automatisch zum Team hinzugefügt"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -552,7 +553,12 @@
     "noCategories": "Noch keine Kategorien.",
     "categoryNameRequired": "Bitte einen Namen angeben.",
     "stockShort": "Bestand {stock} — {needed} benötigt",
-    "stockShortTitle": "Es fehlen {short} im Lager (nur Hinweis, keine Sperre)"
+    "stockShortTitle": "Es fehlen {short} im Lager (nur Hinweis, keine Sperre)",
+    "quickCreateTitle": "Neuen Artikel anlegen",
+    "quickCreateHint": "Wird sofort in den Katalog aufgenommen — Bestand, Kategorie und Lagerort können später unter „Lager“ ergänzt werden.",
+    "quickCreateSubmit": "Anlegen und hinzufügen",
+    "unitPlaceholder": "z. B. Stück, Rolle, Liter",
+    "createItemOption": "„{name}“ als neuen Artikel anlegen"
   },
   "itemKind": {
     "TOOL": "Werkzeug",

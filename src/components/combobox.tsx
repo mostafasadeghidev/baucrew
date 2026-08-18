@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useMemo, useRef, useState } from 'react'
+import { DropdownPortal } from './dropdown-portal'
 
 export type ComboboxOption = { value: string; label: string }
 
@@ -36,26 +37,12 @@ export function Combobox({
   const [query, setQuery] = useState(initial?.label ?? '')
   const [open, setOpen] = useState(false)
   const [highlight, setHighlight] = useState(0)
-  const [openUp, setOpenUp] = useState(false)
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listId = useId()
 
-  /** Open downwards unless the list would be clipped by a scrolling ancestor / viewport. */
+  /** The list is rendered in a portal (see DropdownPortal) so no card clips it. */
   function openList() {
-    const el = inputRef.current
-    if (el) {
-      let bottomLimit = window.innerHeight
-      for (let p = el.parentElement; p; p = p.parentElement) {
-        const oy = getComputedStyle(p).overflowY
-        if (oy === 'auto' || oy === 'scroll' || oy === 'hidden') {
-          bottomLimit = Math.min(bottomLimit, p.getBoundingClientRect().bottom)
-          break
-        }
-      }
-      const rect = el.getBoundingClientRect()
-      setOpenUp(bottomLimit - rect.bottom < 240 && rect.top > 240)
-    }
     setOpen(true)
   }
 
@@ -127,14 +114,8 @@ export function Combobox({
         className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
       />
       <input type="hidden" name={name} value={selected?.value ?? ''} />
-      {open && (
-        <ul
-          id={listId}
-          role="listbox"
-          className={`absolute z-20 max-h-56 w-full overflow-auto rounded-md border border-border bg-surface py-1 shadow-lg ${
-            openUp ? 'bottom-full mb-1' : 'mt-1'
-          }`}
-        >
+      <DropdownPortal anchorRef={inputRef} open={open} id={listId}>
+        <>
           {filtered.length === 0 && !onCreateNew ? (
             <li className="px-3 py-2 text-sm text-muted">{noResultsLabel}</li>
           ) : (
@@ -174,8 +155,8 @@ export function Combobox({
                 {createLabel ? createLabel(query.trim()) : `+ ${query.trim()}`}
               </li>
             )}
-        </ul>
-      )}
+        </>
+      </DropdownPortal>
     </div>
   )
 }

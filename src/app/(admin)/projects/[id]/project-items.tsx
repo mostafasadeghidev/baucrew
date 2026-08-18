@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { addProjectItem, removeProjectItem, setProjectItemStatus } from '../actions'
 import { StockWarning } from '@/components/stock-warning'
+import { QuickItemModal } from '@/components/quick-item-modal'
 
 export type ProjectItemRow = {
   id: string
@@ -41,8 +42,28 @@ export function ProjectItemsEditor({
   const [addKey, setAddKey] = useState(0)
   const [selectedId, setSelectedId] = useState('')
   const [quantity, setQuantity] = useState('')
+  // Name typed into the picker that is not in the catalog yet → quick-create dialog.
+  const [newItemName, setNewItemName] = useState<string | null>(null)
 
   const addRowRef = useRef<HTMLDivElement>(null)
+
+  /** Adds a catalog item to the project (shared by the picker and the quick-create dialog). */
+  function addById(catalogItemId: string) {
+    if (!catalogItemId) return
+    const qty = quantity.trim() ? Number(quantity.replace(',', '.')) : null
+    setError(null)
+    startTransition(async () => {
+      const result = await addProjectItem(projectId, catalogItemId, qty)
+      if (result.error) {
+        setError(result.error === 'itemAlreadyAdded' ? t('itemAlreadyAdded') : tc('saveFailed'))
+      } else {
+        setAddKey((k) => k + 1)
+        setSelectedId('')
+        setQuantity('')
+        onChanged?.()
+      }
+    })
+  }
 
   function submitAdd() {
     const catalogItemId =
@@ -138,6 +159,8 @@ export function ProjectItemsEditor({
             defaultValue={selectedId}
             placeholder={t('selectItem')}
             noResultsLabel={tWarehouse('noResults')}
+            onCreateNew={(name) => setNewItemName(name)}
+            createLabel={(name) => `+ ${tWarehouse('createItemOption', { name })}`}
           />
         </div>
         <input
@@ -168,6 +191,14 @@ export function ProjectItemsEditor({
           </p>
         )}
       </div>
+
+      {newItemName !== null && (
+        <QuickItemModal
+          initialName={newItemName}
+          onCreated={(item) => addById(item.id)}
+          onClose={() => setNewItemName(null)}
+        />
+      )}
     </div>
   )
 }

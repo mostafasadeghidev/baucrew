@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useRef, useState } from 'react'
 import type { ComboboxOption } from './combobox'
+import { DropdownPortal } from './dropdown-portal'
 
 /**
  * Searchable multi-select: chosen items render as removable chips, the input
@@ -23,25 +24,12 @@ export function MultiCombobox({
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [highlight, setHighlight] = useState(0)
-  const [openUp, setOpenUp] = useState(false)
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
   const listId = useId()
 
   function openList() {
-    const el = inputRef.current
-    if (el) {
-      let bottomLimit = window.innerHeight
-      for (let p = el.parentElement; p; p = p.parentElement) {
-        const oy = getComputedStyle(p).overflowY
-        if (oy === 'auto' || oy === 'scroll' || oy === 'hidden') {
-          bottomLimit = Math.min(bottomLimit, p.getBoundingClientRect().bottom)
-          break
-        }
-      }
-      const rect = el.getBoundingClientRect()
-      setOpenUp(bottomLimit - rect.bottom < 240 && rect.top > 240)
-    }
     setOpen(true)
   }
 
@@ -93,7 +81,10 @@ export function MultiCombobox({
 
   return (
     <div className="relative">
-      <div className="mt-1 flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-border bg-background px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+      <div
+        ref={boxRef}
+        className="mt-1 flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-border bg-background px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent"
+      >
         {selected.map((o) => (
           <span
             key={o.value}
@@ -133,14 +124,8 @@ export function MultiCombobox({
           className="min-w-24 flex-1 bg-transparent px-1 py-1 text-sm focus:outline-none"
         />
       </div>
-      {open && (
-        <ul
-          id={listId}
-          role="listbox"
-          className={`absolute z-20 max-h-56 w-full overflow-auto rounded-md border border-border bg-surface py-1 shadow-lg ${
-            openUp ? 'bottom-full mb-1' : 'mt-1'
-          }`}
-        >
+      <DropdownPortal anchorRef={boxRef} open={open} id={listId}>
+        <>
           {available.length === 0 ? (
             <li className="px-3 py-2 text-sm text-muted">{noResultsLabel}</li>
           ) : (
@@ -163,8 +148,8 @@ export function MultiCombobox({
               </li>
             ))
           )}
-        </ul>
-      )}
+        </>
+      </DropdownPortal>
     </div>
   )
 }

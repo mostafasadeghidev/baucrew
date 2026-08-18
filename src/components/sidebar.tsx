@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { BrandMark } from './brand-mark'
+import { logout } from '@/app/actions'
 
 type NavItem = { href: string; key: string; adminOnly?: boolean }
 
@@ -17,8 +18,60 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/vehicles', key: 'vehicles' },
   { href: '/warehouse', key: 'warehouse' },
   { href: '/reports', key: 'reports' },
-  { href: '/settings', key: 'settings', adminOnly: true },
 ]
+
+/** Signed-in user, settings and logout — pinned to the bottom of the sidebar. */
+function UserBlock({
+  username,
+  isAdmin,
+  pathname,
+  onNavigate,
+}: {
+  username: string
+  isAdmin: boolean
+  pathname: string
+  onNavigate?: () => void
+}) {
+  const t = useTranslations('nav')
+  const tAuth = useTranslations('auth')
+  const settingsActive = pathname === '/settings' || pathname.startsWith('/settings/')
+  return (
+    <div className="mt-auto space-y-1 border-t border-border p-2">
+      <div className="flex items-center gap-2 px-3 py-2">
+        <span
+          aria-hidden
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/10 text-xs font-semibold uppercase text-accent"
+        >
+          {username.slice(0, 2)}
+        </span>
+        <span className="min-w-0 truncate text-sm font-medium" title={username}>
+          {username}
+        </span>
+      </div>
+      {isAdmin && (
+        <Link
+          href="/settings"
+          onClick={onNavigate}
+          className={`block rounded-md px-3 py-2.5 text-sm font-medium transition-colors md:py-2 ${
+            settingsActive
+              ? 'bg-accent text-accent-foreground'
+              : 'text-muted hover:bg-surface-hover hover:text-foreground'
+          }`}
+        >
+          {t('settings')}
+        </Link>
+      )}
+      <form action={logout}>
+        <button
+          type="submit"
+          className="block w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-foreground md:py-2"
+        >
+          {tAuth('logout')}
+        </button>
+      </form>
+    </div>
+  )
+}
 
 function NavLinks({
   isAdmin,
@@ -31,7 +84,7 @@ function NavLinks({
 }) {
   const t = useTranslations('nav')
   return (
-    <nav className="flex-1 space-y-0.5 p-2">
+    <nav className="space-y-0.5 p-2">
       {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => {
         const active = pathname === item.href || pathname.startsWith(item.href + '/')
         return (
@@ -58,20 +111,26 @@ export function Sidebar({
   isAdmin,
   brandName,
   hasLogo,
+  username,
 }: {
   isAdmin: boolean
   brandName: string
   hasLogo: boolean
+  username: string
 }) {
   const pathname = usePathname()
   return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface md:flex print:hidden">
-      <div className="flex h-14 items-center border-b border-border px-3">
-        <Link href="/dashboard" title={brandName}>
-          <BrandMark hasLogo={hasLogo} name={brandName} />
-        </Link>
+    <aside className="hidden w-56 shrink-0 md:block print:hidden">
+      {/* Sticky column: navigation stays in place while the page scrolls. */}
+      <div className="sticky top-0 flex h-screen flex-col overflow-y-auto border-r border-border bg-surface">
+        <div className="flex h-14 shrink-0 items-center border-b border-border px-3">
+          <Link href="/dashboard" title={brandName}>
+            <BrandMark hasLogo={hasLogo} name={brandName} />
+          </Link>
+        </div>
+        <NavLinks isAdmin={isAdmin} pathname={pathname} />
+        <UserBlock username={username} isAdmin={isAdmin} pathname={pathname} />
       </div>
-      <NavLinks isAdmin={isAdmin} pathname={pathname} />
     </aside>
   )
 }
@@ -81,10 +140,12 @@ export function MobileNav({
   isAdmin,
   brandName,
   hasLogo,
+  username,
 }: {
   isAdmin: boolean
   brandName: string
   hasLogo: boolean
+  username: string
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -140,7 +201,15 @@ export function MobileNav({
                 ✕
               </button>
             </div>
-            <NavLinks isAdmin={isAdmin} pathname={pathname} onNavigate={() => setOpen(false)} />
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <NavLinks isAdmin={isAdmin} pathname={pathname} onNavigate={() => setOpen(false)} />
+              <UserBlock
+                username={username}
+                isAdmin={isAdmin}
+                pathname={pathname}
+                onNavigate={() => setOpen(false)}
+              />
+            </div>
           </aside>
         </div>
       )}

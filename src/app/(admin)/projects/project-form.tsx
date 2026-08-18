@@ -4,6 +4,7 @@ import { useActionState, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Combobox } from '@/components/combobox'
+import { MultiCombobox } from '@/components/multi-combobox'
 import { CityPicker } from '@/components/city-picker'
 import { NewCustomerModal } from './new-customer-modal'
 import type { ProjectFormState } from './actions'
@@ -38,7 +39,7 @@ export type ProjectFormValues = {
   actualStart: string
   actualEnd: string
   managerId: string
-  vehicleId: string
+  vehicleIds: string[]
   description: string
   internalNotes: string
   categoryIds: string[]
@@ -168,11 +169,14 @@ function CheckboxGroup({
   name,
   options,
   selected,
+  onToggle,
 }: {
   legend: string
   name: string
   options: Option[]
   selected: string[]
+  /** When set the group is controlled (used for the team, which follows the manager). */
+  onToggle?: (value: string) => void
 }) {
   return (
     <fieldset className="sm:col-span-2">
@@ -187,7 +191,9 @@ function CheckboxGroup({
               type="checkbox"
               name={name}
               value={o.value}
-              defaultChecked={selected.includes(o.value)}
+              {...(onToggle
+                ? { checked: selected.includes(o.value), onChange: () => onToggle(o.value) }
+                : { defaultChecked: selected.includes(o.value) })}
               className="h-4 w-4 accent-[var(--accent)]"
             />
             {o.label}
@@ -236,6 +242,9 @@ export function ProjectForm({
   const tVehicles = useTranslations('vehicles')
   const [state, formAction, pending] = useActionState<ProjectFormState, FormData>(action, {})
 
+  const [vehicleIds, setVehicleIds] = useState<string[]>(initial.vehicleIds)
+  const [teamIds, setTeamIds] = useState<string[]>(initial.teamIds)
+  const [managerAdded, setManagerAdded] = useState(false)
   const [customerOptions, setCustomerOptions] = useState(customers)
   const [customerId, setCustomerId] = useState(initial.customerId)
   const [addresses, setAddresses] = useState(customerAddresses)
@@ -475,19 +484,40 @@ export function ProjectForm({
             defaultValue={initial.managerId}
             placeholder={tc('none')}
             noResultsLabel={tEmployees('noResults')}
+            onSelect={(id) => {
+              // The site manager is part of the crew — tick them in the team list.
+              if (!id) return
+              setTeamIds((prev) => {
+                if (prev.includes(id)) return prev
+                setManagerAdded(true)
+                return [...prev, id]
+              })
+            }}
           />
+          {managerAdded && <p className="mt-1 text-xs text-accent">{t('managerAddedToTeam')}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium">{t('vehicle')}</label>
-          <Combobox
-            name="vehicleId"
+          <MultiCombobox
             options={vehicles}
-            defaultValue={initial.vehicleId}
+            value={vehicleIds}
+            onChange={setVehicleIds}
             placeholder={tc('none')}
             noResultsLabel={tVehicles('noResults')}
           />
+          {vehicleIds.map((v) => (
+            <input key={v} type="hidden" name="vehicleIds" value={v} />
+          ))}
         </div>
-        <CheckboxGroup legend={t('team')} name="teamIds" options={employees} selected={initial.teamIds} />
+        <CheckboxGroup
+          legend={t('team')}
+          name="teamIds"
+          options={employees}
+          selected={teamIds}
+          onToggle={(id) =>
+            setTeamIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+          }
+        />
       </Section>
 
       {extraSection}
