@@ -516,7 +516,7 @@
     "vehicleConflict": "{name}: am {date} mehrfach eingeplant",
     "vehicleUnavailable": "{name}: am {date} eingeplant, aber {status}",
     "noEntries": "Keine Einsätze in dieser Woche.",
-    "dragHint": "Einsätze können per Drag & Drop auf einen anderen Tag verschoben werden.",
+    "dragHint": "Einsätze können per Drag & Drop auf einen anderen Tag verschoben werden — mit gedrückter Strg-Taste (⌘ am Mac) wird stattdessen eine Kopie auf diesem Tag angelegt.",
     "weatherTitle": "Wetter-Hinweise",
     "weatherWarning": "{project}: {probability} % Regenwahrscheinlichkeit am {date} in {city}",
     "endTime": "Ende",
@@ -545,7 +545,8 @@
     "planSunday": "Sonntag einplanen",
     "managerHint": "Gilt für das ganze Projekt — wird sofort gespeichert.",
     "currentMonth": "Aktueller Monat",
-    "deleteEntryConfirm": "Diesen Einsatz wirklich löschen? Das Projekt bleibt bestehen."
+    "deleteEntryConfirm": "Diesen Einsatz wirklich löschen? Das Projekt bleibt bestehen.",
+    "extendHint": "Weitere Tage: einfach ein Bis-Datum wählen — die folgenden Tage werden mit demselben Team, denselben Fahrzeugen und Zeiten ergänzt."
   },
   "warehouse": {
     "title": "Lager",

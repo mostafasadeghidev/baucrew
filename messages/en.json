@@ -516,7 +516,7 @@
     "vehicleConflict": "{name}: scheduled more than once on {date}",
     "vehicleUnavailable": "{name}: scheduled on {date} but {status}",
     "noEntries": "No assignments in this week.",
-    "dragHint": "Drag & drop assignments to move them to another day.",
+    "dragHint": "Assignments can be dragged onto another day — hold Ctrl (⌘ on Mac) to place a copy on that day instead.",
     "weatherTitle": "Weather advisories",
     "weatherWarning": "{project}: {probability}% chance of rain on {date} in {city}",
     "endTime": "End",
@@ -545,7 +545,8 @@
     "planSunday": "Include Sunday",
     "managerHint": "Applies to the whole project — saved immediately.",
     "currentMonth": "Current month",
-    "deleteEntryConfirm": "Really delete this assignment? The project stays."
+    "deleteEntryConfirm": "Really delete this assignment? The project stays.",
+    "extendHint": "More days: pick an end date — the following days are added with the same crew, vehicles and times."
   },
   "warehouse": {
     "title": "Warehouse",

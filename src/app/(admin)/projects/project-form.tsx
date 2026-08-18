@@ -60,6 +60,8 @@ const STATUSES = [
   'CANCELLED',
 ] as const
 
+const todayIso = new Date().toISOString().slice(0, 10)
+
 const inputClass =
   'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
@@ -108,12 +110,15 @@ function TextField({
   defaultValue,
   type = 'text',
   required,
+  min,
 }: {
   label: string
   name: string
   defaultValue: string
   type?: string
   required?: boolean
+  /** For date fields: earliest selectable day. */
+  min?: string
 }) {
   return (
     <div>
@@ -125,6 +130,7 @@ function TextField({
         id={name}
         name={name}
         type={type}
+        min={min}
         defaultValue={defaultValue}
         required={required}
         className={inputClass}
@@ -454,8 +460,21 @@ export function ProjectForm({
       </Section>
 
       <Section title={t('planningSection')}>
-        <TextField label={t('plannedStart')} name="plannedStart" type="date" defaultValue={initial.plannedStart} />
-        <TextField label={t('plannedEnd')} name="plannedEnd" type="date" defaultValue={initial.plannedEnd} />
+        {/* Planning looks forward: a new project cannot start in the past. */}
+        <TextField
+          label={t('plannedStart')}
+          name="plannedStart"
+          type="date"
+          min={isNew ? todayIso : undefined}
+          defaultValue={initial.plannedStart}
+        />
+        <TextField
+          label={t('plannedEnd')}
+          name="plannedEnd"
+          type="date"
+          min={isNew ? todayIso : undefined}
+          defaultValue={initial.plannedEnd}
+        />
         <TextField label={t('actualStart')} name="actualStart" type="date" defaultValue={initial.actualStart} />
         <TextField label={t('actualEnd')} name="actualEnd" type="date" defaultValue={initial.actualEnd} />
         {showPrice && (

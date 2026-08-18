@@ -3,6 +3,19 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.10.0] — 2026-08-19
+
+### Added
+- **Extend an assignment to more days:** open an existing assignment and set a *Bis* date — the following days are added with the same crew, vehicles and times (days that already have an assignment stay untouched).
+- **Copy instead of move:** hold **Ctrl** (⌘ on Mac) while dragging an assignment onto another day and BauCrew creates a copy there — the project keeps its earlier day as well.
+
+### Changed
+- Planning looks forward: the **"+" button is hidden on past days** (week and month view), a new assignment cannot be dated before today, and the planned start/end of a *new* project cannot be in the past.
+
+### Fixed
+- **The shared warehouse account (`lager`) could not open work orders** of projects that were not scheduled within the next seven days — it is the kiosk account and may now print every work order (the sheet contains no prices). Personal employee accounts keep their own projects plus a 14/30-day window. The kiosk print button also passes the assignment, so the sheet shows that day's crew.
+- Tools and materials show their **status colour again** (red "Fehlt", green "Gepackt") in the assignment dialog and on the project page.
+
 ## [1.9.0] — 2026-08-19
 
 ### Added
@@ -195,6 +208,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.10.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.0
 [1.9.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.9.0
 [1.8.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.8.0
 [1.7.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.7.0
