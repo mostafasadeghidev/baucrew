@@ -70,7 +70,7 @@ npx prisma generate
 npm run db:migrate
 npm run db:seed
 
-# 4. Run → http://localhost:4700
+# 4. Run → http://localhost:15700
 npm run dev
 ```
 
@@ -88,15 +88,19 @@ imported from Trello under *Einstellungen*).
 > ⚠️ Change these passwords before any real use (system accounts under
 > *Einstellungen*, employee accounts on the employee page).
 
-> The dev server uses port **4700** and the dev database is published on
-> **5532** (`DATABASE_URL=…@localhost:5532/…`) because Windows often reserves
-> 3000 and 5432 for Hyper-V/WSL (`netsh interface ipv4 show excludedportrange protocol=tcp`).
+> The dev server uses port **15700** and the dev database is published on
+> **15532** (`DATABASE_URL=…@localhost:15532/…`). On Windows, Hyper-V/WSL reserves
+> blocks inside the dynamic port range (1024–15000 here, see
+> `netsh interface ipv4 show dynamicport tcp` and
+> `netsh interface ipv4 show excludedportrange protocol=tcp`), which randomly breaks
+> ports like 3000, 5432 or 4700 after a reboot (`listen EACCES`). Ports **above 15000**
+> are outside that range and stay usable.
 
 ## Scripts
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | development server (port 4700) |
+| `npm run dev` | development server (port 15700) |
 | `npm run build` / `npm start` | production build / start |
 | `npm run typecheck` · `npm run lint` | TypeScript · ESLint |
 | `npm test` | unit tests (no database) |

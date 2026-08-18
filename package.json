@@ -3,9 +3,9 @@
   "version": "1.5.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 4700",
+    "dev": "next dev -p 15700",
     "build": "prisma generate && node scripts/vercel-prepare-db.mjs && next build",
-    "start": "next start -p 4700",
+    "start": "next start -p 15700",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
