@@ -21,6 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         isAdmin={user.role === 'ADMIN'}
         brandName={branding.companyName}
         hasLogo={branding.hasLogo}
+        username={user.username}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar

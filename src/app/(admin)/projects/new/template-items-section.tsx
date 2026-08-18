@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
+import { QuickItemModal } from '@/components/quick-item-modal'
 
 export type DraftItem = { catalogItemId: string; name: string; unit: string | null; quantity: number | null }
 
@@ -15,23 +16,29 @@ export function TemplateItemsSection({
   initialItems,
   options,
   fromTemplate = false,
+  defaultOpen = false,
 }: {
   initialItems: DraftItem[]
   options: ComboboxOption[]
   /** True when the list was prefilled from a template (changes title/hint). */
   fromTemplate?: boolean
+  /** Start expanded (new template page). */
+  defaultOpen?: boolean
 }) {
   const t = useTranslations('projects')
   const tT = useTranslations('templates')
   const tW = useTranslations('warehouse')
   const [items, setItems] = useState<DraftItem[]>(initialItems)
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [addKey, setAddKey] = useState(0)
   const [pick, setPick] = useState('')
   const [qty, setQty] = useState('')
   const [dup, setDup] = useState(false)
+  const [newItemName, setNewItemName] = useState<string | null>(null)
+  const [extraOptions, setExtraOptions] = useState<ComboboxOption[]>([])
 
-  const optionMap = new Map(options.map((o) => [o.value, o.label]))
+  const allOptions = [...options, ...extraOptions]
+  const optionMap = new Map(allOptions.map((o) => [o.value, o.label]))
 
   function add() {
     if (!pick) return
@@ -111,13 +118,15 @@ export function TemplateItemsSection({
             <div className="min-w-52 flex-1" key={addKey}>
               <Combobox
                 name="_pickItem"
-                options={options}
+                options={allOptions}
                 placeholder={t('selectItem')}
                 noResultsLabel={tW('noResults')}
                 onSelect={(v) => {
                   setPick(v)
                   setDup(false)
                 }}
+                onCreateNew={(name) => setNewItemName(name)}
+                createLabel={(name) => `+ ${tW('createItemOption', { name })}`}
               />
             </div>
             <input
@@ -143,6 +152,26 @@ export function TemplateItemsSection({
             )}
           </div>
         </div>
+      )}
+
+      {newItemName !== null && (
+        <QuickItemModal
+          initialName={newItemName}
+          onCreated={(item) => {
+            // New catalog entries are not in `options` yet — keep them locally.
+            setExtraOptions((prev) => [...prev, { value: item.id, label: item.label }])
+            const q = qty.trim() ? Number(qty.replace(',', '.')) : null
+            setItems((prev) =>
+              prev.some((i) => i.catalogItemId === item.id)
+                ? prev
+                : [...prev, { catalogItemId: item.id, name: item.label, unit: null, quantity: Number.isFinite(q) ? q : null }]
+            )
+            setQty('')
+            setPick('')
+            setAddKey((k) => k + 1)
+          }}
+          onClose={() => setNewItemName(null)}
+        />
       )}
     </div>
   )

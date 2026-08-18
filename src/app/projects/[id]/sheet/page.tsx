@@ -57,7 +57,7 @@ export default async function ProjectSheetPage({
       include: {
         customer: true,
         manager: true,
-        vehicle: true,
+        vehicles: { include: { vehicle: true } },
         workCategories: { select: { workCategoryId: true } },
         team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
         items: {
@@ -152,7 +152,7 @@ export default async function ProjectSheetPage({
                 </p>
                 <p>
                   <span className="font-semibold">{t('vehicle')}: </span>
-                  {project.vehicle?.name ?? ''}
+                  {project.vehicles.map((pv) => pv.vehicle.name).join(', ')}
                 </p>
               </div>
               <Image

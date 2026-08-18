@@ -160,8 +160,6 @@ model Project {
   managerId String?
   manager   Employee? @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
 
-  vehicleId String?
-  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
 
   description String?
   // Internal notes visible to management only
@@ -172,6 +170,7 @@ model Project {
 
   workCategories  ProjectWorkCategory[]
   team            ProjectEmployee[]
+  vehicles        ProjectVehicle[]
   items           ProjectItem[]
   scheduleEntries ScheduleEntry[]
   notes           Note[]
@@ -188,6 +187,18 @@ model ProjectWorkCategory {
   workCategory   WorkCategory @relation(fields: [workCategoryId], references: [id], onDelete: Cascade)
 
   @@id([projectId, workCategoryId])
+}
+
+// Vehicles planned for the project (defaults for new schedule entries).
+model ProjectVehicle {
+  projectId String
+  vehicleId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([projectId, vehicleId])
+  @@index([vehicleId])
 }
 
 model ProjectEmployee {
@@ -221,7 +232,7 @@ model Vehicle {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  projects        Project[]
+  projects        ProjectVehicle[]
   scheduleEntries ScheduleEntryVehicle[]
 }
 

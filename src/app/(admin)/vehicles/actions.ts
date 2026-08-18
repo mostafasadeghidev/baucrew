@@ -144,7 +144,7 @@ export async function deleteVehicle(
 ): Promise<DeleteState> {
   const user = await requireManagement()
   const [openProjects, upcomingEntries] = await Promise.all([
-    db.project.count({ where: { vehicleId: id, status: { in: [...OPEN_STATUSES] } } }),
+    db.project.count({ where: { vehicles: { some: { vehicleId: id } }, status: { in: [...OPEN_STATUSES] } } }),
     db.scheduleEntryVehicle.count({
       where: { vehicleId: id, scheduleEntry: { date: { gte: todayUtc() } } },
     }),

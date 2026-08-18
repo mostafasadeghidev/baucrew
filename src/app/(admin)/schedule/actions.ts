@@ -295,7 +295,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
   const project = await db.project.findUnique({
     where: { id: projectId },
     select: {
-      vehicleId: true,
+      vehicles: { select: { vehicleId: true } },
       team: { select: { employeeId: true, employee: { select: { active: true } } } },
       items: {
         include: { catalogItem: { select: { name: true, unit: true, stockQuantity: true } } },
@@ -312,7 +312,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
   })
   return {
     employeeIds: project.team.filter((m) => m.employee.active).map((m) => m.employeeId),
-    vehicleIds: project.vehicleId ? [project.vehicleId] : [],
+    vehicleIds: project.vehicles.map((v) => v.vehicleId),
     items: project.items.map((i) => ({
       id: i.id,
       name: i.catalogItem.name,

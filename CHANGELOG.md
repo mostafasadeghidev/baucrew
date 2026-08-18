@@ -3,6 +3,18 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.6.0] — 2026-08-18
+
+### Added
+- **Several vehicles per project** (like assignments): the project form has a multi-select; every vehicle is prefilled when planning an assignment and printed on the work order. Data model change documented in `docs/CHANGE-project-multi-vehicle.md`.
+- **Create a tool/material without leaving the form:** if the typed name is not in the catalog, the picker offers "„X“ als neuen Artikel anlegen" — a small dialog (name, tool/material, unit) creates it and adds it right away. Available on the project page, in the assignment dialog and on the new project / new template pages.
+- **New template:** tools and materials can be picked before the first save — no more "save, then add items".
+- Site manager is ticked in the team automatically when selected on a project.
+
+### Changed
+- **Sidebar is sticky** and carries the signed-in user, "Einstellungen" and "Abmelden" at the bottom; the top bar keeps only language and theme.
+- Item pickers render their list in an overlay, so it is no longer cut off inside cards or dialogs and opens downwards whenever there is room.
+
 ## [1.5.0] — 2026-08-17
 
 ### Added
@@ -131,6 +143,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.6.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.6.0
 [1.5.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.5.0
 [1.4.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.4.1
 [1.4.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.4.0

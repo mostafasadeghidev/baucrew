@@ -33,8 +33,8 @@ export default async function VehicleDetailPage({
     where: { id },
     include: {
       projects: {
-        orderBy: { number: 'desc' },
-        select: { id: true, number: true, name: true, status: true },
+        orderBy: { project: { number: 'desc' } },
+        select: { project: { select: { id: true, number: true, name: true, status: true } } },
       },
       scheduleEntries: {
         where: { scheduleEntry: { date: { gte: todayUtc() } } },
@@ -147,7 +147,7 @@ export default async function VehicleDetailPage({
           <p className="px-5 py-6 text-sm text-muted">{t('noProjects')}</p>
         ) : (
           <ul className="divide-y divide-border">
-            {vehicle.projects.map((p) => (
+            {vehicle.projects.map(({ project: p }) => (
               <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
                 <Link href={`/projects/${p.id}`} className="font-medium text-accent hover:underline">
                   {p.number} — {p.name}

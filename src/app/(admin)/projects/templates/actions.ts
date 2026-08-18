@@ -35,6 +35,26 @@ function errorKey(
   return issues.some((i) => i.path[0] === 'name') ? 'nameRequired' : 'saveFailed'
 }
 
+/** Parses the hidden `items` JSON of the create form (draft tools/materials). */
+function parseDraftItems(raw: FormDataEntryValue | null): Array<{ catalogItemId: string; quantity: number | null }> {
+  if (typeof raw !== 'string' || !raw.trim()) return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map((row) => {
+        const r = row as { catalogItemId?: unknown; quantity?: unknown }
+        const id = typeof r.catalogItemId === 'string' ? r.catalogItemId : ''
+        const q = typeof r.quantity === 'number' && Number.isFinite(r.quantity) && r.quantity >= 0 ? r.quantity : null
+        return id ? { catalogItemId: id, quantity: q } : null
+      })
+      .filter((x): x is { catalogItemId: string; quantity: number | null } => x !== null)
+      .slice(0, 200)
+  } catch {
+    return []
+  }
+}
+
 export async function createTemplate(
   _prev: TemplateFormState,
   formData: FormData
@@ -43,6 +63,14 @@ export async function createTemplate(
   const parsed = parseTemplateForm(formData)
   if (!parsed.success) return { error: errorKey(parsed.error.issues) }
   const template = await db.projectTemplate.create({ data: parsed.data })
+  // Items picked before the first save (new template page).
+  const draft = parseDraftItems(formData.get('items'))
+  if (draft.length > 0) {
+    await db.templateItem.createMany({
+      data: draft.map((i) => ({ templateId: template.id, catalogItemId: i.catalogItemId, quantity: i.quantity })),
+      skipDuplicates: true,
+    })
+  }
   await audit({
     userId: user.id,
     action: 'template.create',

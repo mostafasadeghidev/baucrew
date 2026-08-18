@@ -35,7 +35,7 @@ export default async function ProjectDetailPage({
     include: {
       customer: true,
       manager: true,
-      vehicle: true,
+      vehicles: { include: { vehicle: true } },
       workCategories: { include: { workCategory: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
       items: { include: { catalogItem: true }, orderBy: { catalogItem: { name: 'asc' } } },
@@ -219,7 +219,7 @@ export default async function ProjectDetailPage({
             </div>
             <div className="flex gap-2">
               <dt className="w-44 shrink-0 text-muted">{t('vehicle')}</dt>
-              <dd>{project.vehicle?.name ?? '—'}</dd>
+              <dd>{project.vehicles.length > 0 ? project.vehicles.map((pv) => pv.vehicle.name).join(', ') : '—'}</dd>
             </div>
             <div className="flex gap-2">
               <dt className="w-44 shrink-0 text-muted">{t('team')}</dt>

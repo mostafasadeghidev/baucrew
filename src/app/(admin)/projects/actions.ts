@@ -63,7 +63,7 @@ const projectSchema = z
     actualStart: optionalDate,
     actualEnd: optionalDate,
     managerId: z.string().transform((v) => (v ? v : null)),
-    vehicleId: z.string().transform((v) => (v ? v : null)),
+    vehicleIds: z.array(z.string().min(1)).max(20),
     description: z
       .string()
       .trim()
@@ -113,7 +113,7 @@ function parseProjectForm(formData: FormData) {
     actualStart: formData.get('actualStart') ?? '',
     actualEnd: formData.get('actualEnd') ?? '',
     managerId: formData.get('managerId') ?? '',
-    vehicleId: formData.get('vehicleId') ?? '',
+    vehicleIds: formData.getAll('vehicleIds').map(String).filter(Boolean),
     description: formData.get('description') ?? '',
     internalNotes: formData.get('internalNotes') ?? '',
     categoryIds: formData.getAll('categoryIds').map(String),
@@ -181,11 +181,11 @@ export async function createProject(
           actualStart: d.actualStart,
           actualEnd: d.actualEnd,
           managerId: d.managerId,
-          vehicleId: d.vehicleId,
           description: d.description,
           internalNotes: d.internalNotes,
           workCategories: { create: d.categoryIds.map((id) => ({ workCategoryId: id })) },
           team: { create: d.teamIds.map((id) => ({ employeeId: id })) },
+          vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
         },
       })
     } catch (e: unknown) {
@@ -292,7 +292,6 @@ export async function updateProject(
         ? await actualDatesForStatus(id, d.status, { actualStart: d.actualStart, actualEnd: d.actualEnd })
         : {}),
       managerId: d.managerId,
-      vehicleId: d.vehicleId,
       description: d.description,
       internalNotes: d.internalNotes,
       workCategories: {
@@ -302,6 +301,10 @@ export async function updateProject(
       team: {
         deleteMany: {},
         create: d.teamIds.map((eid) => ({ employeeId: eid })),
+      },
+      vehicles: {
+        deleteMany: {},
+        create: d.vehicleIds.map((vid) => ({ vehicleId: vid })),
       },
     },
   })

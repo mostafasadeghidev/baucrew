@@ -123,7 +123,7 @@ export default async function NewProjectPage({
           actualStart: '',
           actualEnd: '',
           managerId: '',
-          vehicleId: '',
+          vehicleIds: [],
           description: template?.description ?? '',
           internalNotes: '',
           categoryIds: template?.workCategoryId ? [template.workCategoryId] : [],
