@@ -15,6 +15,10 @@
   --accent-hover: #1e40af;
   --accent-foreground: #ffffff;
   --danger: #dc2626;
+  /* Sidebar + subtle surfaces (segmented tabs, menus) */
+  --sidebar: #fbfbfc;
+  --subtle: #f1f1f3;
+  --ring: #1d4ed8;
   color-scheme: light;
 }
 
@@ -29,6 +33,9 @@
   --accent-hover: #60a5fa;
   --accent-foreground: #ffffff;
   --danger: #f87171;
+  --sidebar: #161619;
+  --subtle: #232328;
+  --ring: #3b82f6;
   color-scheme: dark;
 }
 
@@ -43,6 +50,9 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
+  --color-sidebar: var(--sidebar);
+  --color-subtle: var(--subtle);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
 }
 

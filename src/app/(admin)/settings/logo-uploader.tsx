@@ -13,7 +13,7 @@ export function LogoUploader({ hasLogo }: { hasLogo: boolean }) {
 
   return (
     <div className="max-w-2xl space-y-3">
-      <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-center gap-4">
         {hasLogo ? (
           <span className="rounded bg-white p-2">
             {/* Plain img: the /logo response changes at runtime after uploads */}

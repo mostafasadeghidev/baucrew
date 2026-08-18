@@ -158,12 +158,12 @@ export function MonthBoard({
           <span className="text-lg font-medium text-muted">{monthLabel}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center overflow-hidden rounded-md border border-border text-sm font-medium">
-            <Link href={weekHref} className="px-3 py-1.5 text-muted hover:bg-surface-hover hover:text-foreground">
+          <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
+            <Link href={weekHref} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
               {t('viewWeek')}
             </Link>
-            <span className="bg-accent px-3 py-1.5 text-accent-foreground">{t('viewMonth')}</span>
-            <Link href={overviewHref} className="px-3 py-1.5 text-muted hover:bg-surface-hover hover:text-foreground">
+            <span className="rounded-md bg-surface px-3 py-1 text-foreground shadow-sm">{t('viewMonth')}</span>
+            <Link href={overviewHref} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
               {t('viewOverview')}
             </Link>
           </div>

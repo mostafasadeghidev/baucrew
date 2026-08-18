@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { TabLink, TabsList } from './ui/tabs'
 
 export type StatusTab = { value: string; label: string; count: number }
 
@@ -23,31 +23,16 @@ export function StatusTabs({ tabs, allLabel, allCount }: { tabs: StatusTab[]; al
   const items: StatusTab[] = [{ value: '', label: allLabel, count: allCount }, ...tabs]
 
   return (
-    <nav className="flex flex-wrap gap-1 overflow-x-auto border-b border-border" aria-label="Status">
-      {items.map((tab) => {
-        const active = tab.value === current
-        return (
-          <Link
-            key={tab.value || 'all'}
-            href={hrefFor(tab.value)}
-            aria-current={active ? 'page' : undefined}
-            className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
-              active
-                ? 'border-accent text-accent'
-                : 'border-transparent text-muted hover:border-border hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-            <span
-              className={`rounded-full px-1.5 py-0.5 text-xs tabular-nums ${
-                active ? 'bg-accent/10 text-accent' : 'bg-surface-hover text-muted'
-              }`}
-            >
-              {tab.count}
-            </span>
-          </Link>
-        )
-      })}
-    </nav>
+    <TabsList ariaLabel="Status">
+      {items.map((tab) => (
+        <TabLink
+          key={tab.value || 'all'}
+          href={hrefFor(tab.value)}
+          active={tab.value === current}
+          label={tab.label}
+          count={tab.count}
+        />
+      ))}
+    </TabsList>
   )
 }

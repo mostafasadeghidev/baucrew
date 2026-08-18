@@ -4,132 +4,161 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import {
+  Building2,
+  CalendarDays,
+  ChevronsUpDown,
+  Handshake,
+  HardHat,
+  LayoutDashboard,
+  LogOut,
+  Menu as MenuIcon,
+  Package,
+  PieChart,
+  Settings,
+  Truck,
+  X,
+} from 'lucide-react'
 import { BrandMark } from './brand-mark'
 import { logout } from '@/app/actions'
+import { Menu, MenuLabel, MenuSeparator, menuItemClass } from './ui/menu'
 
-type NavItem = { href: string; key: string; adminOnly?: boolean }
+type NavItem = { href: string; key: string; icon: typeof LayoutDashboard }
+type NavGroup = { labelKey: string; items: NavItem[] }
 
-const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard', key: 'dashboard' },
-  { href: '/projects', key: 'projects' },
-  { href: '/customers', key: 'customers' },
-  { href: '/schedule', key: 'schedule' },
-  { href: '/employees', key: 'employees' },
-  { href: '/vehicles', key: 'vehicles' },
-  { href: '/warehouse', key: 'warehouse' },
-  { href: '/reports', key: 'reports' },
+/** Two groups, in the spirit of a shadcn sidebar: daily work vs. master data. */
+const NAV_GROUPS: NavGroup[] = [
+  {
+    labelKey: 'groupWork',
+    items: [
+      { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
+      { href: '/projects', key: 'projects', icon: Building2 },
+      { href: '/schedule', key: 'schedule', icon: CalendarDays },
+      { href: '/reports', key: 'reports', icon: PieChart },
+    ],
+  },
+  {
+    labelKey: 'groupData',
+    items: [
+      { href: '/customers', key: 'customers', icon: Handshake },
+      { href: '/employees', key: 'employees', icon: HardHat },
+      { href: '/vehicles', key: 'vehicles', icon: Truck },
+      { href: '/warehouse', key: 'warehouse', icon: Package },
+    ],
+  },
 ]
 
-/** Signed-in user, settings and logout — pinned to the bottom of the sidebar. */
-function UserBlock({
-  username,
-  isAdmin,
-  pathname,
-  onNavigate,
-}: {
-  username: string
-  isAdmin: boolean
-  pathname: string
-  onNavigate?: () => void
-}) {
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(href + '/')
+}
+
+function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   const t = useTranslations('nav')
-  const tAuth = useTranslations('auth')
-  const settingsActive = pathname === '/settings' || pathname.startsWith('/settings/')
   return (
-    <div className="mt-auto space-y-1 border-t border-border p-2">
-      <div className="flex items-center gap-2 px-3 py-2">
-        <span
-          aria-hidden
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/10 text-xs font-semibold uppercase text-accent"
-        >
-          {username.slice(0, 2)}
-        </span>
-        <span className="min-w-0 truncate text-sm font-medium" title={username}>
-          {username}
-        </span>
-      </div>
-      {isAdmin && (
-        <Link
-          href="/settings"
-          onClick={onNavigate}
-          className={`block rounded-md px-3 py-2.5 text-sm font-medium transition-colors md:py-2 ${
-            settingsActive
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted hover:bg-surface-hover hover:text-foreground'
-          }`}
-        >
-          {t('settings')}
-        </Link>
-      )}
-      <form action={logout}>
-        <button
-          type="submit"
-          className="block w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-foreground md:py-2"
-        >
-          {tAuth('logout')}
-        </button>
-      </form>
+    <div className="flex-1 overflow-y-auto px-2 py-2">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.labelKey} className="mb-2">
+          <p className="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted/80">
+            {t(group.labelKey)}
+          </p>
+          <nav className="space-y-0.5">
+            {group.items.map((item) => {
+              const active = isActive(pathname, item.href)
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors md:py-1.5 ${
+                    active
+                      ? 'bg-surface-hover font-medium text-foreground'
+                      : 'text-muted hover:bg-surface-hover/70 hover:text-foreground'
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-accent' : ''}`} aria-hidden />
+                  <span className="truncate">{t(item.key)}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+      ))}
     </div>
   )
 }
 
-function NavLinks({
-  isAdmin,
-  pathname,
-  onNavigate,
-}: {
-  isAdmin: boolean
-  pathname: string
-  onNavigate?: () => void
-}) {
+/** Footer: user button that opens a menu (settings, sign out) — shadcn style. */
+function UserMenu({ username, role, isAdmin }: { username: string; role: string; isAdmin: boolean }) {
   const t = useTranslations('nav')
+  const tAuth = useTranslations('auth')
   return (
-    <nav className="space-y-0.5 p-2">
-      {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => {
-        const active = pathname === item.href || pathname.startsWith(item.href + '/')
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={`block rounded-md px-3 py-2.5 text-sm font-medium transition-colors md:py-2 ${
-              active
-                ? 'bg-accent text-accent-foreground'
-                : 'text-muted hover:bg-surface-hover hover:text-foreground'
-            }`}
-          >
-            {t(item.key)}
+    <div className="border-t border-border p-2">
+      <Menu
+        side="top"
+        label={username}
+        className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-surface-hover"
+        trigger={
+          <>
+            <span
+              aria-hidden
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-xs font-semibold uppercase text-accent"
+            >
+              {username.slice(0, 2)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">{username}</span>
+              <span className="block truncate text-xs text-muted">{role}</span>
+            </span>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+          </>
+        }
+      >
+        <MenuLabel>{username}</MenuLabel>
+        <MenuSeparator />
+        {isAdmin && (
+          <Link href="/settings" className={menuItemClass} role="menuitem">
+            <Settings className="h-4 w-4 text-muted" aria-hidden />
+            {t('settings')}
           </Link>
-        )
-      })}
-    </nav>
+        )}
+        <form action={logout}>
+          <button type="submit" role="menuitem" className={`${menuItemClass} text-danger hover:bg-danger/10`}>
+            <LogOut className="h-4 w-4" aria-hidden />
+            {tAuth('logout')}
+          </button>
+        </form>
+      </Menu>
+    </div>
   )
 }
 
-/** Desktop sidebar (md+). */
+/** Desktop sidebar (md+), sticky over the full viewport height. */
 export function Sidebar({
   isAdmin,
   brandName,
   hasLogo,
   username,
+  role,
 }: {
   isAdmin: boolean
   brandName: string
   hasLogo: boolean
   username: string
+  role: string
 }) {
   const pathname = usePathname()
   return (
-    <aside className="hidden w-56 shrink-0 md:block print:hidden">
-      {/* Sticky column: navigation stays in place while the page scrolls. */}
-      <div className="sticky top-0 flex h-screen flex-col overflow-y-auto border-r border-border bg-surface">
+    <aside className="hidden w-60 shrink-0 md:block print:hidden">
+      <div className="sticky top-0 flex h-screen flex-col border-r border-border bg-sidebar">
         <div className="flex h-14 shrink-0 items-center border-b border-border px-3">
           <Link href="/dashboard" title={brandName}>
             <BrandMark hasLogo={hasLogo} name={brandName} />
           </Link>
         </div>
-        <NavLinks isAdmin={isAdmin} pathname={pathname} />
-        <UserBlock username={username} isAdmin={isAdmin} pathname={pathname} />
+        <NavLinks pathname={pathname} />
+        <UserMenu username={username} role={role} isAdmin={isAdmin} />
       </div>
     </aside>
   )
@@ -141,11 +170,13 @@ export function MobileNav({
   brandName,
   hasLogo,
   username,
+  role,
 }: {
   isAdmin: boolean
   brandName: string
   hasLogo: boolean
   username: string
+  role: string
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -176,9 +207,7 @@ export function MobileNav({
         aria-expanded={open}
         className="flex h-10 w-10 items-center justify-center rounded-md border border-border text-foreground hover:bg-surface-hover"
       >
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
+        <MenuIcon className="h-5 w-5" aria-hidden />
       </button>
 
       {open && (
@@ -189,8 +218,8 @@ export function MobileNav({
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-black/40"
           />
-          <aside className="relative flex h-full w-72 max-w-[85vw] flex-col border-r border-border bg-surface shadow-xl">
-            <div className="flex h-14 items-center justify-between border-b border-border px-3">
+          <aside className="relative flex h-full w-72 max-w-[85vw] flex-col border-r border-border bg-sidebar shadow-xl">
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
               <BrandMark hasLogo={hasLogo} name={brandName} />
               <button
                 type="button"
@@ -198,18 +227,11 @@ export function MobileNav({
                 aria-label={tNav('closeMenu')}
                 className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted hover:bg-surface-hover hover:text-foreground"
               >
-                ✕
+                <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-              <NavLinks isAdmin={isAdmin} pathname={pathname} onNavigate={() => setOpen(false)} />
-              <UserBlock
-                username={username}
-                isAdmin={isAdmin}
-                pathname={pathname}
-                onNavigate={() => setOpen(false)}
-              />
-            </div>
+            <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+            <UserMenu username={username} role={role} isAdmin={isAdmin} />
           </aside>
         </div>
       )}

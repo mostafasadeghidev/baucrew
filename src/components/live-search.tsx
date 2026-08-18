@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
+import { Select } from './ui/select'
 
 function useParamUpdater() {
   const router = useRouter()
@@ -64,10 +65,10 @@ export function LiveSelect({
   const update = useParamUpdater()
 
   return (
-    <select
+    <Select
+      className="min-w-44"
       value={searchParams.get(param) ?? ''}
       onChange={(e) => update(param, e.target.value)}
-      className="rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none"
     >
       <option value="">{allLabel}</option>
       {options.map((o) => (
@@ -75,6 +76,6 @@ export function LiveSelect({
           {o.label}
         </option>
       ))}
-    </select>
+    </Select>
   )
 }

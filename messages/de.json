@@ -47,7 +47,9 @@
     "settings": "Einstellungen",
     "myArea": "Mein Bereich",
     "menu": "Menü",
-    "closeMenu": "Menü schließen"
+    "closeMenu": "Menü schließen",
+    "groupWork": "Betrieb",
+    "groupData": "Stammdaten"
   },
   "theme": {
     "light": "Helles Design",

@@ -370,20 +370,14 @@ async function OverviewView({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center overflow-hidden rounded-md border border-border text-sm font-medium">
-            <Link
-              href={`/schedule?week=${weeks[0].mondayIso}`}
-              className="px-3 py-1.5 text-muted hover:bg-surface-hover hover:text-foreground"
-            >
+          <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
+            <Link href={`/schedule?week=${weeks[0].mondayIso}`} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
               {t('viewWeek')}
             </Link>
-            <Link
-              href={`/schedule?view=month&week=${weeks[0].mondayIso}`}
-              className="px-3 py-1.5 text-muted hover:bg-surface-hover hover:text-foreground"
-            >
+            <Link href={`/schedule?view=month&week=${weeks[0].mondayIso}`} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
               {t('viewMonth')}
             </Link>
-            <span className="bg-accent px-3 py-1.5 text-accent-foreground">{t('viewOverview')}</span>
+            <span className="rounded-md bg-surface px-3 py-1 text-foreground shadow-sm">{t('viewOverview')}</span>
           </div>
           <div className="flex items-center gap-1">
             <Link
@@ -407,12 +401,12 @@ async function OverviewView({
               →
             </Link>
           </div>
-          <div className="flex items-center overflow-hidden rounded-md border border-border text-sm font-medium">
+          <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
             {OVERVIEW_WEEK_OPTIONS.map((n) => (
               <Link
                 key={n}
                 href={`/schedule?view=overview&week=${iso(monday)}&weeks=${n}`}
-                className={`px-2.5 py-1.5 ${n === weeksCount ? 'bg-accent text-accent-foreground' : 'text-muted hover:bg-surface-hover hover:text-foreground'}`}
+                className={`rounded-md px-2.5 py-1 ${n === weeksCount ? 'bg-surface text-foreground shadow-sm' : 'text-muted transition-colors hover:text-foreground'}`}
                 title={t('weeksShown', { count: n })}
               >
                 {n}

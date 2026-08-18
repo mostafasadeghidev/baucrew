@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useMemo, useRef, useState } from 'react'
+import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { DropdownPortal } from './dropdown-portal'
 
 export type ComboboxOption = { value: string; label: string }
@@ -111,13 +112,22 @@ export function Combobox({
             else if (query && !options.some((o) => o.label === query)) setQuery('')
           }, 150)
         }}
-        className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+        className="mt-1 block w-full rounded-md border border-border bg-background py-2 pl-3 pr-9 text-sm shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+      />
+      <ChevronsUpDown
+        aria-hidden
+        onMouseDown={(e) => {
+          e.preventDefault()
+          inputRef.current?.focus()
+          openList()
+        }}
+        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 cursor-pointer text-muted"
       />
       <input type="hidden" name={name} value={selected?.value ?? ''} />
       <DropdownPortal anchorRef={inputRef} open={open} id={listId}>
         <>
           {filtered.length === 0 && !onCreateNew ? (
-            <li className="px-3 py-2 text-sm text-muted">{noResultsLabel}</li>
+            <li className="px-2 py-6 text-center text-sm text-muted">{noResultsLabel}</li>
           ) : (
             filtered.map((o, i) => (
               <li
@@ -130,11 +140,15 @@ export function Combobox({
                   choose(o)
                 }}
                 onMouseEnter={() => setHighlight(i)}
-                className={`cursor-pointer px-3 py-2 text-sm ${
-                  i === highlight ? 'bg-accent text-accent-foreground' : ''
+                className={`mx-1 flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
+                  i === highlight ? 'bg-surface-hover text-foreground' : ''
                 }`}
               >
-                {o.label}
+                <Check
+                  aria-hidden
+                  className={`h-4 w-4 shrink-0 text-accent ${selected?.value === o.value ? '' : 'opacity-0'}`}
+                />
+                <span className="truncate">{o.label}</span>
               </li>
             ))
           )}
@@ -150,9 +164,10 @@ export function Combobox({
                   setOpen(false)
                   onCreateNew(query.trim())
                 }}
-                className="cursor-pointer border-t border-border px-3 py-2 text-sm font-medium text-accent hover:bg-surface-hover"
+                className="mx-1 mt-1 flex cursor-pointer items-center gap-2 rounded-md border-t border-border px-2 py-1.5 text-sm font-medium text-accent hover:bg-surface-hover"
               >
-                {createLabel ? createLabel(query.trim()) : `+ ${query.trim()}`}
+                <Plus aria-hidden className="h-4 w-4 shrink-0" />
+                <span className="truncate">{createLabel ? createLabel(query.trim()) : query.trim()}</span>
               </li>
             )}
         </>

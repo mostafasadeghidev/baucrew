@@ -6,6 +6,7 @@ import { createEmployeeAccount, updateEmployeeAccount, type AccountState } from 
 import { SavedToast } from '@/components/saved-toast'
 import { DeleteButton } from '@/components/delete-button'
 import { deleteUser } from '../../settings/actions'
+import { Select } from '@/components/ui/select'
 
 const ROLES = ['EMPLOYEE', 'MANAGER', 'ADMIN'] as const
 const inputClass =
@@ -86,13 +87,13 @@ export function AccountSection({
                   <label htmlFor="acc-role" className="block text-sm font-medium">
                     {ts('role')}
                   </label>
-                  <select id="acc-role" name="role" defaultValue="EMPLOYEE" className={inputClass}>
+                  <Select id="acc-role" name="role" defaultValue="EMPLOYEE" className="mt-1 w-full">
                     {ROLES.map((r) => (
                       <option key={r} value={r}>
                         {tRoles(r)}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <label className="flex cursor-pointer items-center gap-2 self-end pb-2 text-sm font-medium">
                   <input type="checkbox" name="canViewFinancials" className="h-4 w-4 accent-[var(--accent)]" />
@@ -158,19 +159,19 @@ export function AccountSection({
             <label htmlFor="acc-role" className="block text-sm font-medium">
               {ts('role')}
             </label>
-            <select
+            <Select
               id="acc-role"
               name="role"
               defaultValue={account.role}
               disabled={isSelf}
-              className={`${inputClass} disabled:opacity-60`}
+              className="mt-1 w-full"
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>
                   {tRoles(r)}
                 </option>
               ))}
-            </select>
+            </Select>
             {isSelf && <input type="hidden" name="role" value={account.role} />}
           </div>
           <div>

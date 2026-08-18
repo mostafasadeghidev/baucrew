@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { ItemFormState } from './actions'
 import { CategoryPicker } from '@/components/category-picker'
+import { Select } from '@/components/ui/select'
 
 export type ItemFormValues = {
   kind: string
@@ -52,10 +53,10 @@ export function ItemForm({
             <label htmlFor="kind" className="block text-sm font-medium">
               {t('kind')}
             </label>
-            <select id="kind" name="kind" defaultValue={initial.kind} className={inputClass}>
+            <Select id="kind" name="kind" defaultValue={initial.kind} className="mt-1 w-full">
               <option value="TOOL">{tKind('TOOL')}</option>
               <option value="MATERIAL">{tKind('MATERIAL')}</option>
-            </select>
+            </Select>
           </div>
           <CategoryPicker name="category" label={t('category')} defaultValue={initial.category} categories={categories} />
           <div>

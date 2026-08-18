@@ -8,6 +8,7 @@ import { MultiCombobox } from '@/components/multi-combobox'
 import { CityPicker } from '@/components/city-picker'
 import { NewCustomerModal } from './new-customer-modal'
 import type { ProjectFormState } from './actions'
+import { Select } from '@/components/ui/select'
 
 export type Option = { value: string; label: string }
 export type CustomerAddress = {
@@ -152,14 +153,14 @@ function SelectField({
         {label}
         {required && <span className="text-danger"> *</span>}
       </label>
-      <select id={name} name={name} defaultValue={defaultValue} required={required} className={inputClass}>
+      <Select id={name} name={name} defaultValue={defaultValue} required={required} className="mt-1 w-full">
         {emptyOption !== undefined && <option value="">{emptyOption}</option>}
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   )
 }
