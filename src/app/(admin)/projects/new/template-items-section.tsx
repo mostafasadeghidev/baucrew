@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { QuickItemModal } from '@/components/quick-item-modal'
@@ -38,11 +38,20 @@ export function TemplateItemsSection({
   const [pick, setPick] = useState('')
   const [qty, setQty] = useState('')
   const [dup, setDup] = useState(false)
+  const addRowRef = useRef<HTMLDivElement>(null)
+  const scrollAfterAdd = useRef(false)
   const [newItemName, setNewItemName] = useState<string | null>(null)
   const [extraOptions, setExtraOptions] = useState<ComboboxOption[]>([])
 
   const allOptions = [...options, ...extraOptions]
   const optionMap = new Map(allOptions.map((o) => [o.value, o.label]))
+
+  // Keep the picker in view after each add (same behaviour as the dialog).
+  useEffect(() => {
+    if (!scrollAfterAdd.current) return
+    scrollAfterAdd.current = false
+    addRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [items.length])
 
   function add() {
     if (!pick) return
@@ -59,6 +68,7 @@ export function TemplateItemsSection({
     setQty('')
     setDup(false)
     setAddKey((k) => k + 1)
+    scrollAfterAdd.current = true
   }
 
   return (
@@ -119,7 +129,7 @@ export function TemplateItemsSection({
               ))}
             </ul>
           )}
-          <div className="flex flex-wrap items-start gap-2 border-t border-border px-5 py-3">
+          <div ref={addRowRef} className="flex flex-wrap items-start gap-2 border-t border-border px-5 py-3">
             <div className="min-w-52 flex-1" key={addKey}>
               <Combobox
                 name="_pickItem"

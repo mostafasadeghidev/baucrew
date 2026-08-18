@@ -291,7 +291,7 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 - Oben: **Woche | Monat | Übersicht**, Pfeile **← →** für die Wochen, **Aktuelle Woche**.
 - **Einsatz verschieben:** Karte mit der Maus packen und auf einen anderen Tag ziehen. Am Tablet/Handy: Karte kurz gedrückt halten, dann ziehen.
 - **Einsatz kopieren:** dasselbe Ziehen mit gedrückter **Strg**-Taste (⌘ am Mac) — der Einsatz bleibt am alten Tag und wird zusätzlich auf dem neuen Tag angelegt.
-- **Weitere Tage ergänzen:** einen bestehenden Einsatz anklicken und im Fenster ein **Bis**-Datum wählen — die folgenden Tage werden mit demselben Team, denselben Fahrzeugen und Zeiten angelegt.
+- **Weitere Tage ergänzen:** einen bestehenden Einsatz anklicken und im Fenster **Weitere Tage bis** wählen — die folgenden Tage werden mit demselben Team, denselben Fahrzeugen und Zeiten angelegt. Unter den Feldern steht **Geplante Tage** mit allen Tagen dieses Projekts (der geöffnete Tag ist hervorgehoben); einzelne Tage (z. B. Mittwoch und Freitag ohne Donnerstag) bleiben so sichtbar, ohne dass ein Zeitraum sie erzwingt.
 - **Vergangene Tage:** dort gibt es kein **+** mehr; geplant wird nach vorne. Bestehende Einsätze der Vergangenheit lassen sich weiterhin öffnen und bearbeiten.
 - **Neuer Einsatz:** **+** oben in der Tagesspalte.
 - **Einsatz ändern:** Karte anklicken.

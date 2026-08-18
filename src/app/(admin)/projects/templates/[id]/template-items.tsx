@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { addTemplateItem, removeTemplateItem } from '../actions'
@@ -29,6 +29,15 @@ export function TemplateItemsEditor({
   const [error, setError] = useState<string | null>(null)
   const [addKey, setAddKey] = useState(0)
   const [quantity, setQuantity] = useState('')
+  const addRowRef = useRef<HTMLFormElement>(null)
+  const scrollAfterAdd = useRef(false)
+
+  // After the list grew, bring the picker back into view (long lists).
+  useEffect(() => {
+    if (!scrollAfterAdd.current) return
+    scrollAfterAdd.current = false
+    addRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [items.length])
 
   function submitAdd(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -44,6 +53,7 @@ export function TemplateItemsEditor({
       } else {
         setAddKey((k) => k + 1)
         setQuantity('')
+        scrollAfterAdd.current = true
       }
     })
   }
@@ -80,7 +90,7 @@ export function TemplateItemsEditor({
         </ul>
       )}
 
-      <form onSubmit={submitAdd} className="flex flex-wrap items-start gap-2 border-t border-border px-5 py-3">
+      <form ref={addRowRef} onSubmit={submitAdd} className="flex flex-wrap items-start gap-2 border-t border-border px-5 py-3">
         <div className="min-w-52 flex-1" key={addKey}>
           <Combobox
             name="catalogItemId"

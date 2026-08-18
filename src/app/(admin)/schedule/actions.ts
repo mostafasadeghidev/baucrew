@@ -337,6 +337,8 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
     status: 'REQUIRED' | 'COLLECTED' | 'MISSING'
   }>
   catalogOptions: Array<{ value: string; label: string }>
+  /** Days (ISO) the project already has assignments on. */
+  scheduledDays: string[]
 } | null> {
   await requireManagement()
   const project = await db.project.findUnique({
@@ -352,6 +354,12 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
     },
   })
   if (!project) return null
+  const scheduled = await db.scheduleEntry.findMany({
+    where: { projectId },
+    select: { date: true },
+    orderBy: { date: 'asc' },
+    take: 60,
+  })
   const assigned = new Set(project.items.map((i) => i.catalogItemId))
   const catalog = await db.catalogItem.findMany({
     where: { active: true },
@@ -361,6 +369,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
   return {
     employeeIds: project.team.filter((m) => m.employee.active).map((m) => m.employeeId),
     managerId: project.managerId ?? '',
+    scheduledDays: scheduled.map((e) => e.date.toISOString().slice(0, 10)),
     vehicleIds: project.vehicles.map((v) => v.vehicleId),
     items: project.items.map((i) => ({
       id: i.id,

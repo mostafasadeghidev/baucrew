@@ -3,6 +3,13 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.10.1] — 2026-08-19
+
+### Changed
+- Assignment dialog: the extra-days field is now labelled **"Weitere Tage bis"** in edit mode and a row shows **all days the project is already planned on** (the day being edited is highlighted) — so non-consecutive days (e.g. Wednesday and Friday) are visible at a glance instead of being guessed from a range.
+- The city suggestions of the place picker are rendered as an overlay: the "new customer" dialog no longer grows a scrollbar when the list opens.
+- Adding a tool/material scrolls the picker back into view **on the template pages and in the project form** as well (previously only in the assignment dialog).
+
 ## [1.10.0] — 2026-08-19
 
 ### Added
@@ -208,6 +215,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.10.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.1
 [1.10.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.0
 [1.9.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.9.0
 [1.8.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.8.0

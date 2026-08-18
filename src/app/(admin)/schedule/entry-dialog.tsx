@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { completeProjectFromEntry } from './actions'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
@@ -68,6 +68,7 @@ export function EntryDialog({
   const t = useTranslations('schedule')
   const tc = useTranslations('common')
   const router = useRouter()
+  const locale = useLocale()
   const [completing, setCompleting] = useState(false)
   const [confirmComplete, setConfirmComplete] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -95,6 +96,7 @@ export function EntryDialog({
   const [saturday, setSaturday] = useState(false)
   const [sunday, setSunday] = useState(false)
   const [managerId, setManagerId] = useState('')
+  const [scheduledDays, setScheduledDays] = useState<string[]>([])
   const [vehicleIds, setVehicleIds] = useState<string[]>(entry?.vehicles.map((v) => v.id) ?? [])
   const [startTime, setStartTime] = useState(entry?.startTime ?? '07:00')
   const [endTime, setEndTime] = useState(entry?.endTime ?? '')
@@ -119,6 +121,7 @@ export function EntryDialog({
       setItems(d.items)
       setCatalogOptions(d.catalogOptions)
       setManagerId(d.managerId)
+      setScheduledDays(d.scheduledDays)
       if (applyAssignments) {
         setSelectedEmployees(new Set(d.employeeIds))
         setVehicleIds(d.vehicleIds)
@@ -142,6 +145,7 @@ export function EntryDialog({
       setItems(d.items)
       setCatalogOptions(d.catalogOptions)
       setManagerId(d.managerId)
+      setScheduledDays(d.scheduledDays)
       if (!isEdit) {
         setSelectedEmployees(new Set(d.employeeIds))
         setVehicleIds(d.vehicleIds)
@@ -257,7 +261,8 @@ export function EntryDialog({
             </div>
             <div>
               <label htmlFor="entry-end-date" className="block text-sm font-medium">
-                {t('dateTo')} <span className="font-normal text-muted">({tc('optional')})</span>
+                {isEdit ? t('extendUntil') : t('dateTo')}{' '}
+                <span className="font-normal text-muted">({tc('optional')})</span>
               </label>
               <input
                 id="entry-end-date"
@@ -267,7 +272,6 @@ export function EntryDialog({
                 onChange={(e) => setEndDate(e.target.value)}
                 className={inputClass}
               />
-              {isEdit && <p className="mt-1 text-xs text-muted">{t('extendHint')}</p>}
             </div>
             <div>
               <label htmlFor="entry-time" className="block text-sm font-medium">
@@ -282,7 +286,28 @@ export function EntryDialog({
               <input id="entry-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={inputClass} />
             </div>
           </div>
-          <p className="-mt-2 text-xs text-muted">{t('timeHint')}</p>
+          {isEdit && <p className="-mt-2 text-xs text-muted">{t('extendHint')}</p>}
+          <p className={`text-xs text-muted ${isEdit ? '-mt-1' : '-mt-2'}`}>{t('timeHint')}</p>
+          {scheduledDays.length > 0 && (
+            <div className="-mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-muted">{t('plannedDays')}:</span>
+              {scheduledDays.map((d) => (
+                <span
+                  key={d}
+                  className={`rounded-md px-1.5 py-0.5 tabular-nums ${
+                    d === date ? 'bg-accent/15 font-medium text-accent' : 'bg-subtle text-muted'
+                  }`}
+                >
+                  {new Date(`${d}T00:00:00.000Z`).toLocaleDateString(locale === 'en' ? 'en-GB' : 'de-DE', {
+                    weekday: 'short',
+                    day: '2-digit',
+                    month: '2-digit',
+                    timeZone: 'UTC',
+                  })}
+                </span>
+              ))}
+            </div>
+          )}
           {range && (
             <div className="-mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-accent/40 bg-accent/5 px-3 py-2 text-xs">
               {weekendInRange.saturday && (
