@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/authz'
 import { db } from '@/lib/db'
 import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
 import { StockWarning } from '@/components/stock-warning'
+import { btn } from '@/components/ui/button'
 
 const ITEM_STYLE: Record<'REQUIRED' | 'COLLECTED' | 'MISSING', string> = {
   REQUIRED: 'border-border text-muted',
@@ -156,7 +157,7 @@ export default async function MyAreaPage({
                     </p>
                   </div>
                   <Link
-                    href={`/projects/${p.id}/sheet`}
+                    href={`/projects/${p.id}/sheet?entry=${entry.id}`}
                     className="flex shrink-0 items-center gap-1.5 rounded-md border border-accent px-3 py-1.5 text-sm font-semibold text-accent hover:bg-accent hover:text-accent-foreground"
                   >
                     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -178,7 +179,7 @@ export default async function MyAreaPage({
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-accent hover:bg-surface-hover"
+                          className={`${btn.outlineSm} px-2 py-1 text-xs text-accent`}
                         >
                           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z" />
@@ -197,7 +198,7 @@ export default async function MyAreaPage({
                         {phone && (
                           <a
                             href={`tel:${phone.replace(/[^\d+]/g, '')}`}
-                            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-accent hover:bg-surface-hover"
+                            className={`${btn.outlineSm} px-2 py-1 text-xs text-accent`}
                           >
                             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2Z" />

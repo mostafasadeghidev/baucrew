@@ -11,6 +11,7 @@ import {
   updateScheduleEntry,
 } from './actions'
 import { EntryDialog, type DialogState, type BoardEntry } from './entry-dialog'
+import { btn } from '@/components/ui/button'
 export type { BoardEntry } from './entry-dialog'
 
 
@@ -199,20 +200,20 @@ export function ScheduleBoard({
           <div className="flex items-center gap-1">
             <Link
               href={prevWeekHref}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              className={btn.outlineSm}
               title={t('prevWeek')}
             >
               ←
             </Link>
             <Link
               href={currentWeekHref}
-              className="whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              className={btn.outlineSm}
             >
               {t('currentWeek')}
             </Link>
             <Link
               href={nextWeekHref}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              className={btn.outlineSm}
               title={t('nextWeek')}
             >
               →
@@ -335,7 +336,7 @@ export function ScheduleBoard({
                         {entry.projectName}
                       </p>
                       <Link
-                        href={`/projects/${entry.projectId}/sheet`}
+                        href={`/projects/${entry.projectId}/sheet?entry=${entry.id}`}
                         onClick={(e) => e.stopPropagation()}
                         title={tSheet('title')}
                         aria-label={tSheet('title')}

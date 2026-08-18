@@ -4,6 +4,7 @@ import { useActionState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { resetLogo, uploadLogo, type LogoState } from './actions'
 import { SavedToast } from '@/components/saved-toast'
+import { btn } from '@/components/ui/button'
 
 export function LogoUploader({ hasLogo }: { hasLogo: boolean }) {
   const t = useTranslations('settings')
@@ -34,7 +35,7 @@ export function LogoUploader({ hasLogo }: { hasLogo: boolean }) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+            className={btn.primarySm}
           >
             {t('uploadLogo')}
           </button>
@@ -42,7 +43,7 @@ export function LogoUploader({ hasLogo }: { hasLogo: boolean }) {
             type="button"
             disabled={resetPending}
             onClick={() => startReset(() => resetLogo())}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover disabled:opacity-60"
+            className={btn.outlineSm}
           >
             {t('resetLogo')}
           </button>

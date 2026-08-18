@@ -5,7 +5,7 @@ import { useTransition } from 'react'
 import { setLocale } from '@/app/actions'
 import { LOCALES, type AppLocale } from '@/i18n/config'
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ compact = false }: { compact?: boolean } = {}) {
   const locale = useLocale()
   const [, startTransition] = useTransition()
 
@@ -16,7 +16,7 @@ export function LanguageSwitcher() {
 
   return (
     <div
-      className="flex items-center overflow-hidden rounded-md border border-border text-xs font-semibold"
+      className={`flex items-center gap-0.5 rounded-md p-0.5 text-xs font-semibold ${compact ? 'bg-subtle' : 'border border-border'}`}
       role="group"
       aria-label="Sprache / Language"
     >
@@ -25,10 +25,10 @@ export function LanguageSwitcher() {
           key={l}
           type="button"
           onClick={() => switchTo(l)}
-          className={`px-2.5 py-1.5 uppercase transition-colors ${
+          className={`rounded px-2 py-1 uppercase transition-colors ${
             l === locale
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted hover:bg-surface-hover hover:text-foreground'
+              ? 'bg-surface text-foreground shadow-sm'
+              : 'text-muted hover:text-foreground'
           }`}
         >
           {l}

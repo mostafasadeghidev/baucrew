@@ -67,6 +67,8 @@ model Employee {
   projectMemberships ProjectEmployee[]
   scheduleEntries    ScheduleEntryEmployee[]
   managedProjects    Project[]               @relation("ProjectManager")
+  templateMemberships TemplateEmployee[]
+  managedTemplates    ProjectTemplate[]      @relation("TemplateManager")
 }
 
 model Customer {
@@ -233,6 +235,7 @@ model Vehicle {
   updatedAt    DateTime      @updatedAt
 
   projects        ProjectVehicle[]
+  templates       TemplateVehicle[]
   scheduleEntries ScheduleEntryVehicle[]
 }
 
@@ -302,7 +305,33 @@ model ProjectTemplate {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  items TemplateItem[]
+  // Optional default assignment copied into new projects
+  managerId String?
+  manager   Employee? @relation("TemplateManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  items     TemplateItem[]
+  vehicles  TemplateVehicle[]
+  employees TemplateEmployee[]
+}
+
+model TemplateVehicle {
+  templateId String
+  vehicleId  String
+  template   ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  vehicle    Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, vehicleId])
+  @@index([vehicleId])
+}
+
+model TemplateEmployee {
+  templateId String
+  employeeId String
+  template   ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  employee   Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, employeeId])
+  @@index([employeeId])
 }
 
 model TemplateItem {

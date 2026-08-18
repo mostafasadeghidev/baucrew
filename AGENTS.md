@@ -43,7 +43,8 @@ Full product requirements live in the owner's master prompt; phased roadmap in R
   vehicles per schedule entry), `docs/CHANGE-user-accounts-on-employee-page.md`
   (employee user accounts managed on the employee page; Settings shows only
   system accounts + privileged overview), `docs/CHANGE-project-multi-vehicle.md`
-  (one → many vehicles per project). Add a new file there for similar changes.
+  (one → many vehicles per project), `docs/CHANGE-template-assignment.md`
+  (optional manager/vehicles/crew on templates). Add a new file there for similar changes.
 
 ## Commands
 

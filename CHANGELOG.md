@@ -3,6 +3,25 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.8.0] — 2026-08-19
+
+### Added
+- **Company colour** (Settings → Allgemein → Firmenfarbe): pick the corporate colour and every button, active tab and highlight follows it — app-wide, light and dark.
+- **Site manager in the assignment dialog** — choose it while planning; it belongs to the project, is saved right away and the person is ticked in the crew.
+- **Templates carry an optional default assignment**: site manager, vehicles and crew are copied into a new project created from the template (`docs/CHANGE-template-assignment.md`).
+- **Work order per assignment:** opening the sheet from the schedule, the packing overview or "Mein Bereich" now prints that assignment's crew, vehicles and date instead of the project defaults.
+
+### Changed
+- **All buttons share one style** (shadcn "button"): same height, radius, shadow, focus ring and disabled state — admin area, warehouse screen, employee area and login.
+- **Pagination** shows page numbers with … gaps and labelled prev/next.
+- **Sticky action bar** on the work order: "Zurück" and "Drucken / PDF" stay in view while scrolling.
+- **Sidebar**: crew icon changed, company name under the logo, and language + theme moved into the user menu (top bar now only holds the mobile menu button).
+- Assignment dialog: the item picker scrolls back into view after adding a tool/material.
+- Charts got the shadcn treatment (dashed grid, rounded bars, hover); status dropdowns and date/time fields match the new controls.
+
+### Fixed
+- **Weekend switches are smart:** they only appear when the chosen date range really contains a Saturday or Sunday — and they are separate, so Saturday can be planned while Sunday stays free.
+
 ## [1.7.0] — 2026-08-18
 
 ### Changed
@@ -153,6 +172,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.8.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.8.0
 [1.7.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.7.0
 [1.6.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.6.0
 [1.5.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.5.0

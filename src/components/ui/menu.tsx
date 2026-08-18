@@ -104,6 +104,19 @@ export function MenuSeparator() {
   return <div className="-mx-1 my-1 h-px bg-border" />
 }
 
+/** Row with a label and an interactive control; clicking it keeps the menu open. */
+export function MenuRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div
+      className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span className="text-muted">{label}</span>
+      {children}
+    </div>
+  )
+}
+
 export function MenuLabel({ children }: { children: ReactNode }) {
   return <div className="px-2 py-1.5 text-xs font-medium text-muted">{children}</div>
 }

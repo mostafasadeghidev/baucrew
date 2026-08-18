@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { createCustomerInline } from '../customers/actions'
+import { btn } from '@/components/ui/button'
 
 const inputClass =
   'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
@@ -143,14 +144,14 @@ export function NewCustomerModal({
             <button
               type="submit"
               disabled={pending}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+              className={btn.primary}
             >
               {tc('save')}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+              className={btn.outline}
             >
               {tc('cancel')}
             </button>

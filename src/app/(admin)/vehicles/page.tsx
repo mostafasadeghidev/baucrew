@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { VehicleStatusBadge } from '@/components/vehicle-status-badge'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
+import { btn } from '@/components/ui/button'
 
 export default async function VehiclesPage({
   searchParams,
@@ -32,7 +33,7 @@ export default async function VehiclesPage({
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <Link
           href="/vehicles/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+          className={btn.primary}
         >
           {t('newVehicle')}
         </Link>

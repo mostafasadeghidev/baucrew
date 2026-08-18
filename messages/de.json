@@ -23,7 +23,8 @@
     "prevPage": "Vorherige Seite",
     "nextPage": "Nächste Seite",
     "saved": "Gespeichert",
-    "optional": "optional"
+    "optional": "optional",
+    "pagination": "Seitennavigation"
   },
   "auth": {
     "loginTitle": "Anmeldung",
@@ -49,7 +50,9 @@
     "menu": "Menü",
     "closeMenu": "Menü schließen",
     "groupWork": "Betrieb",
-    "groupData": "Stammdaten"
+    "groupData": "Stammdaten",
+    "language": "Sprache",
+    "theme": "Design"
   },
   "theme": {
     "light": "Helles Design",
@@ -339,7 +342,9 @@
     "tabGeneral": "Allgemein",
     "tabAccounts": "Benutzerkonten",
     "tabCategories": "Arbeitsbereiche",
-    "tabData": "Daten & Protokoll"
+    "tabData": "Daten & Protokoll",
+    "accentTitle": "Firmenfarbe",
+    "accentHint": "Farbe für Knöpfe, aktive Reiter und Hervorhebungen — wählen Sie Ihre Hausfarbe. Wirkt sofort in der ganzen App."
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -518,12 +523,14 @@
     "moreEntries": "+{count} weitere",
     "dateFrom": "Von",
     "dateTo": "Bis",
-    "rangeSkipWeekends": "Wochenende überspringen",
     "rangeCount": "{count} Einsätze werden angelegt (einer pro Tag)",
     "rangeTooLong": "Maximal {max} Tage am Stück",
     "rangeNoWorkingDays": "Kein Werktag im Zeitraum",
     "rangeInvalid": "Ungültiger Zeitraum",
-    "createEntries": "{count} Einsätze anlegen"
+    "createEntries": "{count} Einsätze anlegen",
+    "planSaturday": "Samstag einplanen",
+    "planSunday": "Sonntag einplanen",
+    "managerHint": "Gilt für das ganze Projekt — wird sofort gespeichert."
   },
   "warehouse": {
     "title": "Lager",
@@ -618,7 +625,8 @@
     "deleteConfirm": "Diese Vorlage wirklich löschen?",
     "noResults": "Keine Vorlagen vorhanden.",
     "nameRequired": "Bitte eine Bezeichnung angeben.",
-    "itemsFromTemplateHint": "Vor dem Speichern anpassen"
+    "itemsFromTemplateHint": "Vor dem Speichern anpassen",
+    "assignmentHint": "Optional — wird beim Anlegen eines Projekts aus dieser Vorlage übernommen."
   },
   "importTrello": {
     "title": "Import aus Trello",

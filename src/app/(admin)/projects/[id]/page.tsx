@@ -12,6 +12,7 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { deleteProject, setProjectStatus } from '../actions'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
 import { PlanEntryButton } from './plan-entry-button'
+import { btn } from '@/components/ui/button'
 
 export default async function ProjectDetailPage({
   params,
@@ -116,13 +117,13 @@ export default async function ProjectDetailPage({
         <div className="flex items-center gap-2">
           <Link
             href={`/projects/${project.id}/sheet`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outlineSm}
           >
             {tSheet('title')}
           </Link>
           <Link
             href={`/projects/${project.id}/edit`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outlineSm}
           >
             {tc('edit')}
           </Link>

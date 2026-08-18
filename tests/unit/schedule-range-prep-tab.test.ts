@@ -1,26 +1,42 @@
 import { describe, expect, it } from 'vitest'
-import { expandDateRange, isWeekendIso } from '@/lib/schedule-range'
+import { expandDateRange, isWeekendIso, weekendDaysInRange } from '@/lib/schedule-range'
 import { DEFAULT_PREP_TAB, parsePrepTabConfig, prepTabConfigFromForm, serializePrepTabConfig } from '@/lib/prep-tab'
 
 describe('expandDateRange', () => {
-  it('single day without end', () => {
-    expect(expandDateRange('2026-08-17', null, true)).toEqual({ dates: ['2026-08-17'] })
-    expect(expandDateRange('2026-08-17', '2026-08-17', true)).toEqual({ dates: ['2026-08-17'] })
+  it('single day without end — even on a weekend', () => {
+    expect(expandDateRange('2026-08-17', null)).toEqual({ dates: ['2026-08-17'] })
+    expect(expandDateRange('2026-08-17', '2026-08-17')).toEqual({ dates: ['2026-08-17'] })
+    expect(expandDateRange('2026-08-22', null)).toEqual({ dates: ['2026-08-22'] }) // Sa
   })
-  it('Mon–Fri plus following Monday, skipping the weekend', () => {
+  it('Mon–Fri plus following Monday, weekend left out by default', () => {
     // 2026-08-17 is a Monday
-    const r = expandDateRange('2026-08-17', '2026-08-24', true)
+    const r = expandDateRange('2026-08-17', '2026-08-24')
     expect(r.error).toBeUndefined()
     expect(r.dates).toEqual(['2026-08-17', '2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21', '2026-08-24'])
   })
-  it('keeps weekend days when not skipping', () => {
-    expect(expandDateRange('2026-08-21', '2026-08-23', false).dates).toEqual(['2026-08-21', '2026-08-22', '2026-08-23'])
+  it('Saturday and Sunday can be included separately', () => {
+    expect(expandDateRange('2026-08-21', '2026-08-24', { saturday: true }).dates).toEqual([
+      '2026-08-21',
+      '2026-08-22',
+      '2026-08-24',
+    ])
+    expect(expandDateRange('2026-08-21', '2026-08-24', { sunday: true }).dates).toEqual([
+      '2026-08-21',
+      '2026-08-23',
+      '2026-08-24',
+    ])
+    expect(expandDateRange('2026-08-21', '2026-08-24', { saturday: true, sunday: true }).dates).toHaveLength(4)
   })
-  it('rejects backwards, too long, weekend-only ranges', () => {
-    expect(expandDateRange('2026-08-20', '2026-08-19', true).error).toBe('invalidRange')
-    expect(expandDateRange('2026-08-01', '2026-09-15', true).error).toBe('rangeTooLong')
-    expect(expandDateRange('2026-08-22', '2026-08-23', true).error).toBe('noWorkingDays')
-    expect(expandDateRange('bad', null, true).error).toBe('invalidRange')
+  it('rejects backwards, too long and weekend-only ranges', () => {
+    expect(expandDateRange('2026-08-20', '2026-08-19').error).toBe('invalidRange')
+    expect(expandDateRange('2026-08-01', '2026-09-15').error).toBe('rangeTooLong')
+    expect(expandDateRange('2026-08-22', '2026-08-23').error).toBe('noWorkingDays')
+    expect(expandDateRange('bad', null).error).toBe('invalidRange')
+  })
+  it('reports which weekend days a range contains', () => {
+    expect(weekendDaysInRange('2026-08-17', '2026-08-21')).toEqual({ saturday: false, sunday: false })
+    expect(weekendDaysInRange('2026-08-17', '2026-08-22')).toEqual({ saturday: true, sunday: false })
+    expect(weekendDaysInRange('2026-08-17', '2026-08-24')).toEqual({ saturday: true, sunday: true })
   })
   it('isWeekendIso', () => {
     expect(isWeekendIso('2026-08-22')).toBe(true) // Sa

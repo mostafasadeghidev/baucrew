@@ -1,17 +1,23 @@
 'use client'
 
-import { useActionState, type ReactNode } from 'react'
+import { useActionState, useState, type ReactNode } from 'react'
 import { SavedToast } from '@/components/saved-toast'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
+import { MultiCombobox } from '@/components/multi-combobox'
 import type { TemplateFormState } from './actions'
+import { btn } from '@/components/ui/button'
 
 export type TemplateFormValues = {
   name: string
   workCategoryId: string
   description: string
   active: boolean
+  /** Optional default assignment copied into new projects. */
+  managerId: string
+  vehicleIds: string[]
+  employeeIds: string[]
 }
 
 const inputClass =
@@ -21,16 +27,26 @@ export function TemplateForm({
   action,
   initial,
   categories,
+  employees,
+  vehicles,
   itemsSection,
 }: {
   action: (prev: TemplateFormState, formData: FormData) => Promise<TemplateFormState>
   initial: TemplateFormValues
   categories: ComboboxOption[]
+  employees: ComboboxOption[]
+  vehicles: ComboboxOption[]
   /** Draft tools/materials, shown while creating (saved together with the template). */
   itemsSection?: ReactNode
 }) {
   const t = useTranslations('templates')
   const tc = useTranslations('common')
+  const tProjects = useTranslations('projects')
+  const tEmployees = useTranslations('employees')
+  const tVehicles = useTranslations('vehicles')
+  const [vehicleIds, setVehicleIds] = useState<string[]>(initial.vehicleIds)
+  const [employeeIds, setEmployeeIds] = useState<string[]>(initial.employeeIds)
+  const [managerId, setManagerId] = useState(initial.managerId)
   const [state, formAction, pending] = useActionState<TemplateFormState, FormData>(action, {})
 
   return (
@@ -79,6 +95,54 @@ export function TemplateForm({
         </div>
       </div>
 
+      {/* Optional defaults — copied into a new project created from this template */}
+      <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <h2 className="text-sm font-semibold">{tProjects('assignmentSection')}</h2>
+        <p className="mt-0.5 text-xs text-muted">{t('assignmentHint')}</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium">{tProjects('manager')}</label>
+            <Combobox
+              name="managerId"
+              options={employees}
+              defaultValue={managerId}
+              placeholder={tc('none')}
+              noResultsLabel={tEmployees('noResults')}
+              onSelect={(id) => {
+                setManagerId(id)
+                if (id) setEmployeeIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+              }}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">{tProjects('vehicle')}</label>
+            <MultiCombobox
+              options={vehicles}
+              value={vehicleIds}
+              onChange={setVehicleIds}
+              placeholder={tc('none')}
+              noResultsLabel={tVehicles('noResults')}
+            />
+            {vehicleIds.map((v) => (
+              <input key={v} type="hidden" name="vehicleIds" value={v} />
+            ))}
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium">{tProjects('team')}</label>
+            <MultiCombobox
+              options={employees}
+              value={employeeIds}
+              onChange={setEmployeeIds}
+              placeholder={tc('none')}
+              noResultsLabel={tEmployees('noResults')}
+            />
+            {employeeIds.map((e) => (
+              <input key={e} type="hidden" name="employeeIds" value={e} />
+            ))}
+          </div>
+        </div>
+      </div>
+
       {itemsSection}
 
       {state.error && (
@@ -91,13 +155,13 @@ export function TemplateForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+          className={btn.primary}
         >
           {tc('save')}
         </button>
         <Link
           href="/projects/templates"
-          className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+          className={btn.outline}
         >
           {tc('cancel')}
         </Link>

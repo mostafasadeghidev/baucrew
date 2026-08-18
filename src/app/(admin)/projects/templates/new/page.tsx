@@ -10,13 +10,19 @@ export default async function NewTemplatePage() {
   const t = await getTranslations('templates')
   const locale = await getLocale()
 
-  const [categories, catalog] = await Promise.all([
+  const [categories, catalog, employees, vehicles] = await Promise.all([
     db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' } }),
     db.catalogItem.findMany({
       where: { active: true },
       orderBy: [{ kind: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true, unit: true },
     }),
+    db.employee.findMany({
+      where: { active: true },
+      orderBy: { firstName: 'asc' },
+      select: { id: true, firstName: true, lastName: true },
+    }),
+    db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
   ])
 
   return (
@@ -28,7 +34,17 @@ export default async function NewTemplatePage() {
           value: c.id,
           label: locale === 'en' ? c.nameEn : c.nameDe,
         }))}
-        initial={{ name: '', workCategoryId: '', description: '', active: true }}
+        employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
+        vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
+        initial={{
+          name: '',
+          workCategoryId: '',
+          description: '',
+          active: true,
+          managerId: '',
+          vehicleIds: [],
+          employeeIds: [],
+        }}
         itemsSection={
           // Tools/materials can be picked before the first save; they are stored
           // together with the template.

@@ -5,6 +5,7 @@ import { requireManagement } from '@/lib/authz'
 import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
 import { BackLink } from '@/components/back-link'
 import { StockWarning } from '@/components/stock-warning'
+import { btn } from '@/components/ui/button'
 
 const card = 'overflow-hidden rounded-lg border border-border bg-surface shadow-sm'
 const STATUS_STYLE: Record<string, string> = {
@@ -91,7 +92,7 @@ export default async function PackingOverviewPage({
         <div className="flex items-center gap-1">
           <Link
             href={`/dashboard/packing?date=${iso(addDays(day, -1))}`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outlineSm}
             aria-label={tToday('prevDay')}
           >
             ←
@@ -106,14 +107,14 @@ export default async function PackingOverviewPage({
           </Link>
           <Link
             href={`/dashboard/packing?date=${iso(addDays(day, 1))}`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outlineSm}
             aria-label={tToday('nextDay')}
           >
             →
           </Link>
           <Link
             href={`/today?date=${iso(day)}`}
-            className="ml-2 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+            className={`${btn.primarySm} ml-2`}
           >
             {t('openWarehouse')}
           </Link>
@@ -162,7 +163,7 @@ export default async function PackingOverviewPage({
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <Link
-                      href={`/projects/${e.project.id}/sheet`}
+                      href={`/projects/${e.project.id}/sheet?entry=${e.id}`}
                       title={tSheet('title')}
                       aria-label={tSheet('title')}
                       className="rounded-md border border-border p-1.5 text-muted hover:bg-surface-hover hover:text-foreground"

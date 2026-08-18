@@ -6,6 +6,7 @@ import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { listSkills } from './actions'
 import { SkillManager } from './skill-manager'
+import { btn } from '@/components/ui/button'
 
 export default async function EmployeesPage({
   searchParams,
@@ -66,7 +67,7 @@ export default async function EmployeesPage({
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <Link
           href="/employees/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+          className={btn.primary}
         >
           {t('newEmployee')}
         </Link>

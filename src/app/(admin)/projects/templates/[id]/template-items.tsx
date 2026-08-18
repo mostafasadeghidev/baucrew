@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { addTemplateItem, removeTemplateItem } from '../actions'
+import { btn } from '@/components/ui/button'
 
 export type TemplateItemRow = {
   id: string
@@ -100,7 +101,7 @@ export function TemplateItemsEditor({
         <button
           type="submit"
           disabled={pending}
-          className="mt-1 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+          className={`${btn.primary} mt-1`}
         >
           {t('addItem')}
         </button>

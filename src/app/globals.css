@@ -63,6 +63,27 @@
   }
 }
 
+
+/* Date/time inputs: same frame as the other controls, picker icon tinted like
+   a shadcn trigger (the native picker is kept — it is the better tool on the
+   site tablets and phones). */
+input[type='date'],
+input[type='time'] {
+  color-scheme: inherit;
+}
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+input[type='date']:hover::-webkit-calendar-picker-indicator,
+input[type='time']:hover::-webkit-calendar-picker-indicator,
+input[type='date']:focus::-webkit-calendar-picker-indicator,
+input[type='time']:focus::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
 /* Printing: always black on white, regardless of the screen theme. */
 @media print {
   :root,

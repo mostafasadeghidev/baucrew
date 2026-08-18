@@ -50,7 +50,7 @@ export function RevenueChart({
   const y = (v: number) => padT + plotH - (v / yMax) * plotH
 
   const slot = plotW / 12
-  const barW = Math.min(22, slot * 0.28)
+  const barW = Math.min(18, slot * 0.26)
   const gap = 3
   const ticks = Array.from({ length: Math.round(yMax / step) + 1 }, (_, i) => i * step)
 
@@ -58,13 +58,13 @@ export function RevenueChart({
     <div className="space-y-2">
       <div className="flex flex-wrap gap-4 text-[11px] text-muted">
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent" /> {legend.own}
+          <span className="inline-block h-2 w-2 rounded-[3px] bg-accent" /> {legend.own}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-accent/40" /> {legend.sub}
+          <span className="inline-block h-2 w-2 rounded-[3px] bg-accent/40" /> {legend.sub}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-neutral-400/70" /> {legend.prev}
+          <span className="inline-block h-2 w-2 rounded-[3px] bg-neutral-400/70" /> {legend.prev}
         </span>
       </div>
       <svg
@@ -82,6 +82,7 @@ export function RevenueChart({
               y2={y(t)}
               className="stroke-border"
               strokeWidth={1}
+              strokeDasharray={t === 0 ? undefined : '3 4'}
             />
             <text
               x={padL - 6}
@@ -108,8 +109,8 @@ export function RevenueChart({
                   y={y(cur)}
                   width={barW}
                   height={y(m.own) - y(cur)}
-                  className="fill-accent/40"
-                  rx={2}
+                  className="fill-accent/40 transition-opacity hover:opacity-80"
+                  rx={4}
                 >
                   <title>{`${labels[i]} · ${legend.sub}: ${formatValue(m.sub)}`}</title>
                 </rect>
@@ -120,8 +121,8 @@ export function RevenueChart({
                   y={y(m.own)}
                   width={barW}
                   height={y(0) - y(m.own)}
-                  className="fill-accent"
-                  rx={m.sub > 0 ? 0 : 2}
+                  className="fill-accent transition-opacity hover:opacity-80"
+                  rx={m.sub > 0 ? 0 : 4}
                 >
                   <title>{`${labels[i]} · ${legend.own}: ${formatValue(m.own)}`}</title>
                 </rect>
@@ -132,8 +133,8 @@ export function RevenueChart({
                   y={y(m.prev)}
                   width={barW}
                   height={y(0) - y(m.prev)}
-                  className="fill-neutral-400/70"
-                  rx={2}
+                  className="fill-neutral-400/70 transition-opacity hover:opacity-80"
+                  rx={4}
                 >
                   <title>{`${labels[i]} · ${legend.prev}: ${formatValue(m.prev)}`}</title>
                 </rect>

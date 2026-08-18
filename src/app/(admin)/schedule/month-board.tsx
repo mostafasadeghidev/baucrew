@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import type { ComboboxOption } from '@/components/combobox'
 import { createScheduleEntry, deleteScheduleEntry, moveScheduleEntry, updateScheduleEntry } from './actions'
 import { EntryDialog, type BoardEntry, type DialogState } from './entry-dialog'
+import { btn } from '@/components/ui/button'
 
 const MAX_PER_DAY = 5
 
@@ -168,13 +169,13 @@ export function MonthBoard({
             </Link>
           </div>
           <div className="flex items-center gap-1">
-            <Link href={prevHref} className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover">
+            <Link href={prevHref} className={btn.outlineSm}>
               ←
             </Link>
-            <Link href={currentHref} className="whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover">
+            <Link href={currentHref} className={btn.outlineSm}>
               {t('currentWeek')}
             </Link>
-            <Link href={nextHref} className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover">
+            <Link href={nextHref} className={btn.outlineSm}>
               →
             </Link>
           </div>

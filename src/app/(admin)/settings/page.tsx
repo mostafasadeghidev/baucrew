@@ -7,6 +7,7 @@ import {
   createCategory,
   updateCategory,
   updateCompanyName,
+  updateAccentColor,
   updatePrepTab,
   updateRainThreshold,
 } from "./actions";
@@ -18,6 +19,7 @@ import { BackupRestore } from "./backup-restore";
 import { SavedForm } from "@/components/saved-form";
 import { ParamTabs } from "@/components/param-tabs";
 import { Card } from "@/components/ui/card";
+import { btn } from '@/components/ui/button'
 
 const inputClass =
   "block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
@@ -93,7 +95,7 @@ export default async function SettingsPage({
               </div>
               <Link
                 href="/settings/users/new"
-                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+                className={btn.primary}
               >
                 {t("newUser")}
               </Link>
@@ -240,7 +242,7 @@ export default async function SettingsPage({
               />
               <button
                 type="submit"
-                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+                className={btn.primarySm}
               >
                 {tc("save")}
               </button>
@@ -248,6 +250,28 @@ export default async function SettingsPage({
           </Card>
 
           {/* Logo */}
+          <Card title={t("accentTitle")} description={t("accentHint")}>
+            <SavedForm
+              action={updateAccentColor}
+              className="flex flex-wrap items-center gap-3"
+            >
+              <input
+                type="color"
+                id="accentColor"
+                name="accentColor"
+                defaultValue={branding.accentColor}
+                aria-label={t("accentTitle")}
+                className="h-10 w-16 cursor-pointer rounded-md border border-border bg-surface p-1"
+              />
+              <span className="font-mono text-xs uppercase text-muted">
+                {branding.accentColor}
+              </span>
+              <button type="submit" className={btn.primarySm}>
+                {tc("save")}
+              </button>
+            </SavedForm>
+          </Card>
+
           <Card title={t("logoTitle")}>
             <LogoUploader hasLogo={branding.hasLogo} />
           </Card>
@@ -274,7 +298,7 @@ export default async function SettingsPage({
               <span className="text-sm text-muted">%</span>
               <button
                 type="submit"
-                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+                className={btn.primarySm}
               >
                 {tc("save")}
               </button>
@@ -337,7 +361,7 @@ export default async function SettingsPage({
               </label>
               <button
                 type="submit"
-                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+                className={btn.primarySm}
               >
                 {tc("save")}
               </button>
@@ -357,7 +381,7 @@ export default async function SettingsPage({
           <Card title={t("auditTitle")} description={t("auditHint")}>
             <Link
               href="/settings/audit"
-              className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium shadow-sm hover:bg-surface-hover"
+              className={btn.outline}
             >
               {t("openAudit")}
             </Link>
@@ -367,7 +391,7 @@ export default async function SettingsPage({
           <Card title={tImport("title")}>
             <Link
               href="/settings/import-trello"
-              className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium shadow-sm hover:bg-surface-hover"
+              className={btn.outline}
             >
               {tImport("settingsLink")}
             </Link>
@@ -411,7 +435,7 @@ export default async function SettingsPage({
                   </label>
                   <button
                     type="submit"
-                    className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+                    className={btn.outlineSm}
                   >
                     {tc("save")}
                   </button>
@@ -437,7 +461,7 @@ export default async function SettingsPage({
                 />
                 <button
                   type="submit"
-                  className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+                  className={btn.primarySm}
                 >
                   {t("addCategory")}
                 </button>

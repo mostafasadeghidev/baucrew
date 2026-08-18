@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import { login, type LoginState } from './actions'
+import { btn } from '@/components/ui/button'
 
 export function LoginForm() {
   const t = useTranslations('auth')
@@ -48,7 +49,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+        className={`${btn.primary} w-full`}
       >
         {t('login')}
       </button>

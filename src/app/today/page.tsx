@@ -7,6 +7,7 @@ import { LanguageSwitcher } from '@/components/language-switcher'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { AutoRefresh } from './auto-refresh'
 import { PackingList, type PackingItem } from './packing-list'
+import { btn } from '@/components/ui/button'
 
 function iso(d: Date): string {
   return d.toISOString().slice(0, 10)
@@ -96,7 +97,7 @@ export default async function TodayBoardPage({
           </Link>
           <Link
             href="/today"
-            className="flex h-12 items-center rounded-lg border border-border px-4 text-lg font-medium hover:bg-surface-hover"
+            className={`${btn.outline} h-12 rounded-lg px-4 text-lg`}
           >
             {t('today')}
           </Link>
@@ -113,7 +114,7 @@ export default async function TodayBoardPage({
             <form action={logout}>
               <button
                 type="submit"
-                className="rounded-lg border border-border px-4 py-2.5 text-base hover:bg-surface-hover"
+                className={`${btn.outline} rounded-lg py-2.5 text-base`}
               >
                 {tAuth('logout')}
               </button>

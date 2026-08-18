@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { detectConflicts } from '@/lib/schedule-conflicts'
 import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, iso, isoWeek, mondayOf, todayUtc } from '@/lib/dates'
+import { btn } from '@/components/ui/button'
 
 export default async function DashboardPage() {
   const [t, tSchedule, locale] = await Promise.all([
@@ -162,7 +163,7 @@ export default async function DashboardPage() {
               {conflicts.length > 0 ? '⚠ ' : '✓ '}
               {t('conflictsThisWeek')}
             </h2>
-            <Link href="/schedule" className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-muted transition-colors hover:bg-surface-hover hover:text-foreground">
+            <Link href="/schedule" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
               {t('openSchedule')} <span aria-hidden>→</span>
             </Link>
           </div>
@@ -212,7 +213,7 @@ export default async function DashboardPage() {
         <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">{t('packingToday')}</h2>
-            <Link href="/dashboard/packing" className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs font-medium text-muted transition-colors hover:bg-surface-hover hover:text-foreground">
+            <Link href="/dashboard/packing" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
               {t('openPacking')} <span aria-hidden>→</span>
             </Link>
           </div>
