@@ -7,6 +7,7 @@ import type { ComboboxOption } from '@/components/combobox'
 import { EntryDialog, type DialogState } from '../../schedule/entry-dialog'
 import { createScheduleEntry } from '../../schedule/actions'
 import { iso, todayUtc } from '@/lib/dates'
+import { btn } from '@/components/ui/button'
 
 /** "Einsatz planen" on the project page — opens the schedule dialog with this project preselected. */
 export function PlanEntryButton({
@@ -32,7 +33,7 @@ export function PlanEntryButton({
       <button
         type="button"
         onClick={() => setDialog({ mode: 'create', date: iso(todayUtc()), projectId })}
-        className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground hover:bg-accent-hover"
+        className={`${btn.primarySm} text-xs`}
       >
         + {t('planEntry')}
       </button>

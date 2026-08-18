@@ -11,6 +11,7 @@ import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { ProjectStatus } from '@/generated/prisma/enums'
+import { btn } from '@/components/ui/button'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
 
@@ -83,13 +84,13 @@ export default async function ProjectsPage({
         <div className="flex items-center gap-2">
           <Link
             href="/projects/templates"
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outline}
           >
             {tTemplates('title')}
           </Link>
           <Link
             href="/projects/new"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+            className={btn.primary}
           >
             {t('newProject')}
           </Link>

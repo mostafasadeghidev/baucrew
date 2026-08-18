@@ -7,6 +7,7 @@ import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { ItemKind } from '@/generated/prisma/enums'
 import { listCategories } from './actions'
 import { CategoryManager } from './category-manager'
+import { btn } from '@/components/ui/button'
 
 export default async function WarehousePage({
   searchParams,
@@ -58,13 +59,13 @@ export default async function WarehousePage({
         <div className="flex items-center gap-2">
           <Link
             href="/today"
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outline}
           >
             {tToday('title')}
           </Link>
           <Link
             href="/warehouse/new"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+            className={btn.primary}
           >
             {t('newItem')}
           </Link>

@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.7 · Stand: 18. August 2026*
+*Version 1.8 · Stand: 19. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -73,7 +73,7 @@ Sie bleiben 30 Tage angemeldet. **Abmelden** ganz unten in der Menüleiste (link
 ### 2.2 So ist der Bildschirm aufgebaut
 
 - **Links das Menü** mit Symbolen, in zwei Gruppen: **Betrieb** (Übersicht, Projekte, Einsatzplanung, Berichte) und **Stammdaten** (Kunden, Mitarbeiter, Fahrzeuge, Lager). Es bleibt beim Blättern stehen; **ganz unten** steht Ihr Benutzername — ein Klick darauf öffnet ein kleines Menü mit **Einstellungen** (nur Administrator) und **Abmelden**. Am Handy versteckt sich das Menü hinter dem Symbol **☰** oben links.
-- **Oben rechts:** Sprache **DE | EN** und Design (hell / dunkel / wie das Gerät).
+- **Sprache (DE | EN) und Design** (hell / dunkel / wie das Gerät) stehen im Menü, das sich beim Klick auf Ihren Benutzernamen ganz unten in der Menüleiste öffnet — zusammen mit **Einstellungen** und **Abmelden**.
 - **In der Mitte:** der aktuelle Bereich.
 
 ### 2.3 Fünf Dinge, die überall gleich funktionieren
@@ -301,8 +301,8 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 ![Einsatzfenster](screenshots/12-einsatz-dialog.png)
 
 1. **Projekt** wählen (tippen). Team, Fahrzeug und Uhrzeiten aus dem Projekt werden eingetragen.
-2. **Von**, **Bis** (optional), **Beginn**, **Ende**. Für mehrtägige Arbeiten ein **Bis**-Datum eintragen: BauCrew legt dann **einen Einsatz pro Tag** an (Wochenenden werden übersprungen, solange das Häkchen **Wochenende überspringen** gesetzt ist; die Zahl der Einsätze steht direkt darunter, maximal 31 Tage am Stück). Tage, an denen das Projekt schon einen Einsatz hat, bleiben unverändert. Ohne Uhrzeiten gilt der Einsatz ganztägig. Mit Uhrzeiten meldet BauCrew Konflikte nur, wenn sich Zeiten wirklich überschneiden — dasselbe Team kann also 07:00–12:00 auf Baustelle A und 12:30–16:30 auf Baustelle B sein.
-3. **Fahrzeuge** (mehrere möglich), **Mitarbeiter** ankreuzen, **Notiz**.
+2. **Von**, **Bis** (optional), **Beginn**, **Ende**. Für mehrtägige Arbeiten ein **Bis**-Datum eintragen: BauCrew legt dann **einen Einsatz pro Tag** an (maximal 31 Tage am Stück, die Zahl der Einsätze steht direkt darunter). Fällt in den Zeitraum ein Samstag oder Sonntag, erscheint dafür ein Häkchen (**Samstag einplanen** / **Sonntag einplanen**) — getrennt, damit Sie z. B. samstags arbeiten und sonntags frei haben. Ohne Häkchen bleiben diese Tage leer. Tage, an denen das Projekt schon einen Einsatz hat, bleiben unverändert. Ohne Uhrzeiten gilt der Einsatz ganztägig. Mit Uhrzeiten meldet BauCrew Konflikte nur, wenn sich Zeiten wirklich überschneiden — dasselbe Team kann also 07:00–12:00 auf Baustelle A und 12:30–16:30 auf Baustelle B sein.
+3. **Baustellenverantwortlicher** (gilt für das ganze Projekt, wird sofort gespeichert), **Fahrzeuge** (mehrere möglich), **Mitarbeiter** ankreuzen, **Notiz**.
 4. **Werkzeug und Material** — die Projektliste, hier direkt änderbar. Ist im Lager ein **Bestand** hinterlegt und das Projekt braucht mehr, steht neben dem Artikel ein gelber Hinweis **⚠ Bestand 2 — 5 benötigt** (auch auf Projektseite, Lagerbildschirm und im Bereich „Mein Bereich“). Das ist nur ein Hinweis — gespeichert wird trotzdem, denn Material wird oft nachgekauft.
 5. **Speichern**. Oben rechts: **Arbeitsauftrag** öffnen; unten **Löschen** (nur den Einsatz, nicht das Projekt) und **✓ Projekt abschließen** (Kapitel 6.4).
 

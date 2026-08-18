@@ -13,6 +13,7 @@ import { Role } from '@/generated/prisma/enums'
 import type { SaveState } from '@/components/saved-form'
 import { deleteUserBlockReason } from '@/lib/user-guards'
 import { PREP_TAB_KEY, prepTabConfigFromForm, serializePrepTabConfig } from '@/lib/prep-tab'
+import { normalizeAccent } from "@/lib/branding";
 
 export type UserFormState = {
   error?: 'usernameTaken' | 'usernameInvalid' | 'passwordTooShort' | 'selfProtected' | 'saveFailed'
@@ -249,6 +250,8 @@ const BACKUP_TABLES = [
   'projectVehicles',
   'projectItems',
   'projectTemplates',
+  'templateVehicles',
+  'templateEmployees',
   'templateItems',
   'scheduleEntries',
   'scheduleEntryEmployees',
@@ -298,6 +301,8 @@ export async function restoreBackup(
       db.projectVehicle.deleteMany(),
       db.projectItem.deleteMany(),
       db.templateItem.deleteMany(),
+      db.templateVehicle.deleteMany(),
+      db.templateEmployee.deleteMany(),
       db.projectTemplate.deleteMany(),
       db.project.deleteMany(),
       db.catalogItem.deleteMany(),
@@ -316,6 +321,8 @@ export async function restoreBackup(
       db.vehicle.createMany({ data: tables.vehicles as never[] }),
       db.catalogItem.createMany({ data: tables.catalogItems as never[] }),
       db.projectTemplate.createMany({ data: tables.projectTemplates as never[] }),
+      db.templateVehicle.createMany({ data: (tables.templateVehicles ?? []) as never[] }),
+      db.templateEmployee.createMany({ data: (tables.templateEmployees ?? []) as never[] }),
       db.templateItem.createMany({ data: tables.templateItems as never[] }),
       db.project.createMany({ data: tables.projects as never[] }),
       db.projectWorkCategory.createMany({ data: tables.projectWorkCategories as never[] }),
@@ -452,4 +459,25 @@ export async function updatePrepTab(formData: FormData): Promise<SaveState> {
   revalidatePath('/projects')
   revalidatePath('/settings')
   return { savedAt: Date.now() }
+}
+
+// ── Company colour ───────────────────────────────────────────
+
+export async function updateAccentColor(formData: FormData): Promise<SaveState> {
+  const admin = await requireAdmin()
+  const value = normalizeAccent(String(formData.get("accentColor") ?? ""));
+  await db.appSetting.upsert({
+    where: { key: "accentColor" },
+    update: { value },
+    create: { key: "accentColor", value },
+  });
+  await audit({
+    userId: admin.id,
+    action: "settings.accentColor",
+    entity: "AppSetting",
+    entityId: "accentColor",
+    newValue: value,
+  });
+  revalidatePath("/", "layout");
+  return { savedAt: Date.now() };
 }

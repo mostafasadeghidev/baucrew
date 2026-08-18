@@ -35,7 +35,7 @@ function setStoredTheme(theme: Theme) {
   listeners.forEach((cb) => cb())
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ withLabel = false }: { withLabel?: boolean } = {}) {
   const t = useTranslations('theme')
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
@@ -78,9 +78,12 @@ export function ThemeToggle() {
       onClick={cycle}
       title={t(theme)}
       aria-label={t(theme)}
-      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted hover:bg-surface-hover hover:text-foreground"
+      className={`flex items-center justify-center gap-1.5 rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-foreground ${
+        withLabel ? 'px-2 py-1 text-xs font-medium' : 'h-8 w-8 border border-border'
+      }`}
     >
       {icon}
+      {withLabel && <span>{t(theme)}</span>}
     </button>
   )
 }

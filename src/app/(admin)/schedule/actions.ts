@@ -35,7 +35,8 @@ const entrySchema = z.object({
     .optional()
     .or(z.literal(''))
     .transform((v) => (v ? v : null)),
-  skipWeekends: z.boolean().optional().default(true),
+  saturday: z.boolean().optional().default(false),
+  sunday: z.boolean().optional().default(false),
   vehicleIds: z.array(z.string().min(1)).max(20),
   employeeIds: z.array(z.string().min(1)).max(50),
   startTime: timeField,
@@ -52,8 +53,9 @@ export type EntryInput = {
   date: string
   /** Create mode only: last day of a "from – to" range (one entry per day). */
   endDate?: string
-  /** Range mode: leave Saturdays/Sundays out (default true). */
-  skipWeekends?: boolean
+  /** Range mode: plan Saturdays / Sundays inside the range (default off). */
+  saturday?: boolean
+  sunday?: boolean
   vehicleIds: string[]
   employeeIds: string[]
   startTime: string
@@ -82,7 +84,7 @@ export async function createScheduleEntry(input: EntryInput): Promise<EntryResul
     }
   }
   const d = parsed.data
-  const range = expandDateRange(d.date, d.endDate, d.skipWeekends)
+  const range = expandDateRange(d.date, d.endDate, { saturday: d.saturday, sunday: d.sunday })
   if (range.error) return { error: range.error }
   const isRange = range.dates.length > 1
   let created = 0
@@ -281,6 +283,7 @@ export async function moveScheduleEntry(id: string, newDate: string): Promise<En
 export async function getProjectScheduleDefaults(projectId: string): Promise<{
   employeeIds: string[]
   vehicleIds: string[]
+  managerId: string
   items: Array<{
     id: string
     name: string
@@ -295,6 +298,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
   const project = await db.project.findUnique({
     where: { id: projectId },
     select: {
+      managerId: true,
       vehicles: { select: { vehicleId: true } },
       team: { select: { employeeId: true, employee: { select: { active: true } } } },
       items: {
@@ -312,6 +316,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
   })
   return {
     employeeIds: project.team.filter((m) => m.employee.active).map((m) => m.employeeId),
+    managerId: project.managerId ?? '',
     vehicleIds: project.vehicles.map((v) => v.vehicleId),
     items: project.items.map((i) => ({
       id: i.id,
@@ -343,4 +348,34 @@ export async function deleteScheduleEntry(id: string): Promise<void> {
     oldValue: `${entry.project.number} @ ${entry.date.toISOString().slice(0, 10)}`,
   })
   revalidateBoard(entry.projectId)
+}
+
+/**
+ * Site manager of the project, settable straight from the assignment dialog
+ * (it belongs to the project, like the tool/material list).
+ */
+export async function setProjectManager(projectId: string, managerId: string): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    select: { managerId: true, number: true },
+  })
+  if (!project) return { error: 'saveFailed' }
+  if ((project.managerId ?? '') === managerId) return {}
+  await db.project.update({
+    where: { id: projectId },
+    data: { managerId: managerId || null },
+  })
+  await audit({
+    userId: user.id,
+    action: 'project.update',
+    entity: 'Project',
+    entityId: projectId,
+    field: 'managerId',
+    oldValue: project.managerId ?? '',
+    newValue: managerId,
+  })
+  revalidateBoard(projectId)
+  revalidatePath('/projects')
+  return {}
 }

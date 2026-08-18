@@ -25,6 +25,7 @@ import { ParamTabs } from '@/components/param-tabs'
 import { LiveSelect } from '@/components/live-search'
 import { PrintButton } from '@/components/print-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
+import { btn } from '@/components/ui/button'
 
 const TABS = ['overview', 'revenue', 'projects', 'customers', 'utilization', 'quality'] as const
 type Tab = (typeof TABS)[number]
@@ -156,7 +157,7 @@ export default async function ReportsPage({
           {showFinancials && (
             <a
               href={exportHref}
-              className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-surface-hover"
+              className={btn.outlineSm}
             >
               {t('exportExcel')}
             </a>

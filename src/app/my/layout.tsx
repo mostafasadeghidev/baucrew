@@ -6,6 +6,7 @@ import { BrandMark } from '@/components/brand-mark'
 import { logout } from '@/app/actions'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { btn } from '@/components/ui/button'
 
 export default async function MyAreaLayout({ children }: { children: React.ReactNode }) {
   await requireUser()
@@ -20,7 +21,7 @@ export default async function MyAreaLayout({ children }: { children: React.React
         <div className="flex items-center gap-3">
           <Link
             href="/today"
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outlineSm}
           >
             {tToday('title')}
           </Link>
@@ -29,7 +30,7 @@ export default async function MyAreaLayout({ children }: { children: React.React
           <form action={logout}>
             <button
               type="submit"
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              className={btn.outlineSm}
             >
               {t('logout')}
             </button>

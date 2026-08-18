@@ -3,6 +3,7 @@ import { BackLink } from '@/components/back-link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
+import { btn } from '@/components/ui/button'
 
 export default async function TemplatesPage() {
   await requireManagement()
@@ -30,7 +31,7 @@ export default async function TemplatesPage() {
         </div>
         <Link
           href="/projects/templates/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+          className={btn.primary}
         >
           {t('newTemplate')}
         </Link>

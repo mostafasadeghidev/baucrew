@@ -40,7 +40,7 @@ export function QuickStatus({
               if (result.error) setError(tc('saveFailed'))
             })
           }}
-          className={`cursor-pointer appearance-none rounded-full border-0 py-0.5 pl-2.5 pr-7 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60 ${colorClass}`}
+          className={`cursor-pointer appearance-none rounded-md border border-transparent py-1 pl-2.5 pr-7 text-xs font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 ${colorClass}`}
         >
           {options.map((o) => (
             <option key={o.value} value={o.value} className="bg-surface text-foreground">

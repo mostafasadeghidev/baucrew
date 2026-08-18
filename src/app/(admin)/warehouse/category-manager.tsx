@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { removeCategory, renameCategory, type CategoryState } from './actions'
 import { SavedToast } from '@/components/saved-toast'
 import { DeleteButton } from '@/components/delete-button'
+import { btn } from '@/components/ui/button'
 
 const inputClass =
   'block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
@@ -21,7 +22,7 @@ function CategoryRow({ name, count }: { name: string; count: number }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover disabled:opacity-60"
+          className={btn.outlineSm}
         >
           {t('renameCategory')}
         </button>

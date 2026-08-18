@@ -3,7 +3,7 @@ import Script from 'next/script'
 import { Geist } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale } from 'next-intl/server'
-import { getBranding } from '@/lib/branding'
+import { getBranding, shiftColor } from '@/lib/branding'
 import './globals.css'
 
 const geistSans = Geist({
@@ -24,12 +24,16 @@ const themeInit = `(function(){try{var t=localStorage.getItem('theme');var d=t==
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale()
+  // Company colour from Settings — overrides the accent tokens app-wide.
+  const { accentColor } = await getBranding()
+  const accentCss = `:root,.dark{--accent:${accentColor};--accent-hover:${shiftColor(accentColor, -18)};--ring:${accentColor};}`
   return (
     <html lang={locale} className={`${geistSans.variable} h-full`} suppressHydrationWarning>
       <head>
         <Script id="theme-init" strategy="beforeInteractive">
           {themeInit}
         </Script>
+        <style id="brand-accent">{accentCss}</style>
       </head>
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>

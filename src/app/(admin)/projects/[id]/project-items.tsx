@@ -7,6 +7,7 @@ import { addProjectItem, removeProjectItem, setProjectItemStatus } from '../acti
 import { StockWarning } from '@/components/stock-warning'
 import { QuickItemModal } from '@/components/quick-item-modal'
 import { Select } from '@/components/ui/select'
+import { btn } from '@/components/ui/button'
 
 export type ProjectItemRow = {
   id: string
@@ -62,7 +63,15 @@ export function ProjectItemsEditor({
         setSelectedId('')
         setQuantity('')
         onChanged?.()
+        scrollAddRowIntoView()
       }
+    })
+  }
+
+  /** After adding, scroll the picker back into view (long lists in the dialog). */
+  function scrollAddRowIntoView() {
+    requestAnimationFrame(() => {
+      addRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     })
   }
 
@@ -81,6 +90,7 @@ export function ProjectItemsEditor({
         setSelectedId('')
         setQuantity('')
         onChanged?.()
+        scrollAddRowIntoView()
       }
     })
   }
@@ -183,7 +193,7 @@ export function ProjectItemsEditor({
           type="button"
           disabled={pending}
           onClick={submitAdd}
-          className="mt-1 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+          className={`${btn.primary} mt-1`}
         >
           {t('addItem')}
         </button>

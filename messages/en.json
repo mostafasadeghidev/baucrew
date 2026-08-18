@@ -23,7 +23,8 @@
     "prevPage": "Previous page",
     "nextPage": "Next page",
     "saved": "Saved",
-    "optional": "optional"
+    "optional": "optional",
+    "pagination": "Pagination"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -49,7 +50,9 @@
     "menu": "Menu",
     "closeMenu": "Close menu",
     "groupWork": "Operations",
-    "groupData": "Master data"
+    "groupData": "Master data",
+    "language": "Language",
+    "theme": "Theme"
   },
   "theme": {
     "light": "Light theme",
@@ -339,7 +342,9 @@
     "tabGeneral": "General",
     "tabAccounts": "User accounts",
     "tabCategories": "Work categories",
-    "tabData": "Data & log"
+    "tabData": "Data & log",
+    "accentTitle": "Company colour",
+    "accentHint": "Colour of buttons, active tabs and highlights — pick your corporate colour. Applies everywhere immediately."
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -518,12 +523,14 @@
     "moreEntries": "+{count} more",
     "dateFrom": "From",
     "dateTo": "To",
-    "rangeSkipWeekends": "Skip weekends",
     "rangeCount": "{count} assignments will be created (one per day)",
     "rangeTooLong": "At most {max} days at once",
     "rangeNoWorkingDays": "No working day in range",
     "rangeInvalid": "Invalid range",
-    "createEntries": "Create {count} assignments"
+    "createEntries": "Create {count} assignments",
+    "planSaturday": "Include Saturday",
+    "planSunday": "Include Sunday",
+    "managerHint": "Applies to the whole project — saved immediately."
   },
   "warehouse": {
     "title": "Warehouse",
@@ -618,7 +625,8 @@
     "deleteConfirm": "Really delete this template?",
     "noResults": "No templates available.",
     "nameRequired": "Please enter a name.",
-    "itemsFromTemplateHint": "Adjust before saving"
+    "itemsFromTemplateHint": "Adjust before saving",
+    "assignmentHint": "Optional — copied into a project created from this template."
   },
   "importTrello": {
     "title": "Import from Trello",

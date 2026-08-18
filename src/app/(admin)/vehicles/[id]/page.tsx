@@ -10,6 +10,7 @@ import { VehicleStatus } from '@/generated/prisma/enums'
 import { DeleteButton } from '@/components/delete-button'
 import { formatDate } from '@/lib/format'
 import { deleteVehicle, setVehicleStatus } from '../actions'
+import { btn } from '@/components/ui/button'
 
 function todayUtc() {
   const now = new Date()
@@ -81,7 +82,7 @@ export default async function VehicleDetailPage({
         <div className="flex items-center gap-2">
           <Link
             href={`/vehicles/${vehicle.id}/edit`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outlineSm}
           >
             {tc('edit')}
           </Link>

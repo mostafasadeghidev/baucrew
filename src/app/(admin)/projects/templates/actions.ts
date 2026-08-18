@@ -18,6 +18,9 @@ const templateSchema = z.object({
     .max(5000)
     .transform((v) => (v ? v : null)),
   active: z.string().transform((v) => v === 'on'),
+  managerId: z.string().transform((v) => (v ? v : null)),
+  vehicleIds: z.array(z.string().min(1)).max(20),
+  employeeIds: z.array(z.string().min(1)).max(50),
 })
 
 function parseTemplateForm(formData: FormData) {
@@ -26,6 +29,9 @@ function parseTemplateForm(formData: FormData) {
     workCategoryId: formData.get('workCategoryId') ?? '',
     description: formData.get('description') ?? '',
     active: formData.get('active') ?? '',
+    managerId: formData.get('managerId') ?? '',
+    vehicleIds: formData.getAll('vehicleIds').map(String).filter(Boolean),
+    employeeIds: formData.getAll('employeeIds').map(String).filter(Boolean),
   })
 }
 
@@ -62,7 +68,14 @@ export async function createTemplate(
   const user = await requireManagement()
   const parsed = parseTemplateForm(formData)
   if (!parsed.success) return { error: errorKey(parsed.error.issues) }
-  const template = await db.projectTemplate.create({ data: parsed.data })
+  const { vehicleIds, employeeIds, ...templateData } = parsed.data
+  const template = await db.projectTemplate.create({
+    data: {
+      ...templateData,
+      vehicles: { create: vehicleIds.map((id) => ({ vehicleId: id })) },
+      employees: { create: employeeIds.map((id) => ({ employeeId: id })) },
+    },
+  })
   // Items picked before the first save (new template page).
   const draft = parseDraftItems(formData.get('items'))
   if (draft.length > 0) {
@@ -92,7 +105,15 @@ export async function updateTemplate(
   if (!parsed.success) return { error: errorKey(parsed.error.issues) }
   const before = await db.projectTemplate.findUnique({ where: { id } })
   if (!before) return { error: 'saveFailed' }
-  await db.projectTemplate.update({ where: { id }, data: parsed.data })
+  const { vehicleIds: vIds, employeeIds: eIds, ...templateData } = parsed.data
+  await db.projectTemplate.update({
+    where: { id },
+    data: {
+      ...templateData,
+      vehicles: { deleteMany: {}, create: vIds.map((vid) => ({ vehicleId: vid })) },
+      employees: { deleteMany: {}, create: eIds.map((eid) => ({ employeeId: eid })) },
+    },
+  })
   await audit({
     userId: user.id,
     action: 'template.update',

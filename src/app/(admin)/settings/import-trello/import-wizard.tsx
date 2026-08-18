@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { trelloWizard, type PreviewState } from './actions'
 import { Select } from '@/components/ui/select'
+import { btn } from '@/components/ui/button'
 
 const STATUSES = [
   'LEAD',
@@ -47,7 +48,7 @@ export function ImportWizard() {
         </div>
         <Link
           href="/projects"
-          className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover"
+          className={btn.primary}
         >
           {t('goToProjects')}
         </Link>
@@ -121,13 +122,13 @@ export function ImportWizard() {
           <button
             type="submit"
             disabled={importPending}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+            className={btn.primary}
           >
             {importPending ? tc('loading') : t('startImport')}
           </button>
           <Link
             href="/settings/import-trello"
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outline}
           >
             {tc('cancel')}
           </Link>
@@ -158,7 +159,7 @@ export function ImportWizard() {
         <button
           type="submit"
           disabled={previewPending}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+          className={btn.primary}
         >
           {previewPending ? tc('loading') : t('analyze')}
         </button>

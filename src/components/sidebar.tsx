@@ -9,7 +9,6 @@ import {
   CalendarDays,
   ChevronsUpDown,
   Handshake,
-  HardHat,
   LayoutDashboard,
   LogOut,
   Menu as MenuIcon,
@@ -17,11 +16,14 @@ import {
   PieChart,
   Settings,
   Truck,
+  Users,
   X,
 } from 'lucide-react'
 import { BrandMark } from './brand-mark'
 import { logout } from '@/app/actions'
-import { Menu, MenuLabel, MenuSeparator, menuItemClass } from './ui/menu'
+import { Menu, MenuLabel, MenuRow, MenuSeparator, menuItemClass } from './ui/menu'
+import { LanguageSwitcher } from './language-switcher'
+import { ThemeToggle } from './theme-toggle'
 
 type NavItem = { href: string; key: string; icon: typeof LayoutDashboard }
 type NavGroup = { labelKey: string; items: NavItem[] }
@@ -41,7 +43,7 @@ const NAV_GROUPS: NavGroup[] = [
     labelKey: 'groupData',
     items: [
       { href: '/customers', key: 'customers', icon: Handshake },
-      { href: '/employees', key: 'employees', icon: HardHat },
+      { href: '/employees', key: 'employees', icon: Users },
       { href: '/vehicles', key: 'vehicles', icon: Truck },
       { href: '/warehouse', key: 'warehouse', icon: Package },
     ],
@@ -117,6 +119,13 @@ function UserMenu({ username, role, isAdmin }: { username: string; role: string;
       >
         <MenuLabel>{username}</MenuLabel>
         <MenuSeparator />
+        <MenuRow label={t('language')}>
+          <LanguageSwitcher compact />
+        </MenuRow>
+        <MenuRow label={t('theme')}>
+          <ThemeToggle withLabel />
+        </MenuRow>
+        <MenuSeparator />
         {isAdmin && (
           <Link href="/settings" className={menuItemClass} role="menuitem">
             <Settings className="h-4 w-4 text-muted" aria-hidden />
@@ -152,9 +161,12 @@ export function Sidebar({
   return (
     <aside className="hidden w-60 shrink-0 md:block print:hidden">
       <div className="sticky top-0 flex h-screen flex-col border-r border-border bg-sidebar">
-        <div className="flex h-14 shrink-0 items-center border-b border-border px-3">
-          <Link href="/dashboard" title={brandName}>
+        <div className="shrink-0 border-b border-border px-3 py-2.5">
+          <Link href="/dashboard" title={brandName} className="block">
             <BrandMark hasLogo={hasLogo} name={brandName} />
+            {hasLogo && (
+              <span className="mt-1.5 block truncate text-xs font-medium text-muted">{brandName}</span>
+            )}
           </Link>
         </div>
         <NavLinks pathname={pathname} />
@@ -219,8 +231,13 @@ export function MobileNav({
             className="absolute inset-0 bg-black/40"
           />
           <aside className="relative flex h-full w-72 max-w-[85vw] flex-col border-r border-border bg-sidebar shadow-xl">
-            <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
-              <BrandMark hasLogo={hasLogo} name={brandName} />
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2.5">
+              <span className="min-w-0">
+                <BrandMark hasLogo={hasLogo} name={brandName} />
+                {hasLogo && (
+                  <span className="mt-1.5 block truncate text-xs font-medium text-muted">{brandName}</span>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

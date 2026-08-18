@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { VehicleFormState } from './actions'
 import { Select } from '@/components/ui/select'
+import { btn } from '@/components/ui/button'
 
 export type VehicleFormValues = {
   name: string
@@ -103,13 +104,13 @@ export function VehicleForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+          className={btn.primary}
         >
           {tc('save')}
         </button>
         <Link
           href={cancelHref}
-          className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+          className={btn.outline}
         >
           {tc('cancel')}
         </Link>

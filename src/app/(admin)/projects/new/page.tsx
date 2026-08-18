@@ -49,6 +49,9 @@ export default async function NewProjectPage({
             name: true,
             description: true,
             workCategoryId: true,
+            managerId: true,
+            vehicles: { select: { vehicleId: true } },
+            employees: { select: { employeeId: true } },
             items: { include: { catalogItem: { select: { id: true, name: true, unit: true } } } },
           },
         })
@@ -122,12 +125,12 @@ export default async function NewProjectPage({
           plannedEnd: '',
           actualStart: '',
           actualEnd: '',
-          managerId: '',
-          vehicleIds: [],
+          managerId: template?.managerId ?? '',
+          vehicleIds: template?.vehicles.map((tv) => tv.vehicleId) ?? [],
           description: template?.description ?? '',
           internalNotes: '',
           categoryIds: template?.workCategoryId ? [template.workCategoryId] : [],
-          teamIds: [],
+          teamIds: template?.employees.map((te) => te.employeeId) ?? [],
         }}
       />
     </div>

@@ -7,6 +7,7 @@ import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, addMonths, iso, isoWeek, mondayOf, monthStart, utcDate } from '@/lib/dates'
 import { MonthBoard } from './month-board'
 import { ScheduleBoard, type BoardEntry } from './schedule-board'
+import { btn } from '@/components/ui/button'
 
 const OPEN_STATUSES = ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] as const
 const OVERVIEW_WEEK_OPTIONS = [4, 6, 8, 12] as const
@@ -382,20 +383,20 @@ async function OverviewView({
           <div className="flex items-center gap-1">
             <Link
               href={`/schedule?view=overview&week=${iso(addDays(monday, -7))}&weeks=${weeksCount}`}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              className={btn.outlineSm}
               title={t('prevWeek')}
             >
               ←
             </Link>
             <Link
               href={`/schedule?view=overview&weeks=${weeksCount}`}
-              className="whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              className={btn.outlineSm}
             >
               {t('currentWeek')}
             </Link>
             <Link
               href={`/schedule?view=overview&week=${iso(addDays(monday, 7))}&weeks=${weeksCount}`}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+              className={btn.outlineSm}
               title={t('nextWeek')}
             >
               →

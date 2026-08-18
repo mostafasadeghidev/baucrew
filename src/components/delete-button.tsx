@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { btn } from '@/components/ui/button'
 
 type DeleteState = { error?: string }
 
@@ -29,7 +30,7 @@ export function DeleteButton({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md border border-danger/40 px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-60"
+        className={btn.dangerSm}
       >
         {label}
       </button>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { QuickItemModal } from '@/components/quick-item-modal'
+import { btn } from '@/components/ui/button'
 
 export type DraftItem = { catalogItemId: string; name: string; unit: string | null; quantity: number | null }
 
@@ -141,7 +142,7 @@ export function TemplateItemsSection({
               type="button"
               onClick={add}
               disabled={!pick}
-              className="mt-1 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover disabled:opacity-50"
+              className={`${btn.outline} mt-1`}
             >
               {t('addItem')}
             </button>

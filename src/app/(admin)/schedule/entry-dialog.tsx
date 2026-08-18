@@ -8,8 +8,9 @@ import { completeProjectFromEntry } from './actions'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { MultiCombobox } from '@/components/multi-combobox'
 import { ProjectItemsEditor, type ProjectItemRow } from '../projects/[id]/project-items'
-import { getProjectScheduleDefaults, type EntryInput } from './actions'
-import { MAX_RANGE_DAYS, expandDateRange, isWeekendIso } from '@/lib/schedule-range'
+import { getProjectScheduleDefaults, setProjectManager, type EntryInput } from './actions'
+import { MAX_RANGE_DAYS, expandDateRange, isWeekendIso, weekendDaysInRange } from '@/lib/schedule-range'
+import { btn } from '@/components/ui/button'
 
 export type BoardEntry = {
   id: string
@@ -66,6 +67,7 @@ export function EntryDialog({
   const tProjects = useTranslations('projects')
   const tSheet = useTranslations('sheet')
   const tVehicles = useTranslations('vehicles')
+  const tEmployees = useTranslations('employees')
   const isEdit = dialog.mode === 'edit'
   const entry = isEdit ? dialog.entry : null
 
@@ -83,7 +85,9 @@ export function EntryDialog({
   )
   const [date, setDate] = useState(entry?.date ?? (dialog.mode === 'create' ? dialog.date : ''))
   const [endDate, setEndDate] = useState('')
-  const [skipWeekends, setSkipWeekends] = useState(true)
+  const [saturday, setSaturday] = useState(false)
+  const [sunday, setSunday] = useState(false)
+  const [managerId, setManagerId] = useState('')
   const [vehicleIds, setVehicleIds] = useState<string[]>(entry?.vehicles.map((v) => v.id) ?? [])
   const [startTime, setStartTime] = useState(entry?.startTime ?? '07:00')
   const [endTime, setEndTime] = useState(entry?.endTime ?? '')
@@ -107,6 +111,7 @@ export function EntryDialog({
       if (!d) return
       setItems(d.items)
       setCatalogOptions(d.catalogOptions)
+      setManagerId(d.managerId)
       if (applyAssignments) {
         setSelectedEmployees(new Set(d.employeeIds))
         setVehicleIds(d.vehicleIds)
@@ -129,6 +134,7 @@ export function EntryDialog({
       if (!d) return
       setItems(d.items)
       setCatalogOptions(d.catalogOptions)
+      setManagerId(d.managerId)
       if (!isEdit) {
         setSelectedEmployees(new Set(d.employeeIds))
         setVehicleIds(d.vehicleIds)
@@ -152,7 +158,7 @@ export function EntryDialog({
       {
         projectId,
         date,
-        ...(!isEdit && endDate && endDate !== date ? { endDate, skipWeekends } : {}),
+        ...(!isEdit && endDate && endDate !== date ? { endDate, saturday, sunday } : {}),
         vehicleIds,
         employeeIds: [...selectedEmployees],
         startTime,
@@ -163,7 +169,10 @@ export function EntryDialog({
     )
   }
 
-  const range = !isEdit && date && endDate && endDate !== date ? expandDateRange(date, endDate, skipWeekends) : null
+  const isRange = !isEdit && Boolean(date) && Boolean(endDate) && endDate !== date
+  const range = isRange ? expandDateRange(date, endDate, { saturday, sunday }) : null
+  // Only offer the weekend switches when the chosen range really contains them.
+  const weekendInRange = isRange ? weekendDaysInRange(date, endDate) : { saturday: false, sunday: false }
   const rangeError = range?.error
   const rangeCount = range && !range.error ? range.dates.length : 0
   const touchesWeekend = range
@@ -178,8 +187,8 @@ export function EntryDialog({
           <div className="flex items-center gap-2">
             {projectId && (
               <Link
-                href={`/projects/${projectId}/sheet`}
-                className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover hover:text-foreground"
+                href={`/projects/${projectId}/sheet${entry ? `?entry=${entry.id}` : ''}`}
+                className={btn.outlineSm}
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
@@ -267,15 +276,28 @@ export function EntryDialog({
           <p className="-mt-2 text-xs text-muted">{t('timeHint')}</p>
           {range && (
             <div className="-mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-accent/40 bg-accent/5 px-3 py-2 text-xs">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={skipWeekends}
-                  onChange={(e) => setSkipWeekends(e.target.checked)}
-                  className="h-4 w-4 accent-[var(--accent)]"
-                />
-                {t('rangeSkipWeekends')}
-              </label>
+              {weekendInRange.saturday && (
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={saturday}
+                    onChange={(e) => setSaturday(e.target.checked)}
+                    className="h-4 w-4 accent-[var(--accent)]"
+                  />
+                  {t('planSaturday')}
+                </label>
+              )}
+              {weekendInRange.sunday && (
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={sunday}
+                    onChange={(e) => setSunday(e.target.checked)}
+                    className="h-4 w-4 accent-[var(--accent)]"
+                  />
+                  {t('planSunday')}
+                </label>
+              )}
               {rangeError ? (
                 <span className="font-medium text-danger">
                   {rangeError === 'rangeTooLong' ? t('rangeTooLong', { max: MAX_RANGE_DAYS }) : rangeError === 'noWorkingDays' ? t('rangeNoWorkingDays') : t('rangeInvalid')}
@@ -290,6 +312,26 @@ export function EntryDialog({
               ⚠ {t('weekendDayHint')} {t('weekendHint')}
             </p>
           )}
+
+          <div>
+            <label className="block text-sm font-medium">{tProjects('manager')}</label>
+            <Combobox
+              key={`m-${projectId}-${managerId}`}
+              name="managerId"
+              options={employees}
+              defaultValue={managerId}
+              placeholder={tc('none')}
+              noResultsLabel={tEmployees('noResults')}
+              onSelect={(id) => {
+                setManagerId(id)
+                // The site manager belongs to the project — save right away and
+                // tick them in the team of this assignment.
+                if (projectId) void setProjectManager(projectId, id)
+                if (id) setSelectedEmployees((prev) => new Set(prev).add(id))
+              }}
+            />
+            <p className="mt-1 text-xs text-muted">{t('managerHint')}</p>
+          </div>
 
           <div>
             <label className="block text-sm font-medium">{t('vehicle')}</label>
@@ -354,14 +396,14 @@ export function EntryDialog({
               <button
                 type="submit"
                 disabled={pending || Boolean(rangeError)}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+                className={btn.primary}
               >
                 {rangeCount > 1 ? t('createEntries', { count: rangeCount }) : tc('save')}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+                className={btn.outline}
               >
                 {tc('cancel')}
               </button>
@@ -393,7 +435,7 @@ export function EntryDialog({
                   type="button"
                   disabled={pending}
                   onClick={() => onDelete(entry!.id)}
-                  className="rounded-md border border-danger/40 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-60"
+                  className={btn.danger}
                 >
                   {tc('delete')}
                 </button>

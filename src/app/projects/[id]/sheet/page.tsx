@@ -36,13 +36,17 @@ function FieldRow({ label, value }: { label: string; value: string }) {
 
 export default async function ProjectSheetPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  /** `entry` = work order for one assignment (its team, vehicles and date). */
+  searchParams: Promise<{ entry?: string }>
 }) {
   // The sheet contains no financial data, so employees may open it too —
   // but only for operationally relevant projects (see guard below).
   const user = await requireUser()
   const { id } = await params
+  const { entry: entryId } = await searchParams
   const [t, tc, tClient, tBuilding, locale] = await Promise.all([
     getTranslations('sheet'),
     getTranslations('common'),
@@ -69,6 +73,25 @@ export default async function ProjectSheetPage({
     db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' } }),
   ])
   if (!project) notFound()
+
+  // Opened from an assignment: its own team, vehicles and date win over the
+  // project defaults — that is what the crew of that day actually needs.
+  const entry = entryId
+    ? await db.scheduleEntry.findFirst({
+        where: { id: entryId, projectId: project.id },
+        include: {
+          employees: { include: { employee: true } },
+          vehicles: { include: { vehicle: true } },
+        },
+      })
+    : null
+  const sheetTeam = entry && entry.employees.length > 0
+    ? entry.employees.map((e) => `${e.employee.firstName} ${e.employee.lastName}`.trim())
+    : project.team.map((m) => `${m.employee.firstName} ${m.employee.lastName}`.trim())
+  const sheetVehicles = entry && entry.vehicles.length > 0
+    ? entry.vehicles.map((v) => v.vehicle.name)
+    : project.vehicles.map((pv) => pv.vehicle.name)
+  const sheetDate = entry ? entry.date : project.createdAt
 
   // Employees (incl. the shared warehouse account) may only open sheets of
   // projects that are scheduled around now or that they are assigned to.
@@ -120,7 +143,8 @@ export default async function ProjectSheetPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4 md:p-6 print:p-0">
-      <div className="flex items-center justify-between gap-3 print:hidden">
+      {/* Stays reachable while scrolling through the sheet */}
+      <div className="sticky top-0 z-20 -mx-4 flex items-center justify-between gap-3 border-b border-border bg-background/90 px-4 py-3 backdrop-blur md:-mx-6 md:px-6 print:hidden">
         <BackButton label={tc('back')} />
         <PrintButton label={t('print')} />
       </div>
@@ -148,11 +172,11 @@ export default async function ProjectSheetPage({
               <div className="text-right text-sm">
                 <p>
                   <span className="font-semibold">{t('orderFrom')}: </span>
-                  <span className="tabular-nums">{formatDate(project.createdAt, locale)}</span>
+                  <span className="tabular-nums">{formatDate(sheetDate, locale)}</span>
                 </p>
                 <p>
                   <span className="font-semibold">{t('vehicle')}: </span>
-                  {project.vehicles.map((pv) => pv.vehicle.name).join(', ')}
+                  {sheetVehicles.join(', ')}
                 </p>
               </div>
               <Image
@@ -210,12 +234,7 @@ export default async function ProjectSheetPage({
             label={t('manager')}
             value={project.manager ? `${project.manager.firstName} ${project.manager.lastName}`.trim() : ''}
           />
-          <FieldRow
-            label={t('team')}
-            value={project.team
-              .map((m) => `${m.employee.firstName} ${m.employee.lastName}`.trim())
-              .join(', ')}
-          />
+          <FieldRow label={t('team')} value={sheetTeam.join(', ')} />
           <FieldRow label={t('start')} value={formatDate(project.plannedStart, locale)} />
           <FieldRow label={t('plannedEnd')} value={formatDate(project.plannedEnd, locale)} />
         </div>

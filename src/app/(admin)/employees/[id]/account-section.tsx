@@ -7,6 +7,7 @@ import { SavedToast } from '@/components/saved-toast'
 import { DeleteButton } from '@/components/delete-button'
 import { deleteUser } from '../../settings/actions'
 import { Select } from '@/components/ui/select'
+import { btn } from '@/components/ui/button'
 
 const ROLES = ['EMPLOYEE', 'MANAGER', 'ADMIN'] as const
 const inputClass =
@@ -108,7 +109,7 @@ export function AccountSection({
                   <button
                     type="submit"
                     disabled={createPending}
-                    className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+                    className={btn.primary}
                   >
                     {t('createAccount')}
                   </button>
@@ -210,7 +211,7 @@ export function AccountSection({
             <button
               type="submit"
               disabled={updatePending}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover disabled:opacity-60"
+              className={btn.primary}
             >
               {tc('save')}
             </button>

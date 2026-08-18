@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/format'
 import { BackLink } from '@/components/back-link'
 import { VehicleStatusBadge } from '@/components/vehicle-status-badge'
 import type { VehicleStatus } from '@/generated/prisma/enums'
+import { btn } from '@/components/ui/button'
 
 const card = 'overflow-hidden rounded-lg border border-border bg-surface shadow-sm'
 
@@ -121,7 +122,7 @@ export default async function TodayOverviewPage({
         <div className="flex items-center gap-1">
           <Link
             href={`/dashboard/today?date=${iso(addDays(day, -1))}`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outlineSm}
             aria-label={tS('prevWeek')}
           >
             ←
@@ -136,14 +137,14 @@ export default async function TodayOverviewPage({
           </Link>
           <Link
             href={`/dashboard/today?date=${iso(addDays(day, 1))}`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            className={btn.outlineSm}
             aria-label={tS('nextWeek')}
           >
             →
           </Link>
           <Link
             href="/today"
-            className="ml-2 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-surface-hover"
+            className={`${btn.outlineSm} ml-2`}
           >
             {t('openWarehouse')}
           </Link>
