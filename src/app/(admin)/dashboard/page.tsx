@@ -297,26 +297,36 @@ export default async function DashboardPage() {
         ) : (
           <ul className="divide-y divide-border">
             {todayEntries.map((entry) => (
-              <li key={entry.id} className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3 text-sm">
-                {(entry.startTime || entry.endTime) && (
-                  <span className="tabular-nums text-muted">
-                    {[entry.startTime, entry.endTime].filter(Boolean).join('–')}
-                  </span>
-                )}
-                <Link href={`/projects/${entry.project.id}`} className="font-medium text-accent hover:underline">
-                  {entry.project.name}
-                </Link>
-                <span className="text-muted">{entry.project.customer.name}</span>
-                <span className="text-muted">
-                  {t('vehicle')}:{' '}
-                  {entry.vehicles.map((ev) => ev.vehicle.name).join(', ') || t('noVehicle')}
-                </span>
-                <span className="text-muted">
-                  {t('team')}:{' '}
-                  {entry.employees
-                    .map((ee) => `${ee.employee.firstName} ${ee.employee.lastName}`.trim())
-                    .join(', ') || '—'}
-                </span>
+              <li key={entry.id} className="px-4 py-3 text-sm">
+                {/* Time + project on top, the details as labelled rows below —
+                    much easier to scan than one long line. */}
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  {(entry.startTime || entry.endTime) && (
+                    <span className="tabular-nums text-muted">
+                      {[entry.startTime, entry.endTime].filter(Boolean).join('–')}
+                    </span>
+                  )}
+                  <Link href={`/projects/${entry.project.id}`} className="font-medium text-accent hover:underline">
+                    {entry.project.name}
+                  </Link>
+                  <span className="text-muted">· {entry.project.customer.name}</span>
+                </div>
+                <dl className="mt-1 space-y-0.5 text-xs">
+                  <div className="flex gap-2">
+                    <dt className="w-20 shrink-0 text-muted">{t('vehicle')}</dt>
+                    <dd className="min-w-0">
+                      {entry.vehicles.map((ev) => ev.vehicle.name).join(', ') || t('noVehicle')}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-20 shrink-0 text-muted">{t('team')}</dt>
+                    <dd className="min-w-0">
+                      {entry.employees
+                        .map((ee) => `${ee.employee.firstName} ${ee.employee.lastName}`.trim())
+                        .join(', ') || '—'}
+                    </dd>
+                  </div>
+                </dl>
               </li>
             ))}
           </ul>

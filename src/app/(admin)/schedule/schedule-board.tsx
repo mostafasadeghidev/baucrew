@@ -382,7 +382,15 @@ export function ScheduleBoard({
         })}
       </div>
 
-      <p className="text-xs text-muted">{t('dragHint')}</p>
+      <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
+        <span>{t('dragHint')}</span>
+        <span className="inline-flex items-center gap-1">
+          <kbd className="rounded border border-border bg-subtle px-1.5 py-0.5 font-sans text-[11px] font-medium text-foreground">
+            Ctrl
+          </kbd>
+          <span>{t('dragCopyHint')}</span>
+        </span>
+      </p>
 
       {dialog.mode !== 'closed' && (
         <EntryDialog
