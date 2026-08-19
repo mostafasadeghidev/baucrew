@@ -555,7 +555,8 @@
     "reopenProjectConfirm": "„{project}“ wieder öffnen? Der Status geht zurück, das tatsächliche Ende wird geleert und aus der Planung genommene Tage kommen zurück.",
     "dragCopyHint": "gedrückt halten und ziehen = Kopie auf dem neuen Tag (⌘ am Mac).",
     "prevWeeks": "{count} Wochen zurück",
-    "nextWeeks": "{count} Wochen weiter"
+    "nextWeeks": "{count} Wochen weiter",
+    "rangeRemoves": "{count} spätere Tage werden aus der Planung genommen"
   },
   "warehouse": {
     "title": "Lager",

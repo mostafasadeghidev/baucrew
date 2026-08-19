@@ -3,6 +3,11 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.12.0] — 2026-08-19
+
+### Changed
+- **The "to" date now shortens a range as well.** Opening an assignment prefills the field with the last day of that block, so 19.–29. can be changed to 19.–25.: the later days are taken out of the plan (reversible, nothing is deleted) and the dialog says how many. Days of a separate assignment later on are never touched — only the consecutive block (a weekend gap counts as consecutive).
+
 ## [1.11.4] — 2026-08-19
 
 ### Fixed
@@ -251,6 +256,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.12.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.12.0
 [1.11.4]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.4
 [1.11.3]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.3
 [1.11.2]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.2

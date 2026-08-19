@@ -12,6 +12,7 @@ import { MultiCombobox } from '@/components/multi-combobox'
 import { ProjectItemsEditor, type ProjectItemRow } from '../projects/[id]/project-items'
 import { getProjectScheduleDefaults, setProjectManager, type EntryInput } from './actions'
 import { MAX_RANGE_DAYS, expandDateRange, isWeekendIso, weekendDaysInRange } from '@/lib/schedule-range'
+import { assignmentBlock } from '@/lib/schedule-block'
 import { btn } from '@/components/ui/button'
 
 export type BoardEntry = {
@@ -139,6 +140,7 @@ export function EntryDialog({
   // Initial load (edit → items only; create with preselected project → full
   // prefill). Runs once; the async work happens inside a transition, which the
   // React compiler lint accepts (no synchronous setState in the effect).
+  const entryDate = entry?.date ?? ''
   const [initialLoaded, setInitialLoaded] = useState(false)
   useEffect(() => {
     if (initialLoaded) return
@@ -152,13 +154,20 @@ export function EntryDialog({
       setCatalogOptions(d.catalogOptions)
       setManagerId(d.managerId)
       setScheduledDays(d.scheduledDays)
+      // Editing: the field starts at the last day of this block, so shortening
+      // it removes the later days and extending it adds new ones.
+      if (isEdit && entryDate) {
+        const block = assignmentBlock(d.scheduledDays, entryDate)
+        const last = block[block.length - 1]
+        if (last && last !== entryDate) setEndDate(last)
+      }
       if (!isEdit) {
         setSelectedEmployees(new Set(d.employeeIds))
         setVehicleIds(d.vehicleIds)
         setPrefilled(d.employeeIds.length > 0 || d.vehicleIds.length > 0)
       }
     })
-  }, [initialLoaded, projectId, isEdit])
+  }, [initialLoaded, projectId, isEdit, entryDate])
 
   function toggleEmployee(id: string) {
     setSelectedEmployees((prev) => {
@@ -186,11 +195,16 @@ export function EntryDialog({
     )
   }
 
-  const isRange = Boolean(date) && Boolean(endDate) && endDate > date
+  const isRange = Boolean(date) && Boolean(endDate) && endDate !== date
   const range = isRange ? expandDateRange(date, endDate, { saturday, sunday }) : null
   // Only offer the weekend switches when the chosen range really contains them.
   const weekendInRange = isRange ? weekendDaysInRange(date, endDate) : { saturday: false, sunday: false }
   const rangeError = range?.error
+  // Days of this block that fall after the chosen end date — they get removed.
+  const removedDays =
+    isEdit && date && endDate
+      ? assignmentBlock(scheduledDays, date).filter((d) => d > endDate).length
+      : 0
   const rangeCount = range && !range.error ? range.dates.length : 0
   const touchesWeekend = range
     ? !range.error && range.dates.some(isWeekendIso)
@@ -338,6 +352,11 @@ export function EntryDialog({
                   />
                   {t('planSunday')}
                 </label>
+              )}
+              {removedDays > 0 && (
+                <span className="font-medium text-amber-700 dark:text-amber-400">
+                  {t('rangeRemoves', { count: removedDays })}
+                </span>
               )}
               {rangeError ? (
                 <span className="font-medium text-danger">

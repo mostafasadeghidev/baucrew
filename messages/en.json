@@ -555,7 +555,8 @@
     "reopenProjectConfirm": "Reopen \"{project}\"? The status goes back, the actual end date is cleared and cancelled days return to the schedule.",
     "dragCopyHint": "hold while dragging = copy on the new day (⌘ on Mac).",
     "prevWeeks": "{count} weeks back",
-    "nextWeeks": "{count} weeks forward"
+    "nextWeeks": "{count} weeks forward",
+    "rangeRemoves": "{count} later days are taken out of the schedule"
   },
   "warehouse": {
     "title": "Warehouse",
