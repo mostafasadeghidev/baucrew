@@ -249,7 +249,7 @@ export function EntryDialog({
           </div>
 
           {/* items-end keeps the inputs on one line even when a label wraps */}
-          <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[1fr_1.35fr_1fr_1fr]">
             <div>
               <label htmlFor="entry-date" className="block truncate text-sm font-medium">
                 {isEdit ? t('date') : t('dateFrom')}
@@ -267,11 +267,9 @@ export function EntryDialog({
               />
             </div>
             <div>
-              <label htmlFor="entry-end-date" className="block text-sm font-medium leading-tight">
-                <span className="block truncate" title={isEdit ? t('extendUntil') : t('dateTo')}>
-                  {isEdit ? t('extendUntil') : t('dateTo')}
-                </span>
-                <span className="block text-xs font-normal text-muted">({tc('optional')})</span>
+              <label htmlFor="entry-end-date" className="block whitespace-nowrap text-sm font-medium">
+                {isEdit ? t('extendUntil') : t('dateTo')}{' '}
+                <span className="text-xs font-normal text-muted">({tc('optional')})</span>
               </label>
               <input
                 id="entry-end-date"
