@@ -6,7 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 ## [1.11.4] — 2026-08-19
 
 ### Fixed
-- Assignment dialog: the long label "Weitere Tage bis / More days until" wrapped and pushed its field out of line — the four date/time fields now always sit on one row ("(optional)" moved onto its own small line).
+- Assignment dialog: the long label wrapped and pushed its field out of line. It is now short ("Weitere Tage" / "More days") with a small "(optional)" right beside it, and its column is slightly wider — the four date/time fields stay on one row in German, English and on the phone.
 - The back button no longer returns **into a create or edit form**: after "new project → save → edit → cancel", back leads to the project list instead of the empty create page.
 
 ## [1.11.3] — 2026-08-19
