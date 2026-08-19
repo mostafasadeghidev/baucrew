@@ -322,7 +322,7 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 
 ![Übersicht](screenshots/14-einsatzplanung-uebersicht.png)
 
-**Übersicht:** mehrere Wochen nebeneinander — wie der frühere Papier-Wochenplan, gut zum Ausdrucken und für den Blick nach vorn. Rechts oben wählen Sie, wie viele Wochen: **4 · 6 · 8 · 12** (Standard 6).
+**Übersicht:** mehrere Wochen nebeneinander — wie der frühere Papier-Wochenplan, gut zum Ausdrucken und für den Blick nach vorn. Rechts oben wählen Sie, wie viele Wochen: **4 · 6 · 8 · 12** (Standard 6). Die Pfeile blättern um den gesamten angezeigten Zeitraum (bei 6 Wochen also 6 Wochen vor/zurück); Wochen im nächsten Jahr zeigen die Jahreszahl.
 
 ---
 
