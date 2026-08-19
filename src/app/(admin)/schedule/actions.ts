@@ -7,11 +7,14 @@ import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { promoteToPlanned, actualDatesForStatus } from '@/lib/project-lifecycle'
 import { expandDateRange } from '@/lib/schedule-range'
+import { assignmentBlock } from '@/lib/schedule-block'
 
 export type EntryResult = {
   error?: 'duplicateEntry' | 'projectRequired' | 'saveFailed' | 'invalidRange' | 'rangeTooLong' | 'noWorkingDays'
   /** Number of entries created (range mode). */
   created?: number
+  /** Number of days taken out of the plan (shortened range). */
+  removed?: number
 }
 
 const timeField = z
@@ -356,9 +359,40 @@ export async function updateScheduleEntry(id: string, input: EntryInput): Promis
     return { error: isUniqueConflict(e) ? 'duplicateEntry' : 'saveFailed' }
   }
 
-  // "Bis" in the edit dialog: add the following days with the same crew,
-  // vehicles and times — days that already have an entry stay untouched.
+  // "Bis" in the edit dialog: the block of consecutive days that contains this
+  // assignment now runs until that date — missing days are added, days after
+  // it are taken out of the plan (reversible, like completing a project).
   let created = 0
+  let removed = 0
+  if (d.endDate) {
+    const planned = (
+      await db.scheduleEntry.findMany({
+        where: { projectId: d.projectId, cancelledAt: null },
+        select: { date: true },
+        orderBy: { date: 'asc' },
+      })
+    ).map((e) => e.date.toISOString().slice(0, 10))
+    const block = assignmentBlock(planned, d.date)
+    const dropped = block.filter((day) => day > d.endDate!)
+    if (dropped.length > 0) {
+      const result = await db.scheduleEntry.updateMany({
+        where: {
+          projectId: d.projectId,
+          date: { in: dropped.map((x) => new Date(`${x}T00:00:00.000Z`)) },
+          cancelledAt: null,
+        },
+        data: { cancelledAt: new Date() },
+      })
+      removed = result.count
+      await audit({
+        userId: user.id,
+        action: 'schedule.shortenRange',
+        entity: 'Project',
+        entityId: d.projectId,
+        newValue: `${removed} × nach ${d.endDate}`,
+      })
+    }
+  }
   if (d.endDate && d.endDate > d.date) {
     const range = expandDateRange(d.date, d.endDate, { saturday: d.saturday, sunday: d.sunday })
     if (range.error) return { error: range.error }
@@ -401,7 +435,7 @@ export async function updateScheduleEntry(id: string, input: EntryInput): Promis
 
   revalidateBoard(d.projectId)
   if (before.projectId !== d.projectId) revalidateBoard(before.projectId)
-  return { created }
+  return { created, removed }
 }
 
 export async function moveScheduleEntry(id: string, newDate: string): Promise<EntryResult> {
