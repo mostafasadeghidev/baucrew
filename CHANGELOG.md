@@ -3,6 +3,11 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.11.3] — 2026-08-19
+
+### Changed
+- "Bereitstellung heute": the button to the warehouse screen was removed — the page shows the packing status on its own, the kiosk is reached from the dashboard.
+
 ## [1.11.2] — 2026-08-19
 
 ### Changed
@@ -240,6 +245,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.11.3]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.3
 [1.11.2]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.2
 [1.11.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.1
 [1.11.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.0

@@ -97,7 +97,7 @@ Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 
 - **⚠ Konflikte diese Woche:** Wenn ein Mitarbeiter oder ein Fahrzeug am selben Tag doppelt verplant ist. Gelb = bitte ansehen. Grün mit ✓ = alles in Ordnung.
 - **Wetter:** Regenwarnung für Außenarbeiten in den nächsten Tagen (Schwelle einstellbar unter Einstellungen → Wetterwarnung; Quelle Open-Meteo/DWD).
-- **Bereitstellung heute:** Ist im Lager schon alles für heute gepackt? **Zur Bereitstellung →** öffnet die Unterseite mit jedem Einsatz, seiner Packliste und dem Status jedes Artikels (mit ← → für andere Tage); von dort **Zur Tagesvorbereitung** zum Lagerbildschirm.
+- **Bereitstellung heute:** Ist im Lager schon alles für heute gepackt? **Zur Bereitstellung →** öffnet die Unterseite mit jedem Einsatz, seiner Packliste und dem Status jedes Artikels (mit ← → für andere Tage); der Lagerbildschirm wird über die Übersicht geöffnet.
 - **Projekte mit offener Zuordnung:** Projekte, denen noch Team oder Fahrzeug fehlt.
 - **Heutige Einsätze:** Wer ist heute wo, womit, ab wann.
 
