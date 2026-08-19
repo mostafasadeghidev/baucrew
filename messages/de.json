@@ -553,7 +553,9 @@
     "removeLaterDaysHint": "Team und Fahrzeuge sind an diesen Tagen wieder frei. Beim Wiedereröffnen des Projekts kommen die Tage zurück.",
     "reopenProject": "Projekt wieder öffnen",
     "reopenProjectConfirm": "„{project}“ wieder öffnen? Der Status geht zurück, das tatsächliche Ende wird geleert und aus der Planung genommene Tage kommen zurück.",
-    "dragCopyHint": "gedrückt halten und ziehen = Kopie auf dem neuen Tag (⌘ am Mac)."
+    "dragCopyHint": "gedrückt halten und ziehen = Kopie auf dem neuen Tag (⌘ am Mac).",
+    "prevWeeks": "{count} Wochen zurück",
+    "nextWeeks": "{count} Wochen weiter"
   },
   "warehouse": {
     "title": "Lager",

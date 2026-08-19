@@ -553,7 +553,9 @@
     "removeLaterDaysHint": "Crew and vehicles are free again on those days. Reopening the project brings them back.",
     "reopenProject": "Reopen project",
     "reopenProjectConfirm": "Reopen \"{project}\"? The status goes back, the actual end date is cleared and cancelled days return to the schedule.",
-    "dragCopyHint": "hold while dragging = copy on the new day (⌘ on Mac)."
+    "dragCopyHint": "hold while dragging = copy on the new day (⌘ on Mac).",
+    "prevWeeks": "{count} weeks back",
+    "nextWeeks": "{count} weeks forward"
   },
   "warehouse": {
     "title": "Warehouse",

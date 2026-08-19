@@ -3,6 +3,12 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.11.2] — 2026-08-19
+
+### Changed
+- Multi-week overview: **← and → page by the whole shown range** (6 weeks shown → 6 weeks back/forward, tooltip says so) instead of one week at a time.
+- Weeks of another year carry the **year** — as a badge next to the week number and in the date range (e.g. "KW 1 · 2027 · 04.01.2027 – 08.01.2027"), so a range running over New Year stays unambiguous.
+
 ## [1.11.1] — 2026-08-19
 
 ### Changed
@@ -234,6 +240,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.11.2]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.2
 [1.11.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.1
 [1.11.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.0
 [1.10.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.1

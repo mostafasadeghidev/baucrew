@@ -311,6 +311,8 @@ async function OverviewView({
     mondayIso: string
     weekNumber: number
     rangeLabel: string
+    /** Calendar year of the week — shown when the range crosses into another year. */
+    year: number
     conflictCount: number
     isCurrent: boolean
     projects: Array<{
@@ -324,6 +326,13 @@ async function OverviewView({
   }
 
   const currentMondayIso = iso(mondayOf(new Date()))
+  const currentYear = new Date().getUTCFullYear()
+  const dayMonthYearFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
   const weeks: WeekSummary[] = []
 
   for (let w = 0; w < weeksCount; w++) {
@@ -379,7 +388,13 @@ async function OverviewView({
     weeks.push({
       mondayIso: iso(start),
       weekNumber: isoWeek(start),
-      rangeLabel: `${dayMonthFmt.format(start)} – ${dayMonthFmt.format(addDays(start, 4))}`,
+      // Weeks of another year carry it in the label (…08.01.2027) so a range
+      // running over New Year stays unambiguous.
+      rangeLabel:
+        addDays(start, 3).getUTCFullYear() === currentYear
+          ? `${dayMonthFmt.format(start)} – ${dayMonthFmt.format(addDays(start, 4))}`
+          : `${dayMonthYearFmt.format(start)} – ${dayMonthYearFmt.format(addDays(start, 4))}`,
+      year: addDays(start, 3).getUTCFullYear(),
       conflictCount: conflicts.length,
       isCurrent: iso(start) === currentMondayIso,
       projects: projectRows,
@@ -402,9 +417,10 @@ async function OverviewView({
           </div>
           <div className="flex items-center gap-1">
             <Link
-              href={`/schedule?view=overview&week=${iso(addDays(monday, -7))}&weeks=${weeksCount}`}
+              // Page by the whole shown range: 6 weeks shown → 6 weeks back.
+              href={`/schedule?view=overview&week=${iso(addDays(monday, -7 * weeksCount))}&weeks=${weeksCount}`}
               className={btn.outlineSm}
-              title={t('prevWeek')}
+              title={t('prevWeeks', { count: weeksCount })}
             >
               ←
             </Link>
@@ -415,9 +431,9 @@ async function OverviewView({
               {t('currentWeek')}
             </Link>
             <Link
-              href={`/schedule?view=overview&week=${iso(addDays(monday, 7))}&weeks=${weeksCount}`}
+              href={`/schedule?view=overview&week=${iso(addDays(monday, 7 * weeksCount))}&weeks=${weeksCount}`}
               className={btn.outlineSm}
-              title={t('nextWeek')}
+              title={t('nextWeeks', { count: weeksCount })}
             >
               →
             </Link>
@@ -453,8 +469,14 @@ async function OverviewView({
               }`}
             >
               <div>
-                <p className={`text-sm font-semibold ${week.isCurrent ? 'text-accent' : ''}`}>
+                <p className={`flex items-center gap-1.5 text-sm font-semibold ${week.isCurrent ? 'text-accent' : ''}`}>
                   {t('weekLabel', { week: week.weekNumber })}
+                  {/* Range runs into another year — say which one. */}
+                  {week.year !== currentYear && (
+                    <span className="rounded-md bg-subtle px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted">
+                      {week.year}
+                    </span>
+                  )}
                 </p>
                 <p className="text-xs text-muted">{week.rangeLabel}</p>
               </div>
