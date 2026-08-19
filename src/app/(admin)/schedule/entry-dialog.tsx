@@ -248,9 +248,10 @@ export function EntryDialog({
             {prefilled && <p className="mt-1 text-xs text-accent">{t('prefilledFromProject')}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {/* items-end keeps the inputs on one line even when a label wraps */}
+          <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-4">
             <div>
-              <label htmlFor="entry-date" className="block text-sm font-medium">
+              <label htmlFor="entry-date" className="block truncate text-sm font-medium">
                 {isEdit ? t('date') : t('dateFrom')}
               </label>
               <input
@@ -266,9 +267,11 @@ export function EntryDialog({
               />
             </div>
             <div>
-              <label htmlFor="entry-end-date" className="block text-sm font-medium">
-                {isEdit ? t('extendUntil') : t('dateTo')}{' '}
-                <span className="font-normal text-muted">({tc('optional')})</span>
+              <label htmlFor="entry-end-date" className="block text-sm font-medium leading-tight">
+                <span className="block truncate" title={isEdit ? t('extendUntil') : t('dateTo')}>
+                  {isEdit ? t('extendUntil') : t('dateTo')}
+                </span>
+                <span className="block text-xs font-normal text-muted">({tc('optional')})</span>
               </label>
               <input
                 id="entry-end-date"
@@ -280,13 +283,13 @@ export function EntryDialog({
               />
             </div>
             <div>
-              <label htmlFor="entry-time" className="block text-sm font-medium">
+              <label htmlFor="entry-time" className="block truncate text-sm font-medium">
                 {t('startTime')}
               </label>
               <input id="entry-time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label htmlFor="entry-end" className="block text-sm font-medium">
+              <label htmlFor="entry-end" className="block truncate text-sm font-medium">
                 {t('endTime')}
               </label>
               <input id="entry-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={inputClass} />
