@@ -3,6 +3,16 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.11.1] — 2026-08-19
+
+### Changed
+- Dashboard, "Heutige Einsätze": time, project and customer on the first line, vehicle and team as labelled rows underneath — much easier to read than one long line.
+- The hint under the schedule now shows the copy shortcut with a key badge: drag = move, **Ctrl** + drag = copy on the new day.
+- **"Projekt wieder öffnen" sits where you completed the project:** in the assignment dialog the green "Projekt abschließen" button turns into "Projekt wieder öffnen" once the project is done (the button on the project page stays as well).
+
+### Fixed
+- After completing a project the assignment dialog showed an **empty project field** — the picker only listed open projects. It now always contains the projects of the assignments on the board.
+
 ## [1.11.0] — 2026-08-19
 
 ### Added
@@ -224,6 +234,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.11.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.1
 [1.11.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.0
 [1.10.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.1
 [1.10.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.0

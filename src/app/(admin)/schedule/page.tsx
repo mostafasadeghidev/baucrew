@@ -10,6 +10,23 @@ import { ScheduleBoard, type BoardEntry } from './schedule-board'
 import { btn } from '@/components/ui/button'
 
 const OPEN_STATUSES = ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] as const
+
+/**
+ * Options for the project picker: all open projects plus the projects of the
+ * assignments on the board — a completed project must keep its name in the
+ * dialog (otherwise the field looks empty after "Projekt abschließen").
+ */
+function projectOptions(
+  open: Array<{ id: string; number: string; name: string }>,
+  entries: Array<{ project: { id: string; number: string; name: string } }>
+): Array<{ value: string; label: string }> {
+  const byId = new Map(open.map((p) => [p.id, `${p.number} — ${p.name}`]))
+  for (const e of entries) {
+    if (!byId.has(e.project.id)) byId.set(e.project.id, `${e.project.number} — ${e.project.name}`)
+  }
+  return [...byId].map(([value, label]) => ({ value, label })).sort((a, b) => b.label.localeCompare(a.label))
+}
+
 const OVERVIEW_WEEK_OPTIONS = [4, 6, 8, 12] as const
 const DEFAULT_OVERVIEW_WEEKS = 6
 
@@ -109,7 +126,7 @@ export default async function SchedulePage({
           hasConflict: conflicted.has(entry.id),
           projectStatus: entry.project.status,
         }))}
-        projects={projects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+        projects={projectOptions(projects, monthEntries)}
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
       />
@@ -245,7 +262,7 @@ export default async function SchedulePage({
       entries={boardEntries}
       conflictMessages={conflictMessages}
       weatherMessages={weatherMessages}
-      projects={projects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+      projects={projectOptions(projects, entries)}
       employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
       vehicles={vehicles.map((v) => ({
         value: v.id,

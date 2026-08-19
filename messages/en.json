@@ -516,7 +516,7 @@
     "vehicleConflict": "{name}: scheduled more than once on {date}",
     "vehicleUnavailable": "{name}: scheduled on {date} but {status}",
     "noEntries": "No assignments in this week.",
-    "dragHint": "Assignments can be dragged onto another day — hold Ctrl (⌘ on Mac) to place a copy on that day instead.",
+    "dragHint": "Drag & drop assignments to move them to another day.",
     "weatherTitle": "Weather advisories",
     "weatherWarning": "{project}: {probability}% chance of rain on {date} in {city}",
     "endTime": "End",
@@ -552,7 +552,8 @@
     "removeLaterDays": "Take the {count} later planned days out of the schedule",
     "removeLaterDaysHint": "Crew and vehicles are free again on those days. Reopening the project brings them back.",
     "reopenProject": "Reopen project",
-    "reopenProjectConfirm": "Reopen \"{project}\"? The status goes back, the actual end date is cleared and cancelled days return to the schedule."
+    "reopenProjectConfirm": "Reopen \"{project}\"? The status goes back, the actual end date is cleared and cancelled days return to the schedule.",
+    "dragCopyHint": "hold while dragging = copy on the new day (⌘ on Mac)."
   },
   "warehouse": {
     "title": "Warehouse",

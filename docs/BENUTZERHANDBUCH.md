@@ -256,7 +256,7 @@ Zwei Wege — beide setzen Status **Abgeschlossen** und tragen **Ende (tatsächl
 
 - **Aus dem Wochenplan (empfohlen):** Karte des letzten Einsatzes anklicken → unten **✓ Projekt abschließen** → bestätigen. Das Datum dieses Einsatzes wird als tatsächliches Ende gespeichert (Kapitel 7.2).
   Sind **nach diesem Tag noch Tage geplant**, fragt das Fenster, ob diese *aus der Planung genommen* werden sollen (Haken ist voreingestellt): Team und Fahrzeuge sind an diesen Tagen wieder frei, gelöscht wird nichts.
-- **Versehentlich abgeschlossen?** Auf der Projektseite steht bei abgeschlossenen (auch abgerechneten/bezahlten) Projekten der Knopf **Projekt wieder öffnen**: der Status geht zurück, *Ende (tatsächlich)* wird geleert und die aus der Planung genommenen Tage kommen zurück in den Wochenplan.
+- **Versehentlich abgeschlossen?** Im Einsatzfenster steht an der Stelle von „✓ Projekt abschließen“ dann **Projekt wieder öffnen**; denselben Knopf gibt es auf der Projektseite: der Status geht zurück, *Ende (tatsächlich)* wird geleert und die aus der Planung genommenen Tage kommen zurück in den Wochenplan.
 - **Auf der Projektseite:** Status-Auswahl auf *Abgeschlossen*. Ist „Ende (tatsächlich)“ leer, nimmt BauCrew den letzten Einsatztag (spätestens heute).
 
 Danach bitte den **Auftragswert** prüfen — sonst fehlt das Projekt im Umsatz. Die Berichte erinnern Sie daran (Kapitel 14, „Datenqualität“). Später Status auf *Abgerechnet* und *Bezahlt* setzen.

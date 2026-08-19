@@ -516,7 +516,7 @@
     "vehicleConflict": "{name}: am {date} mehrfach eingeplant",
     "vehicleUnavailable": "{name}: am {date} eingeplant, aber {status}",
     "noEntries": "Keine Einsätze in dieser Woche.",
-    "dragHint": "Einsätze können per Drag & Drop auf einen anderen Tag verschoben werden — mit gedrückter Strg-Taste (⌘ am Mac) wird stattdessen eine Kopie auf diesem Tag angelegt.",
+    "dragHint": "Einsätze per Drag & Drop auf einen anderen Tag verschieben.",
     "weatherTitle": "Wetter-Hinweise",
     "weatherWarning": "{project}: {probability} % Regenwahrscheinlichkeit am {date} in {city}",
     "endTime": "Ende",
@@ -552,7 +552,8 @@
     "removeLaterDays": "Die {count} weiteren geplanten Tage aus der Planung nehmen",
     "removeLaterDaysHint": "Team und Fahrzeuge sind an diesen Tagen wieder frei. Beim Wiedereröffnen des Projekts kommen die Tage zurück.",
     "reopenProject": "Projekt wieder öffnen",
-    "reopenProjectConfirm": "„{project}“ wieder öffnen? Der Status geht zurück, das tatsächliche Ende wird geleert und aus der Planung genommene Tage kommen zurück."
+    "reopenProjectConfirm": "„{project}“ wieder öffnen? Der Status geht zurück, das tatsächliche Ende wird geleert und aus der Planung genommene Tage kommen zurück.",
+    "dragCopyHint": "gedrückt halten und ziehen = Kopie auf dem neuen Tag (⌘ am Mac)."
   },
   "warehouse": {
     "title": "Lager",

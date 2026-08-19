@@ -3,8 +3,9 @@
 import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
+import { RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { completeProjectFromEntry, countLaterDays } from './actions'
+import { completeProjectFromEntry, countLaterDays, reopenProject } from './actions'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { MultiCombobox } from '@/components/multi-combobox'
@@ -75,12 +76,14 @@ export function EntryDialog({
   const [laterDays, setLaterDays] = useState(0)
   const [removeLater, setRemoveLater] = useState(true)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmReopen, setConfirmReopen] = useState(false)
   const tProjects = useTranslations('projects')
   const tSheet = useTranslations('sheet')
   const tVehicles = useTranslations('vehicles')
   const tEmployees = useTranslations('employees')
   const isEdit = dialog.mode === 'edit'
   const entry = isEdit ? dialog.entry : null
+  const isCompleted = ['COMPLETED', 'INVOICED', 'PAID'].includes(entry?.projectStatus ?? '')
 
   // Lock background scrolling while the dialog is open.
   useEffect(() => {
@@ -457,7 +460,7 @@ export function EntryDialog({
               </button>
             </div>
             <div className="flex items-center gap-2">
-              {isEdit && (
+              {isEdit && !isCompleted && (
                 <button
                   type="button"
                   disabled={pending || completing}
@@ -470,6 +473,17 @@ export function EntryDialog({
                   className="rounded-md border border-emerald-600/40 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-60 dark:text-emerald-400"
                 >
                   ✓ {t('completeProject')}
+                </button>
+              )}
+              {isEdit && isCompleted && (
+                <button
+                  type="button"
+                  disabled={pending || completing}
+                  onClick={() => setConfirmReopen(true)}
+                  className={btn.outline}
+                >
+                  <RotateCcw className="h-4 w-4" aria-hidden />
+                  {t('reopenProject')}
                 </button>
               )}
               {isEdit && onDelete && (
@@ -527,6 +541,26 @@ export function EntryDialog({
             router.refresh()
             onClose()
           }
+        }}
+      />
+
+      <AlertDialog
+        open={confirmReopen}
+        title={t('reopenProject')}
+        description={t('reopenProjectConfirm', {
+          project: projects.find((p) => p.value === projectId)?.label ?? '',
+        })}
+        confirmLabel={t('reopenProject')}
+        cancelLabel={tc('cancel')}
+        pending={completing}
+        onCancel={() => setConfirmReopen(false)}
+        onConfirm={async () => {
+          setConfirmReopen(false)
+          setCompleting(true)
+          await reopenProject(projectId)
+          setCompleting(false)
+          router.refresh()
+          onClose()
         }}
       />
 
