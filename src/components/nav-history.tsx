@@ -7,12 +7,18 @@ const KEY = 'baucrew:nav'
 const EVENT = 'baucrew:nav'
 const MAX = 20
 
+/** Create/edit forms are never a useful "back" target. */
+function isFormPath(path: string): boolean {
+  return /\/(new|edit)$/.test(path)
+}
+
 /** Path (with query) the user was on before the current page, or '' if unknown. */
 export function readPreviousPath(currentPath: string): string {
   try {
     const stack: string[] = JSON.parse(sessionStorage.getItem(KEY) ?? '[]')
     for (let i = stack.length - 1; i >= 0; i--) {
-      if (stack[i].split('?')[0] !== currentPath) return stack[i]
+      const path = stack[i].split('?')[0]
+      if (path !== currentPath && !isFormPath(path)) return stack[i]
     }
   } catch {
     // ignore
