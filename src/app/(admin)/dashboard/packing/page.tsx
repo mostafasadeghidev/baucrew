@@ -16,7 +16,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 /**
  * Dashboard sub page: warehouse preparation for a day — every assignment with
- * its packing list and status, read-only, with links to the kiosk and project.
+ * its packing list and status, read-only, with a link to the project.
  */
 export default async function PackingOverviewPage({
   searchParams,
@@ -111,12 +111,6 @@ export default async function PackingOverviewPage({
             aria-label={tToday('nextDay')}
           >
             →
-          </Link>
-          <Link
-            href={`/today?date=${iso(day)}`}
-            className={`${btn.primarySm} ml-2`}
-          >
-            {t('openWarehouse')}
           </Link>
         </div>
       </div>
