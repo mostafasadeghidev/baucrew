@@ -38,7 +38,7 @@ export default async function VehicleDetailPage({
         select: { project: { select: { id: true, number: true, name: true, status: true } } },
       },
       scheduleEntries: {
-        where: { scheduleEntry: { date: { gte: todayUtc() } } },
+        where: { scheduleEntry: { date: { gte: todayUtc() }, cancelledAt: null } },
         orderBy: { scheduleEntry: { date: 'asc' } },
         take: 14,
         include: {

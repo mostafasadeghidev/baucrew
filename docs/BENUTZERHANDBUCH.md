@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.10 · Stand: 19. August 2026*
+*Version 1.11 · Stand: 19. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -255,6 +255,8 @@ Zum Schluss **Speichern** → die Projektseite öffnet sich.
 Zwei Wege — beide setzen Status **Abgeschlossen** und tragen **Ende (tatsächlich)** ein:
 
 - **Aus dem Wochenplan (empfohlen):** Karte des letzten Einsatzes anklicken → unten **✓ Projekt abschließen** → bestätigen. Das Datum dieses Einsatzes wird als tatsächliches Ende gespeichert (Kapitel 7.2).
+  Sind **nach diesem Tag noch Tage geplant**, fragt das Fenster, ob diese *aus der Planung genommen* werden sollen (Haken ist voreingestellt): Team und Fahrzeuge sind an diesen Tagen wieder frei, gelöscht wird nichts.
+- **Versehentlich abgeschlossen?** Auf der Projektseite steht bei abgeschlossenen (auch abgerechneten/bezahlten) Projekten der Knopf **Projekt wieder öffnen**: der Status geht zurück, *Ende (tatsächlich)* wird geleert und die aus der Planung genommenen Tage kommen zurück in den Wochenplan.
 - **Auf der Projektseite:** Status-Auswahl auf *Abgeschlossen*. Ist „Ende (tatsächlich)“ leer, nimmt BauCrew den letzten Einsatztag (spätestens heute).
 
 Danach bitte den **Auftragswert** prüfen — sonst fehlt das Projekt im Umsatz. Die Berichte erinnern Sie daran (Kapitel 14, „Datenqualität“). Später Status auf *Abgerechnet* und *Bezahlt* setzen.
@@ -269,6 +271,7 @@ Sie müssen den Status nur noch selten anfassen:
 | Der **erste Einsatztag ist erreicht** (Projekt ist *Geplant*) | Status springt auf **In Ausführung**, **Beginn (tatsächlich)** = dieser Tag |
 | Sie setzen von Hand *In Ausführung* / *Abgeschlossen* … und die tatsächlichen Daten sind leer | Beginn / Ende (tatsächlich) werden aus dem Wochenplan übernommen |
 | **✓ Projekt abschließen** im Einsatzfenster | Status **Abgeschlossen**, Ende (tatsächlich) = Datum des Einsatzes |
+| **Projekt wieder öffnen** auf der Projektseite | Status zurück auf *In Ausführung* (bzw. *Geplant*), Ende (tatsächlich) geleert, entfernte Tage zurück im Plan |
 
 Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Geplant*), überschreibt **nie** Daten, die Sie selbst eingetragen haben, und wird protokolliert. Ein Einsatz im Wochenplan heißt „geplant“, nicht „gewesen“ — fällt ein Tag aus, verschieben oder löschen Sie den Einsatz, dann stimmt auch die Automatik.
 

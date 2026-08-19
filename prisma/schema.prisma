@@ -347,6 +347,10 @@ model ScheduleEntry {
   startTime String? // "07:30" — optional; both empty = all-day
   endTime   String? // "13:00"
   note      String?
+  // Set when the day was taken out of the plan (e.g. the project was completed
+  // earlier). Such entries are hidden everywhere and ignored by conflicts,
+  // reports and packing — but can be restored when the project is reopened.
+  cancelledAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -355,6 +359,7 @@ model ScheduleEntry {
 
   @@unique([projectId, date])
   @@index([date])
+  @@index([cancelledAt])
 }
 
 model ScheduleEntryVehicle {

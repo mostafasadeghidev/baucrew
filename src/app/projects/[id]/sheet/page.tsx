@@ -105,7 +105,7 @@ export default async function ProjectSheetPage({
     const inTeam = project.team.some((m) => m.employeeId === user.employee!.id)
     if (!inTeam) {
       const scheduled = await db.scheduleEntry.count({
-        where: { projectId: project.id, date: { gte: from, lte: to } },
+        where: { projectId: project.id, date: { gte: from, lte: to }, cancelledAt: null },
       })
       if (scheduled === 0) redirect('/my')
     }

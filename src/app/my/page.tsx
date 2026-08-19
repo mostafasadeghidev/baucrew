@@ -34,7 +34,7 @@ export default async function MyAreaPage({
   const [entries, next] = employeeId
     ? await Promise.all([
         db.scheduleEntry.findMany({
-          where: { date: day, employees: { some: { employeeId } } },
+          where: { date: day, cancelledAt: null, employees: { some: { employeeId } } },
           include: {
             project: {
               include: {
@@ -55,6 +55,7 @@ export default async function MyAreaPage({
         db.scheduleEntry.findFirst({
           where: {
             date: { gt: day, lte: addDays(day, 30) },
+            cancelledAt: null,
             employees: { some: { employeeId } },
           },
           include: {

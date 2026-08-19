@@ -548,7 +548,11 @@
     "deleteEntryConfirm": "Really delete this assignment? The project stays.",
     "extendHint": "More days: pick an end date — the following days are added with the same crew, vehicles and times.",
     "extendUntil": "More days until",
-    "plannedDays": "Planned days"
+    "plannedDays": "Planned days",
+    "removeLaterDays": "Take the {count} later planned days out of the schedule",
+    "removeLaterDaysHint": "Crew and vehicles are free again on those days. Reopening the project brings them back.",
+    "reopenProject": "Reopen project",
+    "reopenProjectConfirm": "Reopen \"{project}\"? The status goes back, the actual end date is cleared and cancelled days return to the schedule."
   },
   "warehouse": {
     "title": "Warehouse",

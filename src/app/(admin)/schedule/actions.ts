@@ -90,18 +90,37 @@ export async function createScheduleEntry(input: EntryInput): Promise<EntryResul
   let created = 0
   try {
     if (!isRange) {
-      const entry = await db.scheduleEntry.create({
-        data: {
-          projectId: d.projectId,
-          date: new Date(`${d.date}T00:00:00.000Z`),
-          startTime: d.startTime,
-          endTime: d.endTime,
-          note: d.note,
-          employees: { create: d.employeeIds.map((id) => ({ employeeId: id })) },
-          vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
-        },
-        include: { project: { select: { number: true } } },
+      // A cancelled day for the same project blocks the unique key — reuse it.
+      const cancelled = await db.scheduleEntry.findFirst({
+        where: { projectId: d.projectId, date: new Date(`${d.date}T00:00:00.000Z`), cancelledAt: { not: null } },
+        select: { id: true },
       })
+      const data = {
+        projectId: d.projectId,
+        date: new Date(`${d.date}T00:00:00.000Z`),
+        startTime: d.startTime,
+        endTime: d.endTime,
+        note: d.note,
+        cancelledAt: null,
+      }
+      const entry = cancelled
+        ? await db.scheduleEntry.update({
+            where: { id: cancelled.id },
+            data: {
+              ...data,
+              employees: { deleteMany: {}, create: d.employeeIds.map((id) => ({ employeeId: id })) },
+              vehicles: { deleteMany: {}, create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
+            },
+            include: { project: { select: { number: true } } },
+          })
+        : await db.scheduleEntry.create({
+            data: {
+              ...data,
+              employees: { create: d.employeeIds.map((id) => ({ employeeId: id })) },
+              vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
+            },
+            include: { project: { select: { number: true } } },
+          })
       created = 1
       await audit({
         userId: user.id,
@@ -114,28 +133,53 @@ export async function createScheduleEntry(input: EntryInput): Promise<EntryResul
       // Range: one entry per day; days that already have an entry for this
       // project are left untouched (unique projectId+date).
       const existing = await db.scheduleEntry.findMany({
-        where: { projectId: d.projectId, date: { in: range.dates.map((x) => new Date(`${x}T00:00:00.000Z`)) } },
-        select: { date: true },
+        where: {
+          projectId: d.projectId,
+          date: { in: range.dates.map((x) => new Date(`${x}T00:00:00.000Z`)) },
+        },
+        select: { id: true, date: true, cancelledAt: true },
       })
-      const taken = new Set(existing.map((e) => e.date.toISOString().slice(0, 10)))
-      const todo = range.dates.filter((x) => !taken.has(x))
+      const active = new Set(
+        existing.filter((e) => e.cancelledAt === null).map((e) => e.date.toISOString().slice(0, 10))
+      )
+      const revivable = new Map(
+        existing
+          .filter((e) => e.cancelledAt !== null)
+          .map((e) => [e.date.toISOString().slice(0, 10), e.id] as const)
+      )
+      const todo = range.dates.filter((x) => !active.has(x))
       if (todo.length === 0) return { error: 'duplicateEntry' }
       const project = await db.project.findUnique({ where: { id: d.projectId }, select: { number: true } })
       const ids = await db.$transaction(
-        todo.map((x) =>
-          db.scheduleEntry.create({
-            data: {
-              projectId: d.projectId,
-              date: new Date(`${x}T00:00:00.000Z`),
-              startTime: d.startTime,
-              endTime: d.endTime,
-              note: d.note,
-              employees: { create: d.employeeIds.map((id) => ({ employeeId: id })) },
-              vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
-            },
-            select: { id: true },
-          })
-        )
+        todo.map((x) => {
+          const base = {
+            startTime: d.startTime,
+            endTime: d.endTime,
+            note: d.note,
+            cancelledAt: null,
+          }
+          const revive = revivable.get(x)
+          return revive
+            ? db.scheduleEntry.update({
+                where: { id: revive },
+                data: {
+                  ...base,
+                  employees: { deleteMany: {}, create: d.employeeIds.map((id) => ({ employeeId: id })) },
+                  vehicles: { deleteMany: {}, create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
+                },
+                select: { id: true },
+              })
+            : db.scheduleEntry.create({
+                data: {
+                  ...base,
+                  projectId: d.projectId,
+                  date: new Date(`${x}T00:00:00.000Z`),
+                  employees: { create: d.employeeIds.map((id) => ({ employeeId: id })) },
+                  vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
+                },
+                select: { id: true },
+              })
+        })
       )
       created = ids.length
       await audit({
@@ -161,7 +205,11 @@ export async function createScheduleEntry(input: EntryInput): Promise<EntryResul
  * sets actualEnd to this entry's date (when empty) and actualStart to the
  * first scheduled day (when empty). Projects already invoiced/paid are left alone.
  */
-export async function completeProjectFromEntry(entryId: string): Promise<{ error?: string }> {
+export async function completeProjectFromEntry(
+  entryId: string,
+  /** Take the days planned after this one out of the schedule (reversible). */
+  removeLaterDays = true
+): Promise<{ error?: string; removed?: number }> {
   const user = await requireManagement()
   const entry = await db.scheduleEntry.findUnique({
     where: { id: entryId },
@@ -189,9 +237,76 @@ export async function completeProjectFromEntry(entryId: string): Promise<{ error
     oldValue: p.status,
     newValue: `COMPLETED (aus Einsatz ${entry.date.toISOString().slice(0, 10)})`,
   })
+
+  // The work is done — days planned after that are cancelled (soft), so the
+  // crew and vehicles are free again. `reopenProject` brings them back.
+  let removed = 0
+  if (removeLaterDays) {
+    const result = await db.scheduleEntry.updateMany({
+      where: { projectId: p.id, date: { gt: entry.date }, cancelledAt: null },
+      data: { cancelledAt: new Date() },
+    })
+    removed = result.count
+    if (removed > 0) {
+      await audit({
+        userId: user.id,
+        action: 'schedule.cancelLaterDays',
+        entity: 'Project',
+        entityId: p.id,
+        newValue: `${removed} × nach ${entry.date.toISOString().slice(0, 10)}`,
+      })
+    }
+  }
+
   revalidateBoard(p.id)
   revalidatePath('/projects')
-  return {}
+  return { removed }
+}
+
+/**
+ * Undo "project completed": the project goes back to in progress, the actual
+ * end date is cleared and the days that were cancelled together with the
+ * completion are put back into the plan.
+ */
+export async function reopenProject(projectId: string): Promise<{ error?: string; restored?: number }> {
+  const user = await requireManagement()
+  const p = await db.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, number: true, status: true, actualStart: true },
+  })
+  if (!p) return { error: 'saveFailed' }
+
+  const restoredEntries = await db.scheduleEntry.updateMany({
+    where: { projectId, cancelledAt: { not: null } },
+    data: { cancelledAt: null },
+  })
+  const next = p.actualStart ? 'IN_PROGRESS' : 'PLANNED'
+  await db.project.update({
+    where: { id: projectId },
+    data: { status: next, actualEnd: null },
+  })
+  await audit({
+    userId: user.id,
+    action: 'project.reopen',
+    entity: 'Project',
+    entityId: projectId,
+    field: 'status',
+    oldValue: p.status,
+    newValue: `${next} (${restoredEntries.count} Einsätze wiederhergestellt)`,
+  })
+  revalidateBoard(projectId)
+  revalidatePath('/projects')
+  return { restored: restoredEntries.count }
+}
+
+/** How many days after this assignment are still planned (for the confirmation). */
+export async function countLaterDays(entryId: string): Promise<number> {
+  await requireManagement()
+  const entry = await db.scheduleEntry.findUnique({ where: { id: entryId }, select: { projectId: true, date: true } })
+  if (!entry) return 0
+  return db.scheduleEntry.count({
+    where: { projectId: entry.projectId, date: { gt: entry.date }, cancelledAt: null },
+  })
 }
 
 export async function updateScheduleEntry(id: string, input: EntryInput): Promise<EntryResult> {
@@ -355,7 +470,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
   })
   if (!project) return null
   const scheduled = await db.scheduleEntry.findMany({
-    where: { projectId },
+    where: { projectId, cancelledAt: null },
     select: { date: true },
     orderBy: { date: 'asc' },
     take: 60,

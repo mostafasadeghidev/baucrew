@@ -58,7 +58,7 @@ export default async function SchedulePage({
     const gridEnd = addDays(mondayOf(addDays(addMonths(start, 1), -1)), 7)
     const [monthEntries, projects, employees, vehicles] = await Promise.all([
       db.scheduleEntry.findMany({
-        where: { date: { gte: gridStart, lt: gridEnd } },
+        where: { date: { gte: gridStart, lt: gridEnd }, cancelledAt: null },
         include: ENTRY_INCLUDE,
         orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
       }),
@@ -133,7 +133,7 @@ export default async function SchedulePage({
 
   const [entries, projects, employees, vehicles] = await Promise.all([
     db.scheduleEntry.findMany({
-      where: { date: { gte: monday, lt: weekEnd } },
+      where: { date: { gte: monday, lt: weekEnd }, cancelledAt: null },
       include: ENTRY_INCLUDE,
       orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
     }),

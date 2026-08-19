@@ -16,9 +16,13 @@ function todayUtc(): Date {
 /** First scheduled day and last scheduled day not after today for a project. */
 export async function scheduleBounds(projectId: string): Promise<{ first: Date | null; lastUpToToday: Date | null }> {
   const [first, last] = await Promise.all([
-    db.scheduleEntry.findFirst({ where: { projectId }, orderBy: { date: 'asc' }, select: { date: true } }),
     db.scheduleEntry.findFirst({
-      where: { projectId, date: { lte: todayUtc() } },
+      where: { projectId, cancelledAt: null },
+      orderBy: { date: 'asc' },
+      select: { date: true },
+    }),
+    db.scheduleEntry.findFirst({
+      where: { projectId, cancelledAt: null, date: { lte: todayUtc() } },
       orderBy: { date: 'desc' },
       select: { date: true },
     }),
@@ -86,7 +90,7 @@ export async function syncProjectsInProgress(force = false): Promise<number> {
     SET status = 'IN_PROGRESS',
         "actualStart" = COALESCE(p."actualStart", s.first),
         "updatedAt" = now()
-    FROM (SELECT "projectId", MIN(date) AS first FROM "ScheduleEntry" GROUP BY "projectId") s
+    FROM (SELECT "projectId", MIN(date) AS first FROM "ScheduleEntry" WHERE "cancelledAt" IS NULL GROUP BY "projectId") s
     WHERE s."projectId" = p.id
       AND p.status = 'PLANNED'
       AND s.first <= ${today}

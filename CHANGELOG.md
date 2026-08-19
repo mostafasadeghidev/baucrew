@@ -3,6 +3,15 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.11.0] — 2026-08-19
+
+### Added
+- **Completing a project frees the following days:** when a project is finished earlier than planned, the confirmation asks whether the later planned days should be taken out of the schedule (ticked by default). Crew and vehicles are free again on those days — nothing is deleted, the days are only set aside.
+- **"Projekt wieder öffnen"** on the project page (completed / invoiced / paid): the status goes back, the actual end date is cleared and the days that were set aside come back into the schedule.
+
+### Changed
+- Days taken out of the plan are invisible everywhere (week, month, overview, dashboard, warehouse screen, "Mein Bereich", reports, conflicts, status automation) and planning the same day again simply reuses that day.
+
 ## [1.10.1] — 2026-08-19
 
 ### Changed
@@ -215,6 +224,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.11.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.0
 [1.10.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.1
 [1.10.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.0
 [1.9.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.9.0

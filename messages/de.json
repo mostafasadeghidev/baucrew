@@ -548,7 +548,11 @@
     "deleteEntryConfirm": "Diesen Einsatz wirklich löschen? Das Projekt bleibt bestehen.",
     "extendHint": "Weitere Tage: einfach ein Bis-Datum wählen — die folgenden Tage werden mit demselben Team, denselben Fahrzeugen und Zeiten ergänzt.",
     "extendUntil": "Weitere Tage bis",
-    "plannedDays": "Geplante Tage"
+    "plannedDays": "Geplante Tage",
+    "removeLaterDays": "Die {count} weiteren geplanten Tage aus der Planung nehmen",
+    "removeLaterDaysHint": "Team und Fahrzeuge sind an diesen Tagen wieder frei. Beim Wiedereröffnen des Projekts kommen die Tage zurück.",
+    "reopenProject": "Projekt wieder öffnen",
+    "reopenProjectConfirm": "„{project}“ wieder öffnen? Der Status geht zurück, das tatsächliche Ende wird geleert und aus der Planung genommene Tage kommen zurück."
   },
   "warehouse": {
     "title": "Lager",

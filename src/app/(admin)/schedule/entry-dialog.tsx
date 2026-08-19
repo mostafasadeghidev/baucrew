@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { completeProjectFromEntry } from './actions'
+import { completeProjectFromEntry, countLaterDays } from './actions'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { MultiCombobox } from '@/components/multi-combobox'
@@ -71,6 +71,9 @@ export function EntryDialog({
   const locale = useLocale()
   const [completing, setCompleting] = useState(false)
   const [confirmComplete, setConfirmComplete] = useState(false)
+  // Days of this project planned after the one being completed.
+  const [laterDays, setLaterDays] = useState(0)
+  const [removeLater, setRemoveLater] = useState(true)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const tProjects = useTranslations('projects')
   const tSheet = useTranslations('sheet')
@@ -458,7 +461,12 @@ export function EntryDialog({
                 <button
                   type="button"
                   disabled={pending || completing}
-                  onClick={() => setConfirmComplete(true)}
+                  onClick={() => {
+                    setLaterDays(0)
+                    setRemoveLater(true)
+                    setConfirmComplete(true)
+                    if (entry) void countLaterDays(entry.id).then(setLaterDays)
+                  }}
                   className="rounded-md border border-emerald-600/40 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-500/10 disabled:opacity-60 dark:text-emerald-400"
                 >
                   ✓ {t('completeProject')}
@@ -482,10 +490,30 @@ export function EntryDialog({
       <AlertDialog
         open={confirmComplete}
         title={t('completeProject')}
-        description={t('completeProjectConfirm', {
-          project: projects.find((p) => p.value === projectId)?.label ?? '',
-          date: date ? new Date(`${date}T00:00:00.000Z`).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '',
-        })}
+        description={
+          <>
+            <p>
+              {t('completeProjectConfirm', {
+                project: projects.find((p) => p.value === projectId)?.label ?? '',
+                date: date ? new Date(`${date}T00:00:00.000Z`).toLocaleDateString('de-DE', { timeZone: 'UTC' }) : '',
+              })}
+            </p>
+            {laterDays > 0 && (
+              <label className="mt-3 flex items-start gap-2 rounded-md border border-border bg-subtle p-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={removeLater}
+                  onChange={(e) => setRemoveLater(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+                />
+                <span>
+                  {t('removeLaterDays', { count: laterDays })}
+                  <span className="mt-0.5 block text-xs text-muted">{t('removeLaterDaysHint')}</span>
+                </span>
+              </label>
+            )}
+          </>
+        }
         confirmLabel={t('completeProject')}
         cancelLabel={tc('cancel')}
         pending={completing}
@@ -493,7 +521,7 @@ export function EntryDialog({
         onConfirm={async () => {
           setConfirmComplete(false)
           setCompleting(true)
-          const res = await completeProjectFromEntry(entry!.id)
+          const res = await completeProjectFromEntry(entry!.id, removeLater)
           setCompleting(false)
           if (!res.error) {
             router.refresh()

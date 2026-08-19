@@ -112,7 +112,7 @@ export async function getYearUsage(
   const { start, end } = periodRange(year, range)
 
   const entries = await db.scheduleEntry.findMany({
-    where: { date: { gte: start, lt: end } },
+    where: { date: { gte: start, lt: end }, cancelledAt: null },
     select: {
       vehicles: { select: { vehicle: { select: { id: true, name: true } } } },
       employees: {
@@ -339,7 +339,7 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
   const in14 = new Date(todayUtc.getTime() + 14 * 86_400_000)
   const [inProgressNoSchedule, finishedNoPrice, noCity, missing, cityCandidates, demand] = await Promise.all([
     db.project.findMany({
-      where: { status: 'IN_PROGRESS', scheduleEntries: { none: { date: { gte: todayUtc, lte: in14 } } } },
+      where: { status: 'IN_PROGRESS', scheduleEntries: { none: { date: { gte: todayUtc, lte: in14 }, cancelledAt: null } } },
       select: { id: true, number: true, name: true },
       orderBy: { number: 'asc' },
     }),
