@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { STATUS_STYLES } from '@/components/status-badge'
 import { QuickStatus } from '@/components/quick-status'
+import { ReopenButton } from './reopen-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { DeleteButton } from '@/components/delete-button'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -42,6 +43,7 @@ export default async function ProjectDetailPage({
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
       items: { include: { catalogItem: true }, orderBy: { catalogItem: { name: 'asc' } } },
       scheduleEntries: {
+        where: { cancelledAt: null },
         orderBy: { date: 'asc' },
         include: {
           vehicles: { include: { vehicle: true } },
@@ -115,7 +117,10 @@ export default async function ProjectDetailPage({
             {address && <> · {address}</>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
+            <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
+          )}
           <Link
             href={`/projects/${project.id}/sheet`}
             className={btn.outlineSm}

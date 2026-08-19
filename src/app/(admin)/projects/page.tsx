@@ -41,7 +41,7 @@ export default async function ProjectsPage({
   const showPrice = canViewFinancials(user)
   const prepWhere: Prisma.ProjectWhereInput = {
     status: { in: prepTab.statuses as ProjectStatus[] },
-    ...(prepTab.unscheduledOnly ? { scheduleEntries: { none: {} } } : {}),
+    ...(prepTab.unscheduledOnly ? { scheduleEntries: { none: { cancelledAt: null } } } : {}),
   }
 
   const statusWhere: Prisma.ProjectWhereInput = statusFilter ? { status: statusFilter } : prepFilter ? prepWhere : {}

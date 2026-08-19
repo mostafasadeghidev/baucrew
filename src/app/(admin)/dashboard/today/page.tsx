@@ -32,7 +32,7 @@ export default async function TodayOverviewPage({
   const next = addDays(day, 1)
 
   const entries = await db.scheduleEntry.findMany({
-    where: { date: { gte: day, lt: next } },
+    where: { date: { gte: day, lt: next }, cancelledAt: null },
     include: {
       project: { select: { id: true, number: true, name: true, city: true, customer: { select: { name: true } } } },
       employees: { include: { employee: { select: { id: true, firstName: true, lastName: true } } } },

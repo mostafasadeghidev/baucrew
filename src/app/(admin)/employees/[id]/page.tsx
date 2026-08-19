@@ -42,7 +42,7 @@ export default async function EmployeeDetailPage({
         orderBy: { createdAt: 'desc' },
       },
       scheduleEntries: {
-        where: { scheduleEntry: { date: { gte: todayUtc() } } },
+        where: { scheduleEntry: { date: { gte: todayUtc() }, cancelledAt: null } },
         include: {
           scheduleEntry: {
             include: {

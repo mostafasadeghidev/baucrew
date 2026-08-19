@@ -41,7 +41,7 @@ export default async function TodayBoardPage({
   const isToday = iso(day) === iso(todayUtc())
 
   const entries = await db.scheduleEntry.findMany({
-    where: { date: day },
+    where: { date: day, cancelledAt: null },
     include: {
       project: {
         select: {

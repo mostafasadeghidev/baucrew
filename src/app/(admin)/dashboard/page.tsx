@@ -29,7 +29,7 @@ export default async function DashboardPage() {
     db.project.count({ where: { status: 'PLANNED' } }),
     db.customer.count(),
     db.scheduleEntry.findMany({
-      where: { date: { gte: today, lt: tomorrow } },
+      where: { date: { gte: today, lt: tomorrow }, cancelledAt: null },
       include: {
         project: {
           include: {
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
       orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
     }),
     db.scheduleEntry.findMany({
-      where: { date: { gte: monday, lt: weekEnd } },
+      where: { date: { gte: monday, lt: weekEnd }, cancelledAt: null },
       include: {
         project: {
           select: {
