@@ -68,6 +68,7 @@ model Employee {
   scheduleEntries    ScheduleEntryEmployee[]
   managedProjects    Project[]               @relation("ProjectManager")
   templateMemberships TemplateEmployee[]
+  checkedItems        ProjectChecklistItem[] @relation("ChecklistCheckedBy")
   managedTemplates    ProjectTemplate[]      @relation("TemplateManager")
 }
 
@@ -168,6 +169,7 @@ model Project {
   scheduleEntries ScheduleEntry[]
   notes           Note[]
   documents       Document[]
+  checklists      ProjectChecklist[]
 
   @@index([customerId])
   @@index([status])
@@ -330,6 +332,65 @@ model TemplateItem {
   quantity      Decimal?        @db.Decimal(12, 2)
 
   @@unique([templateId, catalogItemId])
+}
+
+// ─────────────────────────────────────────────
+// Site checklists (Baustellen-Checklisten)
+// ─────────────────────────────────────────────
+
+// Reusable checklist, e.g. "Übernahme vom Vorgewerk".
+model ChecklistTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items ChecklistTemplateItem[]
+}
+
+model ChecklistTemplateItem {
+  id         String            @id @default(cuid())
+  templateId String
+  template   ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  text       String
+  sortOrder  Int               @default(0)
+
+  @@index([templateId])
+}
+
+// A checklist attached to one project — ticked off on site.
+model ProjectChecklist {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  templateId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  items ProjectChecklistItem[]
+
+  @@index([projectId])
+}
+
+model ProjectChecklistItem {
+  id          String           @id @default(cuid())
+  checklistId String
+  checklist   ProjectChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  text        String
+  sortOrder   Int              @default(0)
+  /** null = open, true = in order, false = problem (note says what). */
+  ok          Boolean?
+  note        String?
+  checkedAt   DateTime?
+  checkedById String?
+  checkedBy   Employee?        @relation("ChecklistCheckedBy", fields: [checkedById], references: [id], onDelete: SetNull)
+
+  @@index([checklistId])
+  @@index([checkedById])
 }
 
 // ─────────────────────────────────────────────

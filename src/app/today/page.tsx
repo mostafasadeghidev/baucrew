@@ -8,6 +8,8 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { AutoRefresh } from './auto-refresh'
 import { PackingList, type PackingItem } from './packing-list'
 import { btn } from '@/components/ui/button'
+import QRCode from 'qrcode'
+import { headers } from 'next/headers'
 
 function iso(d: Date): string {
   return d.toISOString().slice(0, 10)
@@ -40,6 +42,14 @@ export default async function TodayBoardPage({
   prevDay.setUTCDate(prevDay.getUTCDate() - 1)
   const isToday = iso(day) === iso(todayUtc())
 
+  // QR per assignment: opens the worker's own list for that day on the phone
+  // (through the login page when they are not signed in yet).
+  const headerStore = await headers()
+  const host = headerStore.get('host') ?? 'localhost'
+  const proto = headerStore.get('x-forwarded-proto') ?? 'http'
+  const myUrl = (projectId: string) =>
+    `${proto}://${host}/login?next=${encodeURIComponent(`/my?date=${iso(day)}#p-${projectId}`)}`
+
   const entries = await db.scheduleEntry.findMany({
     where: { date: day, cancelledAt: null },
     include: {
@@ -63,6 +73,16 @@ export default async function TodayBoardPage({
     },
     orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
   })
+
+  // One QR per project: opens that day's list on the worker's phone.
+  const qrByProject = new Map<string, string>(
+    await Promise.all(
+      [...new Set(entries.map((e) => e.project.id))].map(
+        async (projectId) =>
+          [projectId, await QRCode.toDataURL(myUrl(projectId), { margin: 0, width: 160 })] as [string, string]
+      )
+    )
+  )
 
   const dateLabel = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
     weekday: 'long',
@@ -179,6 +199,17 @@ export default async function TodayBoardPage({
                       </svg>
                       {tSheet('title')}
                     </Link>
+                  </div>
+                  <div className="mt-2 flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={qrByProject.get(entry.project.id) ?? ''}
+                      alt=""
+                      width={72}
+                      height={72}
+                      className="h-18 w-18 rounded bg-white p-1"
+                    />
+                    <p className="text-base text-muted">{t('qrHint')}</p>
                   </div>
                   <p>
                     <span className="text-muted">{t('customer')}: </span>

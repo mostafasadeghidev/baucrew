@@ -120,7 +120,9 @@
     "items": "Tools and materials",
     "noItems": "No list assigned.",
     "packedOf": "{done} of {total} packed",
-    "noEmployeeLinked": "No employee is linked to your account — please contact the office."
+    "noEmployeeLinked": "No employee is linked to your account — please contact the office.",
+    "packingHint": "Tap to switch: required → packed → missing.",
+    "packingNotAllowed": "Not allowed — only your own projects."
   },
   "customers": {
     "title": "Customers",
@@ -451,7 +453,14 @@
     "qualityAllGood": "Nothing to report.",
     "print": "Print / PDF",
     "qCityNotFound": "City cannot be located — no weather warning possible",
-    "qStockShort": "Stock lower than demand (open projects, not yet packed) — stock / demand"
+    "qStockShort": "Stock lower than demand (open projects, not yet packed) — stock / demand",
+    "tabOffers": "Offers",
+    "kpiOffers": "Offers out",
+    "offersTitle": "Open offers — waiting for confirmation",
+    "offersHint": "All projects with status \"quoted\", oldest first. Net amounts. Flagged after {days} days without an answer.",
+    "offersStale": "{count} overdue",
+    "offersNone": "No open offers.",
+    "offerAge": "Waiting"
   },
   "sheet": {
     "title": "Work order",
@@ -486,7 +495,8 @@
     "customer": "Customer",
     "address": "Address",
     "team": "Team",
-    "start": "Start"
+    "start": "Start",
+    "qrHint": "Scan: tick the list on your phone"
   },
   "schedule": {
     "title": "Scheduling",
@@ -774,5 +784,28 @@
       "active": "Active",
       "role": "Role"
     }
+  },
+  "checklists": {
+    "title": "Checklists",
+    "hint": "Tick on site — who and when is stored with it. A problem can carry a short note.",
+    "none": "No checklist yet. Add one from a template or create a blank one.",
+    "add": "Add checklist",
+    "template": "Template",
+    "blank": "Blank list",
+    "namePlaceholder": "Checklist name",
+    "progress": "{done} of {total} done",
+    "problems": "{count} problem(s)",
+    "empty": "No lines yet.",
+    "addItem": "Add line",
+    "addItemPlaceholder": "New line …",
+    "notePlaceholder": "What is missing? Short note …",
+    "checkedBy": "{name} · {date}",
+    "notAllowed": "Only possible on your own projects.",
+    "templatesTitle": "Checklist templates",
+    "templatesHint": "Reusable lists (e.g. \"handover from previous trade\"). Add them to a project from the template.",
+    "templateName": "Template name",
+    "templateItems": "Lines (one per row)",
+    "templateAdd": "Create template",
+    "templateNone": "No templates yet."
   }
 }

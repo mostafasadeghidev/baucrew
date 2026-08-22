@@ -5,12 +5,13 @@ import { useTranslations } from 'next-intl'
 import { login, type LoginState } from './actions'
 import { btn } from '@/components/ui/button'
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const t = useTranslations('auth')
   const [state, formAction, pending] = useActionState<LoginState, FormData>(login, {})
 
   return (
     <form action={formAction} className="mt-6 space-y-4">
+      {next && <input type="hidden" name="next" value={next} />}
       <div>
         <label htmlFor="username" className="block text-sm font-medium">
           {t('username')}

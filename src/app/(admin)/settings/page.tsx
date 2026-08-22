@@ -26,6 +26,7 @@ import { btn } from "@/components/ui/button";
 import { OptionListManager } from "./option-list-manager";
 import { getOptionLists } from "@/lib/option-lists-db";
 import { BUILT_IN, SUGGESTED } from "@/lib/option-lists";
+import { ChecklistTemplates } from "./checklist-templates";
 
 const inputClass =
   "block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
@@ -40,12 +41,13 @@ export default async function SettingsPage({
   const tab = ["accounts", "categories", "data"].includes(tabParam ?? "")
     ? (tabParam as string)
     : "";
-  const [t, tNav, tRoles, tc, tImport, tStatus, tProjects] = await Promise.all([
+  const [t, tNav, tRoles, tc, tImport, tChecklists, tStatus, tProjects] = await Promise.all([
     getTranslations("settings"),
     getTranslations("nav"),
     getTranslations("roles"),
     getTranslations("common"),
     getTranslations("importTrello"),
+    getTranslations("checklists"),
     getTranslations("status"),
     getTranslations("projects"),
   ]);
@@ -61,10 +63,14 @@ export default async function SettingsPage({
     getBranding(),
   ]);
 
-  const [rainThreshold, prepTab, lists] = await Promise.all([
+  const [rainThreshold, prepTab, lists, checklistTemplates] = await Promise.all([
     getRainThreshold(),
     getPrepTabConfig(),
     getOptionLists(),
+    db.checklistTemplate.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: { items: { orderBy: { sortOrder: "asc" } } },
+    }),
   ]);
   const systemUsers = users.filter((u) => !u.employee);
   const privileged = users.filter(
@@ -430,6 +436,20 @@ export default async function SettingsPage({
               entries={lists.itemKinds}
               suggestions={SUGGESTED.itemKinds}
               builtIn={BUILT_IN.itemKinds.map((e) => e.value)}
+            />
+          </Card>
+
+          <Card
+            title={tChecklists("templatesTitle")}
+            description={tChecklists("templatesHint")}
+          >
+            <ChecklistTemplates
+              templates={checklistTemplates.map((tpl) => ({
+                id: tpl.id,
+                name: tpl.name,
+                active: tpl.active,
+                items: tpl.items.map((i) => i.text),
+              }))}
             />
           </Card>
 

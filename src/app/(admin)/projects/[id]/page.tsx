@@ -13,6 +13,7 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { deleteProject, setProjectStatus } from '../actions'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
 import { PlanEntryButton } from './plan-entry-button'
+import { ChecklistSection } from './checklist-section'
 import { btn } from '@/components/ui/button'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
@@ -24,11 +25,12 @@ export default async function ProjectDetailPage({
 }) {
   const user = await requireManagement()
   const { id } = await params
-  const [t, tc, tSheet, tStatus, locale, lists] = await Promise.all([
+  const [t, tc, tSheet, tStatus, tChecklists, locale, lists] = await Promise.all([
     getTranslations('projects'),
     getTranslations('common'),
     getTranslations('sheet'),
     getTranslations('status'),
+    getTranslations('checklists'),
     getLocale(),
     getOptionLists(),
   ])
@@ -42,6 +44,15 @@ export default async function ProjectDetailPage({
       workCategories: { include: { workCategory: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
       items: { include: { catalogItem: true }, orderBy: { catalogItem: { name: 'asc' } } },
+      checklists: {
+        orderBy: { createdAt: 'asc' },
+        include: {
+          items: {
+            orderBy: { sortOrder: 'asc' },
+            include: { checkedBy: { select: { firstName: true, lastName: true } } },
+          },
+        },
+      },
       scheduleEntries: {
         where: { cancelledAt: null },
         orderBy: { date: 'asc' },
@@ -54,9 +65,14 @@ export default async function ProjectDetailPage({
   })
   if (!project) notFound()
 
-  const [allEmployees, allVehicles] = await Promise.all([
+  const [allEmployees, allVehicles, checklistTemplates] = await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
     db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    db.checklistTemplate.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true },
+    }),
   ])
   const assignedItemIds = new Set(project.items.map((i) => i.catalogItemId))
   const catalogOptions = (
@@ -252,6 +268,32 @@ export default async function ProjectDetailPage({
             <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
           </div>
           <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} />
+        </section>
+
+        {/* Site checklists — ticked off on site, saved with who and when */}
+        <section className="rounded-lg border border-border bg-surface shadow-sm">
+          <div className="border-b border-border px-5 py-3">
+            <h2 className="text-sm font-semibold">{tChecklists('title')}</h2>
+            <p className="mt-0.5 text-xs text-muted">{tChecklists('hint')}</p>
+          </div>
+          <div className="p-5">
+            <ChecklistSection
+              projectId={project.id}
+              templates={checklistTemplates}
+              checklists={project.checklists.map((c) => ({
+                id: c.id,
+                name: c.name,
+                items: c.items.map((i) => ({
+                  id: i.id,
+                  text: i.text,
+                  ok: i.ok,
+                  note: i.note,
+                  checkedBy: i.checkedBy ? `${i.checkedBy.firstName} ${i.checkedBy.lastName}`.trim() : null,
+                  checkedAt: i.checkedAt ? formatDate(i.checkedAt, locale) : null,
+                })),
+              }))}
+            />
+          </div>
         </section>
 
         {/* Schedule (read-only until Phase 5) */}

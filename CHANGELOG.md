@@ -3,6 +3,15 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.13.0] — 2026-08-23
+
+Three items from the customer backlog (meetings 1 + 2).
+
+### Added
+- **Site checklists** (M22): reusable templates in Settings → Arbeitsbereiche ("Übernahme vom Vorgewerk" …), added to a project from a template or blank, ticked off on the phone: open → in order → problem. A problem takes a short note, and every tick stores **who** and **when**. Visible on the project page and in "Mein Bereich"; the crew may add a line on site.
+- **Packing list on the worker's phone** (item 30): the tools/materials in "Mein Bereich" are now big tap targets (Benötigt → Gepackt → Fehlt) instead of a read-only list. Employees may only tick projects they are on the crew of or scheduled for; the warehouse screen shows a **QR code per assignment** that opens exactly that day's list on the phone (through the login, which now returns to the scanned page).
+- **Open offers** (M23): the order book KPI splits into **Angebote offen** · Beauftragt · In Ausführung · Geplant, and a new report tab **Angebote** lists every offer waiting for confirmation — oldest first, with the days it has been waiting (flagged from 21 days) and the cumulated net volume.
+
 ## [1.12.0] — 2026-08-19
 
 ### Changed
@@ -256,6 +265,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.13.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.13.0
 [1.12.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.12.0
 [1.11.4]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.4
 [1.11.3]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.3

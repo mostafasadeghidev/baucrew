@@ -120,7 +120,9 @@
     "items": "Werkzeug und Material",
     "noItems": "Keine Liste hinterlegt.",
     "packedOf": "{done} von {total} gepackt",
-    "noEmployeeLinked": "Ihrem Konto ist kein Mitarbeiter zugeordnet — bitte wenden Sie sich an die Verwaltung."
+    "noEmployeeLinked": "Ihrem Konto ist kein Mitarbeiter zugeordnet — bitte wenden Sie sich an die Verwaltung.",
+    "packingHint": "Tippen wechselt: Benötigt → Gepackt → Fehlt.",
+    "packingNotAllowed": "Dafür fehlt die Berechtigung — nur eigene Projekte."
   },
   "customers": {
     "title": "Kunden",
@@ -451,7 +453,14 @@
     "qualityAllGood": "Keine Auffälligkeiten.",
     "print": "Drucken / PDF",
     "qCityNotFound": "Ort nicht auffindbar — keine Wetterwarnung möglich",
-    "qStockShort": "Lagerbestand kleiner als Bedarf (offene Projekte, noch nicht gepackt) — Bestand / Bedarf"
+    "qStockShort": "Lagerbestand kleiner als Bedarf (offene Projekte, noch nicht gepackt) — Bestand / Bedarf",
+    "tabOffers": "Angebote",
+    "kpiOffers": "Angebote offen",
+    "offersTitle": "Offene Angebote — warten auf Bestätigung",
+    "offersHint": "Alle Projekte im Status „Angebot erstellt“, ältestes zuerst. Beträge netto. Ab {days} Tagen ohne Antwort markiert.",
+    "offersStale": "{count} überfällig",
+    "offersNone": "Keine offenen Angebote.",
+    "offerAge": "Offen seit"
   },
   "sheet": {
     "title": "Arbeitsauftrag",
@@ -486,7 +495,8 @@
     "customer": "Kunde",
     "address": "Adresse",
     "team": "Team",
-    "start": "Beginn"
+    "start": "Beginn",
+    "qrHint": "Scannen: Liste auf dem Handy abhaken"
   },
   "schedule": {
     "title": "Einsatzplanung",
@@ -774,5 +784,28 @@
       "active": "Aktiv",
       "role": "Rolle"
     }
+  },
+  "checklists": {
+    "title": "Checklisten",
+    "hint": "Vor Ort abhaken — wer und wann wird mitgespeichert. Ein Problem kann eine kurze Notiz bekommen.",
+    "none": "Noch keine Checkliste. Aus einer Vorlage hinzufügen oder eine leere anlegen.",
+    "add": "Checkliste hinzufügen",
+    "template": "Vorlage",
+    "blank": "Leere Liste",
+    "namePlaceholder": "Name der Checkliste",
+    "progress": "{done} von {total} erledigt",
+    "problems": "{count} Problem(e)",
+    "empty": "Noch keine Punkte.",
+    "addItem": "Punkt hinzufügen",
+    "addItemPlaceholder": "Neuer Punkt …",
+    "notePlaceholder": "Was fehlt? Kurz notieren …",
+    "checkedBy": "{name} · {date}",
+    "notAllowed": "Nur bei eigenen Projekten möglich.",
+    "templatesTitle": "Checklisten-Vorlagen",
+    "templatesHint": "Wiederverwendbare Listen (z. B. „Übernahme vom Vorgewerk“). Beim Projekt aus der Vorlage hinzufügen.",
+    "templateName": "Name der Vorlage",
+    "templateItems": "Punkte (eine Zeile pro Punkt)",
+    "templateAdd": "Vorlage anlegen",
+    "templateNone": "Noch keine Vorlagen."
   }
 }

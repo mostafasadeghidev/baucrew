@@ -3,14 +3,11 @@ import { getTranslations, getLocale } from 'next-intl/server'
 import { requireUser } from '@/lib/authz'
 import { db } from '@/lib/db'
 import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
-import { StockWarning } from '@/components/stock-warning'
 import { btn } from '@/components/ui/button'
+import { PackingList } from './packing-buttons'
+import { Checklist } from '@/components/checklist'
+import { formatDate } from '@/lib/format'
 
-const ITEM_STYLE: Record<'REQUIRED' | 'COLLECTED' | 'MISSING', string> = {
-  REQUIRED: 'border-border text-muted',
-  COLLECTED: 'border-emerald-600/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-  MISSING: 'border-red-600/50 bg-red-500/10 text-red-700 dark:text-red-400',
-}
 
 export default async function MyAreaPage({
   searchParams,
@@ -19,10 +16,10 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tItem, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
-    getTranslations('itemStatus'),
+    getTranslations('checklists'),
     getLocale(),
   ])
 
@@ -43,6 +40,15 @@ export default async function MyAreaPage({
                 items: {
                   include: { catalogItem: { select: { name: true, unit: true, stockQuantity: true } } },
                   orderBy: { catalogItem: { name: 'asc' } },
+                },
+                checklists: {
+                  orderBy: { createdAt: 'asc' },
+                  include: {
+                    items: {
+                      orderBy: { sortOrder: 'asc' },
+                      include: { checkedBy: { select: { firstName: true, lastName: true } } },
+                    },
+                  },
                 },
               },
             },
@@ -145,6 +151,7 @@ export default async function MyAreaPage({
 
             return (
               <article
+                id={`p-${p.id}`}
                 key={entry.id}
                 className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
               >
@@ -258,35 +265,47 @@ export default async function MyAreaPage({
                   {p.items.length === 0 ? (
                     <p className="mt-1 text-sm text-muted">{t('noItems')}</p>
                   ) : (
-                    <ul className="mt-2 flex flex-wrap gap-1.5">
-                      {p.items.map((item) => (
-                        <li
-                          key={item.id}
-                          className={`rounded-md border px-2 py-1 text-xs font-medium ${ITEM_STYLE[item.status]}`}
-                          title={tItem(item.status)}
-                        >
-                          {item.status === 'COLLECTED' && '✓ '}
-                          {item.status === 'MISSING' && '! '}
-                          {item.catalogItem.name}
-                          {item.quantity != null && (
-                            <span className="opacity-70">
-                              {' '}
-                              {Number(item.quantity)}
-                              {item.catalogItem.unit ? ` ${item.catalogItem.unit}` : ''}
-                            </span>
-                          )}
-                          {item.status !== 'COLLECTED' && (
-                            <span className="ml-1">
-                              <StockWarning
-                                needed={item.quantity != null ? Number(item.quantity) : null}
-                                stock={item.catalogItem.stockQuantity != null ? Number(item.catalogItem.stockQuantity) : null}
-                                unit={item.catalogItem.unit}
-                              />
-                            </span>
-                          )}
-                        </li>
+                    /* Tap an item to tick it: required → packed → missing. */
+                    <PackingList
+                      items={p.items.map((item) => ({
+                        id: item.id,
+                        name: item.catalogItem.name,
+                        unit: item.catalogItem.unit,
+                        quantity: item.quantity != null ? Number(item.quantity) : null,
+                        status: item.status,
+                      }))}
+                    />
+                  )}
+                </div>
+
+                {/* Site checklists — tick them off right here */}
+                <div className="border-t border-border px-4 py-3">
+                  <p className="text-xs uppercase tracking-wide text-muted">{tChecklists('title')}</p>
+                  {p.checklists.length === 0 ? (
+                    <p className="mt-1 text-sm text-muted">{tChecklists('none')}</p>
+                  ) : (
+                    <div className="mt-2 space-y-4">
+                      {p.checklists.map((c) => (
+                        <Checklist
+                          key={c.id}
+                          compact
+                          checklist={{
+                            id: c.id,
+                            name: c.name,
+                            items: c.items.map((i) => ({
+                              id: i.id,
+                              text: i.text,
+                              ok: i.ok,
+                              note: i.note,
+                              checkedBy: i.checkedBy
+                                ? `${i.checkedBy.firstName} ${i.checkedBy.lastName}`.trim()
+                                : null,
+                              checkedAt: i.checkedAt ? formatDate(i.checkedAt, locale) : null,
+                            })),
+                          }}
+                        />
                       ))}
-                    </ul>
+                    </div>
                   )}
                 </div>
               </article>

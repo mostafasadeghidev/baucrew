@@ -150,12 +150,16 @@ export async function getYearUsage(
 
 // ── Pipeline (open order book by status) ─────────────────────
 
-export type PipelineBucket = { key: 'ordered' | 'inProgress' | 'planned'; total: number; count: number }
+export type PipelineBucket = {
+  key: 'offers' | 'ordered' | 'inProgress' | 'planned'
+  total: number
+  count: number
+}
 
 /**
- * Open order book: contract values of projects that are not finished yet,
- * grouped into "ordered" (APPROVED — signed, not started), "in progress"
- * (IN_PROGRESS) and "planned/open" (LEAD, QUOTED, PLANNED — not yet certain).
+ * Open order book (net values), split so the office sees what is still just an
+ * offer: "offers" (QUOTED — sent, waiting for confirmation), "ordered"
+ * (APPROVED — signed, not started), "in progress" and "planned" (the rest).
  */
 export async function getPipeline(): Promise<PipelineBucket[]> {
   const rows = await db.project.groupBy({
@@ -165,18 +169,75 @@ export async function getPipeline(): Promise<PipelineBucket[]> {
     _count: { _all: true },
   })
   const buckets: Record<PipelineBucket['key'], PipelineBucket> = {
+    offers: { key: 'offers', total: 0, count: 0 },
     ordered: { key: 'ordered', total: 0, count: 0 },
     inProgress: { key: 'inProgress', total: 0, count: 0 },
     planned: { key: 'planned', total: 0, count: 0 },
   }
   for (const r of rows) {
     const key: PipelineBucket['key'] =
-      r.status === 'APPROVED' ? 'ordered' : r.status === 'IN_PROGRESS' ? 'inProgress' : 'planned'
+      r.status === 'QUOTED'
+        ? 'offers'
+        : r.status === 'APPROVED'
+          ? 'ordered'
+          : r.status === 'IN_PROGRESS'
+            ? 'inProgress'
+            : 'planned'
     buckets[key].total += Number(r._sum.price ?? 0)
     buckets[key].count += r._count._all
   }
-  return [buckets.ordered, buckets.inProgress, buckets.planned]
+  return [buckets.offers, buckets.ordered, buckets.inProgress, buckets.planned]
 }
+
+/** One offer that is out and still waiting for the customer's confirmation. */
+export type OpenOffer = {
+  id: string
+  number: string
+  name: string
+  customer: string
+  price: number | null
+  /** Days since the offer was created in BauCrew. */
+  ageDays: number
+  plannedStart: Date | null
+}
+
+/**
+ * Offers waiting for confirmation, oldest first — the list behind the
+ * "offers" bucket. `staleAfterDays` marks the ones to chase.
+ */
+export async function getOpenOffers(): Promise<{ offers: OpenOffer[]; total: number; staleCount: number }> {
+  const rows = await db.project.findMany({
+    where: { status: 'QUOTED' },
+    select: {
+      id: true,
+      number: true,
+      name: true,
+      price: true,
+      createdAt: true,
+      plannedStart: true,
+      customer: { select: { name: true } },
+    },
+    orderBy: { createdAt: 'asc' },
+  })
+  const now = Date.now()
+  const offers = rows.map((r) => ({
+    id: r.id,
+    number: r.number,
+    name: r.name,
+    customer: r.customer.name,
+    price: r.price != null ? Number(r.price) : null,
+    ageDays: Math.max(0, Math.floor((now - r.createdAt.getTime()) / 86_400_000)),
+    plannedStart: r.plannedStart,
+  }))
+  return {
+    offers,
+    total: offers.reduce((sum, o) => sum + (o.price ?? 0), 0),
+    staleCount: offers.filter((o) => o.ageDays >= STALE_OFFER_DAYS).length,
+  }
+}
+
+/** An offer older than this without an answer is worth chasing. */
+export const STALE_OFFER_DAYS = 21
 
 // ── Project efficiency: plan vs. actual for finished projects ─
 

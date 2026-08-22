@@ -10,6 +10,12 @@ const loginSchema = z.object({
   password: z.string().min(1).max(200),
 })
 
+/** Only in-app paths are accepted as a redirect target (no open redirect). */
+function safeNext(value: FormDataEntryValue | null): string | null {
+  const v = String(value ?? '')
+  return /^\/[A-Za-z0-9/_\-?&=.%#]*$/.test(v) && !v.startsWith('//') ? v : null
+}
+
 // Best-effort in-memory throttle per username (per server instance).
 const attempts = new Map<string, { count: number; firstAt: number }>()
 const WINDOW_MS = 5 * 60 * 1000
@@ -50,5 +56,6 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   if (!user || !user.active || !ok) return { error: 'invalidCredentials' }
 
   await createSession(user.id)
-  redirect(user.role === 'EMPLOYEE' ? '/my' : '/dashboard')
+  const next = safeNext(formData.get('next'))
+  redirect(next ?? (user.role === 'EMPLOYEE' ? '/my' : '/dashboard'))
 }

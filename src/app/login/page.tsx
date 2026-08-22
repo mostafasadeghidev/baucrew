@@ -7,9 +7,16 @@ import { LanguageSwitcher } from '@/components/language-switcher'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { LoginForm } from './login-form'
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>
+}) {
+  const { next } = await searchParams
+  // Only in-app paths (a QR code on the warehouse screen links here).
+  const target = next && /^\/[A-Za-z0-9/_\-?&=.%#]*$/.test(next) && !next.startsWith('//') ? next : undefined
   const user = await getCurrentUser()
-  if (user) redirect(user.role === 'EMPLOYEE' ? '/my' : '/dashboard')
+  if (user) redirect(target ?? (user.role === 'EMPLOYEE' ? '/my' : '/dashboard'))
 
   const t = await getTranslations('auth')
   const branding = await getBranding()
@@ -29,7 +36,7 @@ export default async function LoginPage() {
             textClassName="text-2xl font-bold tracking-tight"
           />
           <p className="mt-4 text-sm text-muted">{t('loginSubtitle')}</p>
-          <LoginForm />
+          <LoginForm next={target} />
         </div>
       </div>
     </main>

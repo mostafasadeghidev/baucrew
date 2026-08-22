@@ -12,12 +12,15 @@ export type SaveState = { savedAt?: number; error?: string }
  */
 export function SavedForm({
   action,
+  id,
   className,
   children,
   resetOnSave = false,
   errorLabel,
 }: {
   action: (formData: FormData) => Promise<SaveState>
+  /** Lets buttons outside the form submit it via `form={id}`. */
+  id?: string
   className?: string
   children: ReactNode
   resetOnSave?: boolean
@@ -30,6 +33,7 @@ export function SavedForm({
   )
   return (
     <form
+      id={id}
       action={formAction}
       className={className}
       key={resetOnSave ? state.savedAt ?? 0 : undefined}

@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import {
+  STALE_OFFER_DAYS,
   getCustomerReport,
   getDataQuality,
+  getOpenOffers,
   getPipeline,
   getProjectEfficiency,
   getYearRevenue,
@@ -27,7 +29,7 @@ import { PrintButton } from '@/components/print-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
 
-const TABS = ['overview', 'revenue', 'projects', 'customers', 'utilization', 'quality'] as const
+const TABS = ['overview', 'revenue', 'offers', 'projects', 'customers', 'utilization', 'quality'] as const
 type Tab = (typeof TABS)[number]
 
 const card = 'rounded-lg border border-border bg-surface shadow-sm'
@@ -50,7 +52,11 @@ export default async function ReportsPage({
 }) {
   const user = await requireManagement()
   const { year: yearParam, period: periodParam, tab: tabParam } = await searchParams
-  const [t, locale] = await Promise.all([getTranslations('reports'), getLocale()])
+  const [t, tProjects, locale] = await Promise.all([
+    getTranslations('reports'),
+    getTranslations('projects'),
+    getLocale(),
+  ])
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
 
   const now = new Date()
@@ -60,10 +66,11 @@ export default async function ReportsPage({
   const tab: Tab = (TABS as readonly string[]).includes(tabParam ?? '') ? (tabParam as Tab) : 'overview'
   const showFinancials = canViewFinancials(user)
 
-  const [revenue, prevRevenue, pipeline, efficiency, usage, statusCounts, customers, quality] = await Promise.all([
+  const [revenue, prevRevenue, pipeline, openOffers, efficiency, usage, statusCounts, customers, quality] = await Promise.all([
     showFinancials ? getYearRevenue(year) : null,
     showFinancials ? getYearRevenue(year - 1) : null,
     showFinancials ? getPipeline() : null,
+    showFinancials ? getOpenOffers() : null,
     getProjectEfficiency(year, range),
     getYearUsage(year, range),
     db.project.groupBy({ by: ['status'], _count: { _all: true } }),
@@ -172,6 +179,7 @@ export default async function ReportsPage({
             { value: '', label: t('tabOverview') },
             { value: 'revenue', label: t('tabRevenue') },
             { value: 'projects', label: t('tabProjects'), count: efficiency.rows.length },
+            { value: 'offers', label: t('tabOffers'), count: openOffers?.offers.length },
             { value: 'customers', label: t('tabCustomers') },
             { value: 'utilization', label: t('tabUtilization') },
             { value: 'quality', label: t('tabQuality'), count: qualityCount },
@@ -394,6 +402,67 @@ export default async function ReportsPage({
       )}
 
       {/* ── Customers ────────────────────────────────────── */}
+      {tab === 'offers' &&
+        (!openOffers ? (
+          <p className={`${card} p-6 text-sm text-muted`}>{t('noAccess')}</p>
+        ) : (
+          <section className={`overflow-hidden ${card}`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border px-3 py-2.5">
+              <div>
+                <h2 className="text-sm font-semibold">{t('offersTitle')}</h2>
+                <p className="mt-0.5 text-[11px] text-muted">{t('offersHint', { days: STALE_OFFER_DAYS })}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-semibold tabular-nums">{money(openOffers.total)}</p>
+                <p className="text-[11px] text-muted">
+                  {t('projectsCount', { count: openOffers.offers.length })}
+                  {openOffers.staleCount > 0 && (
+                    <span className={`ml-2 ${warn}`}>{'\⚠'} {t('offersStale', { count: openOffers.staleCount })}</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            {openOffers.offers.length === 0 ? (
+              <p className="px-3 py-6 text-sm text-muted">{t('offersNone')}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
+                      <th className="px-3 py-2 font-medium">{tProjects('number')}</th>
+                      <th className="px-3 py-2 font-medium">{tProjects('name')}</th>
+                      <th className="px-3 py-2 font-medium">{tProjects('customer')}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t('offerAge')}</th>
+                      <th className="px-3 py-2 text-right font-medium">{tProjects('price')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {openOffers.offers.map((o) => (
+                      <tr key={o.id} className="hover:bg-surface-hover">
+                        <td className="px-3 py-2 tabular-nums text-muted">{o.number}</td>
+                        <td className="px-3 py-2">
+                          <Link href={`/projects/${o.id}`} className="font-medium text-accent hover:underline">
+                            {o.name}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2 text-muted">{o.customer}</td>
+                        <td
+                          className={`px-3 py-2 text-right tabular-nums ${
+                            o.ageDays >= STALE_OFFER_DAYS ? warn : 'text-muted'
+                          }`}
+                        >
+                          {t('daysShort', { count: o.ageDays })}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{money(o.price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        ))}
+
       {tab === 'customers' &&
         (!customers ? (
           <p className={`${card} p-6 text-sm text-muted`}>{t('noAccess')}</p>
