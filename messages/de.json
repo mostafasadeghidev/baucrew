@@ -122,7 +122,12 @@
     "overdue": "überfällig",
     "stockShortTitle": "Bestand zu niedrig",
     "noStockShort": "Kein Engpass.",
-    "openWarehouseList": "Zum Lager"
+    "openWarehouseList": "Zum Lager",
+    "moveUpShort": "Hoch",
+    "moveDownShort": "Runter",
+    "makeHalfShort": "Halb",
+    "makeFullShort": "Voll",
+    "dragHint": "Zum Verschieben ziehen"
   },
   "my": {
     "title": "Mein Bereich",

@@ -122,7 +122,12 @@
     "overdue": "overdue",
     "stockShortTitle": "Stock too low",
     "noStockShort": "No shortage.",
-    "openWarehouseList": "Open warehouse"
+    "openWarehouseList": "Open warehouse",
+    "moveUpShort": "Up",
+    "moveDownShort": "Down",
+    "makeHalfShort": "Half",
+    "makeFullShort": "Full",
+    "dragHint": "Drag to move"
   },
   "my": {
     "title": "My area",
