@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  allowedLayout,
   DEFAULT_LAYOUT,
+  FINANCIAL_WIDGETS,
   moveWidget,
   parseLayout,
+  reorderLayout,
   serializeLayout,
   toggleHidden,
   toggleWidth,
@@ -30,11 +33,31 @@ describe('dashboard layout', () => {
 
   it('moves, hides and resizes', () => {
     const start = DEFAULT_LAYOUT.map((w) => ({ ...w }))
-    const moved = moveWidget(start, 'today', -1)
-    expect(moved.map((w) => w.id).indexOf('today')).toBe(DEFAULT_LAYOUT.length - 2)
-    // first widget cannot move further up
+    const before = start.findIndex((w) => w.id === 'today')
+    expect(moveWidget(start, 'today', -1).findIndex((w) => w.id === 'today')).toBe(before - 1)
+    // first widget cannot move further up, last one not further down
     expect(moveWidget(start, 'stats', -1)).toBe(start)
+    expect(moveWidget(start, start[start.length - 1].id, 1)).toBe(start)
     expect(toggleHidden(start, 'weather').find((w) => w.id === 'weather')?.hidden).toBe(true)
     expect(toggleWidth(start, 'stats').find((w) => w.id === 'stats')?.width).toBe('half')
+  })
+
+  it('applies a drag & drop order and keeps unknown or missing cards', () => {
+    const start = DEFAULT_LAYOUT.map((w) => ({ ...w }))
+    const dropped = reorderLayout(start, ['today', 'stats', 'nonsense'])
+    expect(dropped.map((w) => w.id).slice(0, 2)).toEqual(['today', 'stats'])
+    // nothing is lost: every card of the original layout is still there, once
+    expect(dropped).toHaveLength(start.length)
+    expect(new Set(dropped.map((w) => w.id)).size).toBe(start.length)
+    // widths and hidden flags survive the move
+    expect(dropped.find((w) => w.id === 'stats')?.width).toBe('full')
+  })
+
+  it('hides the money cards from accounts without financial access', () => {
+    const start = DEFAULT_LAYOUT.map((w) => ({ ...w }))
+    expect(allowedLayout(start, true)).toHaveLength(start.length)
+    const limited = allowedLayout(start, false)
+    expect(limited).toHaveLength(start.length - FINANCIAL_WIDGETS.length)
+    for (const id of FINANCIAL_WIDGETS) expect(limited.map((w) => w.id)).not.toContain(id)
   })
 })

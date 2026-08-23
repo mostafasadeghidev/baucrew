@@ -11,6 +11,13 @@ export const DASHBOARD_WIDGETS = [
   'packing',
   'attention',
   'today',
+  'tomorrow',
+  'week',
+  'checklists',
+  'offers',
+  'revenueMonth',
+  'dueThisWeek',
+  'stock',
 ] as const
 
 export type DashboardWidget = (typeof DASHBOARD_WIDGETS)[number]
@@ -29,8 +36,23 @@ export const DEFAULT_LAYOUT: WidgetLayout[] = [
   { id: 'weather', hidden: false, width: 'half' },
   { id: 'packing', hidden: false, width: 'half' },
   { id: 'attention', hidden: false, width: 'half' },
-  { id: 'today', hidden: false, width: 'full' },
+  { id: 'today', hidden: false, width: 'half' },
+  { id: 'tomorrow', hidden: false, width: 'half' },
+  { id: 'week', hidden: false, width: 'full' },
+  { id: 'checklists', hidden: false, width: 'half' },
+  { id: 'dueThisWeek', hidden: false, width: 'half' },
+  { id: 'offers', hidden: false, width: 'half' },
+  { id: 'revenueMonth', hidden: false, width: 'half' },
+  { id: 'stock', hidden: false, width: 'half' },
 ]
+
+/** Cards that show money — hidden from accounts without financial access. */
+export const FINANCIAL_WIDGETS: readonly DashboardWidget[] = ['offers', 'revenueMonth']
+
+/** Drops the money cards for users who may not see prices. */
+export function allowedLayout(layout: WidgetLayout[], canSeeMoney: boolean): WidgetLayout[] {
+  return canSeeMoney ? layout : layout.filter((w) => !FINANCIAL_WIDGETS.includes(w.id))
+}
 
 function isWidget(v: unknown): v is DashboardWidget {
   return typeof v === 'string' && (DASHBOARD_WIDGETS as readonly string[]).includes(v)
@@ -84,4 +106,20 @@ export function toggleHidden(layout: WidgetLayout[], id: DashboardWidget): Widge
 
 export function toggleWidth(layout: WidgetLayout[], id: DashboardWidget): WidgetLayout[] {
   return layout.map((w) => (w.id === id ? { ...w, width: w.width === 'full' ? 'half' : 'full' } : w))
+}
+
+/**
+ * Applies an order coming from drag & drop: known ids first in the given
+ * order, anything the client did not send (e.g. a card it never saw) keeps its
+ * relative place at the end. Hidden state and width are preserved.
+ */
+export function reorderLayout(layout: WidgetLayout[], orderedIds: string[]): WidgetLayout[] {
+  const byId = new Map(layout.map((w) => [w.id, w]))
+  const next: WidgetLayout[] = []
+  for (const id of orderedIds) {
+    const widget = byId.get(id as DashboardWidget)
+    if (widget && !next.includes(widget)) next.push(widget)
+  }
+  for (const widget of layout) if (!next.includes(widget)) next.push(widget)
+  return next
 }

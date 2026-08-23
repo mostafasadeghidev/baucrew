@@ -25,7 +25,9 @@ export function DayMap({ sites, ariaLabel }: { sites: MapSite[]; ariaLabel: stri
 
   useEffect(() => {
     if (!container.current || map.current) return
-    const instance = L.map(container.current, { scrollWheelZoom: false }).setView([51.1, 10.4], 6)
+    // Wheel zooms the map (the owner asked for it); the page scrolls again as
+    // soon as the pointer leaves the map.
+    const instance = L.map(container.current, { scrollWheelZoom: true }).setView([51.1, 10.4], 6)
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap',

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Columns2, Eye, EyeOff, Square } from 'lucide-react'
+import { ArrowDown, ArrowUp, Columns2, Eye, EyeOff, GripVertical, Square } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { btn } from '@/components/ui/button'
 import type { WidgetLayout } from '@/lib/dashboard-layout'
@@ -37,7 +37,10 @@ export async function WidgetFrame({
   return (
     <div className="rounded-xl border border-dashed border-accent/50 bg-accent/5 p-2">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
-        <span className="text-xs font-semibold text-muted">{title}</span>
+        <span className="flex items-center gap-1 text-xs font-semibold text-muted">
+          <GripVertical className="h-3.5 w-3.5" aria-hidden />
+          {title}
+        </span>
         <div className="flex items-center gap-1">
           {control('up', t('moveUp'), <ArrowUp className="h-3.5 w-3.5" aria-hidden />, first)}
           {control('down', t('moveDown'), <ArrowDown className="h-3.5 w-3.5" aria-hidden />, last)}

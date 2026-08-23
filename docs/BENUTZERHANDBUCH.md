@@ -100,8 +100,15 @@ Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 - **Bereitstellung heute:** Ist im Lager schon alles für heute gepackt? **Zur Bereitstellung →** öffnet die Unterseite mit jedem Einsatz, seiner Packliste und dem Status jedes Artikels (mit ← → für andere Tage); der Lagerbildschirm wird über die Übersicht geöffnet.
 - **Projekte mit offener Zuordnung:** Projekte, denen noch Team oder Fahrzeug fehlt.
 - **Heutige Einsätze:** Wer ist heute wo, womit, ab wann.
+- **Einsätze morgen:** dasselbe für den nächsten Tag — der Blick, den man abends braucht.
+- **Diese Woche auf einen Blick:** Montag bis Freitag nebeneinander mit den Projekten je Tag (heute ist hervorgehoben).
+- **Checklisten — gemeldete Probleme:** was die Kollegen auf der Baustelle als Problem angehakt haben, mit ihrer Notiz.
+- **Diese Woche fällig:** Projekte, deren geplantes Ende in dieser Woche liegt; überfällige stehen rot.
+- **Offene Angebote:** Summe und Anzahl, dazu die ältesten mit ihren Wartetagen (nur Konten mit Finanzfreigabe).
+- **Umsatz diesen Monat:** der Monatsumsatz mit dem Vergleich zum Vormonat (nur Konten mit Finanzfreigabe).
+- **Bestand zu niedrig:** Artikel, von denen laufende Projekte mehr brauchen, als das Lager führt.
 
-**Ansicht anpassen:** Oben rechts der Knopf **Ansicht anpassen** — jede Karte bekommt eine kleine Leiste mit vier Knöpfen: **↑ / ↓** verschieben die Karte nach oben oder unten, das Kästchen-Symbol schaltet zwischen **halber und voller Breite**, das Augen-Symbol **blendet die Karte aus** (und im Bearbeiten-Modus wieder ein). **Fertig** beendet das Anpassen, **Standard wiederherstellen** setzt alles zurück. Die Anordnung gilt nur für Ihr eigenes Konto — jeder richtet sich die Übersicht so ein, wie er sie braucht.
+**Ansicht anpassen:** Oben rechts der Knopf **Ansicht anpassen** — jede Karte bekommt eine kleine Leiste: **↑ / ↓** verschieben die Karte nach oben oder unten, das Kästchen-Symbol schaltet zwischen **halber und voller Breite**, das Augen-Symbol **blendet die Karte aus** (und im Bearbeiten-Modus wieder ein). Am Rechner können Sie eine Karte auch einfach **mit der Maus auf ihren Platz ziehen** (am Tablet die Pfeile benutzen). **Fertig** beendet das Anpassen, **Standard wiederherstellen** setzt alles zurück. Die Anordnung gilt nur für Ihr eigenes Konto — jeder richtet sich die Übersicht so ein, wie er sie braucht; Karten mit Geldbeträgen sehen nur Konten mit Finanzfreigabe.
 
 ---
 
@@ -331,7 +338,7 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 
 **Wo:** in der Einsatzplanung oben der vierte Reiter **Karte**.
 
-Alle Baustellen **eines Tages** auf einer Landkarte: nummerierte Punkte auf der Karte, daneben dieselbe Liste mit Uhrzeit, Projekt, Adresse, Team und Fahrzeug — und, wenn vorhanden, der Regenwahrscheinlichkeit für diesen Ort und Tag. Mit **← Heute →** blättern Sie tageweise; ein Klick auf einen Punkt zeigt Name und Adresse, ein Klick auf den Projektnamen öffnet das Projekt.
+Alle Baustellen **eines Tages** auf einer Landkarte: nummerierte Punkte auf der Karte, daneben dieselbe Liste mit Uhrzeit, Projekt, Adresse, Team und Fahrzeug — und, wenn vorhanden, der Regenwahrscheinlichkeit für diesen Ort und Tag. Mit **← Heute →** blättern Sie tageweise; ein Klick auf einen Punkt zeigt Name und Adresse, ein Klick auf den Projektnamen öffnet das Projekt. Gezoomt wird mit dem **Mausrad** (oder mit + / − links oben), verschoben durch Ziehen der Karte.
 
 Die Position kommt aus der **Adresse des Projekts**. Wurde beim Anlegen ein Ort aus der Vorschlagsliste gewählt, sitzt der Punkt genau; sonst wird die **Ortsmitte** verwendet (in der Liste steht dann *ca. Ortsmitte*). Projekte ganz ohne Ort stehen unter der Liste als **Ohne Koordinaten**. Kartenbilder kommen von OpenStreetMap — dafür braucht der Rechner Internet, ein Konto oder Schlüssel ist nicht nötig.
 

@@ -7,6 +7,7 @@ import {
   DASHBOARD_WIDGETS,
   moveWidget,
   parseLayout,
+  reorderLayout,
   serializeLayout,
   toggleHidden,
   toggleWidth,
@@ -36,6 +37,18 @@ export async function changeDashboardLayout(formData: FormData) {
   else if (op === 'width') next = toggleWidth(current, widget)
   else return
 
+  await db.user.update({
+    where: { id: user.id },
+    data: { dashboardLayout: serializeLayout(next) },
+  })
+  revalidatePath('/dashboard')
+}
+
+/** New order after a drag & drop; the client sends the ids top to bottom. */
+export async function saveDashboardOrder(orderedIds: string[]) {
+  const user = await requireManagement()
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) return
+  const next = reorderLayout(parseLayout(user.dashboardLayout), orderedIds.map(String))
   await db.user.update({
     where: { id: user.id },
     data: { dashboardLayout: serializeLayout(next) },

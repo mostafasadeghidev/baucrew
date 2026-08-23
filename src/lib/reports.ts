@@ -411,7 +411,40 @@ export async function getCustomerReport(
   return { top, total, inactive }
 }
 
-// ── Data quality: things that make the numbers wrong ─────────
+export type StockShortage = { id: string; name: string; unit: string | null; need: number; stock: number }
+
+/**
+ * Catalog items whose stock is lower than the open (not yet packed) demand of
+ * active projects. Warning only — see `stockShortage`.
+ */
+export async function getStockShortages(): Promise<StockShortage[]> {
+  const demand = await db.projectItem.groupBy({
+    by: ['catalogItemId'],
+    where: {
+      status: { in: ['REQUIRED', 'MISSING'] },
+      quantity: { not: null },
+      project: { status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] } },
+    },
+    _sum: { quantity: true },
+  })
+  const demandIds = demand.map((d) => d.catalogItemId)
+  if (demandIds.length === 0) return []
+  const stockRows = await db.catalogItem.findMany({
+    where: { id: { in: demandIds }, stockQuantity: { not: null } },
+    select: { id: true, name: true, unit: true, stockQuantity: true },
+  })
+  const demandFor = new Map(demand.map((d) => [d.catalogItemId, Number(d._sum.quantity ?? 0)]))
+  return stockRows
+    .map((c) => {
+      const need = demandFor.get(c.id) ?? 0
+      const short = stockShortage(need, Number(c.stockQuantity))
+      return short == null ? null : { id: c.id, name: c.name, unit: c.unit, need, stock: Number(c.stockQuantity) }
+    })
+    .filter((x): x is StockShortage => x !== null)
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// ── Data quality: things that make the numbers wrong ─────────────
 
 export type QualityIssue = {
   key:
@@ -430,7 +463,7 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
   const today = new Date()
   const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
   const in14 = new Date(todayUtc.getTime() + 14 * 86_400_000)
-  const [inProgressNoSchedule, finishedNoPrice, noCity, missing, cityCandidates, demand] = await Promise.all([
+  const [inProgressNoSchedule, finishedNoPrice, noCity, missing, cityCandidates, stockShort] = await Promise.all([
     db.project.findMany({
       where: { status: 'IN_PROGRESS', scheduleEntries: { none: { date: { gte: todayUtc, lte: in14 }, cancelledAt: null } } },
       select: { id: true, number: true, name: true },
@@ -466,33 +499,8 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
       orderBy: { number: 'asc' },
       take: 40,
     }),
-    // Open demand (not yet packed) of active projects per catalog item — compared with stock below.
-    db.projectItem.groupBy({
-      by: ['catalogItemId'],
-      where: {
-        status: { in: ['REQUIRED', 'MISSING'] },
-        quantity: { not: null },
-        project: { status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] } },
-      },
-      _sum: { quantity: true },
-    }),
+    getStockShortages(),
   ])
-  const demandIds = demand.map((d) => d.catalogItemId)
-  const stockRows = demandIds.length
-    ? await db.catalogItem.findMany({
-        where: { id: { in: demandIds }, stockQuantity: { not: null } },
-        select: { id: true, name: true, unit: true, stockQuantity: true },
-      })
-    : []
-  const demandFor = new Map(demand.map((d) => [d.catalogItemId, Number(d._sum.quantity ?? 0)]))
-  const stockShort = stockRows
-    .map((c) => {
-      const need = demandFor.get(c.id) ?? 0
-      const short = stockShortage(need, Number(c.stockQuantity))
-      return short == null ? null : { id: c.id, name: c.name, unit: c.unit, need, stock: Number(c.stockQuantity) }
-    })
-    .filter((x): x is NonNullable<typeof x> => x !== null)
-    .sort((a, b) => a.name.localeCompare(b.name))
   // Offers that have been waiting too long for an answer.
   const staleOffers = (await getOpenOffers()).offers.filter((o) => o.ageDays >= STALE_OFFER_DAYS)
   const cityCache = new Map<string, boolean>()

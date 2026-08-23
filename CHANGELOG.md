@@ -3,6 +3,16 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.17.0] — 2026-08-23
+
+### Added
+- **Seven more cards for the overview**, all switchable in *Ansicht anpassen*: **Einsätze morgen** · **Diese Woche auf einen Blick** (Mon–Fri side by side, today highlighted) · **Checklisten — gemeldete Probleme** with the note the crew wrote · **Diese Woche fällig** (overdue projects in red) · **Offene Angebote** with sum, count and waiting days · **Umsatz diesen Monat** against the previous month · **Bestand zu niedrig**. The two money cards are only built for accounts with financial access, and a hidden card runs no query at all.
+- **Drag & drop on the overview:** in the edit mode a card can be dragged onto its place with the mouse; the order is saved right away. The ↑ ↓ buttons stay for tablets, where HTML5 dragging does not work.
+- Planner → *Karte*: **the mouse wheel zooms** the map (it used to ignore the wheel).
+
+### Changed
+- The stock-shortage list of the data quality report and the new dashboard card share one function (`getStockShortages`), so both always show the same items.
+
 ## [1.16.0] — 2026-08-23
 
 Three more items from the customer backlog (meetings 1 + 2).
