@@ -25,6 +25,7 @@ export function ScheduleBoard({
   nextWeekHref,
   currentWeekHref,
   overviewHref,
+  mapHref,
   monthHref,
   todayIso,
   entries,
@@ -43,6 +44,7 @@ export function ScheduleBoard({
   nextWeekHref: string
   currentWeekHref: string
   overviewHref: string
+  mapHref: string
   monthHref: string
   todayIso: string
   entries: BoardEntry[]
@@ -197,6 +199,9 @@ export function ScheduleBoard({
             </Link>
             <Link href={overviewHref} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
               {t('viewOverview')}
+            </Link>
+            <Link href={mapHref} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
+              {t('viewMap')}
             </Link>
           </div>
           <div className="flex items-center gap-1">

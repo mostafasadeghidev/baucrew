@@ -28,6 +28,7 @@ import { LiveSelect } from '@/components/live-search'
 import { PrintButton } from '@/components/print-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
+import { DonutChart } from '@/components/donut-chart'
 
 const TABS = ['overview', 'revenue', 'offers', 'projects', 'customers', 'utilization', 'quality'] as const
 type Tab = (typeof TABS)[number]
@@ -87,6 +88,16 @@ export default async function ReportsPage({
   const fmtDelay = (d: number | null) =>
     d == null ? '—' : d === 0 ? t('onTime') : `${d > 0 ? '+' : ''}${t('daysShort', { count: d })}`
   const money = (v: number | null | undefined) => formatCurrency(v, locale)
+
+  // Revenue per quarter — the "circular view" the customer asked for.
+  const quarters = (revenue?.months ?? []).reduce<Array<{ label: string; value: number; hint?: string }>>(
+    (acc, m) => {
+      const q = Math.floor(m.month / 3)
+      acc[q].value += m.total
+      return acc
+    },
+    [0, 1, 2, 3].map((q) => ({ label: `Q${q + 1}`, value: 0, hint: `${q * 3 + 1}–${q * 3 + 3}` }))
+  )
 
   /** Human label of the selected period ("August", "3. Quartal", "1. Halbjahr"). */
   const periodLabel = (() => {
@@ -211,11 +222,17 @@ export default async function ReportsPage({
                   <p className={kpiLabel}>{t('openOrders')}</p>
                   <p className="text-[11px] text-muted">{t('openOrdersHint')}</p>
                 </div>
-                <div className="mt-1 grid grid-cols-3 gap-2">
+                <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {pipeline?.map((b) => (
                     <div key={b.key}>
                       <p className="text-[11px] text-muted">
-                        {b.key === 'ordered' ? t('kpiOrdered') : b.key === 'inProgress' ? t('kpiInProgress') : t('kpiPlanned')}
+                        {b.key === 'offers'
+                          ? t('kpiOffers')
+                          : b.key === 'ordered'
+                            ? t('kpiOrdered')
+                            : b.key === 'inProgress'
+                              ? t('kpiInProgress')
+                              : t('kpiPlanned')}
                       </p>
                       <p className="text-base font-semibold tabular-nums">{money(b.total)}</p>
                       <p className="text-[11px] text-muted">{t('projectsCount', { count: b.count })}</p>
@@ -225,6 +242,7 @@ export default async function ReportsPage({
               </div>
             </div>
 
+            <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
             <div className={`${card} p-4`}>
               <h2 className="mb-2 text-sm font-semibold">{t('chartTitle', { year, prev: year - 1 })}</h2>
               <RevenueChart
@@ -242,6 +260,17 @@ export default async function ReportsPage({
                 formatValue={money}
                 highlightRange={range}
               />
+            </div>
+
+              <div className={`${card} p-4`}>
+                <h2 className="mb-3 text-sm font-semibold">{t('quarterTitle', { year })}</h2>
+                <DonutChart
+                  slices={quarters}
+                  centerLabel={t('yearTotal')}
+                  centerValue={money(revenue.yearTotal)}
+                  formatValue={(v) => money(v)}
+                />
+              </div>
             </div>
 
             {qualityCount > 0 && (

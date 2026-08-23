@@ -101,6 +101,8 @@ Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 - **Projekte mit offener Zuordnung:** Projekte, denen noch Team oder Fahrzeug fehlt.
 - **Heutige Einsätze:** Wer ist heute wo, womit, ab wann.
 
+**Ansicht anpassen:** Oben rechts der Knopf **Ansicht anpassen** — jede Karte bekommt eine kleine Leiste mit vier Knöpfen: **↑ / ↓** verschieben die Karte nach oben oder unten, das Kästchen-Symbol schaltet zwischen **halber und voller Breite**, das Augen-Symbol **blendet die Karte aus** (und im Bearbeiten-Modus wieder ein). **Fertig** beendet das Anpassen, **Standard wiederherstellen** setzt alles zurück. Die Anordnung gilt nur für Ihr eigenes Konto — jeder richtet sich die Übersicht so ein, wie er sie braucht.
+
 ---
 
 ## 3. Wer darf was? Die drei Rollen
@@ -325,6 +327,14 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 
 ![Übersicht](screenshots/14-einsatzplanung-uebersicht.png)
 
+### 7.4 Die Karte (Tag für Tag)
+
+**Wo:** in der Einsatzplanung oben der vierte Reiter **Karte**.
+
+Alle Baustellen **eines Tages** auf einer Landkarte: nummerierte Punkte auf der Karte, daneben dieselbe Liste mit Uhrzeit, Projekt, Adresse, Team und Fahrzeug — und, wenn vorhanden, der Regenwahrscheinlichkeit für diesen Ort und Tag. Mit **← Heute →** blättern Sie tageweise; ein Klick auf einen Punkt zeigt Name und Adresse, ein Klick auf den Projektnamen öffnet das Projekt.
+
+Die Position kommt aus der **Adresse des Projekts**. Wurde beim Anlegen ein Ort aus der Vorschlagsliste gewählt, sitzt der Punkt genau; sonst wird die **Ortsmitte** verwendet (in der Liste steht dann *ca. Ortsmitte*). Projekte ganz ohne Ort stehen unter der Liste als **Ohne Koordinaten**. Kartenbilder kommen von OpenStreetMap — dafür braucht der Rechner Internet, ein Konto oder Schlüssel ist nicht nötig.
+
 **Übersicht:** mehrere Wochen nebeneinander — wie der frühere Papier-Wochenplan, gut zum Ausdrucken und für den Blick nach vorn. Rechts oben wählen Sie, wie viele Wochen: **4 · 6 · 8 · 12** (Standard 6). Die Pfeile blättern um den gesamten angezeigten Zeitraum (bei 6 Wochen also 6 Wochen vor/zurück); Wochen im nächsten Jahr zeigen die Jahreszahl.
 
 ---
@@ -473,7 +483,7 @@ Sie sehen nur Ihre eigenen Einsätze — und nie Preise. Ändern kann hier niema
 
 Die Reiter:
 
-- **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in drei Stufen (*Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*) und das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr).
+- **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in vier Stufen (*Angebote offen* · *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*), das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr) und daneben der **Quartalsring**: Q1 bis Q4 als Kreis mit der Jahressumme in der Mitte — ein Blick genügt, um zu sehen, welches Quartal trägt.
 - **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt).
 
 ![Berichte — Plan vs. Ist](screenshots/26-berichte-projekte.png)

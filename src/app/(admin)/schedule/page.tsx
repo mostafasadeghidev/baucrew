@@ -111,6 +111,7 @@ export default async function SchedulePage({
         currentHref="/schedule?view=month"
         weekHref={`/schedule?week=${iso(monday)}`}
         overviewHref={`/schedule?view=overview&week=${iso(monday)}`}
+        mapHref={`/schedule/map?date=${iso(monday)}`}
         entries={monthEntries.map((entry) => ({
           id: entry.id,
           date: iso(entry.date),
@@ -258,6 +259,7 @@ export default async function SchedulePage({
       currentWeekHref="/schedule"
       overviewHref={`/schedule?view=overview&week=${iso(monday)}`}
       monthHref={`/schedule?view=month&week=${iso(monday)}`}
+      mapHref={`/schedule/map?date=${iso(monday)}`}
       todayIso={iso(new Date())}
       entries={boardEntries}
       conflictMessages={conflictMessages}
@@ -414,6 +416,9 @@ async function OverviewView({
               {t('viewMonth')}
             </Link>
             <span className="rounded-md bg-surface px-3 py-1 text-foreground shadow-sm">{t('viewOverview')}</span>
+            <Link href={`/schedule/map?date=${weeks[0].mondayIso}`} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
+              {t('viewMap')}
+            </Link>
           </div>
           <div className="flex items-center gap-1">
             <Link

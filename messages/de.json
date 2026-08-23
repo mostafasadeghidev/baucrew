@@ -90,7 +90,19 @@
     "todayOverviewTitle": "Heute im Einsatz",
     "todayWord": "Heute",
     "entriesWord": "Einsätze",
-    "openPacking": "Zur Bereitstellung"
+    "openPacking": "Zur Bereitstellung",
+    "editLayout": "Ansicht anpassen",
+    "editDone": "Fertig",
+    "editHint": "Karten verschieben, breiter/schmaler machen oder ausblenden. Die Anordnung gilt nur für dich.",
+    "resetLayout": "Standard wiederherstellen",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "makeHalf": "Halbe Breite",
+    "makeFull": "Volle Breite",
+    "hideWidget": "Ausblenden",
+    "showWidget": "Einblenden",
+    "widgetHidden": "Ausgeblendet",
+    "widgetStats": "Kennzahlen"
   },
   "my": {
     "title": "Mein Bereich",
@@ -473,7 +485,8 @@
     "offersStale": "{count} überfällig",
     "offersNone": "Keine offenen Angebote.",
     "offerAge": "Offen seit",
-    "qStaleOffers": "Angebote ohne Antwort — bitte nachfassen"
+    "qStaleOffers": "Angebote ohne Antwort — bitte nachfassen",
+    "quarterTitle": "Umsatz je Quartal {year}"
   },
   "sheet": {
     "title": "Arbeitsauftrag",
@@ -579,7 +592,14 @@
     "dragCopyHint": "gedrückt halten und ziehen = Kopie auf dem neuen Tag (⌘ am Mac).",
     "prevWeeks": "{count} Wochen zurück",
     "nextWeeks": "{count} Wochen weiter",
-    "rangeRemoves": "{count} spätere Tage werden aus der Planung genommen"
+    "rangeRemoves": "{count} spätere Tage werden aus der Planung genommen",
+    "viewMap": "Karte",
+    "mapNoEntries": "An diesem Tag ist nichts geplant.",
+    "mapWithoutCoordinates": "Ohne Koordinaten — nicht auf der Karte",
+    "previousDay": "Vorheriger Tag",
+    "nextDay": "Nächster Tag",
+    "todayButton": "Heute",
+    "mapApproximate": "ca. Ortsmitte"
   },
   "warehouse": {
     "title": "Lager",

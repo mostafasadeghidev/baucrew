@@ -90,7 +90,19 @@
     "todayOverviewTitle": "Working today",
     "todayWord": "Today",
     "entriesWord": "assignments",
-    "openPacking": "Open preparation"
+    "openPacking": "Open preparation",
+    "editLayout": "Customise view",
+    "editDone": "Done",
+    "editHint": "Move cards, make them wider or narrower, or hide them. The arrangement is yours only.",
+    "resetLayout": "Restore default",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "makeHalf": "Half width",
+    "makeFull": "Full width",
+    "hideWidget": "Hide",
+    "showWidget": "Show",
+    "widgetHidden": "Hidden",
+    "widgetStats": "Key figures"
   },
   "my": {
     "title": "My area",
@@ -473,7 +485,8 @@
     "offersStale": "{count} overdue",
     "offersNone": "No open offers.",
     "offerAge": "Waiting",
-    "qStaleOffers": "Offers without an answer — worth chasing"
+    "qStaleOffers": "Offers without an answer — worth chasing",
+    "quarterTitle": "Revenue per quarter {year}"
   },
   "sheet": {
     "title": "Work order",
@@ -579,7 +592,14 @@
     "dragCopyHint": "hold while dragging = copy on the new day (⌘ on Mac).",
     "prevWeeks": "{count} weeks back",
     "nextWeeks": "{count} weeks forward",
-    "rangeRemoves": "{count} later days are taken out of the schedule"
+    "rangeRemoves": "{count} later days are taken out of the schedule",
+    "viewMap": "Map",
+    "mapNoEntries": "Nothing is planned for this day.",
+    "mapWithoutCoordinates": "No coordinates — not on the map",
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "todayButton": "Today",
+    "mapApproximate": "approx. town centre"
   },
   "warehouse": {
     "title": "Warehouse",

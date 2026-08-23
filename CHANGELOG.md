@@ -3,6 +3,18 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.16.0] — 2026-08-23
+
+Three more items from the customer backlog (meetings 1 + 2).
+
+### Added
+- **The overview can be arranged per person** (customer request M26): the button **Ansicht anpassen** turns on a small bar over every card — move it up or down, switch between half and full width, hide it. **Fertig** leaves the mode, **Standard wiederherstellen** resets it. The arrangement is stored on the user account, so everybody keeps their own overview.
+- **Map of the day in the planner** (customer request M29): a fourth tab **Karte** next to Woche / Monat / Übersicht shows the sites of one day as numbered points, with the same list beside it (time, project, address, crew, vehicle, rain probability) and **← Heute →** to step day by day. Positions come from the project address; without exact coordinates the town centre is used and the entry is marked *ca. Ortsmitte*. Projects without a place are listed under the map. Map tiles come from OpenStreetMap — no account, no key.
+- **Quarterly ring in the reports** (customer request M27): beside the monthly chart, Q1–Q4 as a circle with the year total in the middle — the "less table, more picture" the customer asked for.
+
+### Fixed
+- Reports → Übersicht: the order book showed **Angebote offen** with the label *Geplant / offen* and squeezed its four stages into three columns (since 1.14.0, when the offers stage was added).
+
 ## [1.15.0] — 2026-08-23
 
 ### Changed — the worker area is an app now, not a sheet (backlog M31)

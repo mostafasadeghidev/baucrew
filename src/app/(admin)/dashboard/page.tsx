@@ -1,17 +1,31 @@
 import Link from 'next/link'
+import { LayoutGrid } from 'lucide-react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { detectConflicts } from '@/lib/schedule-conflicts'
 import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, iso, isoWeek, mondayOf, todayUtc } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
+import { requireManagement } from '@/lib/authz'
+import { parseLayout, type DashboardWidget } from '@/lib/dashboard-layout'
+import { WidgetFrame } from './widget-frame'
+import { resetDashboardLayout } from './actions'
 
-export default async function DashboardPage() {
-  const [t, tSchedule, locale] = await Promise.all([
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ edit?: string }>
+}) {
+  const [t, tSchedule, locale, user, sp] = await Promise.all([
     getTranslations('dashboard'),
     getTranslations('schedule'),
     getLocale(),
+    requireManagement(),
+    searchParams,
   ])
+  // Every user arranges the overview for themselves; `edit` turns the handles on.
+  const layout = parseLayout(user.dashboardLayout)
+  const editing = sp.edit === '1'
   const today = todayUtc()
   const tomorrow = addDays(today, 1)
   const monday = mondayOf(today)
@@ -123,22 +137,9 @@ export default async function DashboardPage() {
     { label: t('customers'), value: customerCount, href: '/customers' },
   ]
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="text-sm text-muted">
-          {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
-            weekday: 'long',
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-          }).format(new Date())}{' '}
-          · {tSchedule('weekLabel', { week: isoWeek(today) })}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+  const widgets: Record<DashboardWidget, React.ReactNode> = {
+    stats: (
+<div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {stats.map((s) => (
           <Link
             key={s.label}
@@ -150,10 +151,10 @@ export default async function DashboardPage() {
           </Link>
         ))}
       </div>
+    ),
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Conflicts this week */}
-        <section
+    conflicts: (
+<section
           className={`rounded-lg border p-4 shadow-sm ${
             conflicts.length > 0 ? 'border-amber-500/40 bg-amber-500/10' : 'border-border bg-surface'
           }`}
@@ -182,9 +183,10 @@ export default async function DashboardPage() {
             </ul>
           )}
         </section>
+    ),
 
-        {/* Weather */}
-        <section
+    weather: (
+<section
           className={`rounded-lg border p-4 shadow-sm ${
             rain.length > 0 ? 'border-sky-500/40 bg-sky-500/10' : 'border-border bg-surface'
           }`}
@@ -208,9 +210,10 @@ export default async function DashboardPage() {
             </ul>
           )}
         </section>
+    ),
 
-        {/* Warehouse preparation today */}
-        <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+    packing: (
+<section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">{t('packingToday')}</h2>
             <Link href="/dashboard/packing" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
@@ -259,9 +262,10 @@ export default async function DashboardPage() {
             </ul>
           )}
         </section>
+    ),
 
-        {/* Projects needing attention */}
-        <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+    attention: (
+<section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
           <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">
             {t('needsAttention')}
           </h2>
@@ -287,10 +291,10 @@ export default async function DashboardPage() {
             </ul>
           )}
         </section>
-      </div>
+    ),
 
-      {/* Today's assignments */}
-      <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+    today: (
+<section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
         <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">{t('todaysSchedule')}</h2>
         {todayEntries.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted">{t('noEntriesToday')}</p>
@@ -332,6 +336,74 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
+    ),
+  }
+
+  const widgetTitles: Record<DashboardWidget, string> = {
+    stats: t('widgetStats'),
+    conflicts: t('conflictsThisWeek'),
+    weather: t('weatherThisWeek'),
+    packing: t('packingToday'),
+    attention: t('needsAttention'),
+    today: t('todaysSchedule'),
+  }
+
+  const shown = editing ? layout : layout.filter((w) => !w.hidden)
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <div className="flex flex-wrap items-baseline gap-3">
+          <p className="text-sm text-muted">
+            {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
+              weekday: 'long',
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+            }).format(new Date())}{' '}
+            · {tSchedule('weekLabel', { week: isoWeek(today) })}
+          </p>
+          {editing ? (
+            <span className="flex items-center gap-2">
+              <form action={resetDashboardLayout}>
+                <button type="submit" className={btn.outlineSm}>
+                  {t('resetLayout')}
+                </button>
+              </form>
+              <Link href="/dashboard" className={btn.primarySm}>
+                {t('editDone')}
+              </Link>
+            </span>
+          ) : (
+            <Link href="/dashboard?edit=1" className={`${btn.outlineSm} gap-1.5`}>
+              <LayoutGrid className="h-3.5 w-3.5" aria-hidden />
+              {t('editLayout')}
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {editing && <p className="text-sm text-muted">{t('editHint')}</p>}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {shown.map((w, i) => (
+          <div key={w.id} className={`grid ${w.width === 'full' ? 'lg:col-span-2' : ''}`}>
+            {editing ? (
+              <WidgetFrame
+                layout={w}
+                title={widgetTitles[w.id]}
+                first={i === 0}
+                last={i === shown.length - 1}
+              >
+                {widgets[w.id]}
+              </WidgetFrame>
+            ) : (
+              widgets[w.id]
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

@@ -25,6 +25,8 @@ model User {
   // Managers may optionally be granted access to financial data (prices, revenue).
   canViewFinancials Boolean @default(false)
   active       Boolean   @default(true)
+  // Personal dashboard layout (order, hidden widgets, widths) as JSON.
+  dashboardLayout String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

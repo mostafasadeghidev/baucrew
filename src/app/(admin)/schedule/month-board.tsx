@@ -34,6 +34,7 @@ export function MonthBoard({
   currentHref,
   weekHref,
   overviewHref,
+  mapHref,
   projects,
   employees,
   vehicles,
@@ -51,6 +52,7 @@ export function MonthBoard({
   currentHref: string;
   weekHref: string;
   overviewHref: string;
+  mapHref: string;
   projects: ComboboxOption[];
   employees: ComboboxOption[];
   vehicles: ComboboxOption[];
@@ -191,6 +193,12 @@ export function MonthBoard({
               className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
             >
               {t("viewOverview")}
+            </Link>
+            <Link
+              href={mapHref}
+              className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
+            >
+              {t("viewMap")}
             </Link>
           </div>
           <div className="flex items-center gap-1">
