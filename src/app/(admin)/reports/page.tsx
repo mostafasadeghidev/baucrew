@@ -628,6 +628,8 @@ export default async function ReportsPage({
                             ? t('qNoCity')
                             : q.key === 'cityNotFound'
                               ? t('qCityNotFound')
+                              : q.key === 'staleOffers'
+                              ? t('qStaleOffers')
                               : q.key === 'stockShort'
                                 ? t('qStockShort')
                                 : t('qMissingItems')}

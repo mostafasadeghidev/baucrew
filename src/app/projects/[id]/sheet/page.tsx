@@ -62,6 +62,15 @@ export default async function ProjectSheetPage({
         customer: true,
         manager: true,
         vehicles: { include: { vehicle: true } },
+        checklists: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            items: {
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              include: { checkedBy: { select: { firstName: true, lastName: true } } },
+            },
+          },
+        },
         workCategories: { select: { workCategoryId: true } },
         team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
         items: {
@@ -271,6 +280,37 @@ export default async function ProjectSheetPage({
             </ul>
           </div>
         </div>
+
+        {/* Checklists: tick on site, the printed sheet carries them too */}
+        {project.checklists.map((list) => (
+          <div key={list.id} className="mt-4 border border-black">
+            <p className="border-b border-black px-2 py-1.5 font-semibold">{list.name}</p>
+            <ul className="px-2 py-1.5 leading-7">
+              {list.items.map((item) => (
+                <li key={item.id} className="flex items-start gap-1.5">
+                  <span
+                    aria-hidden
+                    className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center border-2 border-black text-[10px] font-bold leading-none"
+                  >
+                    {item.ok === true ? '\u2715' : item.ok === false ? '!' : ' '}
+                  </span>
+                  <span className="min-w-0">
+                    {item.text}
+                    {item.note && <span className="italic"> — {item.note}</span>}
+                    {item.checkedBy && (
+                      <span className="text-[11px]">
+                        {' '}
+                        ({item.checkedBy.firstName} {item.checkedBy.lastName}
+                        {item.checkedAt ? `, ${formatDate(item.checkedAt, locale)}` : ''})
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+              {list.items.length === 0 && <li className="text-black/60">—</li>}
+            </ul>
+          </div>
+        ))}
 
         <div className="mt-4 border border-black">
           <p className="border-b border-black px-2 py-1.5 font-semibold">{t('notes')}</p>

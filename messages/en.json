@@ -214,7 +214,16 @@
     "tabPreparation": "To prepare",
     "tabPreparationHint": "Default: lead, quoted, ordered — configurable in Settings",
     "autoStatusHint": "Status is set automatically: “Planned” on the first assignment, “In progress” on the first assignment day.",
-    "managerAddedToTeam": "Added to the team as site manager"
+    "managerAddedToTeam": "Added to the team as site manager",
+    "addOnsTitle": "Follow-on offers",
+    "addOnsShort": "follow-on",
+    "addOnsHint": "Extra work ordered later. It raises the order value — in revenue, order book and the customer report as well.",
+    "addOnsNone": "No follow-on offers.",
+    "addOnAdd": "Add follow-on offer",
+    "addOnLabel": "Description",
+    "addOnDate": "Date",
+    "addOnLabelRequired": "Please enter a description.",
+    "checklistProgressTitle": "Checklists: ticked items (⚠ = problem noted)"
   },
   "employees": {
     "title": "Employees",
@@ -460,7 +469,8 @@
     "offersHint": "All projects with status \"quoted\", oldest first. Net amounts. Flagged after {days} days without an answer.",
     "offersStale": "{count} overdue",
     "offersNone": "No open offers.",
-    "offerAge": "Waiting"
+    "offerAge": "Waiting",
+    "qStaleOffers": "Offers without an answer — worth chasing"
   },
   "sheet": {
     "title": "Work order",

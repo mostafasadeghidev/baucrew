@@ -65,7 +65,11 @@ export default async function ProjectsPage({
   const [projects, total, statusCounts, prepCount] = await Promise.all([
     db.project.findMany({
       where,
-      include: { customer: { select: { name: true } } },
+      include: {
+        customer: { select: { name: true } },
+        // Progress of the site checklists, shown as a small badge.
+        checklists: { select: { items: { select: { ok: true } } } },
+      },
       orderBy: { number: 'desc' },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -144,6 +148,28 @@ export default async function ProjectsPage({
                     <Link href={`/projects/${p.id}`} className="font-medium text-accent hover:underline">
                       {p.name}
                     </Link>
+                    {/* Site checklists: how far the crew has ticked through */}
+                    {(() => {
+                      const items = p.checklists.flatMap((c) => c.items)
+                      if (items.length === 0) return null
+                      const done = items.filter((i) => i.ok !== null).length
+                      const problems = items.filter((i) => i.ok === false).length
+                      return (
+                        <span
+                          title={t('checklistProgressTitle')}
+                          className={`ml-2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${
+                            problems > 0
+                              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                              : done === items.length
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                                : 'bg-subtle text-muted'
+                          }`}
+                        >
+                          {problems > 0 && '⚠ '}
+                          {done}/{items.length}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-muted">{p.customer.name}</td>
                   <td className="px-4 py-3 text-muted">{p.city ?? '—'}</td>

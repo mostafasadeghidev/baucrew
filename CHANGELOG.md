@@ -3,6 +3,15 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.14.0] — 2026-08-23
+
+### Added
+- **Follow-on offers on a project** (customer request M24): extra work ordered later is booked with description, amount and date. It raises the order value on the project page ("50.000 € + 4.500 € = 54.500 €") and in every figure that uses it — revenue, order book, open offers, customer report, plan vs. actual. Only users with financial access can book one; every change is in the change log.
+- Work order: the **site checklists are printed** with the sheet (☒ done, ! problem with its note, who ticked and when).
+- Project list: a small badge shows how far the checklists of a project are ticked (⚠ when a problem was noted).
+- Excel export: new sheet **"Offene Angebote"** with number, project, customer, days waiting and net value.
+- Reports → data quality: **offers without an answer** for more than 21 days are listed for follow-up.
+
 ## [1.13.0] — 2026-08-23
 
 Three items from the customer backlog (meetings 1 + 2).
@@ -265,6 +274,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.14.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.14.0
 [1.13.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.13.0
 [1.12.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.12.0
 [1.11.4]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.4

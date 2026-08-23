@@ -17,6 +17,8 @@ import { ChecklistSection } from './checklist-section'
 import { btn } from '@/components/ui/button'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
+import { ProjectAddOns } from './add-ons'
+import { orderValue } from '@/lib/reports'
 
 export default async function ProjectDetailPage({
   params,
@@ -41,6 +43,7 @@ export default async function ProjectDetailPage({
       customer: true,
       manager: true,
       vehicles: { include: { vehicle: true } },
+      addOns: { orderBy: { date: 'asc' } },
       workCategories: { include: { workCategory: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
       items: { include: { catalogItem: true }, orderBy: { catalogItem: { name: 'asc' } } },
@@ -95,6 +98,7 @@ export default async function ProjectDetailPage({
   }))
 
   const showPrice = canViewFinancials(user)
+  const addOnTotal = project.addOns.reduce((sum, a) => sum + Number(a.amount), 0)
   const categoryLabel = (c: { nameDe: string; nameEn: string }) =>
     locale === 'en' ? c.nameEn : c.nameDe
 
@@ -200,6 +204,15 @@ export default async function ProjectDetailPage({
                 <dt className="w-44 shrink-0 text-muted">{t('price')}</dt>
                 <dd className="font-medium tabular-nums">
                   {formatCurrency(project.price ? Number(project.price) : null, locale)}
+                  {/* Follow-on offers raise the order value — show both. */}
+                  {addOnTotal > 0 && (
+                    <span className="ml-2 text-xs font-normal text-muted">
+                      + {formatCurrency(addOnTotal, locale)} {t('addOnsShort')} ={' '}
+                      <span className="font-medium text-foreground">
+                        {formatCurrency(orderValue(project.price, project.addOns), locale)}
+                      </span>
+                    </span>
+                  )}
                 </dd>
               </div>
             )}
@@ -263,6 +276,20 @@ export default async function ProjectDetailPage({
         </section>
 
         {/* Tools & materials — no overflow-hidden: the picker dropdown must escape the card */}
+        {showPrice && (
+          <ProjectAddOns
+            projectId={project.id}
+            totalLabel={formatCurrency(addOnTotal, locale)}
+            addOns={project.addOns.map((a) => ({
+              id: a.id,
+              label: a.label,
+              amount: Number(a.amount),
+              amountLabel: formatCurrency(Number(a.amount), locale),
+              dateLabel: formatDate(a.date, locale),
+            }))}
+          />
+        )}
+
         <section className="rounded-lg border border-border bg-surface shadow-sm">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>

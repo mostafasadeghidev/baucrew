@@ -2,7 +2,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 import ExcelJS from 'exceljs'
 import { getCurrentUser } from '@/lib/auth'
 import { canViewFinancials } from '@/lib/authz'
-import { getCustomerReport, getProjectEfficiency, getYearRevenue, getYearUsage } from '@/lib/reports'
+import {
+  STALE_OFFER_DAYS,
+  getCustomerReport,
+  getOpenOffers,
+  getProjectEfficiency,
+  getYearRevenue,
+  getYearUsage,
+} from '@/lib/reports'
 import { getBranding } from '@/lib/branding'
 import { parsePeriod } from '@/lib/reports-calc'
 
@@ -34,11 +41,12 @@ export async function GET(request: NextRequest) {
     yearParam && /^\d{4}$/.test(yearParam) ? Number(yearParam) : new Date().getUTCFullYear()
 
   const range = parsePeriod(request.nextUrl.searchParams.get('period'))
-  const [revenue, usage, efficiency, customers] = await Promise.all([
+  const [revenue, usage, efficiency, customers, openOffers] = await Promise.all([
     getYearRevenue(year),
     getYearUsage(year, range),
     getProjectEfficiency(year, range),
     getCustomerReport(year, range),
+    getOpenOffers(),
   ])
 
   const workbook = new ExcelJS.Workbook()
@@ -173,6 +181,26 @@ export async function GET(request: NextRequest) {
   const custTotal = custSheet.addRow(['Gesamt', '', customers.total, ''])
   custTotal.font = bold
   custTotal.getCell(3).numFmt = EUR_FORMAT
+
+  // ── Sheet 5: offers still waiting for confirmation ───────
+  const offerSheet = workbook.addWorksheet('Offene Angebote')
+  offerSheet.columns = [
+    { header: 'Nummer', key: 'n', width: 12 },
+    { header: 'Projekt', key: 'p', width: 36 },
+    { header: 'Kunde', key: 'c', width: 26 },
+    { header: 'Offen seit (Tage)', key: 'd', width: 18 },
+    { header: 'Auftragswert (netto)', key: 'v', width: 20 },
+  ]
+  offerSheet.getRow(1).font = bold
+  for (const o of openOffers.offers) {
+    const row = offerSheet.addRow([o.number, o.name, o.customer, o.ageDays, o.price ?? ''])
+    row.getCell(5).numFmt = EUR_FORMAT
+    // Mark the ones that are overdue, same threshold as in the report.
+    if (o.ageDays >= STALE_OFFER_DAYS) row.getCell(4).font = { bold: true }
+  }
+  const offerTotal = offerSheet.addRow(['Gesamt', '', '', '', openOffers.total])
+  offerTotal.font = bold
+  offerTotal.getCell(5).numFmt = EUR_FORMAT
 
   const buffer = await workbook.xlsx.writeBuffer()
   return new NextResponse(buffer as ArrayBuffer, {

@@ -460,3 +460,58 @@ export async function deleteProject(
   revalidatePath('/projects')
   redirect('/projects')
 }
+
+// ── Follow-on offers ("Nachträge") ───────────────────────────
+
+export type AddOnResult = { error?: 'invalidAmount' | 'labelRequired' | 'notAllowed' | 'saveFailed' }
+
+/**
+ * Adds an accepted follow-on offer to the project. It raises the order value
+ * everywhere (project page, revenue, pipeline, customer report), so only users
+ * with financial access may book one.
+ */
+export async function addProjectAddOn(projectId: string, formData: FormData): Promise<AddOnResult> {
+  const user = await requireManagement()
+  if (!canViewFinancials(user)) return { error: 'notAllowed' }
+  const label = String(formData.get('label') ?? '').trim().slice(0, 200)
+  const raw = String(formData.get('amount') ?? '').replace(',', '.').trim()
+  const dateRaw = String(formData.get('date') ?? '')
+  const amount = Number(raw)
+  if (!label) return { error: 'labelRequired' }
+  if (!raw || !Number.isFinite(amount) || amount <= 0 || amount > 99_999_999) return { error: 'invalidAmount' }
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? new Date(`${dateRaw}T00:00:00.000Z`) : new Date()
+
+  const project = await db.project.findUnique({ where: { id: projectId }, select: { number: true } })
+  if (!project) return { error: 'saveFailed' }
+  await db.projectAddOn.create({ data: { projectId, label, amount, date } })
+  await audit({
+    userId: user.id,
+    action: 'project.addOn',
+    entity: 'Project',
+    entityId: projectId,
+    field: label,
+    newValue: String(amount),
+  })
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/reports')
+  return {}
+}
+
+export async function removeProjectAddOn(projectId: string, addOnId: string): Promise<AddOnResult> {
+  const user = await requireManagement()
+  if (!canViewFinancials(user)) return { error: 'notAllowed' }
+  const addOn = await db.projectAddOn.findFirst({ where: { id: addOnId, projectId } })
+  if (!addOn) return { error: 'saveFailed' }
+  await db.projectAddOn.delete({ where: { id: addOnId } })
+  await audit({
+    userId: user.id,
+    action: 'project.addOnRemoved',
+    entity: 'Project',
+    entityId: projectId,
+    field: addOn.label,
+    oldValue: String(Number(addOn.amount)),
+  })
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/reports')
+  return {}
+}

@@ -53,6 +53,7 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       plannedStart: true,
       createdAt: true,
       customer: { select: { name: true } },
+      addOns: { select: { amount: true } },
     },
     orderBy: { number: 'asc' },
   })
@@ -74,7 +75,7 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       number: p.number,
       name: p.name,
       customer: p.customer.name,
-      price: p.price != null ? Number(p.price) : null,
+      price: orderValue(p.price, p.addOns),
     }
     if (p.isSub) {
       bucket.sub.push(entry)
@@ -91,6 +92,21 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     months,
     yearTotal: months.reduce((sum, m) => sum + m.total, 0),
   }
+}
+
+/**
+ * Order value of a project: the contract price plus every accepted follow-on
+ * offer ("Nachtrag"). Reports must use this, otherwise the figures never match
+ * the numbers the office has.
+ */
+export function orderValue(
+  price: unknown,
+  addOns: Array<{ amount: unknown }> | undefined
+): number | null {
+  const base = price != null ? Number(price) : null
+  const extra = (addOns ?? []).reduce((sum, a) => sum + Number(a.amount), 0)
+  if (base == null) return extra > 0 ? extra : null
+  return base + extra
 }
 
 export type UsageRow = { id: string; name: string; days: number }
@@ -162,12 +178,14 @@ export type PipelineBucket = {
  * (APPROVED — signed, not started), "in progress" and "planned" (the rest).
  */
 export async function getPipeline(): Promise<PipelineBucket[]> {
-  const rows = await db.project.groupBy({
-    by: ['status'],
+  const projects = await db.project.findMany({
     where: { status: { in: ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] } },
-    _sum: { price: true },
-    _count: { _all: true },
+    select: { status: true, price: true, addOns: { select: { amount: true } } },
   })
+  const rows = projects.map((p) => ({
+    status: p.status,
+    total: orderValue(p.price, p.addOns) ?? 0,
+  }))
   const buckets: Record<PipelineBucket['key'], PipelineBucket> = {
     offers: { key: 'offers', total: 0, count: 0 },
     ordered: { key: 'ordered', total: 0, count: 0 },
@@ -183,8 +201,8 @@ export async function getPipeline(): Promise<PipelineBucket[]> {
           : r.status === 'IN_PROGRESS'
             ? 'inProgress'
             : 'planned'
-    buckets[key].total += Number(r._sum.price ?? 0)
-    buckets[key].count += r._count._all
+    buckets[key].total += r.total
+    buckets[key].count += 1
   }
   return [buckets.offers, buckets.ordered, buckets.inProgress, buckets.planned]
 }
@@ -216,6 +234,7 @@ export async function getOpenOffers(): Promise<{ offers: OpenOffer[]; total: num
       createdAt: true,
       plannedStart: true,
       customer: { select: { name: true } },
+      addOns: { select: { amount: true } },
     },
     orderBy: { createdAt: 'asc' },
   })
@@ -225,7 +244,7 @@ export async function getOpenOffers(): Promise<{ offers: OpenOffer[]; total: num
     number: r.number,
     name: r.name,
     customer: r.customer.name,
-    price: r.price != null ? Number(r.price) : null,
+    price: orderValue(r.price, r.addOns),
     ageDays: Math.max(0, Math.floor((now - r.createdAt.getTime()) / 86_400_000)),
     plannedStart: r.plannedStart,
   }))
@@ -280,6 +299,7 @@ export async function getProjectEfficiency(
       actualStart: true,
       actualEnd: true,
       customer: { select: { name: true } },
+      addOns: { select: { amount: true } },
       scheduleEntries: { select: { date: true, _count: { select: { employees: true } } } },
     },
     orderBy: { number: 'desc' },
@@ -290,9 +310,9 @@ export async function getProjectEfficiency(
     number: p.number,
     name: p.name,
     customer: p.customer.name,
-    price: p.price != null ? Number(p.price) : null,
+    price: orderValue(p.price, p.addOns),
     ...computeEfficiency({
-      price: p.price != null ? Number(p.price) : null,
+      price: orderValue(p.price, p.addOns),
       plannedStart: p.plannedStart,
       plannedEnd: p.plannedEnd,
       actualStart: p.actualStart,
@@ -343,16 +363,21 @@ export async function getCustomerReport(
         { plannedStart: null, createdAt: { gte: start, lt: end } },
       ],
     },
-    select: { price: true, customer: { select: { id: true, name: true } } },
+    select: {
+      price: true,
+      addOns: { select: { amount: true } },
+      customer: { select: { id: true, name: true } },
+    },
   })
   const byCustomer = new Map<string, CustomerRow>()
   let total = 0
   for (const p of projects) {
     const row =
       byCustomer.get(p.customer.id) ?? { id: p.customer.id, name: p.customer.name, revenue: 0, projects: 0, share: 0 }
-    row.revenue += p.price != null ? Number(p.price) : 0
+    const value = orderValue(p.price, p.addOns) ?? 0
+    row.revenue += value
     row.projects += 1
-    total += p.price != null ? Number(p.price) : 0
+    total += value
     byCustomer.set(p.customer.id, row)
   }
   const top = [...byCustomer.values()]
@@ -389,7 +414,14 @@ export async function getCustomerReport(
 // ── Data quality: things that make the numbers wrong ─────────
 
 export type QualityIssue = {
-  key: 'inProgressNoSchedule' | 'finishedNoPrice' | 'noCity' | 'cityNotFound' | 'missingItems' | 'stockShort'
+  key:
+    | 'inProgressNoSchedule'
+    | 'finishedNoPrice'
+    | 'noCity'
+    | 'cityNotFound'
+    | 'missingItems'
+    | 'stockShort'
+    | 'staleOffers'
   count: number
   items: Array<{ id: string; label: string }>
 }
@@ -405,7 +437,7 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
       orderBy: { number: 'asc' },
     }),
     db.project.findMany({
-      where: { status: { in: ['COMPLETED', 'INVOICED', 'PAID'] }, price: null },
+      where: { status: { in: ['COMPLETED', 'INVOICED', 'PAID'] }, price: null, addOns: { none: {} } },
       select: { id: true, number: true, name: true },
       orderBy: { number: 'asc' },
     }),
@@ -461,6 +493,8 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
     .sort((a, b) => a.name.localeCompare(b.name))
+  // Offers that have been waiting too long for an answer.
+  const staleOffers = (await getOpenOffers()).offers.filter((o) => o.ageDays >= STALE_OFFER_DAYS)
   const cityCache = new Map<string, boolean>()
   const cityNotFound: Array<{ id: string; number: string; name: string; city: string | null }> = []
   for (const p of cityCandidates) {
@@ -493,6 +527,11 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
       key: 'missingItems',
       count: missingItems.length,
       items: missingItems.map((i) => ({ id: i.id, label: `${i.name} (${countFor.get(i.id) ?? 0}×)` })),
+    },
+    {
+      key: 'staleOffers',
+      count: staleOffers.length,
+      items: staleOffers.map((o) => ({ id: o.id, label: `${o.number} — ${o.name} (${o.ageDays} T.)` })),
     },
     {
       key: 'stockShort',

@@ -162,6 +162,8 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Follow-on offers ("Nachträge") that increase the order value
+  addOns          ProjectAddOn[]
   workCategories  ProjectWorkCategory[]
   team            ProjectEmployee[]
   vehicles        ProjectVehicle[]
@@ -182,6 +184,20 @@ model ProjectWorkCategory {
   workCategory   WorkCategory @relation(fields: [workCategoryId], references: [id], onDelete: Cascade)
 
   @@id([projectId, workCategoryId])
+}
+
+// A follow-on offer accepted after the main order — counts into the order
+// value everywhere (project page, revenue, pipeline, customer report).
+model ProjectAddOn {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label     String
+  amount    Decimal  @db.Decimal(12, 2)
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
 }
 
 // Vehicles planned for the project (defaults for new schedule entries).

@@ -214,7 +214,16 @@
     "tabPreparation": "Zur Vorbereitung",
     "tabPreparationHint": "Standard: Anfrage, Angebot, Beauftragt — anpassbar unter Einstellungen",
     "autoStatusHint": "Status wird automatisch gesetzt: „Geplant“ beim ersten Einsatz, „In Ausführung“ am ersten Einsatztag.",
-    "managerAddedToTeam": "Als Bauleiter automatisch zum Team hinzugefügt"
+    "managerAddedToTeam": "Als Bauleiter automatisch zum Team hinzugefügt",
+    "addOnsTitle": "Nachträge",
+    "addOnsShort": "Nachträge",
+    "addOnsHint": "Nachträglich beauftragte Zusatzleistungen. Sie erhöhen den Auftragswert — auch in Umsatz, Auftragsbestand und Kundenauswertung.",
+    "addOnsNone": "Keine Nachträge.",
+    "addOnAdd": "Nachtrag hinzufügen",
+    "addOnLabel": "Bezeichnung",
+    "addOnDate": "Datum",
+    "addOnLabelRequired": "Bitte eine Bezeichnung angeben.",
+    "checklistProgressTitle": "Checklisten: abgehakte Punkte (⚠ = Problem notiert)"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -460,7 +469,8 @@
     "offersHint": "Alle Projekte im Status „Angebot erstellt“, ältestes zuerst. Beträge netto. Ab {days} Tagen ohne Antwort markiert.",
     "offersStale": "{count} überfällig",
     "offersNone": "Keine offenen Angebote.",
-    "offerAge": "Offen seit"
+    "offerAge": "Offen seit",
+    "qStaleOffers": "Angebote ohne Antwort — bitte nachfassen"
   },
   "sheet": {
     "title": "Arbeitsauftrag",

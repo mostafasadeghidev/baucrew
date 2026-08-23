@@ -1,6 +1,6 @@
 # BauCrew — Benutzerhandbuch für Einsteiger
 
-*Version 1.11 · Stand: 19. August 2026*
+*Version 1.14 · Stand: 23. August 2026*
 
 Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen — auch ohne Computer-Vorkenntnisse. Jeder Abschnitt erklärt **was** ein Bereich ist, **wo** Sie ihn finden und **wie** Sie Schritt für Schritt vorgehen. Sie müssen es nicht am Stück lesen: Suchen Sie im Inhaltsverzeichnis, was Sie gerade brauchen.
 
@@ -221,6 +221,9 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 **Termine und Preis**
 - **Beginn / Ende (geplant)** — die Planung. **Beginn / Ende (tatsächlich)** — was wirklich war; tragen Sie das Ende nach, wenn das Projekt fertig ist (die Berichte vergleichen dann Plan und Wirklichkeit).
 - **Auftragswert** — nur sichtbar mit Finanzfreigabe. Ohne Wert fehlt das Projekt im Umsatzbericht!
+- **Nachträge** — nachträglich beauftragte Zusatzleistungen tragen Sie unten auf der Projektseite ein (Bezeichnung, Betrag, Datum). Sie werden zum Auftragswert addiert und wirken überall: Umsatz, Auftragsbestand, Kundenauswertung, Plan vs. Ist. Nur Konten mit Finanzfreigabe können sie buchen.
+- **Checklisten** — auf der Projektseite (und am Handy unter „Mein Bereich“) abhaken; die Liste steht mit Haken, Notiz und Namen auch auf dem gedruckten Arbeitsauftrag. In der Projektliste zeigt ein kleines Feld den Stand (z. B. 8/10, ⚠ bei einem Problem).
+- **Offene Angebote** — Berichte → Reiter **Angebote**: alle noch nicht bestätigten Angebote mit Summe, Wartezeit und Markierung ab 21 Tagen; auch als eigenes Blatt im Excel-Export und als Hinweis unter Datenqualität.
 
 **Zuordnung**
 - **Baustellenverantwortlicher**, **Fahrzeuge** (mehrere möglich — als Chips), **Mitarbeiter** (Team). Wer als Baustellenverantwortlicher gewählt wird, ist automatisch im Team angehakt. Diese Auswahl wird beim Planen der Einsätze automatisch vorgeschlagen.
