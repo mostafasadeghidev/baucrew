@@ -47,6 +47,13 @@ Full product requirements live in the owner's master prompt; phased roadmap in R
   (optional manager/vehicles/crew on templates), `docs/CHANGE-configurable-types.md`
   (client/building/item type enums → configurable lists). Add a new file there for similar changes.
 
+## Backlog
+
+`docs/BACKLOG.md` is the single overview: what the customer asked for (done /
+open / blocked by an external system) and our own parked ideas. The customer's
+source list lives in Notion ("Automation & Process Backlog"); keep the
+`Ref` ids in sync when something changes.
+
 ## Commands
 
 - Dev DB: `docker compose -f docker-compose.dev.yml up -d`
