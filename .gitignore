@@ -57,3 +57,6 @@ next-env.d.ts
 
 # local-only test locales (see src/i18n/config.ts)
 /messages/fa.json
+
+# the repository stays German/English — the Persian manual is local-only
+/docs/RAHNAMA-FA.md

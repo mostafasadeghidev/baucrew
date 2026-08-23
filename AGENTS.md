@@ -13,6 +13,28 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 Internal field-service management app for a German painting/construction company.
 Full product requirements live in the owner's master prompt; phased roadmap in README.
 
+## The repository is public — what must never reach it
+
+The GitHub repository is the product, in German and English only. Two things
+must never be pushed, no matter how small or how convenient:
+
+1. **No Persian anywhere in the repository.** The owner needs Persian locally
+   for testing (`messages/fa.json`, the Persian manual, Persian notes) — those
+   files stay git-ignored on their machine. Nothing Persian goes into tracked
+   files, commit messages, release notes or issue text.
+2. **No real company data.** No customer, employee, project, vehicle or address
+   of the real company; no logos; no screenshots or PDFs made with real data;
+   no dumps, backups or `.env` values. Examples in code, tests and manuals use
+   invented names (`Muster …`, `Beispiel …`).
+
+Git-ignored and to be kept that way: `messages/fa.json`, `docs/RAHNAMA-FA.md`,
+`docs/*.pdf`, `docs/screenshots/`, `prisma/seed.company.ts`, `.env*`,
+`docker-compose.local.yml`.
+
+Before every push: `git status --porcelain` must be empty of surprises, and the
+diff must contain no Persian script and no real names. When in doubt, ask the
+owner instead of pushing.
+
 ## Conventions
 
 - **Language**: Communicate with the owner in **Persian (Farsi)**. The app UI is
