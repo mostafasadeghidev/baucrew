@@ -122,7 +122,10 @@
     "packedOf": "{done} von {total} gepackt",
     "noEmployeeLinked": "Ihrem Konto ist kein Mitarbeiter zugeordnet — bitte wenden Sie sich an die Verwaltung.",
     "packingHint": "Tippen wechselt: Benötigt → Gepackt → Fehlt.",
-    "packingNotAllowed": "Dafür fehlt die Berechtigung — nur eigene Projekte."
+    "packingNotAllowed": "Dafür fehlt die Berechtigung — nur eigene Projekte.",
+    "jobsCount": "{count, plural, one {# Einsatz} other {# Einsätze}}",
+    "noJobsShort": "Nichts geplant",
+    "navigate": "Navigation"
   },
   "customers": {
     "title": "Kunden",

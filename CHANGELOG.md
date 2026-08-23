@@ -3,6 +3,16 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.15.0] — 2026-08-23
+
+### Changed — the worker area is an app now, not a sheet (backlog M31)
+- **Week strip**: the seven days of the week with a dot per assignment; tap a day, page whole weeks. The old single-day arrows are gone.
+- **Slim header**: company mark plus one button with the worker's name — language, theme and sign out moved into that menu. The link to the warehouse screen was removed from the worker area (it is a wall-screen page with no way back); the shared warehouse login now gets that link on its own card instead.
+- **Assignment card**: start time first, then project and customer; three big actions (navigation, call, work order); address, contact, vehicle and crew as icon rows.
+- **The note of that day** (written in the assignment dialog) is shown in yellow at the top of the card — it used to be invisible for the crew.
+- **Team-mates are tappable**: their phone number dials directly; the site manager is listed once, with their number.
+- Day heading says how many assignments the day has; the empty day has its own card.
+
 ## [1.14.0] — 2026-08-23
 
 ### Added
@@ -274,6 +284,7 @@ First release.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
 
+[1.15.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.15.0
 [1.14.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.14.0
 [1.13.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.13.0
 [1.12.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.12.0

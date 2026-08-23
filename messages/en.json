@@ -122,7 +122,10 @@
     "packedOf": "{done} of {total} packed",
     "noEmployeeLinked": "No employee is linked to your account — please contact the office.",
     "packingHint": "Tap to switch: required → packed → missing.",
-    "packingNotAllowed": "Not allowed — only your own projects."
+    "packingNotAllowed": "Not allowed — only your own projects.",
+    "jobsCount": "{count, plural, one {# assignment} other {# assignments}}",
+    "noJobsShort": "Nothing planned",
+    "navigate": "Navigate"
   },
   "customers": {
     "title": "Customers",

@@ -2,13 +2,19 @@ import Link from 'next/link'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { requireUser } from '@/lib/authz'
 import { db } from '@/lib/db'
-import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
+import { addDays, iso, mondayOf, isoWeek, todayUtc, utcDate } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
 import { PackingList } from './packing-buttons'
 import { Checklist } from '@/components/checklist'
+import { WeekStrip, buildWeek } from './week-strip'
 import { formatDate } from '@/lib/format'
+import { MapPin, Phone, Printer, Truck, Users } from 'lucide-react'
 
-
+/**
+ * The worker's own day on the phone: week strip, one card per assignment with
+ * address, contacts, the note for that day, the packing list and the site
+ * checklists — everything tappable, nothing that looks like a printed sheet.
+ */
 export default async function MyAreaPage({
   searchParams,
 }: {
@@ -16,10 +22,11 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tChecklists, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, tToday, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
     getTranslations('checklists'),
+    getTranslations('today'),
     getLocale(),
   ])
 
@@ -27,8 +34,9 @@ export default async function MyAreaPage({
   const day = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? utcDate(date) : today
   const isToday = iso(day) === iso(today)
   const employeeId = user.employee?.id
+  const monday = mondayOf(day)
 
-  const [entries, next] = employeeId
+  const [entries, next, weekEntries] = employeeId
     ? await Promise.all([
         db.scheduleEntry.findMany({
           where: { date: day, cancelledAt: null, employees: { some: { employeeId } } },
@@ -53,7 +61,9 @@ export default async function MyAreaPage({
               },
             },
             vehicles: { include: { vehicle: { select: { name: true } } } },
-            employees: { include: { employee: { select: { id: true, firstName: true, lastName: true } } } },
+            employees: {
+              include: { employee: { select: { id: true, firstName: true, lastName: true, phone: true } } },
+            },
           },
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         }),
@@ -70,267 +80,292 @@ export default async function MyAreaPage({
           },
           orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
         }),
+        // Dots for the week strip
+        db.scheduleEntry.findMany({
+          where: {
+            date: { gte: monday, lt: addDays(monday, 7) },
+            cancelledAt: null,
+            employees: { some: { employeeId } },
+          },
+          select: { date: true },
+        }),
       ])
-    : [[], null]
+    : [[], null, []]
 
-  const displayName = user.employee
-    ? `${user.employee.firstName} ${user.employee.lastName}`.trim()
-    : user.username
+  const jobsPerDay = new Map<string, number>()
+  for (const e of weekEntries) {
+    const key = iso(e.date)
+    jobsPerDay.set(key, (jobsPerDay.get(key) ?? 0) + 1)
+  }
 
-  const fmtLong = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
+  const intl = locale === 'en' ? 'en-GB' : 'de-DE'
+  const fmtLong = new Intl.DateTimeFormat(intl, {
     weekday: 'long',
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric',
     timeZone: 'UTC',
   })
-  const fmtShort = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
+  const fmtShort = new Intl.DateTimeFormat(intl, {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',
     timeZone: 'UTC',
   })
+  const weekdayFmt = new Intl.DateTimeFormat(intl, { weekday: 'short', timeZone: 'UTC' })
+  const week = buildWeek(monday, day, today, jobsPerDay, weekdayFmt)
 
-  const dayLink = (d: Date, label: string, active = false) => (
-    <Link
-      href={iso(d) === iso(today) ? '/my' : `/my?date=${iso(d)}`}
-      className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
-        active
-          ? 'border-accent bg-accent text-accent-foreground'
-          : 'border-border hover:bg-surface-hover'
-      }`}
-    >
-      {label}
-    </Link>
-  )
+  const tel = (v: string) => `tel:${v.replace(/[^\d+]/g, '')}`
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight md:text-2xl">
-            {t('greeting', { name: displayName })}
-          </h1>
-          <p className="mt-0.5 text-sm text-muted">{fmtLong.format(day)}</p>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {dayLink(addDays(day, -1), '←')}
-          {dayLink(today, t('today'), isToday)}
-          {dayLink(addDays(day, 1), '→')}
-        </div>
+    <div className="space-y-4">
+      {/* Day + how much is on it */}
+      <div>
+        <h1 className="text-xl font-bold tracking-tight">
+          {isToday ? t('today') : fmtLong.format(day)}
+          {isToday && <span className="ml-2 text-base font-medium text-muted">{fmtLong.format(day)}</span>}
+        </h1>
+        <p className="mt-0.5 text-sm text-muted">
+          {entries.length === 0 ? t('noJobsShort') : t('jobsCount', { count: entries.length })}
+        </p>
       </div>
 
+      <WeekStrip
+        days={week}
+        prevWeek={addDays(monday, -7)}
+        nextWeek={addDays(monday, 7)}
+        weekLabel={`KW ${isoWeek(monday)}`}
+      />
+
+      {/* The shared warehouse login has no own assignments — send it to the screen */}
       {!employeeId && (
-        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-          {t('noEmployeeLinked')}
-        </p>
+        <section className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+          <p className="text-sm">{t('noEmployeeLinked')}</p>
+          <Link href="/today" className={`${btn.primary} mt-3`}>
+            {tToday('title')}
+          </Link>
+        </section>
       )}
 
-      {/* Jobs of the day */}
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-muted">
-          {isToday ? t('todaysJobs') : t('jobsOn', { date: fmtShort.format(day) })}
-        </h2>
+      {employeeId && entries.length === 0 && (
+        <section className="rounded-xl border border-border bg-surface p-8 text-center">
+          <p className="text-base text-muted">{isToday ? t('noJobsToday') : t('noJobsOn')}</p>
+        </section>
+      )}
 
-        {entries.length === 0 ? (
-          <div className="rounded-lg border border-border bg-surface p-6 text-center text-sm text-muted">
-            {isToday ? t('noJobsToday') : t('noJobsOn')}
-          </div>
-        ) : (
-          entries.map((entry) => {
-            const p = entry.project
-            const address = [p.street, [p.postalCode, p.city].filter(Boolean).join(' ')]
-              .filter(Boolean)
-              .join(', ')
-            const phone = p.phone ?? p.customer.phone
-            const contact = p.contact ?? p.customer.contactPerson
-            const done = p.items.filter((i) => i.status === 'COLLECTED').length
-            const time = [entry.startTime, entry.endTime].filter(Boolean).join('–')
-            const teammates = entry.employees.filter((ee) => ee.employee.id !== employeeId)
+      {entries.map((entry) => {
+        const p = entry.project
+        const address = [p.street, [p.postalCode, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+        const phone = p.phone ?? p.customer.phone
+        const contact = p.contact ?? p.customer.contactPerson
+        const done = p.items.filter((i) => i.status === 'COLLECTED').length
+        const time = [entry.startTime, entry.endTime].filter(Boolean).join('–')
+        // Neither myself nor the site manager (shown separately) in the crew line
+        const teammates = entry.employees.filter(
+          (ee) => ee.employee.id !== employeeId && ee.employee.id !== p.managerId
+        )
 
-            return (
-              <article
-                id={`p-${p.id}`}
-                key={entry.id}
-                className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
+        return (
+          <article
+            id={`p-${p.id}`}
+            key={entry.id}
+            className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+          >
+            {/* Headline: time first — that is what the crew looks for */}
+            <div className="border-b border-border px-4 py-3">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                {time && <span className="text-lg font-bold tabular-nums text-accent">{time}</span>}
+                <h2 className="text-lg font-semibold leading-tight">{p.name}</h2>
+              </div>
+              <p className="mt-0.5 text-sm text-muted">{p.customer.name}</p>
+            </div>
+
+            {/* Note of this very day — the message that used to get lost */}
+            {entry.note && (
+              <p className="border-b border-border bg-amber-500/10 px-4 py-3 text-sm font-medium">
+                {entry.note}
+              </p>
+            )}
+
+            {/* Big actions */}
+            <div className="flex flex-wrap gap-2 border-b border-border px-4 py-3">
+              {address && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${btn.primary} flex-1 justify-center`}
+                >
+                  <MapPin className="h-4 w-4" aria-hidden />
+                  {t('navigate')}
+                </a>
+              )}
+              {phone && (
+                <a href={tel(phone)} className={`${btn.outline} flex-1 justify-center`}>
+                  <Phone className="h-4 w-4" aria-hidden />
+                  {t('call')}
+                </a>
+              )}
+              <Link
+                href={`/projects/${p.id}/sheet?entry=${entry.id}`}
+                className={`${btn.outline} flex-1 justify-center`}
               >
-                {/* Title row */}
-                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border px-4 py-3">
-                  <div className="min-w-0">
-                    <p className="text-lg font-semibold leading-tight md:text-xl">{p.name}</p>
-                    <p className="mt-0.5 text-sm text-muted">
-                      {p.customer.name}
-                      {time && <> · <span className="tabular-nums">{time}</span></>}
-                    </p>
-                  </div>
-                  <Link
-                    href={`/projects/${p.id}/sheet?entry=${entry.id}`}
-                    className="flex shrink-0 items-center gap-1.5 rounded-md border border-accent px-3 py-1.5 text-sm font-semibold text-accent hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                      <rect x="6" y="14" width="12" height="8" />
-                    </svg>
-                    {tSheet('title')}
-                  </Link>
+                <Printer className="h-4 w-4" aria-hidden />
+                {tSheet('title')}
+              </Link>
+            </div>
+
+            {/* Facts: address, people, vehicle */}
+            <dl className="space-y-2.5 px-4 py-3 text-sm">
+              {address && (
+                <div className="flex gap-2">
+                  <dt className="shrink-0 pt-0.5 text-muted">
+                    <MapPin className="h-4 w-4" aria-hidden />
+                    <span className="sr-only">{t('address')}</span>
+                  </dt>
+                  <dd className="font-medium">{address}</dd>
                 </div>
-
-                {/* Facts */}
-                <dl className="grid gap-x-6 gap-y-2 px-4 py-3 text-sm sm:grid-cols-2">
-                  {address && (
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs uppercase tracking-wide text-muted">{t('address')}</dt>
-                      <dd className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span className="font-medium">{address}</span>
-                        <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${btn.outlineSm} px-2 py-1 text-xs text-accent`}
-                        >
-                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z" />
-                            <circle cx="12" cy="10" r="2.5" />
-                          </svg>
-                          {t('openInMaps')}
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                  {(phone || contact) && (
-                    <div>
-                      <dt className="text-xs uppercase tracking-wide text-muted">{t('phone')}</dt>
-                      <dd className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-                        {contact && <span className="font-medium">{contact}</span>}
-                        {phone && (
-                          <a
-                            href={`tel:${phone.replace(/[^\d+]/g, '')}`}
-                            className={`${btn.outlineSm} px-2 py-1 text-xs text-accent`}
-                          >
-                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2Z" />
-                            </svg>
-                            {phone}
-                          </a>
-                        )}
-                      </dd>
-                    </div>
-                  )}
-                  {p.manager && (
-                    <div>
-                      <dt className="text-xs uppercase tracking-wide text-muted">{t('manager')}</dt>
-                      <dd className="mt-0.5 font-medium">
-                        {p.manager.firstName} {p.manager.lastName}
-                        {p.manager.phone && (
-                          <a href={`tel:${p.manager.phone.replace(/[^\d+]/g, '')}`} className="ml-2 text-xs text-accent hover:underline">
-                            {p.manager.phone}
-                          </a>
-                        )}
-                      </dd>
-                    </div>
-                  )}
-                  <div>
-                    <dt className="text-xs uppercase tracking-wide text-muted">{t('vehicle')}</dt>
-                    <dd className="mt-0.5 font-medium">
-                      {entry.vehicles.map((ev) => ev.vehicle.name).join(', ') || '—'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase tracking-wide text-muted">{t('team')}</dt>
-                    <dd className="mt-0.5 font-medium">
-                      {teammates.length === 0
-                        ? '—'
-                        : teammates.map((ee) => `${ee.employee.firstName} ${ee.employee.lastName}`.trim()).join(', ')}
-                    </dd>
-                  </div>
-                  {p.description && (
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs uppercase tracking-wide text-muted">{t('description')}</dt>
-                      <dd className="mt-0.5 whitespace-pre-wrap">{p.description}</dd>
-                    </div>
-                  )}
-                </dl>
-
-                {/* Items */}
-                <div className="border-t border-border px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-wide text-muted">{t('items')}</p>
-                    {p.items.length > 0 && (
-                      <p className={`text-xs font-medium ${done === p.items.length ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'}`}>
-                        {t('packedOf', { done, total: p.items.length })}
-                      </p>
+              )}
+              {(contact || phone) && (
+                <div className="flex gap-2">
+                  <dt className="shrink-0 pt-0.5 text-muted">
+                    <Phone className="h-4 w-4" aria-hidden />
+                    <span className="sr-only">{t('phone')}</span>
+                  </dt>
+                  <dd>
+                    {contact && <span className="font-medium">{contact}</span>}
+                    {phone && (
+                      <a href={tel(phone)} className="ml-2 text-accent hover:underline">
+                        {phone}
+                      </a>
                     )}
-                  </div>
-                  {p.items.length === 0 ? (
-                    <p className="mt-1 text-sm text-muted">{t('noItems')}</p>
-                  ) : (
-                    /* Tap an item to tick it: required → packed → missing. */
-                    <PackingList
-                      items={p.items.map((item) => ({
-                        id: item.id,
-                        name: item.catalogItem.name,
-                        unit: item.catalogItem.unit,
-                        quantity: item.quantity != null ? Number(item.quantity) : null,
-                        status: item.status,
-                      }))}
-                    />
-                  )}
+                  </dd>
                 </div>
+              )}
+              <div className="flex gap-2">
+                <dt className="shrink-0 pt-0.5 text-muted">
+                  <Truck className="h-4 w-4" aria-hidden />
+                  <span className="sr-only">{t('vehicle')}</span>
+                </dt>
+                <dd className="font-medium">{entry.vehicles.map((ev) => ev.vehicle.name).join(', ') || '—'}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 pt-0.5 text-muted">
+                  <Users className="h-4 w-4" aria-hidden />
+                  <span className="sr-only">{t('team')}</span>
+                </dt>
+                <dd className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {p.manager && (
+                    <span className="font-medium">
+                      {p.manager.firstName} {p.manager.lastName}
+                      <span className="ml-1 text-xs text-muted">({t('manager')})</span>
+                      {p.manager.phone && (
+                        <a href={tel(p.manager.phone)} className="ml-1.5 text-accent hover:underline">
+                          {p.manager.phone}
+                        </a>
+                      )}
+                    </span>
+                  )}
+                  {teammates.length === 0 && !p.manager && <span>—</span>}
+                  {/* Team-mates are tappable too — calling a colleague is normal on site */}
+                  {teammates.map((ee) =>
+                    ee.employee.phone ? (
+                      <a key={ee.employee.id} href={tel(ee.employee.phone)} className="text-accent hover:underline">
+                        {ee.employee.firstName} {ee.employee.lastName}
+                      </a>
+                    ) : (
+                      <span key={ee.employee.id}>
+                        {ee.employee.firstName} {ee.employee.lastName}
+                      </span>
+                    )
+                  )}
+                </dd>
+              </div>
+              {p.description && (
+                <div className="border-t border-border pt-2.5">
+                  <dt className="text-xs uppercase tracking-wide text-muted">{t('description')}</dt>
+                  <dd className="mt-0.5 whitespace-pre-wrap">{p.description}</dd>
+                </div>
+              )}
+            </dl>
 
-                {/* Site checklists — tick them off right here */}
-                <div className="border-t border-border px-4 py-3">
-                  <p className="text-xs uppercase tracking-wide text-muted">{tChecklists('title')}</p>
-                  {p.checklists.length === 0 ? (
-                    <p className="mt-1 text-sm text-muted">{tChecklists('none')}</p>
-                  ) : (
-                    <div className="mt-2 space-y-4">
-                      {p.checklists.map((c) => (
-                        <Checklist
-                          key={c.id}
-                          compact
-                          checklist={{
-                            id: c.id,
-                            name: c.name,
-                            items: c.items.map((i) => ({
-                              id: i.id,
-                              text: i.text,
-                              ok: i.ok,
-                              note: i.note,
-                              checkedBy: i.checkedBy
-                                ? `${i.checkedBy.firstName} ${i.checkedBy.lastName}`.trim()
-                                : null,
-                              checkedAt: i.checkedAt ? formatDate(i.checkedAt, locale) : null,
-                            })),
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
+            {/* Packing list */}
+            <div className="border-t border-border px-4 py-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-wide text-muted">{t('items')}</p>
+                {p.items.length > 0 && (
+                  <p
+                    className={`text-xs font-medium ${
+                      done === p.items.length ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'
+                    }`}
+                  >
+                    {t('packedOf', { done, total: p.items.length })}
+                  </p>
+                )}
+              </div>
+              {p.items.length === 0 ? (
+                <p className="mt-1 text-sm text-muted">{t('noItems')}</p>
+              ) : (
+                /* Tap an item to tick it: required → packed → missing. */
+                <PackingList
+                  items={p.items.map((item) => ({
+                    id: item.id,
+                    name: item.catalogItem.name,
+                    unit: item.catalogItem.unit,
+                    quantity: item.quantity != null ? Number(item.quantity) : null,
+                    status: item.status,
+                  }))}
+                />
+              )}
+            </div>
+
+            {/* Site checklists — tick them off right here */}
+            {p.checklists.length > 0 && (
+              <div className="border-t border-border px-4 py-3">
+                <p className="text-xs uppercase tracking-wide text-muted">{tChecklists('title')}</p>
+                <div className="mt-2 space-y-4">
+                  {p.checklists.map((c) => (
+                    <Checklist
+                      key={c.id}
+                      compact
+                      checklist={{
+                        id: c.id,
+                        name: c.name,
+                        items: c.items.map((i) => ({
+                          id: i.id,
+                          text: i.text,
+                          ok: i.ok,
+                          note: i.note,
+                          checkedBy: i.checkedBy
+                            ? `${i.checkedBy.firstName} ${i.checkedBy.lastName}`.trim()
+                            : null,
+                          checkedAt: i.checkedAt ? formatDate(i.checkedAt, locale) : null,
+                        })),
+                      }}
+                    />
+                  ))}
                 </div>
-              </article>
-            )
-          })
-        )}
-      </section>
+              </div>
+            )}
+          </article>
+        )
+      })}
 
       {/* Next job */}
-      <section className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-        <p className="text-xs uppercase tracking-wide text-muted">{t('nextJob')}</p>
-        {next ? (
-          <Link href={`/my?date=${iso(next.date)}`} className="mt-1 block hover:underline">
-            <span className="font-semibold">{fmtShort.format(next.date)}</span>
-            {next.startTime && <span className="tabular-nums text-muted"> · {next.startTime}</span>}
-            <span> · {next.project.name}</span>
-            {next.project.city && <span className="text-muted"> · {next.project.city}</span>}
-            {next.vehicles.length > 0 && (
-              <span className="text-muted"> · {next.vehicles.map((v) => v.vehicle.name).join(', ')}</span>
-            )}
-          </Link>
-        ) : (
-          <p className="mt-1 text-sm text-muted">{t('noNextJob')}</p>
-        )}
-      </section>
+      {employeeId && (
+        <section className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-muted">{t('nextJob')}</p>
+          {next ? (
+            <Link href={`/my?date=${iso(next.date)}`} className="mt-1 flex flex-wrap items-baseline gap-x-2 hover:underline">
+              <span className="font-semibold">{fmtShort.format(next.date)}</span>
+              {next.startTime && <span className="tabular-nums text-accent">{next.startTime}</span>}
+              <span>{next.project.name}</span>
+              {next.project.city && <span className="text-muted">· {next.project.city}</span>}
+            </Link>
+          ) : (
+            <p className="mt-1 text-sm text-muted">{t('noNextJob')}</p>
+          )}
+        </section>
+      )}
     </div>
   )
 }
