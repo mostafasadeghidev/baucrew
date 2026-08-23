@@ -486,7 +486,10 @@
     "offersNone": "No open offers.",
     "offerAge": "Waiting",
     "qStaleOffers": "Offers without an answer — worth chasing",
-    "quarterTitle": "Revenue per quarter {year}"
+    "quarterTitle": "Revenue per quarter {year}",
+    "groupQuarters": "Quarters",
+    "groupHalves": "Half-years",
+    "groupMonths": "Months"
   },
   "sheet": {
     "title": "Work order",

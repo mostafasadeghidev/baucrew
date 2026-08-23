@@ -51,31 +51,62 @@ export function LiveSearchInput({
   )
 }
 
-/** Select that applies its filter immediately on change via a URL query param. */
+export type LiveSelectOption = { value: string; label: string }
+/** Entries can be grouped — the browser renders them as <optgroup>. */
+export type LiveSelectGroup = { label: string; options: LiveSelectOption[] }
+
+function isGroup(o: LiveSelectOption | LiveSelectGroup): o is LiveSelectGroup {
+  return 'options' in o
+}
+
+/**
+ * Select that applies its filter immediately on change via a URL query param.
+ * `allLabel` adds the "no filter" entry on top; leave it out when one of the
+ * options already carries the empty value (e.g. the current year in its place
+ * in the list instead of jumping to the front).
+ */
 export function LiveSelect({
   param,
   options,
   allLabel,
+  ariaLabel,
+  className = 'min-w-44',
+  compact = false,
 }: {
   param: string
-  options: Array<{ value: string; label: string }>
-  allLabel: string
+  options: Array<LiveSelectOption | LiveSelectGroup>
+  allLabel?: string
+  ariaLabel?: string
+  className?: string
+  compact?: boolean
 }) {
   const searchParams = useSearchParams()
   const update = useParamUpdater()
 
+  const option = (o: LiveSelectOption) => (
+    <option key={o.value} value={o.value}>
+      {o.label}
+    </option>
+  )
+
   return (
     <Select
-      className="min-w-44"
+      className={className}
+      compact={compact}
+      aria-label={ariaLabel}
       value={searchParams.get(param) ?? ''}
       onChange={(e) => update(param, e.target.value)}
     >
-      <option value="">{allLabel}</option>
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
+      {allLabel !== undefined && <option value="">{allLabel}</option>}
+      {options.map((o) =>
+        isGroup(o) ? (
+          <optgroup key={o.label} label={o.label}>
+            {o.options.map(option)}
+          </optgroup>
+        ) : (
+          option(o)
+        )
+      )}
     </Select>
   )
 }

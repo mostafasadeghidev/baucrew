@@ -14,6 +14,7 @@ Three more items from the customer backlog (meetings 1 + 2).
 
 ### Fixed
 - Reports → Übersicht: the order book showed **Angebote offen** with the label *Geplant / offen* and squeezed its four stages into three columns (since 1.14.0, when the offers stage was added).
+- Reports, period controls: the years were out of order (2026, 2027, 2025 …) because the current year was pulled to the front as the "no filter" entry. It now keeps its place in the list (2027, 2026, 2025 …). The period list is grouped into **Quartale · Halbjahre · Monate** instead of one long flat list, and both selects sit in one small bar with a calendar icon — the same visual language as the view switcher in the planner.
 
 ## [1.15.0] — 2026-08-23
 

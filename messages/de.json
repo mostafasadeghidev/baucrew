@@ -486,7 +486,10 @@
     "offersNone": "Keine offenen Angebote.",
     "offerAge": "Offen seit",
     "qStaleOffers": "Angebote ohne Antwort — bitte nachfassen",
-    "quarterTitle": "Umsatz je Quartal {year}"
+    "quarterTitle": "Umsatz je Quartal {year}",
+    "groupQuarters": "Quartale",
+    "groupHalves": "Halbjahre",
+    "groupMonths": "Monate"
   },
   "sheet": {
     "title": "Arbeitsauftrag",

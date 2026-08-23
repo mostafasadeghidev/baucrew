@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { CalendarRange } from 'lucide-react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import {
@@ -141,16 +142,26 @@ export default async function ReportsPage({
   const topCustomer = customers?.top[0]
   const exportHref = `/reports/export?year=${year}${periodParam ? `&period=${encodeURIComponent(periodParam)}` : ''}`
 
+  // Grouped, so quarters, half-years and months are not one long flat list.
   const periodOptions = [
-    ...[1, 2, 3, 4].map((n) => ({
-      value: `q${n}`,
-      label: `${t('periodQuarter', { n })} (${shortMonths[(n - 1) * 3]}–${shortMonths[(n - 1) * 3 + 2]})`,
-    })),
-    ...[1, 2].map((n) => ({
-      value: `h${n}`,
-      label: `${t('periodHalf', { n })} (${shortMonths[(n - 1) * 6]}–${shortMonths[(n - 1) * 6 + 5]})`,
-    })),
-    ...Array.from({ length: 12 }, (_, m) => ({ value: String(m + 1), label: monthName(m) })),
+    {
+      label: t('groupQuarters'),
+      options: [1, 2, 3, 4].map((n) => ({
+        value: `q${n}`,
+        label: `${t('periodQuarter', { n })} (${shortMonths[(n - 1) * 3]}–${shortMonths[(n - 1) * 3 + 2]})`,
+      })),
+    },
+    {
+      label: t('groupHalves'),
+      options: [1, 2].map((n) => ({
+        value: `h${n}`,
+        label: `${t('periodHalf', { n })} (${shortMonths[(n - 1) * 6]}–${shortMonths[(n - 1) * 6 + 5]})`,
+      })),
+    },
+    {
+      label: t('groupMonths'),
+      options: Array.from({ length: 12 }, (_, m) => ({ value: String(m + 1), label: monthName(m) })),
+    },
   ]
 
   return (
@@ -164,13 +175,27 @@ export default async function ReportsPage({
           </span>
         </h1>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
-          <span className="text-xs text-muted">{t('period')}</span>
-          <LiveSelect
-            param="year"
-            allLabel={String(currentYear)}
-            options={yearOptions.filter((y) => y !== String(currentYear)).map((y) => ({ value: y, label: y }))}
-          />
-          <LiveSelect param="period" allLabel={t('allMonths')} options={periodOptions} />
+          {/* Year and period belong together, so they sit in one small bar. */}
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-subtle px-2 py-1">
+            <CalendarRange className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+            {/* The current year keeps its place in the list; its value is empty
+                because "no year in the URL" means the current year. */}
+            <LiveSelect
+              param="year"
+              ariaLabel={t('year')}
+              className="min-w-20"
+              compact
+              options={yearOptions.map((y) => ({ value: y === String(currentYear) ? '' : y, label: y }))}
+            />
+            <LiveSelect
+              param="period"
+              ariaLabel={t('period')}
+              allLabel={t('allMonths')}
+              className="min-w-40"
+              compact
+              options={periodOptions}
+            />
+          </div>
           <PrintButton label={t('print')} />
           {showFinancials && (
             <a
