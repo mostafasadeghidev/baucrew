@@ -67,7 +67,9 @@ owner instead of pushing.
   system accounts + privileged overview), `docs/CHANGE-project-multi-vehicle.md`
   (one → many vehicles per project), `docs/CHANGE-template-assignment.md`
   (optional manager/vehicles/crew on templates), `docs/CHANGE-configurable-types.md`
-  (client/building/item type enums → configurable lists). Add a new file there for similar changes.
+  (client/building/item type enums → configurable lists), `docs/CHANGE-checklists-in-projects.md`
+  (checklists moved to the project area; projects and templates pick their lists).
+  Add a new file there for similar changes.
 
 ## Backlog
 

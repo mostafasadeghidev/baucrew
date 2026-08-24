@@ -316,9 +316,10 @@ model ProjectTemplate {
   managerId String?
   manager   Employee? @relation("TemplateManager", fields: [managerId], references: [id], onDelete: SetNull)
 
-  items     TemplateItem[]
-  vehicles  TemplateVehicle[]
-  employees TemplateEmployee[]
+  items      TemplateItem[]
+  vehicles   TemplateVehicle[]
+  employees  TemplateEmployee[]
+  checklists TemplateChecklist[]
 }
 
 model TemplateVehicle {
@@ -329,6 +330,16 @@ model TemplateVehicle {
 
   @@id([templateId, vehicleId])
   @@index([vehicleId])
+}
+
+model TemplateChecklist {
+  templateId          String
+  checklistTemplateId String
+  template            ProjectTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  checklistTemplate   ChecklistTemplate @relation(fields: [checklistTemplateId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, checklistTemplateId])
+  @@index([checklistTemplateId])
 }
 
 model TemplateEmployee {
@@ -366,7 +377,8 @@ model ChecklistTemplate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  items ChecklistTemplateItem[]
+  items     ChecklistTemplateItem[]
+  templates TemplateChecklist[]
 }
 
 model ChecklistTemplateItem {

@@ -868,6 +868,14 @@
     "templateItems": "Lines (one per row)",
     "templateAdd": "Create template",
     "templateNone": "No templates yet.",
-    "templateItemCount": "{count, plural, one {# item} other {# items}}"
+    "templateItemCount": "{count, plural, one {# item} other {# items}}",
+    "templateDescription": "Short description (optional)",
+    "templateDescriptionHint": "What is this list for?",
+    "templateItemsHint": "One point per line",
+    "usedInTemplates": "In templates",
+    "projectChecklists": "Checklists",
+    "projectChecklistsHint": "Copied into the project when you save.",
+    "keptBecauseTicked": "Lists that were already ticked were kept: {names}",
+    "templateChecklistsHint": "Every project made from this template starts with these lists."
   }
 }

@@ -23,10 +23,11 @@ export default async function ProjectsPage({
   const user = await requireManagement()
   const { q, status, page: pageParam } = await searchParams
   const page = parsePage(pageParam)
-  const [t, tStatus, tTemplates, locale] = await Promise.all([
+  const [t, tStatus, tTemplates, tChecklists, locale] = await Promise.all([
     getTranslations('projects'),
     getTranslations('status'),
     getTranslations('templates'),
+    getTranslations('checklists'),
     getLocale(),
   ])
 
@@ -86,6 +87,12 @@ export default async function ProjectsPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <div className="flex items-center gap-2">
+          <Link
+            href="/projects/checklists"
+            className={btn.outline}
+          >
+            {tChecklists('templatesTitle')}
+          </Link>
           <Link
             href="/projects/templates"
             className={btn.outline}

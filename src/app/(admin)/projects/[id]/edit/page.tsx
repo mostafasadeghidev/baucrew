@@ -19,13 +19,14 @@ export default async function EditProjectPage({
   const locale = await getLocale()
   const lists = await getOptionLists()
 
-  const [project, customers, employees, vehicles, categories] = await Promise.all([
+  const [project, customers, employees, vehicles, categories, checklists] = await Promise.all([
     db.project.findUnique({
       where: { id },
       include: {
         workCategories: { select: { workCategoryId: true } },
         team: { select: { employeeId: true } },
         vehicles: { select: { vehicleId: true } },
+        checklists: { select: { templateId: true } },
       },
     }),
     db.customer.findMany({
@@ -46,6 +47,11 @@ export default async function EditProjectPage({
       where: { active: true },
       orderBy: { sortOrder: 'asc' },
       select: { id: true, nameDe: true, nameEn: true },
+    }),
+    db.checklistTemplate.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true },
     }),
   ])
   if (!project) notFound()
@@ -70,6 +76,7 @@ export default async function EditProjectPage({
         )}
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}` }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
+        checklists={checklists.map((c) => ({ value: c.id, label: c.name }))}
         clientTypes={lists.clientTypes.map((e) => ({ value: e.value, label: optionLabel(lists.clientTypes, e.value, locale) }))}
         buildingTypes={lists.buildingTypes.map((e) => ({ value: e.value, label: optionLabel(lists.buildingTypes, e.value, locale) }))}
         categories={categories.map((c) => ({
@@ -102,6 +109,9 @@ export default async function EditProjectPage({
           internalNotes: project.internalNotes ?? '',
           categoryIds: project.workCategories.map((wc) => wc.workCategoryId),
           teamIds: project.team.map((m) => m.employeeId),
+          checklistIds: project.checklists
+            .map((c) => c.templateId)
+            .filter((cid): cid is string => cid !== null),
         }}
       />
     </div>

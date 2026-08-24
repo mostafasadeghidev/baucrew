@@ -21,6 +21,7 @@ const templateSchema = z.object({
   managerId: z.string().transform((v) => (v ? v : null)),
   vehicleIds: z.array(z.string().min(1)).max(20),
   employeeIds: z.array(z.string().min(1)).max(50),
+  checklistIds: z.array(z.string().min(1)).max(30),
 })
 
 function parseTemplateForm(formData: FormData) {
@@ -32,6 +33,7 @@ function parseTemplateForm(formData: FormData) {
     managerId: formData.get('managerId') ?? '',
     vehicleIds: formData.getAll('vehicleIds').map(String).filter(Boolean),
     employeeIds: formData.getAll('employeeIds').map(String).filter(Boolean),
+    checklistIds: formData.getAll('checklistIds').map(String).filter(Boolean),
   })
 }
 
@@ -68,12 +70,13 @@ export async function createTemplate(
   const user = await requireManagement()
   const parsed = parseTemplateForm(formData)
   if (!parsed.success) return { error: errorKey(parsed.error.issues) }
-  const { vehicleIds, employeeIds, ...templateData } = parsed.data
+  const { vehicleIds, employeeIds, checklistIds, ...templateData } = parsed.data
   const template = await db.projectTemplate.create({
     data: {
       ...templateData,
       vehicles: { create: vehicleIds.map((id) => ({ vehicleId: id })) },
       employees: { create: employeeIds.map((id) => ({ employeeId: id })) },
+      checklists: { create: checklistIds.map((id) => ({ checklistTemplateId: id })) },
     },
   })
   // Items picked before the first save (new template page).
@@ -105,13 +108,14 @@ export async function updateTemplate(
   if (!parsed.success) return { error: errorKey(parsed.error.issues) }
   const before = await db.projectTemplate.findUnique({ where: { id } })
   if (!before) return { error: 'saveFailed' }
-  const { vehicleIds: vIds, employeeIds: eIds, ...templateData } = parsed.data
+  const { vehicleIds: vIds, employeeIds: eIds, checklistIds: cIds, ...templateData } = parsed.data
   await db.projectTemplate.update({
     where: { id },
     data: {
       ...templateData,
       vehicles: { deleteMany: {}, create: vIds.map((vid) => ({ vehicleId: vid })) },
       employees: { deleteMany: {}, create: eIds.map((eid) => ({ employeeId: eid })) },
+      checklists: { deleteMany: {}, create: cIds.map((cid) => ({ checklistTemplateId: cid })) },
     },
   })
   await audit({

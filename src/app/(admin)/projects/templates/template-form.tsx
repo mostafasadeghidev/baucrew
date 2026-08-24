@@ -18,6 +18,8 @@ export type TemplateFormValues = {
   managerId: string
   vehicleIds: string[]
   employeeIds: string[]
+  /** Checklists every project from this template starts with. */
+  checklistIds: string[]
 }
 
 const FORM_ID = 'template-form'
@@ -31,6 +33,7 @@ export function TemplateForm({
   categories,
   employees,
   vehicles,
+  checklists,
   itemsSection,
 }: {
   action: (prev: TemplateFormState, formData: FormData) => Promise<TemplateFormState>
@@ -38,6 +41,7 @@ export function TemplateForm({
   categories: ComboboxOption[]
   employees: ComboboxOption[]
   vehicles: ComboboxOption[]
+  checklists: ComboboxOption[]
   /** Draft tools/materials, shown while creating (saved together with the template). */
   itemsSection?: ReactNode
 }) {
@@ -46,8 +50,10 @@ export function TemplateForm({
   const tProjects = useTranslations('projects')
   const tEmployees = useTranslations('employees')
   const tVehicles = useTranslations('vehicles')
+  const tChecklists = useTranslations('checklists')
   const [vehicleIds, setVehicleIds] = useState<string[]>(initial.vehicleIds)
   const [employeeIds, setEmployeeIds] = useState<string[]>(initial.employeeIds)
+  const [checklistIds, setChecklistIds] = useState<string[]>(initial.checklistIds)
   const [managerId, setManagerId] = useState(initial.managerId)
   const [state, formAction, pending] = useActionState<TemplateFormState, FormData>(action, {})
 
@@ -150,6 +156,20 @@ export function TemplateForm({
             {employeeIds.map((e) => (
               <input key={e} type="hidden" form={FORM_ID} name="employeeIds" value={e} />
             ))}
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium">{tChecklists('projectChecklists')}</label>
+            <MultiCombobox
+              options={checklists}
+              value={checklistIds}
+              onChange={setChecklistIds}
+              placeholder={tc('none')}
+              noResultsLabel={tChecklists('templateNone')}
+            />
+            {checklistIds.map((c) => (
+              <input key={c} type="hidden" form={FORM_ID} name="checklistIds" value={c} />
+            ))}
+            <p className="mt-1 text-xs text-muted">{tChecklists('templateChecklistsHint')}</p>
           </div>
         </div>
       </div>

@@ -19,7 +19,7 @@ export default async function NewProjectPage({
   const locale = await getLocale()
   const lists = await getOptionLists()
 
-  const [customers, employees, vehicles, categories, templates, template] = await Promise.all([
+  const [customers, employees, vehicles, categories, checklists, templates, template] = await Promise.all([
     db.customer.findMany({
       orderBy: { name: 'asc' },
       select: { id: true, name: true, street: true, postalCode: true, city: true, phone: true, latitude: true, longitude: true },
@@ -39,6 +39,11 @@ export default async function NewProjectPage({
       orderBy: { sortOrder: 'asc' },
       select: { id: true, nameDe: true, nameEn: true },
     }),
+    db.checklistTemplate.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true },
+    }),
     db.projectTemplate.findMany({
       where: { active: true },
       orderBy: { name: 'asc' },
@@ -55,6 +60,7 @@ export default async function NewProjectPage({
             managerId: true,
             vehicles: { select: { vehicleId: true } },
             employees: { select: { employeeId: true } },
+            checklists: { select: { checklistTemplateId: true } },
             items: { include: { catalogItem: { select: { id: true, name: true, unit: true } } } },
           },
         })
@@ -105,6 +111,7 @@ export default async function NewProjectPage({
         )}
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
+        checklists={checklists.map((c) => ({ value: c.id, label: c.name }))}
         clientTypes={lists.clientTypes.map((e) => ({ value: e.value, label: optionLabel(lists.clientTypes, e.value, locale) }))}
         buildingTypes={lists.buildingTypes.map((e) => ({ value: e.value, label: optionLabel(lists.buildingTypes, e.value, locale) }))}
         categories={categories.map((c) => ({
@@ -136,6 +143,7 @@ export default async function NewProjectPage({
           internalNotes: '',
           categoryIds: template?.workCategoryId ? [template.workCategoryId] : [],
           teamIds: template?.employees.map((te) => te.employeeId) ?? [],
+          checklistIds: template?.checklists.map((tc) => tc.checklistTemplateId) ?? [],
         }}
       />
     </div>

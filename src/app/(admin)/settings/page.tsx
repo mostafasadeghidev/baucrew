@@ -26,7 +26,6 @@ import { btn } from "@/components/ui/button";
 import { OptionListManager } from "./option-list-manager";
 import { getOptionLists } from "@/lib/option-lists-db";
 import { BUILT_IN, SUGGESTED } from "@/lib/option-lists";
-import { ChecklistTemplates } from "./checklist-templates";
 
 const inputClass =
   "block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
@@ -63,14 +62,10 @@ export default async function SettingsPage({
     getBranding(),
   ]);
 
-  const [rainThreshold, prepTab, lists, checklistTemplates] = await Promise.all([
+  const [rainThreshold, prepTab, lists] = await Promise.all([
     getRainThreshold(),
     getPrepTabConfig(),
     getOptionLists(),
-    db.checklistTemplate.findMany({
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      include: { items: { orderBy: { sortOrder: "asc" } } },
-    }),
   ]);
   const systemUsers = users.filter((u) => !u.employee);
   const privileged = users.filter(
@@ -439,18 +434,14 @@ export default async function SettingsPage({
             />
           </Card>
 
+          {/* The checklists themselves live next to the project templates. */}
           <Card
             title={tChecklists("templatesTitle")}
             description={tChecklists("templatesHint")}
           >
-            <ChecklistTemplates
-              templates={checklistTemplates.map((tpl) => ({
-                id: tpl.id,
-                name: tpl.name,
-                active: tpl.active,
-                items: tpl.items.map((i) => i.text),
-              }))}
-            />
+            <Link href="/projects/checklists" className={btn.outlineSm}>
+              {tChecklists("templatesTitle")} <span aria-hidden>→</span>
+            </Link>
           </Card>
 
           <Card title={t("categoriesTitle")}>

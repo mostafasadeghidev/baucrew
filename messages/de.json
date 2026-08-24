@@ -868,6 +868,14 @@
     "templateItems": "Punkte (eine Zeile pro Punkt)",
     "templateAdd": "Vorlage anlegen",
     "templateNone": "Noch keine Vorlagen.",
-    "templateItemCount": "{count, plural, one {# Punkt} other {# Punkte}}"
+    "templateItemCount": "{count, plural, one {# Punkt} other {# Punkte}}",
+    "templateDescription": "Kurzbeschreibung (optional)",
+    "templateDescriptionHint": "Wofür ist diese Liste?",
+    "templateItemsHint": "Ein Punkt pro Zeile",
+    "usedInTemplates": "In Vorlagen",
+    "projectChecklists": "Checklisten",
+    "projectChecklistsHint": "Werden beim Speichern in das Projekt kopiert.",
+    "keptBecauseTicked": "Bereits abgehakte Listen wurden behalten: {names}",
+    "templateChecklistsHint": "Jedes Projekt aus dieser Vorlage bekommt diese Listen."
   }
 }

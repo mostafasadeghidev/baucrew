@@ -446,7 +446,7 @@ Ist ein Fahrzeug nicht *Verfügbar*, aber eingeplant, erscheint ein Konflikt-Hin
 
 ---
 
-## 12. Vorlagen
+## 12. Vorlagen und Checklisten
 
 **Wo:** Menü → **Projekte** → Knopf **Vorlagen**.
 
@@ -457,6 +457,23 @@ Eine Vorlage ist ein Muster für wiederkehrende Aufträge — z. B. „Außenfas
 **Vorlage anlegen:** **Neue Vorlage** → Bezeichnung, Kategorie, Beschreibung → gleich darunter **Werkzeuge und Materialien** auswählen (tippen, wählen, Menge, **Hinzufügen**; unbekannte Bezeichnung → „… als neuen Artikel anlegen“) → **Speichern**. Die Liste wird zusammen mit der Vorlage gespeichert.
 
 **Vorlage benutzen:** Neues Projekt → oben **Aus Vorlage erstellen** → Vorlage wählen. Name, Kategorie und Werkzeugliste sind vorbelegt; die Liste können Sie vor dem Speichern noch anpassen — die Vorlage selbst bleibt unverändert.
+
+### 12.1 Checklisten
+
+**Wo:** Menü → **Projekte** → Knopf **Checklisten** (neben *Vorlagen*; früher standen sie in den Einstellungen).
+
+Eine Checkliste ist eine wiederverwendbare Punkteliste für die Baustelle — z. B. „Übernahme vom Vorgewerk“ mit *Fenster abgeklebt*, *Boden abgedeckt*, *Strom vorhanden*.
+
+- **Anlegen:** **Vorlage anlegen** → Name, optionale Kurzbeschreibung, **ein Punkt pro Zeile** → Speichern.
+- Die Übersicht zeigt je Liste die **Anzahl der Punkte**, in **wie vielen Projektvorlagen** sie steckt und ob sie **aktiv** ist. Nur aktive Listen werden beim Projekt angeboten; eine nicht mehr benötigte Liste können Sie also einfach inaktiv setzen statt sie zu löschen.
+
+**Wie eine Liste auf ein Projekt kommt** — drei Wege:
+
+1. **Beim Projekt selbst:** im Projektformular (anlegen *und* bearbeiten) das Feld **Checklisten** — eine oder mehrere auswählen. Beim Speichern wird jede Liste **in das Projekt kopiert**.
+2. **Über die Vorlage:** in einer Projektvorlage lassen sich Checklisten hinterlegen; jedes Projekt aus dieser Vorlage startet dann mit diesen Listen.
+3. **Direkt auf der Projektseite** wie bisher (Liste aus einer Vorlage oder leer hinzufügen).
+
+**Wichtig zum Kopieren:** Die Liste im Projekt ist eine eigene Kopie. Ändern Sie später die Checkliste, ändern sich bereits angelegte Projektlisten **nicht** — abgehakte Arbeit bleibt, wie sie war. Nehmen Sie im Projektformular eine Liste wieder heraus, wird sie nur entfernt, **solange noch kein Punkt abgehakt ist**; sobald auf der Baustelle etwas angehakt wurde, bleibt die Liste am Projekt.
 
 ---
 

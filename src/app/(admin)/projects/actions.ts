@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireAdmin, requireManagement, canViewFinancials } from '@/lib/authz'
 import { audit } from '@/lib/audit'
+import { planChecklistChanges } from '@/lib/project-checklists'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
 import { ProjectStatus } from '@/generated/prisma/enums'
 
@@ -61,6 +62,7 @@ const projectSchema = z
     actualEnd: optionalDate,
     managerId: z.string().transform((v) => (v ? v : null)),
     vehicleIds: z.array(z.string().min(1)).max(20),
+    checklistIds: z.array(z.string().min(1)).max(30),
     description: z
       .string()
       .trim()
@@ -111,6 +113,7 @@ function parseProjectForm(formData: FormData) {
     actualEnd: formData.get('actualEnd') ?? '',
     managerId: formData.get('managerId') ?? '',
     vehicleIds: formData.getAll('vehicleIds').map(String).filter(Boolean),
+    checklistIds: formData.getAll('checklistIds').map(String).filter(Boolean),
     description: formData.get('description') ?? '',
     internalNotes: formData.get('internalNotes') ?? '',
     categoryIds: formData.getAll('categoryIds').map(String),
@@ -137,6 +140,49 @@ async function nextProjectNumber(): Promise<string> {
   })
   const lastSeq = last ? Number(last.number.slice(prefix.length)) : 0
   return `${prefix}${String(lastSeq + 1).padStart(4, '0')}`
+}
+
+/** Copies checklist templates onto a project (each project gets its own copy). */
+async function copyChecklistsToProject(projectId: string, templateIds: string[]) {
+  if (templateIds.length === 0) return
+  const templates = await db.checklistTemplate.findMany({
+    where: { id: { in: templateIds } },
+    include: { items: { orderBy: { sortOrder: 'asc' } } },
+  })
+  for (const template of templates) {
+    await db.projectChecklist.create({
+      data: {
+        projectId,
+        name: template.name,
+        templateId: template.id,
+        items: { create: template.items.map((i, sortOrder) => ({ text: i.text, sortOrder })) },
+      },
+    })
+  }
+}
+
+/**
+ * Brings a project's checklists in line with the form selection: new ones are
+ * copied in, unselected ones go again — but only while nothing was ticked, so
+ * work done on site is never thrown away.
+ */
+async function syncProjectChecklists(projectId: string, templateIds: string[]) {
+  const current = await db.projectChecklist.findMany({
+    where: { projectId },
+    select: { id: true, templateId: true, items: { select: { ok: true } } },
+  })
+  const plan = planChecklistChanges(
+    current.map((c) => ({
+      id: c.id,
+      templateId: c.templateId,
+      ticked: c.items.some((i) => i.ok !== null),
+    })),
+    templateIds
+  )
+  if (plan.remove.length > 0) {
+    await db.projectChecklist.deleteMany({ where: { id: { in: plan.remove } } })
+  }
+  await copyChecklistsToProject(projectId, plan.add)
 }
 
 export async function createProject(
@@ -230,6 +276,8 @@ export async function createProject(
     })
   }
 
+  await copyChecklistsToProject(project.id, d.checklistIds)
+
   await audit({
     userId: user.id,
     action: 'project.create',
@@ -305,6 +353,8 @@ export async function updateProject(
       },
     },
   })
+
+  await syncProjectChecklists(id, d.checklistIds)
 
   if (before.status !== d.status) {
     await audit({

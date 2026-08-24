@@ -46,6 +46,8 @@ export type ProjectFormValues = {
   internalNotes: string
   categoryIds: string[]
   teamIds: string[]
+  /** Checklist templates copied into the project on save. */
+  checklistIds: string[]
 }
 
 const STATUSES = [
@@ -220,6 +222,7 @@ export function ProjectForm({
   employees,
   vehicles,
   categories,
+  checklists,
   clientTypes,
   buildingTypes,
   showPrice,
@@ -234,6 +237,8 @@ export function ProjectForm({
   employees: Option[]
   vehicles: Option[]
   categories: Option[]
+  /** Active checklists to choose from. */
+  checklists: Option[]
   /** Configurable lists from Settings. */
   clientTypes: Option[]
   buildingTypes: Option[]
@@ -251,9 +256,11 @@ export function ProjectForm({
   const tCustomers = useTranslations('customers')
   const tEmployees = useTranslations('employees')
   const tVehicles = useTranslations('vehicles')
+  const tChecklists = useTranslations('checklists')
   const [state, formAction, pending] = useActionState<ProjectFormState, FormData>(action, {})
 
   const [vehicleIds, setVehicleIds] = useState<string[]>(initial.vehicleIds)
+  const [checklistIds, setChecklistIds] = useState<string[]>(initial.checklistIds)
   const [teamIds, setTeamIds] = useState<string[]>(initial.teamIds)
   const [managerAdded, setManagerAdded] = useState(false)
   const [managerId, setManagerId] = useState(initial.managerId)
@@ -530,6 +537,20 @@ export function ProjectForm({
           {vehicleIds.map((v) => (
             <input key={v} type="hidden" name="vehicleIds" value={v} />
           ))}
+        </div>
+        <div>
+          <label className="block text-sm font-medium">{tChecklists('projectChecklists')}</label>
+          <MultiCombobox
+            options={checklists}
+            value={checklistIds}
+            onChange={setChecklistIds}
+            placeholder={tc('none')}
+            noResultsLabel={tChecklists('templateNone')}
+          />
+          {checklistIds.map((c) => (
+            <input key={c} type="hidden" name="checklistIds" value={c} />
+          ))}
+          <p className="mt-1 text-xs text-muted">{tChecklists('projectChecklistsHint')}</p>
         </div>
         <CheckboxGroup
           legend={t('team')}
