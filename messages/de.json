@@ -867,6 +867,7 @@
     "templateName": "Name der Vorlage",
     "templateItems": "Punkte (eine Zeile pro Punkt)",
     "templateAdd": "Vorlage anlegen",
-    "templateNone": "Noch keine Vorlagen."
+    "templateNone": "Noch keine Vorlagen.",
+    "templateItemCount": "{count, plural, one {# Punkt} other {# Punkte}}"
   }
 }

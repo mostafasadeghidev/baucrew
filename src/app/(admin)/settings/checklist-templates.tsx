@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { SavedForm } from "@/components/saved-form";
 import { DeleteButton } from "@/components/delete-button";
 import { btn } from "@/components/ui/button";
@@ -38,11 +38,26 @@ export function ChecklistTemplates({
         <p className="text-sm text-muted">{t("templateNone")}</p>
       )}
 
+      {/* One collapsed row per template — ten templates should not fill the
+          whole page. Native <details>, so it works without extra JS. */}
       {templates.map((tpl) => (
-        <div
-          key={tpl.id}
-          className="space-y-2 rounded-lg border border-border p-3"
-        >
+        <details key={tpl.id} className="group rounded-lg border border-border">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-surface-hover [&::-webkit-details-marker]:hidden">
+            <ChevronRight
+              className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-90"
+              aria-hidden
+            />
+            <span className="truncate font-medium">{tpl.name}</span>
+            <span className="shrink-0 text-xs text-muted">
+              {t("templateItemCount", { count: tpl.items.length })}
+            </span>
+            {!tpl.active && (
+              <span className="shrink-0 rounded-full bg-subtle px-2 py-0.5 text-[11px] text-muted">
+                {tc("inactive")}
+              </span>
+            )}
+          </summary>
+          <div className="space-y-2 border-t border-border p-3">
           <SavedForm
             id={`checklist-tpl-${tpl.id}`}
             action={updateChecklistTemplate.bind(null, tpl.id)}
@@ -91,7 +106,8 @@ export function ChecklistTemplates({
               />
             </span>
           </div>
-        </div>
+          </div>
+        </details>
       ))}
 
       {adding ? (

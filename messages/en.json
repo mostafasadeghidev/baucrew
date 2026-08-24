@@ -867,6 +867,7 @@
     "templateName": "Template name",
     "templateItems": "Lines (one per row)",
     "templateAdd": "Create template",
-    "templateNone": "No templates yet."
+    "templateNone": "No templates yet.",
+    "templateItemCount": "{count, plural, one {# item} other {# items}}"
   }
 }
