@@ -9,6 +9,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 - **The checklists moved from the settings to `Projekte → Checklisten`** and got the same shape as the project templates: a list with the number of points, in how many templates a list is used and whether it is active, plus its own create and edit page. Settings keeps a link.
 - **A project chooses its checklists in its own form** (create *and* edit) — one or several. They are copied into the project on save, so every project can have exactly the lists its work needs.
 - **A project template can carry checklists.** Every project made from that template starts with those lists.
+- Settings no longer carries a checklist card at all — the one place for them is `Projekte → Checklisten`.
 - Taking a list out of the project form removes it **only while nothing has been ticked**; as soon as the crew has ticked a point, the list stays on the project (`planChecklistChanges`, unit-tested).
 
 Details and rollback: `docs/CHANGE-checklists-in-projects.md`.

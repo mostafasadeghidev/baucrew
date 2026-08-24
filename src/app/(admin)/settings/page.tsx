@@ -40,13 +40,12 @@ export default async function SettingsPage({
   const tab = ["accounts", "categories", "data"].includes(tabParam ?? "")
     ? (tabParam as string)
     : "";
-  const [t, tNav, tRoles, tc, tImport, tChecklists, tStatus, tProjects] = await Promise.all([
+  const [t, tNav, tRoles, tc, tImport, tStatus, tProjects] = await Promise.all([
     getTranslations("settings"),
     getTranslations("nav"),
     getTranslations("roles"),
     getTranslations("common"),
     getTranslations("importTrello"),
-    getTranslations("checklists"),
     getTranslations("status"),
     getTranslations("projects"),
   ]);
@@ -432,16 +431,6 @@ export default async function SettingsPage({
               suggestions={SUGGESTED.itemKinds}
               builtIn={BUILT_IN.itemKinds.map((e) => e.value)}
             />
-          </Card>
-
-          {/* The checklists themselves live next to the project templates. */}
-          <Card
-            title={tChecklists("templatesTitle")}
-            description={tChecklists("templatesHint")}
-          >
-            <Link href="/projects/checklists" className={btn.outlineSm}>
-              {tChecklists("templatesTitle")} <span aria-hidden>→</span>
-            </Link>
           </Card>
 
           <Card title={t("categoriesTitle")}>
