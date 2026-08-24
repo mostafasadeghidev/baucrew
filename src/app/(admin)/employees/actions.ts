@@ -31,7 +31,7 @@ const employeeSchema = z.object({
     .max(1000)
     .transform((v) =>
       v
-        .split(/[,،]/)
+        .split(/[,\u060C]/)
         .map((s) => s.trim())
         .filter(Boolean)
     ),

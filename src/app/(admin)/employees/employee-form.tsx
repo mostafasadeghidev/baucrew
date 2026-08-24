@@ -80,7 +80,7 @@ export function EmployeeForm({
             <TagsPicker
               name="skills"
               label={t('skills')}
-              defaultValues={initial.skills.split(/[,،]/).map((s) => s.trim()).filter(Boolean)}
+              defaultValues={initial.skills.split(/[,\u060C]/).map((s) => s.trim()).filter(Boolean)}
               suggestions={skillSuggestions}
               createLabel={(v) => t('createSkill', { name: v })}
               removeLabel={t('removeSkill')}
