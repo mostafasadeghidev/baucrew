@@ -269,7 +269,9 @@
     "priorityHigh": "High",
     "priorityLow": "Low",
     "priorityNormal": "Normal",
-    "leadSource": "Request via"
+    "leadSource": "Request via",
+    "externalSource": "Source",
+    "externalSourceLink": "Open origin"
   },
   "employees": {
     "title": "Employees",
@@ -937,5 +939,47 @@
     "invalidRange": "End before start, or longer than 16 hours.",
     "source_office": "Office",
     "source_import": "Import"
+  },
+  "drafts": {
+    "title": "Drafts",
+    "hint": "Everything arriving from outside (Excel import, automations) is confirmed here first.",
+    "none": "No open drafts.",
+    "takeOver": "Take over",
+    "dismiss": "Dismiss",
+    "sourceLink": "Source",
+    "plannedStart": "Requested start",
+    "source_excel": "Excel",
+    "source_api": "Automation",
+    "source_extraction": "Document",
+    "toImport": "Excel import"
+  },
+  "importExcel": {
+    "title": "Excel import",
+    "hint": "Upload a sheet, map the columns — every row becomes a draft, never a live project.",
+    "step1": "1. Choose a file (.xlsx or .csv)",
+    "chooseFile": "Choose file",
+    "rowCount": "{count, plural, one {# row} other {# rows}}",
+    "step2": "2. Map the columns",
+    "applyProfile": "Apply profile …",
+    "field_name": "Project name",
+    "field_customerName": "Customer",
+    "field_street": "Street",
+    "field_postalCode": "Postal code",
+    "field_city": "City",
+    "field_price": "Order value",
+    "field_plannedStart": "Planned start",
+    "field_plannedEnd": "Planned end",
+    "field_description": "Description",
+    "field_externalId": "External id",
+    "profileName": "Save as profile",
+    "profileHint": "e.g. yearly planner",
+    "saveProfile": "Save",
+    "deleteProfile": "Delete profile",
+    "run": "{count, plural, one {Import # row} other {Import # rows}}",
+    "nameNeeded": "Nothing can be imported without a mapped project name.",
+    "parseFailed": "The file could not be read.",
+    "runFailed": "Import failed.",
+    "result": "{created} new · {updated} updated · {skipped} skipped",
+    "toDrafts": "Open the drafts"
   }
 }

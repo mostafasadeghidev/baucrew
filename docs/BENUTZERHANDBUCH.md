@@ -298,6 +298,29 @@ das Büro; erst mit einem Klick auf **Team** erscheint sie im
 Mitarbeiter-Bereich beim Einsatz — so bleiben Angebote mit Preisen automatisch
 beim Büro.
 
+### Entwürfe: was von außen kommt
+
+Unter **Projekte → Entwürfe** sammelt sich alles, was nicht von Hand angelegt
+wurde: Zeilen aus dem **Excel-Import** und Einträge, die eine Automation über
+die Schnittstelle schickt. Nichts davon wird von allein ein Projekt — jeder
+Entwurf wird mit **Übernehmen** in das normale Projektformular geladen (Name,
+Adresse, Termin, Auftragswert und Beschreibung sind vorausgefüllt) und erst
+mit dem Speichern echt; **Verwerfen** legt ihn beiseite. Steht auf der
+Projektliste ein Zähler neben *Entwürfe*, wartet dort etwas.
+
+Ein übernommenes Projekt merkt sich seine Herkunft: In der Übersicht steht
+**Quelle** mit einem Link zurück zum Ursprung (z. B. zur Karte der Automation).
+
+### Excel-Import
+
+**Projekte → Excel-Import**: Tabelle hochladen (.xlsx oder .csv), die ersten
+Zeilen erscheinen als Vorschau, und jede Spalte wird einmal einem Feld
+zugeordnet (Projektname ist Pflicht, der Rest optional). Die Zuordnung lässt
+sich **als Profil speichern** — die Datei vom nächsten Monat braucht dann nur
+noch zwei Klicks. Jede Zeile wird ein Entwurf; eine Zeile mit zugeordneter
+externer Nummer aktualisiert beim erneuten Import ihren Entwurf, statt ihn zu
+doppeln.
+
 ### Priorität und Anfragequelle
 
 Im Projektformular lassen sich zwei kleine Felder setzen: **Priorität**
@@ -623,6 +646,16 @@ Die Einstellungen sind in vier Reiter gegliedert: **Allgemein** (Firmenauftritt 
 Unter **Arbeitsbereiche** legen Sie außerdem die Auswahllisten selbst fest: **Auftraggeber-Arten** (Privat, Gewerblich, Öffentlich …), **Bauarten** (Neubau, Sanierung, Brücke, Straße …), **Artikelarten** im Lager (Werkzeug, Material, Warnschild, Absperrband …) und die **Arbeitsbereiche** selbst. Vorschläge fügen Sie mit einem Klick hinzu; Standard-Einträge lassen sich umbenennen, aber nicht löschen, damit bestehende Projekte lesbar bleiben. Auf dem Arbeitsauftrag steht „Werkzeug“ in der linken Spalte, alle anderen Artikelarten rechts.
 
 ---
+
+### Schnittstelle für Automationen
+
+`POST /api/inbound/drafts` nimmt Projekte von außen an (JSON: `name`, optional
+`customerName`, `street`, `postalCode`, `city`, `price`, `plannedStart`,
+`plannedEnd`, `description`, `externalSystem`, `externalId`, `externalUrl`).
+Gesichert über `Authorization: Bearer <INBOUND_API_KEY>` — der Schlüssel steht
+in der `.env`; ohne ihn ist die Schnittstelle abgeschaltet. Alles landet als
+Entwurf, nie direkt als Projekt; dieselbe `externalSystem`+`externalId`
+aktualisiert ihren Entwurf.
 
 ## 16. Was tun, wenn …? — Hilfe bei Problemen
 

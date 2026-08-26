@@ -23,11 +23,12 @@ export default async function ProjectsPage({
   const user = await requireManagement()
   const { q, status, page: pageParam } = await searchParams
   const page = parsePage(pageParam)
-  const [t, tStatus, tTemplates, tChecklists, locale] = await Promise.all([
+  const [t, tStatus, tTemplates, tChecklists, tDrafts, locale] = await Promise.all([
     getTranslations('projects'),
     getTranslations('status'),
     getTranslations('templates'),
     getTranslations('checklists'),
+    getTranslations('drafts'),
     getLocale(),
   ])
 
@@ -63,7 +64,7 @@ export default async function ProjectsPage({
 
   // Tab counts respect the search query but not the status filter itself.
   const { status: _ignored, scheduleEntries: _ignoredEntries, ...whereWithoutStatus } = where
-  const [projects, total, statusCounts, prepCount] = await Promise.all([
+  const [projects, total, statusCounts, draftCount, prepCount] = await Promise.all([
     db.project.findMany({
       where,
       include: {
@@ -77,6 +78,7 @@ export default async function ProjectsPage({
     }),
     db.project.count({ where }),
     db.project.groupBy({ by: ['status'], where: whereWithoutStatus, _count: { _all: true } }),
+    db.projectDraft.count({ where: { status: 'open' } }),
     prepTab.enabled ? db.project.count({ where: { ...whereWithoutStatus, ...prepWhere } }) : Promise.resolve(0),
   ])
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
@@ -87,6 +89,17 @@ export default async function ProjectsPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <div className="flex items-center gap-2">
+          <Link href="/projects/import" className={btn.outline}>
+            {tDrafts('toImport')}
+          </Link>
+          {draftCount > 0 && (
+            <Link href="/projects/drafts" className={`${btn.outline} gap-1.5`}>
+              {tDrafts('title')}
+              <span className="rounded-full bg-accent px-1.5 text-xs font-semibold text-accent-foreground">
+                {draftCount}
+              </span>
+            </Link>
+          )}
           <Link
             href="/projects/checklists"
             className={btn.outline}

@@ -201,6 +201,16 @@ export default async function ProjectDetailPage({
                 <dd>{optionLabel(lists.leadSources, project.leadSource, locale) || project.leadSource}</dd>
               </div>
             )}
+            {project.externalUrl && (
+              <div className="flex gap-2">
+                <dt className="w-44 shrink-0 text-muted">{t('externalSource')}</dt>
+                <dd>
+                  <a href={project.externalUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                    {project.externalSystem || t('externalSourceLink')} ↗
+                  </a>
+                </dd>
+              </div>
+            )}
             <div className="flex gap-2">
               <dt className="w-44 shrink-0 text-muted">{t('workCategories')}</dt>
               <dd className="flex flex-wrap gap-1">

@@ -230,6 +230,7 @@ export function ProjectForm({
   leadSources,
   showPrice,
   templateId,
+  draftId,
   extraSection,
   customerAddresses = {},
 }: {
@@ -249,6 +250,8 @@ export function ProjectForm({
   showPrice: boolean
   /** When creating from a template, its items are copied on save. */
   templateId?: string
+  /** Taking over an inbox draft: marks it done on save. */
+  draftId?: string
   /** Rendered between "assignment" and "description" (e.g. template items). */
   extraSection?: ReactNode
   /** Addresses per customer id — for "same as customer address". */
@@ -352,6 +355,7 @@ export function ProjectForm({
     <>
     <form action={formAction} className="max-w-3xl space-y-6">
       {templateId && <input type="hidden" name="templateId" value={templateId} />}
+      {draftId && <input type="hidden" name="draftId" value={draftId} />}
       <Section title={t('basicData')}>
         <TextField label={t('name')} name="name" defaultValue={initial.name} required />
         <div>

@@ -3,6 +3,28 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.21.0] — 2026-08-26
+
+The groundwork that unblocks the yearly-Excel wish and the board automation.
+
+### Added
+- **Drafts inbox** (`Projekte → Entwürfe`): everything arriving from outside
+  becomes a draft first — *Übernehmen* loads it into the normal project form
+  (name, address, dates, order value, description prefilled) and only saving
+  makes it real; *Verwerfen* sets it aside. The project list shows a counter
+  while drafts are waiting.
+- **Excel import** (`Projekte → Excel-Import`): upload an .xlsx/.csv, map the
+  columns once (project name required), preview the first rows and import —
+  every row a draft. The mapping is **saved as a profile**, and a row with a
+  mapped external id updates its draft on re-import instead of duplicating it.
+- **Inbound endpoint** `POST /api/inbound/drafts` for automations, secured
+  with a bearer key (`INBOUND_API_KEY`, endpoint off without it). The same
+  external record updates its draft; fields a partial payload leaves out keep
+  their previous value.
+- **Source link on the project**: a project taken over from a draft keeps
+  `externalSystem`/`externalId`/`externalUrl` and shows a *Quelle* link back
+  to the origin.
+
 ## [1.20.0] — 2026-08-26
 
 ### Added — time tracking (from the meeting notes; legally required in the trade)

@@ -284,6 +284,26 @@ export async function createProject(
 
   await copyChecklistsToProject(project.id, d.checklistIds)
 
+  // Taking over an inbox draft: remember where it came from, close the draft.
+  const draftId = String(formData.get('draftId') ?? '')
+  if (draftId) {
+    const draft = await db.projectDraft.findUnique({ where: { id: draftId } })
+    if (draft) {
+      await db.project.update({
+        where: { id: project.id },
+        data: {
+          externalSystem: draft.externalSystem,
+          externalId: draft.externalId,
+          externalUrl: draft.externalUrl,
+        },
+      })
+      await db.projectDraft.update({
+        where: { id: draftId },
+        data: { status: 'done', projectId: project.id },
+      })
+    }
+  }
+
   await audit({
     userId: user.id,
     action: 'project.create',

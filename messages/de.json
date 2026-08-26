@@ -269,7 +269,9 @@
     "priorityHigh": "Hoch",
     "priorityLow": "Niedrig",
     "priorityNormal": "Normal",
-    "leadSource": "Anfrage über"
+    "leadSource": "Anfrage über",
+    "externalSource": "Quelle",
+    "externalSourceLink": "Zum Ursprung"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -937,5 +939,47 @@
     "invalidRange": "Ende vor Beginn oder länger als 16 Stunden.",
     "source_office": "Büro",
     "source_import": "Import"
+  },
+  "drafts": {
+    "title": "Entwürfe",
+    "hint": "Was von außen ankommt (Excel-Import, Automationen), wird erst hier bestätigt.",
+    "none": "Keine offenen Entwürfe.",
+    "takeOver": "Übernehmen",
+    "dismiss": "Verwerfen",
+    "sourceLink": "Quelle",
+    "plannedStart": "Wunschtermin",
+    "source_excel": "Excel",
+    "source_api": "Automation",
+    "source_extraction": "Dokument",
+    "toImport": "Excel-Import"
+  },
+  "importExcel": {
+    "title": "Excel-Import",
+    "hint": "Tabelle hochladen, Spalten zuordnen — jede Zeile wird ein Entwurf, kein fertiges Projekt.",
+    "step1": "1. Datei wählen (.xlsx oder .csv)",
+    "chooseFile": "Datei wählen",
+    "rowCount": "{count, plural, one {# Zeile} other {# Zeilen}}",
+    "step2": "2. Spalten zuordnen",
+    "applyProfile": "Profil anwenden …",
+    "field_name": "Projektname",
+    "field_customerName": "Kunde",
+    "field_street": "Straße",
+    "field_postalCode": "PLZ",
+    "field_city": "Ort",
+    "field_price": "Auftragswert",
+    "field_plannedStart": "Beginn (geplant)",
+    "field_plannedEnd": "Ende (geplant)",
+    "field_description": "Beschreibung",
+    "field_externalId": "Externe Nummer",
+    "profileName": "Als Profil speichern",
+    "profileHint": "z. B. Jahresplaner",
+    "saveProfile": "Speichern",
+    "deleteProfile": "Profil löschen",
+    "run": "{count, plural, one {# Zeile importieren} other {# Zeilen importieren}}",
+    "nameNeeded": "Ohne zugeordneten Projektnamen kann nichts importiert werden.",
+    "parseFailed": "Datei konnte nicht gelesen werden.",
+    "runFailed": "Import fehlgeschlagen.",
+    "result": "{created} neu · {updated} aktualisiert · {skipped} übersprungen",
+    "toDrafts": "Zu den Entwürfen"
   }
 }

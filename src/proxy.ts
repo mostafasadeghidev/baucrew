@@ -5,7 +5,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 // server layouts via requireUser()/requireManagement().
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const isPublic = pathname === '/login' || pathname === '/logo'
+  // /api/inbound carries its own bearer-key auth (no cookie ever).
+  const isPublic =
+    pathname === '/login' || pathname === '/logo' || pathname.startsWith('/api/inbound/')
   const hasSessionCookie = Boolean(request.cookies.get('session')?.value)
 
   if (!isPublic && !hasSessionCookie) {

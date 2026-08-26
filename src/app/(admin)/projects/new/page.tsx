@@ -11,10 +11,10 @@ import { optionLabel } from '@/lib/option-lists'
 export default async function NewProjectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ template?: string }>
+  searchParams: Promise<{ template?: string; draft?: string }>
 }) {
   const user = await requireManagement()
-  const { template: templateId } = await searchParams
+  const { template: templateId, draft: draftId } = await searchParams
   const t = await getTranslations('projects')
   const locale = await getLocale()
   const lists = await getOptionLists()
@@ -66,6 +66,18 @@ export default async function NewProjectPage({
         })
       : null,
   ])
+  // Taking over an inbox draft prefills the form.
+  const draft = draftId
+    ? await db.projectDraft.findUnique({ where: { id: draftId, status: 'open' } })
+    : null
+  const draftCustomer = draft?.customerName
+    ? await db.customer.findFirst({
+        where: { name: { equals: draft.customerName, mode: 'insensitive' } },
+        select: { id: true },
+      })
+    : null
+  const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : '')
+
   const catalog = await db.catalogItem.findMany({
     where: { active: true },
     orderBy: [{ kind: 'asc' }, { name: 'asc' }],
@@ -89,6 +101,7 @@ export default async function NewProjectPage({
         cancelHref="/projects"
         showPrice={canViewFinancials(user)}
         templateId={template?.id}
+        draftId={draft?.id}
         extraSection={
           <TemplateItemsSection
             key={template?.id ?? 'blank'}
@@ -120,30 +133,33 @@ export default async function NewProjectPage({
           label: locale === 'en' ? c.nameEn : c.nameDe,
         }))}
         initial={{
-          name: template?.name ?? '',
-          customerId: '',
+          name: draft?.name ?? template?.name ?? '',
+          customerId: draftCustomer?.id ?? '',
           status: 'LEAD',
           isSub: false,
           clientType: '',
           buildingType: '',
           priority: '',
           leadSource: '',
-          street: '',
-          postalCode: '',
-          city: '',
+          street: draft?.street ?? '',
+          postalCode: draft?.postalCode ?? '',
+          city: draft?.city ?? '',
           latitude: null,
           longitude: null,
           phone: '',
           contact: '',
-          price: '',
-          plannedStart: '',
-          plannedEnd: '',
+          price: draft?.price != null ? String(draft.price) : '',
+          plannedStart: iso(draft?.plannedStart),
+          plannedEnd: iso(draft?.plannedEnd),
           actualStart: '',
           actualEnd: '',
           managerId: template?.managerId ?? '',
           vehicleIds: template?.vehicles.map((tv) => tv.vehicleId) ?? [],
-          description: template?.description ?? '',
-          internalNotes: '',
+          description: draft?.description ?? template?.description ?? '',
+          internalNotes:
+            draft?.customerName && !draftCustomer
+              ? `Kunde laut Import: ${draft.customerName}`
+              : '',
           categoryIds: template?.workCategoryId ? [template.workCategoryId] : [],
           teamIds: template?.employees.map((te) => te.employeeId) ?? [],
           checklistIds: template?.checklists.map((tc) => tc.checklistTemplateId) ?? [],

@@ -179,6 +179,10 @@ model Project {
   priority      String?
   /// Where the request came from — configurable list in Settings.
   leadSource    String?
+  /// Link back to the source record (board card, import row …).
+  externalSystem String?
+  externalId     String?
+  externalUrl    String?
 
   // Site address (may differ from customer address)
   street     String?
@@ -224,6 +228,7 @@ model Project {
 
   @@index([customerId])
   @@index([status])
+  @@index([externalSystem, externalId])
 }
 
 model ProjectWorkCategory {
@@ -585,4 +590,34 @@ model AuditLog {
 
   @@index([entity, entityId])
   @@index([createdAt])
+}
+
+/// Something that arrived from outside (Excel import, board automation, AI
+/// extraction) and waits for the office to confirm it as a real project.
+model ProjectDraft {
+  id             String    @id @default(cuid())
+  /// excel | api | extraction
+  source         String
+  /// open | done | dismissed
+  status         String    @default("open")
+  name           String
+  customerName   String?
+  street         String?
+  postalCode     String?
+  city           String?
+  price          Decimal?  @db.Decimal(12, 2)
+  plannedStart   DateTime? @db.Date
+  plannedEnd     DateTime? @db.Date
+  description    String?
+  externalSystem String?
+  externalId     String?
+  externalUrl    String?
+  payload        Json?
+  /// Filled once the draft was taken over.
+  projectId      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([externalSystem, externalId])
+  @@index([status])
 }
