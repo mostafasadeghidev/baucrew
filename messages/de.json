@@ -942,7 +942,20 @@
     "add": "Eintragen",
     "invalidRange": "Ende vor Beginn oder länger als 16 Stunden.",
     "source_office": "Büro",
-    "source_import": "Import"
+    "source_import": "Import",
+    "projectTitle": "Erfasste Zeit",
+    "projectNone": "Auf dieses Projekt wurde noch keine Zeit gebucht.",
+    "projectHint": "Gebuchte Stunden dieses Projekts — Plan gegen Wirklichkeit.",
+    "projectReportLink": "Plan vs. Ist in den Berichten",
+    "perEmployee": "Je Mitarbeiter",
+    "lastBookings": "Letzte Buchungen",
+    "hoursShort": "Std.",
+    "perHour": "{value} je Stunde",
+    "lateAdd": "Zeit nachtragen",
+    "lateCancel": "Abbrechen",
+    "lateSaved": "Zeit nachgetragen ✓",
+    "lateTooOld": "Nur für die letzten 7 Tage möglich — bitte im Büro melden.",
+    "source_worker_late": "nachgetragen"
   },
   "drafts": {
     "title": "Entwürfe",

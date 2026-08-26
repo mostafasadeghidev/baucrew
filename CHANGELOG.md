@@ -3,6 +3,21 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.22.0] — 2026-08-26
+
+### Added
+- **Recorded time on the project page.** A card shows the hours booked on that
+  project: the total, the split per employee and the last bookings with day,
+  time and duration. Accounts with financial access also see the **order value
+  per hour** — the figure the office checks while the job is still running,
+  instead of waiting for the finished-projects report.
+- **The crew can add a forgotten booking themselves.** *Zeit nachtragen* sits
+  under the start/stop button on today's card and is the only button on an
+  older day: from, to, save. Allowed for today and the last seven days, only on
+  a project the person is on, and only for a plausible interval (max. 16 h).
+  The office sees these entries marked **nachgetragen** next to the ones that
+  came from the clock, and can correct or delete them as before.
+
 ## [1.21.1] — 2026-08-26
 
 ### Fixed

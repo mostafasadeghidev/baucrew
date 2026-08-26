@@ -19,6 +19,7 @@ import { btn } from '@/components/ui/button'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { ProjectAddOns } from './add-ons'
+import { ProjectTimeSummary } from './time-summary'
 import { orderValue } from '@/lib/reports'
 
 export default async function ProjectDetailPage({
@@ -52,6 +53,10 @@ export default async function ProjectDetailPage({
       workCategories: { include: { workCategory: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
       items: { include: { catalogItem: true }, orderBy: { catalogItem: { name: 'asc' } } },
+      timeEntries: {
+        orderBy: { startedAt: 'desc' },
+        include: { employee: { select: { id: true, firstName: true, lastName: true } } },
+      },
       checklists: {
         orderBy: { createdAt: 'asc' },
         include: {
@@ -331,6 +336,20 @@ export default async function ProjectDetailPage({
           </div>
           <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} />
         </section>
+
+        {/* Hours booked on this project — plan vs. reality while it still runs */}
+        <ProjectTimeSummary
+          entries={project.timeEntries.map((e) => ({
+            id: e.id,
+            startedAt: e.startedAt,
+            endedAt: e.endedAt,
+            source: e.source,
+            note: e.note,
+            employee: e.employee,
+          }))}
+          orderValue={showPrice ? orderValue(project.price, project.addOns) : null}
+          showPrice={showPrice}
+        />
 
         {/* Site checklists — ticked off on site, saved with who and when */}
         <section className="rounded-lg border border-border bg-surface shadow-sm">

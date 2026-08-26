@@ -33,3 +33,16 @@ describe('time entries', () => {
     expect(validInterval(at('2026-08-26T07:00:00Z'), at('2026-08-27T07:00:01Z'))).toBe(false)
   })
 })
+
+describe('late booking window', () => {
+  // The worker may add a forgotten booking for today and the last 7 days.
+  function daysBack(today: string, day: string): number {
+    return Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${day}T00:00:00Z`)) / 86_400_000)
+  }
+  it('accepts today and the last seven days, refuses older and future', () => {
+    expect(daysBack('2026-08-26', '2026-08-26')).toBe(0)
+    expect(daysBack('2026-08-26', '2026-08-19')).toBe(7)
+    expect(daysBack('2026-08-26', '2026-08-18')).toBe(8)
+    expect(daysBack('2026-08-26', '2026-08-27')).toBe(-1)
+  })
+})

@@ -9,8 +9,9 @@ import { Checklist } from '@/components/checklist'
 import { WeekStrip, buildWeek } from './week-strip'
 import { formatDate } from '@/lib/format'
 import { MapPin, Paperclip, Phone, Printer, Truck, Users } from 'lucide-react'
-import { formatMinutes, sumMinutes } from '@/lib/time-entries'
+import { formatMinutes, LATE_ENTRY_DAYS, sumMinutes } from '@/lib/time-entries'
 import { TimeClock } from './time-clock'
+import { TimeLate } from './time-late'
 
 /**
  * The worker's own day on the phone: week strip, one card per assignment with
@@ -37,6 +38,9 @@ export default async function MyAreaPage({
   const today = todayUtc()
   const day = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? utcDate(date) : today
   const isToday = iso(day) === iso(today)
+  // A forgotten booking can be added for today and the last few days.
+  const daysBack = Math.round((today.getTime() - day.getTime()) / 86_400_000)
+  const canAddLate = daysBack >= 0 && daysBack <= LATE_ENTRY_DAYS
   const employeeId = user.employee?.id
   const monday = mondayOf(day)
 
@@ -242,15 +246,19 @@ export default async function MyAreaPage({
               </Link>
             </div>
 
-            {/* Time clock — start when work begins, stop when it ends */}
-            {isToday && (
-              <div className="border-t border-border px-4 py-3">
-                <TimeClock
-                  projectId={p.id}
-                  runningSince={
-                    openTime?.projectId === p.id ? openTime.startedAt.toISOString() : null
-                  }
-                />
+            {/* Time clock — start when work begins, stop when it ends.
+                Older days (and a forgotten start today) are added by hand. */}
+            {(isToday || canAddLate) && (
+              <div className="space-y-2 border-t border-border px-4 py-3">
+                {isToday && (
+                  <TimeClock
+                    projectId={p.id}
+                    runningSince={
+                      openTime?.projectId === p.id ? openTime.startedAt.toISOString() : null
+                    }
+                  />
+                )}
+                {canAddLate && <TimeLate projectId={p.id} date={iso(day)} />}
               </div>
             )}
 

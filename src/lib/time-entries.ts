@@ -20,6 +20,9 @@ export function formatMinutes(minutes: number): string {
   return `${h}:${String(m).padStart(2, '0')}`
 }
 
+/** How many days back a worker may add a forgotten booking themselves. */
+export const LATE_ENTRY_DAYS = 7
+
 /**
  * An interval may only be saved when it is plausible: start before end,
  * not longer than 16 hours (a forgotten stop is corrected by the office).

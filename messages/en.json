@@ -942,7 +942,20 @@
     "add": "Add",
     "invalidRange": "End before start, or longer than 16 hours.",
     "source_office": "Office",
-    "source_import": "Import"
+    "source_import": "Import",
+    "projectTitle": "Recorded time",
+    "projectNone": "No time has been booked on this project yet.",
+    "projectHint": "Hours booked on this project — plan against reality.",
+    "projectReportLink": "Plan vs. actual in the reports",
+    "perEmployee": "Per employee",
+    "lastBookings": "Latest bookings",
+    "hoursShort": "hrs",
+    "perHour": "{value} per hour",
+    "lateAdd": "Add time later",
+    "lateCancel": "Cancel",
+    "lateSaved": "Time added ✓",
+    "lateTooOld": "Only possible for the last 7 days — please tell the office.",
+    "source_worker_late": "added later"
   },
   "drafts": {
     "title": "Drafts",

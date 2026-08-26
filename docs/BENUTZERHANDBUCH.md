@@ -577,6 +577,21 @@ Gibt das Büro eine Projekt-Datei für das Team frei, erscheint sie in der
 Einsatzkarte unter **Dateien** — ein Tipp öffnet sie. Ohne Freigabe sieht das
 Team nichts, Preise bleiben beim Büro.
 
+### Erfasste Zeit auf dem Projekt
+
+Auf der Projektseite steht die Karte **Erfasste Zeit**: die Summe aller
+gebuchten Stunden, aufgeschlüsselt **je Mitarbeiter**, dazu die letzten
+Buchungen mit Tag, Uhrzeit und Dauer. Konten mit Finanzfreigabe sehen daneben
+den **Auftragswert je Stunde** — die Zahl, an der Sie schon während der
+Baustelle sehen, ob die Kalkulation noch aufgeht. Der Abschluss (Plan gegen Ist
+über alle fertigen Projekte) steht weiterhin in den Berichten.
+
+**Zeit nachtragen:** Vergisst jemand den Start, tippt er auf **Zeit nachtragen**
+— unter dem Start/Stopp-Knopf am heutigen Tag, und auf älteren Tagen als
+einziger Knopf. Von–bis eintragen, speichern, fertig. Das geht für **heute und
+die letzten sieben Tage**; ältere Tage macht das Büro. Im Büro steht bei diesen
+Buchungen **nachgetragen**, damit man sie von den gestoppten unterscheiden kann.
+
 ## 14. Berichte
 
 **Wo:** Menü → **Berichte**. Für die Geschäftsführung und das Büro. Zahlen mit Preisen sehen nur Konten mit Finanzfreigabe.
