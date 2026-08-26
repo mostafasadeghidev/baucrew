@@ -36,6 +36,7 @@ model User {
   notes     Note[]
   uploadedDocuments Document[] @relation("DocumentUploader")
   timeEntryEdits    TimeEntry[] @relation("TimeEntryEditor")
+  deviceHandouts    DeviceAssignment[] @relation("DeviceAssignmentEditor")
 }
 
 model Session {
@@ -73,6 +74,7 @@ model Employee {
   managedProjects    Project[]               @relation("ProjectManager")
   templateMemberships TemplateEmployee[]
   checkedItems        ProjectChecklistItem[] @relation("ChecklistCheckedBy")
+  deviceAssignments   DeviceAssignment[]
   managedTemplates    ProjectTemplate[]      @relation("TemplateManager")
   absences            Absence[]
   timeEntries         TimeEntry[]
@@ -225,6 +227,7 @@ model Project {
   documents       Document[]
   timeEntries     TimeEntry[]
   checklists      ProjectChecklist[]
+  devices         DeviceAssignment[]
 
   @@index([customerId])
   @@index([status])
@@ -284,6 +287,51 @@ enum VehicleStatus {
   AVAILABLE
   MAINTENANCE
   OUT_OF_SERVICE
+}
+
+/// A single physical machine or device — the thing that gets handed out.
+model Device {
+  id              String   @id @default(cuid())
+  name            String
+  /// The number written on the device, if they use one.
+  inventoryNo     String?
+  category        String?
+  storageLocation String?
+  notes           String?
+  /// Short instruction video for the crew.
+  videoUrl        String?
+  active          Boolean  @default(true)
+  /// Filled when the row comes from an outside system later.
+  externalSystem  String?
+  externalId      String?
+  source          String   @default("manual")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  assignments DeviceAssignment[]
+
+  @@unique([externalSystem, externalId])
+  @@index([active])
+}
+
+/// One handout: the device is on a site or with a person until it comes back.
+model DeviceAssignment {
+  id          String    @id @default(cuid())
+  deviceId    String
+  device      Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  employeeId  String?
+  employee    Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  takenAt     DateTime  @default(now())
+  returnedAt  DateTime?
+  note        String?
+  createdById String?
+  createdBy   User?     @relation("DeviceAssignmentEditor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([deviceId, returnedAt])
+  @@index([projectId])
+  @@index([employeeId])
 }
 
 model Vehicle {

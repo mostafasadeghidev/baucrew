@@ -3,6 +3,24 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.23.0] — 2026-08-27
+
+### Added
+- **Devices and machines** (`Geräte` in the menu) — one row per physical unit,
+  with inventory number, kind, storage place, notes and a link to a short
+  instruction video. The list says for every device whether it is **in the
+  store** (green) or **on a site / with a person** (red), and the search covers
+  name, number, kind and place: the "where is the small fan?" question the
+  customer described.
+- **Hand out and take back.** A device goes to a site or to an employee; while
+  it is out nobody can hand it out a second time, and the history keeps who had
+  it when. The project page carries a card **Geräte auf dieser Baustelle**, so
+  an interrupted site does not hide what is still standing there.
+- Availability is never stored — it is read from the open handout, and every
+  device row carries `externalSystem` / `externalId` / `source` so a later sync
+  with the customer's equipment system fills these same tables instead of
+  replacing them (groundwork for M16–M19).
+
 ## [1.22.0] — 2026-08-26
 
 ### Added

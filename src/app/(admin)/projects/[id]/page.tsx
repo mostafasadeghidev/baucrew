@@ -20,6 +20,7 @@ import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { ProjectAddOns } from './add-ons'
 import { ProjectTimeSummary } from './time-summary'
+import { daysOut } from '@/lib/devices'
 import { orderValue } from '@/lib/reports'
 
 export default async function ProjectDetailPage({
@@ -29,12 +30,13 @@ export default async function ProjectDetailPage({
 }) {
   const user = await requireManagement()
   const { id } = await params
-  const [t, tc, tSheet, tStatus, tChecklists, locale, lists] = await Promise.all([
+  const [t, tc, tSheet, tStatus, tChecklists, tDevices, locale, lists] = await Promise.all([
     getTranslations('projects'),
     getTranslations('common'),
     getTranslations('sheet'),
     getTranslations('status'),
     getTranslations('checklists'),
+    getTranslations('devices'),
     getLocale(),
     getOptionLists(),
   ])
@@ -53,6 +55,11 @@ export default async function ProjectDetailPage({
       workCategories: { include: { workCategory: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
       items: { include: { catalogItem: true }, orderBy: { catalogItem: { name: 'asc' } } },
+      devices: {
+        where: { returnedAt: null },
+        include: { device: { select: { id: true, name: true, inventoryNo: true } } },
+        orderBy: { takenAt: 'asc' },
+      },
       timeEntries: {
         orderBy: { startedAt: 'desc' },
         include: { employee: { select: { id: true, firstName: true, lastName: true } } },
@@ -335,6 +342,39 @@ export default async function ProjectDetailPage({
             <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
           </div>
           <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} />
+        </section>
+
+        {/* Devices standing on this site right now */}
+        <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
+            <h2 className="text-sm font-semibold">{tDevices('onProject')}</h2>
+            <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+              {tDevices('openDevices')} <span aria-hidden>→</span>
+            </Link>
+          </div>
+          {project.devices.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-muted">{tDevices('noneOnProject')}</p>
+          ) : (
+            <ul className="divide-y divide-border text-sm">
+              {project.devices.map((handout) => (
+                <li key={handout.id} className="flex flex-wrap items-baseline gap-x-3 px-5 py-2.5">
+                  <Link
+                    href={`/devices/${handout.device.id}`}
+                    className="font-medium text-accent hover:underline"
+                  >
+                    {handout.device.name}
+                  </Link>
+                  {handout.device.inventoryNo && (
+                    <span className="text-xs tabular-nums text-muted">{handout.device.inventoryNo}</span>
+                  )}
+                  <span className="text-xs text-muted">
+                    {tDevices('sinceDays', { days: daysOut(handout.takenAt, new Date()) })}
+                    {handout.note && ` · ${handout.note}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         {/* Hours booked on this project — plan vs. reality while it still runs */}

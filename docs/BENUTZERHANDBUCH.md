@@ -502,6 +502,31 @@ Ist ein Fahrzeug nicht *Verfügbar*, aber eingeplant, erscheint ein Konflikt-Hin
 
 ---
 
+## 11a. Geräte und Maschinen
+
+**Wo:** Menü → **Geräte**.
+
+Hier steht jede Maschine einzeln — anders als im Lager, wo es um Mengen geht
+(zwei Eimer Farbe). Ein Gerät hat eine **Bezeichnung**, optional eine
+**Inventarnummer**, eine **Art** (Trocknung, Gerüst …), einen **Lagerort** und
+einen Link auf eine kurze **Video-Anleitung**.
+
+**Wo ist es?** In der Liste steht bei jedem Gerät grün *im Lager* oder rot die
+Baustelle bzw. der Mitarbeiter, der es geholt hat. Oben sehen Sie auf einen
+Blick, wie viele Geräte gerade im Lager stehen. Die Suche geht über
+Bezeichnung, Nummer, Art und Lagerort — also genau die Frage „wo ist der kleine
+Lüfter?".
+
+**Ausgeben und zurücknehmen:** Auf der Geräteseite wählen Sie eine **Baustelle**
+oder einen **Mitarbeiter** und drücken **Ausgeben**. Solange das Gerät draußen
+ist, kann es niemand ein zweites Mal ausgeben — es gibt dann nur noch
+**Zurücknehmen**. Darunter steht, seit wie vielen Tagen es unterwegs ist, und
+der **Verlauf** zeigt, wer es wann hatte.
+
+**Auf der Baustelle:** Die Projektseite hat eine Karte **Geräte auf dieser
+Baustelle** — praktisch, wenn eine Baustelle unterbrochen wird und jemand
+wissen muss, was dort noch steht.
+
 ## 12. Vorlagen und Checklisten
 
 **Wo:** Menü → **Projekte** → Knopf **Vorlagen**.

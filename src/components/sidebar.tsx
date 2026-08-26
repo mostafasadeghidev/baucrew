@@ -17,8 +17,7 @@ import {
   Settings,
   Truck,
   Users,
-  X,
-} from 'lucide-react'
+  X, Wrench } from 'lucide-react'
 import { BrandMark } from './brand-mark'
 import { logout } from '@/app/actions'
 import { Menu, MenuLabel, MenuRow, MenuSeparator, menuItemClass } from './ui/menu'
@@ -46,6 +45,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/employees', key: 'employees', icon: Users },
       { href: '/vehicles', key: 'vehicles', icon: Truck },
       { href: '/warehouse', key: 'warehouse', icon: Package },
+      { href: '/devices', key: 'devices', icon: Wrench },
     ],
   },
 ]

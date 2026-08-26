@@ -53,7 +53,8 @@
     "groupWork": "Betrieb",
     "groupData": "Stammdaten",
     "language": "Sprache",
-    "theme": "Design"
+    "theme": "Design",
+    "devices": "Geräte"
   },
   "theme": {
     "light": "Helles Design",
@@ -998,5 +999,42 @@
     "runFailed": "Import fehlgeschlagen.",
     "result": "{created} neu · {updated} aktualisiert · {skipped} übersprungen",
     "toDrafts": "Zu den Entwürfen"
+  },
+  "devices": {
+    "title": "Geräte",
+    "newDevice": "Neues Gerät",
+    "name": "Bezeichnung",
+    "inventoryNo": "Inventarnummer",
+    "category": "Art",
+    "storageLocation": "Lagerort",
+    "storageHint": "z. B. Regal 3, Halle",
+    "videoUrl": "Video-Anleitung (Link)",
+    "videoHint": "Kurzes Video, wie das Gerät bedient wird — die Jungs sehen es beim Gerät.",
+    "video": "Anleitung",
+    "notes": "Notizen",
+    "whereNow": "Wo ist es?",
+    "free": "im Lager",
+    "freeInStore": "im Lager ({place})",
+    "store": "Lager",
+    "out": "ausgegeben",
+    "summary": "{free} von {total} Geräten im Lager",
+    "searchPlaceholder": "Gerät, Nummer, Art oder Lagerort suchen …",
+    "none": "Noch keine Geräte angelegt.",
+    "noResults": "Nichts gefunden",
+    "toProject": "An Baustelle",
+    "toEmployee": "An Mitarbeiter",
+    "note": "Notiz",
+    "handOut": "Ausgeben",
+    "takeBack": "Zurücknehmen",
+    "alreadyOut": "Das Gerät ist noch ausgegeben — erst zurücknehmen.",
+    "pickTarget": "Bitte eine Baustelle oder einen Mitarbeiter wählen.",
+    "handoutFailed": "Hat nicht geklappt.",
+    "sinceDays": "{days, plural, =0 {seit heute} one {seit # Tag} other {seit # Tagen}}",
+    "history": "Verlauf",
+    "noHistory": "Noch nichts ausgegeben.",
+    "stillOut": "noch draußen",
+    "onProject": "Geräte auf dieser Baustelle",
+    "noneOnProject": "Kein Gerät auf dieser Baustelle.",
+    "openDevices": "Zu den Geräten"
   }
 }

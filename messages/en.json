@@ -53,7 +53,8 @@
     "groupWork": "Operations",
     "groupData": "Master data",
     "language": "Language",
-    "theme": "Theme"
+    "theme": "Theme",
+    "devices": "Devices"
   },
   "theme": {
     "light": "Light theme",
@@ -998,5 +999,42 @@
     "runFailed": "Import failed.",
     "result": "{created} new · {updated} updated · {skipped} skipped",
     "toDrafts": "Open the drafts"
+  },
+  "devices": {
+    "title": "Devices",
+    "newDevice": "New device",
+    "name": "Name",
+    "inventoryNo": "Inventory number",
+    "category": "Kind",
+    "storageLocation": "Storage place",
+    "storageHint": "e.g. shelf 3, hall",
+    "videoUrl": "Instruction video (link)",
+    "videoHint": "Short video on how to operate it — the crew sees it next to the device.",
+    "video": "Instructions",
+    "notes": "Notes",
+    "whereNow": "Where is it?",
+    "free": "in the store",
+    "freeInStore": "in the store ({place})",
+    "store": "store",
+    "out": "handed out",
+    "summary": "{free} of {total} devices in the store",
+    "searchPlaceholder": "Search device, number, kind or place …",
+    "none": "No devices yet.",
+    "noResults": "Nothing found",
+    "toProject": "To a site",
+    "toEmployee": "To an employee",
+    "note": "Note",
+    "handOut": "Hand out",
+    "takeBack": "Take back",
+    "alreadyOut": "This device is still out — take it back first.",
+    "pickTarget": "Please pick a site or an employee.",
+    "handoutFailed": "That did not work.",
+    "sinceDays": "{days, plural, =0 {since today} one {for # day} other {for # days}}",
+    "history": "History",
+    "noHistory": "Never handed out yet.",
+    "stillOut": "still out",
+    "onProject": "Devices on this site",
+    "noneOnProject": "No device on this site.",
+    "openDevices": "Open devices"
   }
 }
