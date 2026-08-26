@@ -10,6 +10,7 @@ import { deleteEmployee } from '../actions'
 import { requireManagement } from '@/lib/authz'
 import { AccountSection } from './account-section'
 import { AbsencesCard } from './absences-card'
+import { TimeCard } from './time-card'
 import { btn } from '@/components/ui/button'
 
 function todayUtc() {
@@ -35,6 +36,12 @@ export default async function EmployeeDetailPage({
     include: {
       user: { select: { id: true, username: true, role: true, canViewFinancials: true, active: true } },
       absences: { orderBy: { startDate: 'desc' }, take: 20 },
+      timeEntries: {
+        where: { startedAt: { gte: new Date(todayUtc().getTime() - 14 * 86400000) } },
+        include: { project: { select: { id: true, number: true, name: true } } },
+        orderBy: { startedAt: 'desc' },
+        take: 60,
+      },
       projectMemberships: {
         include: {
           project: {
@@ -59,6 +66,12 @@ export default async function EmployeeDetailPage({
     },
   })
   if (!employee) notFound()
+
+  const openProjects = await db.project.findMany({
+    where: { status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] } },
+    orderBy: { number: 'desc' },
+    select: { id: true, number: true, name: true },
+  })
 
   return (
     <div className="space-y-6">
@@ -161,6 +174,12 @@ export default async function EmployeeDetailPage({
       </div>
 
       <AbsencesCard employeeId={employee.id} absences={employee.absences} />
+
+      <TimeCard
+        employeeId={employee.id}
+        entries={employee.timeEntries}
+        projects={openProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+      />
 
       <AccountSection
         employeeId={employee.id}

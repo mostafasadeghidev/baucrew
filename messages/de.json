@@ -522,7 +522,9 @@
     "quarterTitle": "Umsatz je Quartal {year}",
     "groupQuarters": "Quartale",
     "groupHalves": "Halbjahre",
-    "groupMonths": "Monate"
+    "groupMonths": "Monate",
+    "colRecordedHours": "Std. erfasst",
+    "colPerHour": "€ / Stunde"
   },
   "sheet": {
     "title": "Arbeitsauftrag",
@@ -916,5 +918,24 @@
     "officeShort": "Büro",
     "crewCanSee": "Das Team sieht diese Datei im Mitarbeiter-Bereich. Klicken, um sie nur fürs Büro zu behalten.",
     "officeOnly": "Nur das Büro sieht diese Datei. Klicken, um sie fürs Team freizugeben."
+  },
+  "time": {
+    "title": "Zeiterfassung (14 Tage)",
+    "none": "Keine Zeiten erfasst.",
+    "start": "Zeit starten",
+    "stop": "Stopp",
+    "failed": "Speichern fehlgeschlagen.",
+    "todayTotal": "{hours} h erfasst",
+    "total14": "{hours} h gesamt",
+    "running": "läuft",
+    "date": "Datum",
+    "from": "Von",
+    "to": "Bis",
+    "project": "Projekt",
+    "note": "Notiz (optional)",
+    "add": "Eintragen",
+    "invalidRange": "Ende vor Beginn oder länger als 16 Stunden.",
+    "source_office": "Büro",
+    "source_import": "Import"
   }
 }

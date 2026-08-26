@@ -522,7 +522,9 @@
     "quarterTitle": "Revenue per quarter {year}",
     "groupQuarters": "Quarters",
     "groupHalves": "Half-years",
-    "groupMonths": "Months"
+    "groupMonths": "Months",
+    "colRecordedHours": "Hours recorded",
+    "colPerHour": "€ / hour"
   },
   "sheet": {
     "title": "Work order",
@@ -916,5 +918,24 @@
     "officeShort": "Office",
     "crewCanSee": "The crew sees this file in the worker area. Click to keep it office-only.",
     "officeOnly": "Only the office sees this file. Click to share it with the crew."
+  },
+  "time": {
+    "title": "Time tracking (14 days)",
+    "none": "No time recorded.",
+    "start": "Start time",
+    "stop": "Stop",
+    "failed": "Saving failed.",
+    "todayTotal": "{hours} h recorded",
+    "total14": "{hours} h total",
+    "running": "running",
+    "date": "Date",
+    "from": "From",
+    "to": "To",
+    "project": "Project",
+    "note": "Note (optional)",
+    "add": "Add",
+    "invalidRange": "End before start, or longer than 16 hours.",
+    "source_office": "Office",
+    "source_import": "Import"
   }
 }

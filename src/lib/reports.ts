@@ -3,6 +3,7 @@ import { db } from './db'
 import { computeEfficiency, type EfficiencyResult, type MonthRange } from './reports-calc'
 import { geocodeCity } from './geocode'
 import { stockShortage } from './stock'
+import { sumMinutes } from './time-entries'
 
 export type RevenueProject = {
   id: string
@@ -266,6 +267,10 @@ export type EfficiencyRow = EfficiencyResult & {
   name: string
   customer: string
   price: number | null
+  /** Recorded working minutes from the time tracking (closed intervals). */
+  recordedMinutes: number
+  /** Order value per recorded hour — null without price or hours. */
+  revenuePerHour: number | null
 }
 
 /**
@@ -301,16 +306,26 @@ export async function getProjectEfficiency(
       customer: { select: { name: true } },
       addOns: { select: { amount: true } },
       scheduleEntries: { select: { date: true, _count: { select: { employees: true } } } },
+      timeEntries: {
+        where: { endedAt: { not: null } },
+        select: { startedAt: true, endedAt: true },
+      },
     },
     orderBy: { number: 'desc' },
   })
 
-  const rows: EfficiencyRow[] = projects.map((p) => ({
+  const rows: EfficiencyRow[] = projects.map((p) => {
+    const price = orderValue(p.price, p.addOns)
+    const recordedMinutes = sumMinutes(p.timeEntries, new Date())
+    return {
     id: p.id,
     number: p.number,
     name: p.name,
     customer: p.customer.name,
-    price: orderValue(p.price, p.addOns),
+    price,
+    recordedMinutes,
+    revenuePerHour:
+      price != null && recordedMinutes >= 30 ? Math.round(price / (recordedMinutes / 60)) : null,
     ...computeEfficiency({
       price: orderValue(p.price, p.addOns),
       plannedStart: p.plannedStart,
@@ -319,7 +334,8 @@ export async function getProjectEfficiency(
       actualEnd: p.actualEnd,
       entries: p.scheduleEntries.map((e) => ({ date: e.date, employeeCount: e._count.employees })),
     }),
-  }))
+    }
+  })
 
   const avgOf = (vals: Array<number | null>) => {
     const xs = vals.filter((v): v is number => v != null)

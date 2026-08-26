@@ -9,6 +9,7 @@ import { hashPassword } from '@/lib/auth'
 import { Role } from '@/generated/prisma/enums'
 import { audit } from '@/lib/audit'
 import { isAbsenceType } from '@/lib/absences'
+import { validInterval } from '@/lib/time-entries'
 
 const optional = z
   .string()
@@ -342,5 +343,64 @@ export async function deleteAbsence(
   revalidatePath(`/employees/${absence.employeeId}`)
   revalidatePath('/schedule')
   revalidatePath('/dashboard')
+  return {}
+}
+
+// ── Time entries (office corrections and manual bookings) ───
+
+export type TimeEntryState = { error?: 'invalidRange' | 'saveFailed'; savedAt?: number }
+
+export async function addTimeEntry(employeeId: string, formData: FormData): Promise<TimeEntryState> {
+  const user = await requireManagement()
+  const date = String(formData.get('date') ?? '')
+  const from = String(formData.get('from') ?? '')
+  const to = String(formData.get('to') ?? '')
+  const projectId = String(formData.get('projectId') ?? '') || null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(from) || !/^\d{2}:\d{2}$/.test(to))
+    return { error: 'saveFailed' }
+
+  const startedAt = new Date(`${date}T${from}:00`)
+  const endedAt = new Date(`${date}T${to}:00`)
+  if (!validInterval(startedAt, endedAt)) return { error: 'invalidRange' }
+
+  await db.timeEntry.create({
+    data: {
+      employeeId,
+      projectId,
+      startedAt,
+      endedAt,
+      note: String(formData.get('note') ?? '').trim().slice(0, 300) || null,
+      source: 'office',
+      createdById: user.id,
+    },
+  })
+  await audit({
+    userId: user.id,
+    action: 'time.add',
+    entity: 'Employee',
+    entityId: employeeId,
+    newValue: `${date} ${from}–${to}`,
+  })
+  revalidatePath(`/employees/${employeeId}`)
+  return { savedAt: Date.now() }
+}
+
+export async function deleteTimeEntry(
+  id: string,
+  _prev: { error?: string },
+  _formData: FormData
+): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  const entry = await db.timeEntry.findUnique({ where: { id } })
+  if (!entry) return { error: 'saveFailed' }
+  await db.timeEntry.delete({ where: { id } })
+  await audit({
+    userId: user.id,
+    action: 'time.delete',
+    entity: 'Employee',
+    entityId: entry.employeeId,
+    oldValue: entry.startedAt.toISOString(),
+  })
+  revalidatePath(`/employees/${entry.employeeId}`)
   return {}
 }

@@ -3,6 +3,22 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.20.0] — 2026-08-26
+
+### Added — time tracking (from the meeting notes; legally required in the trade)
+- **Start/stop on the phone**: the worker's assignment card carries a
+  **Zeit starten** button; while running it counts along (*Stopp · 2:15*) and
+  stopping books the interval on the project. Starting on another site closes
+  the running interval first, and the day heading shows the day's total.
+- **Office view and corrections** on the employee page: every booking of the
+  last 14 days with day, from–to, duration, project and a *Büro* badge on
+  office entries; delete and manual entry included. Intervals longer than 16
+  hours (a forgotten stop) are refused.
+- **Post-costing in the reports**: the *Projekte* tab shows the recorded hours
+  per finished project and — with financial access — the order value per hour.
+- Every interval carries a `source` (worker / office / import), so hours
+  arriving from another system later land in the same table.
+
 ## [1.19.0] — 2026-08-26
 
 Groundwork from the meeting notes — three things the recordings asked for

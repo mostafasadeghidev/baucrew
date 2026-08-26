@@ -61,3 +61,71 @@ export async function setMyItemStatus(projectItemId: string, status: string): Pr
   revalidatePath(`/projects/${item.projectId}`)
   return {}
 }
+
+// ── Time tracking (start/stop on the phone) ─────────────────
+
+export type TimeResult = { error?: 'notAllowed' | 'saveFailed' }
+
+/** May this employee book time on that project today? Same rule as the packing list. */
+async function canBookOn(projectId: string, employeeId: string): Promise<boolean> {
+  const now = new Date()
+  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1))
+  const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7))
+  const [inTeam, scheduled] = await Promise.all([
+    db.projectEmployee.count({ where: { projectId, employeeId } }),
+    db.scheduleEntry.count({
+      where: {
+        projectId,
+        cancelledAt: null,
+        date: { gte: from, lte: to },
+        employees: { some: { employeeId } },
+      },
+    }),
+  ])
+  return inTeam > 0 || scheduled > 0
+}
+
+/** Starts the clock on a project; a still-running interval is closed first. */
+export async function startMyTime(projectId: string): Promise<TimeResult> {
+  const user = await requireUser()
+  const employeeId = user.employee?.id
+  if (!employeeId) return { error: 'notAllowed' }
+  if (user.role === 'EMPLOYEE' && !(await canBookOn(projectId, employeeId))) {
+    return { error: 'notAllowed' }
+  }
+
+  const now = new Date()
+  await db.timeEntry.updateMany({
+    where: { employeeId, endedAt: null },
+    data: { endedAt: now },
+  })
+  await db.timeEntry.create({
+    data: { employeeId, projectId, startedAt: now, source: 'worker' },
+  })
+  await audit({
+    userId: user.id,
+    action: 'time.start',
+    entity: 'Project',
+    entityId: projectId,
+  })
+  revalidatePath('/my')
+  return {}
+}
+
+export async function stopMyTime(): Promise<TimeResult> {
+  const user = await requireUser()
+  const employeeId = user.employee?.id
+  if (!employeeId) return { error: 'notAllowed' }
+
+  const open = await db.timeEntry.findFirst({ where: { employeeId, endedAt: null } })
+  if (!open) return {}
+  await db.timeEntry.update({ where: { id: open.id }, data: { endedAt: new Date() } })
+  await audit({
+    userId: user.id,
+    action: 'time.stop',
+    entity: 'Project',
+    entityId: open.projectId ?? open.id,
+  })
+  revalidatePath('/my')
+  return {}
+}

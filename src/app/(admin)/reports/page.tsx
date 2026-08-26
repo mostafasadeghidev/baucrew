@@ -30,6 +30,7 @@ import { PrintButton } from '@/components/print-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
 import { DonutChart } from '@/components/donut-chart'
+import { formatMinutes } from '@/lib/time-entries'
 
 const TABS = ['overview', 'revenue', 'offers', 'projects', 'customers', 'utilization', 'quality'] as const
 type Tab = (typeof TABS)[number]
@@ -393,7 +394,9 @@ export default async function ReportsPage({
                       <th className={thR}>{t('colPlannedDays')}</th>
                       <th className={thR}>{t('colActualDays')}</th>
                       <th className={thR}>{t('colPersonDays')}</th>
+                      <th className={thR}>{t('colRecordedHours')}</th>
                       {showFinancials && <th className={thR}>{t('colPerPersonDay')}</th>}
+                      {showFinancials && <th className={thR}>{t('colPerHour')}</th>}
                       <th className={thR}>{t('colDelay')}</th>
                     </tr>
                   </thead>
@@ -409,9 +412,17 @@ export default async function ReportsPage({
                         <td className={tdR}>{r.plannedDays ?? '—'}</td>
                         <td className={`${tdR} ${r.dayDelta != null && r.dayDelta > 0 ? down : ''}`}>{r.actualDays || '—'}</td>
                         <td className={tdR}>{r.personDays || '—'}</td>
+                        <td className={tdR}>
+                          {r.recordedMinutes >= 30 ? formatMinutes(r.recordedMinutes) : '—'}
+                        </td>
                         {showFinancials && (
                           <td className={`${tdR} font-medium`}>
                             {r.revenuePerPersonDay != null ? money(r.revenuePerPersonDay) : '—'}
+                          </td>
+                        )}
+                        {showFinancials && (
+                          <td className={`${tdR} font-medium`}>
+                            {r.revenuePerHour != null ? money(r.revenuePerHour) : '—'}
                           </td>
                         )}
                         <td className={`${tdR} ${r.delayDays == null ? 'text-muted' : r.delayDays > 0 ? down : up}`}>
@@ -426,11 +437,13 @@ export default async function ReportsPage({
                       <td className={tdR}>{fmtNum(efficiency.avg.plannedDays)}</td>
                       <td className={tdR}>{fmtNum(efficiency.avg.actualDays)}</td>
                       <td className={td} />
+                      <td className={td} />
                       {showFinancials && (
                         <td className={tdR}>
                           {efficiency.avg.revenuePerPersonDay != null ? money(efficiency.avg.revenuePerPersonDay) : '—'}
                         </td>
                       )}
+                      {showFinancials && <td className={td} />}
                       <td className={tdR}>{fmtDelay(efficiency.avg.delayDays)}</td>
                     </tr>
                   </tfoot>

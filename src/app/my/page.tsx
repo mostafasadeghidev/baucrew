@@ -9,6 +9,8 @@ import { Checklist } from '@/components/checklist'
 import { WeekStrip, buildWeek } from './week-strip'
 import { formatDate } from '@/lib/format'
 import { MapPin, Paperclip, Phone, Printer, Truck, Users } from 'lucide-react'
+import { formatMinutes, sumMinutes } from '@/lib/time-entries'
+import { TimeClock } from './time-clock'
 
 /**
  * The worker's own day on the phone: week strip, one card per assignment with
@@ -22,11 +24,12 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tChecklists, tFiles, tToday, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, tFiles, tTime, tToday, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
     getTranslations('checklists'),
     getTranslations('files'),
+    getTranslations('time'),
     getTranslations('today'),
     getLocale(),
   ])
@@ -37,7 +40,7 @@ export default async function MyAreaPage({
   const employeeId = user.employee?.id
   const monday = mondayOf(day)
 
-  const [entries, next, weekEntries] = employeeId
+  const [entries, next, weekEntries, openTime, todayTime] = employeeId
     ? await Promise.all([
         db.scheduleEntry.findMany({
           where: { date: day, cancelledAt: null, employees: { some: { employeeId } } },
@@ -95,8 +98,20 @@ export default async function MyAreaPage({
           },
           select: { date: true },
         }),
+        // Time clock: the still-running interval + everything booked today
+        db.timeEntry.findFirst({
+          where: { employeeId, endedAt: null },
+          select: { projectId: true, startedAt: true },
+        }),
+        db.timeEntry.findMany({
+          where: {
+            employeeId,
+            startedAt: { gte: new Date(new Date().setUTCHours(0, 0, 0, 0)) },
+          },
+          select: { startedAt: true, endedAt: true },
+        }),
       ])
-    : [[], null, []]
+    : [[], null, [], null, []]
 
   const jobsPerDay = new Map<string, number>()
   for (const e of weekEntries) {
@@ -120,6 +135,8 @@ export default async function MyAreaPage({
   const weekdayFmt = new Intl.DateTimeFormat(intl, { weekday: 'short', timeZone: 'UTC' })
   const week = buildWeek(monday, day, today, jobsPerDay, weekdayFmt)
 
+  const todayMinutes = sumMinutes(todayTime, new Date())
+
   const tel = (v: string) => `tel:${v.replace(/[^\d+]/g, '')}`
 
   return (
@@ -132,6 +149,11 @@ export default async function MyAreaPage({
         </h1>
         <p className="mt-0.5 text-sm text-muted">
           {entries.length === 0 ? t('noJobsShort') : t('jobsCount', { count: entries.length })}
+          {isToday && todayMinutes > 0 && (
+            <span className="ml-2 font-medium text-foreground">
+              · {tTime('todayTotal', { hours: formatMinutes(todayMinutes) })}
+            </span>
+          )}
         </p>
       </div>
 
@@ -219,6 +241,18 @@ export default async function MyAreaPage({
                 {tSheet('title')}
               </Link>
             </div>
+
+            {/* Time clock — start when work begins, stop when it ends */}
+            {isToday && (
+              <div className="border-t border-border px-4 py-3">
+                <TimeClock
+                  projectId={p.id}
+                  runningSince={
+                    openTime?.projectId === p.id ? openTime.startedAt.toISOString() : null
+                  }
+                />
+              </div>
+            )}
 
             {/* Facts: address, people, vehicle */}
             <dl className="space-y-2.5 px-4 py-3 text-sm">

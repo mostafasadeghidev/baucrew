@@ -529,6 +529,24 @@ Sie sehen nur Ihre eigenen Einsätze — und nie Preise. Ändern kann hier niema
 
 ---
 
+### Zeit starten / Stopp
+
+Auf der Einsatzkarte des heutigen Tages gibt es **Zeit starten**: Der
+Mitarbeiter drückt beim Arbeitsbeginn, der Knopf zählt sichtbar mit
+(**Stopp · 2:15**) und beim Stopp ist die Zeit auf dem Projekt gebucht. Wer auf
+einer anderen Baustelle startet, dessen laufende Zeit wird automatisch
+geschlossen. Oben in der Tagesüberschrift steht die Summe des Tages.
+
+Das Büro sieht und korrigiert alles auf der Mitarbeiterseite in der Karte
+**Zeiterfassung (14 Tage)**: jede Buchung mit Tag, Von–Bis, Dauer und Projekt
+(Einträge des Büros tragen das Abzeichen *Büro*), löschen und händisch
+nachtragen inklusive. Vergessene Stopps länger als 16 Stunden werden nicht
+angenommen — das Büro trägt den Tag korrekt nach.
+
+In den Berichten (Reiter *Projekte*) stehen zu jedem abgeschlossenen Projekt
+die **erfassten Stunden** und — mit Finanzfreigabe — der **Auftragswert je
+Stunde**, für die Nachkalkulation ohne jedes Excel.
+
 ### Dokumente beim Einsatz
 
 Gibt das Büro eine Projekt-Datei für das Team frei, erscheint sie in der
