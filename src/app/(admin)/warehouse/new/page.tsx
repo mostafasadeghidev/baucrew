@@ -28,6 +28,7 @@ export default async function NewItemPage() {
           stockQuantity: '',
           minStock: '',
           location: '',
+          videoUrl: '',
           active: true,
           notes: '',
         }}

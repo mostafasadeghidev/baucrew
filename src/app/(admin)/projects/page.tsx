@@ -152,6 +152,15 @@ export default async function ProjectsPage({
                 <tr key={p.id} className="hover:bg-surface-hover">
                   <td className="px-4 py-3 tabular-nums text-muted">{p.number}</td>
                   <td className="px-4 py-3">
+                    {/* High priority: a red mark in front of the name */}
+                    {p.priority === 'HIGH' && (
+                      <span
+                        className="mr-1 font-bold text-red-700 dark:text-red-400"
+                        title={t('priorityHigh')}
+                      >
+                        !
+                      </span>
+                    )}
                     <Link href={`/projects/${p.id}`} className="font-medium text-accent hover:underline">
                       {p.name}
                     </Link>

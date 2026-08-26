@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { LayoutGrid } from 'lucide-react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
-import { detectConflicts } from '@/lib/schedule-conflicts'
+import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflicts'
 import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, iso, isoWeek, mondayOf, todayUtc } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
@@ -19,9 +19,10 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ edit?: string }>
 }) {
-  const [t, tSchedule, locale, user, sp] = await Promise.all([
+  const [t, tSchedule, tAbsences, locale, user, sp] = await Promise.all([
     getTranslations('dashboard'),
     getTranslations('schedule'),
+    getTranslations('absences'),
     getLocale(),
     requireManagement(),
     searchParams,
@@ -44,6 +45,7 @@ export default async function DashboardPage({
     customerCount,
     todayEntries,
     weekEntries,
+    weekAbsences,
     attentionProjects,
   ] = await Promise.all([
     db.project.count({ where: { status: 'IN_PROGRESS' } }),
@@ -80,6 +82,10 @@ export default async function DashboardPage({
         employees: { include: { employee: { select: { id: true, firstName: true, lastName: true } } } },
       },
     }),
+    db.absence.findMany({
+      where: { startDate: { lt: weekEnd }, endDate: { gte: monday } },
+      select: { employeeId: true, startDate: true, endDate: true, type: true },
+    }),
     // Planned/in-progress projects starting within 14 days that still lack a team or vehicle
     db.project.findMany({
       where: {
@@ -106,7 +112,10 @@ export default async function DashboardPage({
   ).size
 
   // ── This week's conflicts + weather ─────────────────────────
-  const conflicts = detectConflicts(weekEntries)
+  const conflicts = [
+    ...detectConflicts(weekEntries),
+    ...detectAbsenceConflicts(weekEntries, weekAbsences),
+  ]
   const outdoorPairs = weekEntries
     .filter(
       (e) =>
@@ -272,6 +281,8 @@ export default async function DashboardPage({
               {conflicts.slice(0, 6).map((c, i) => (
                 <li key={i}>
                   <span className="font-medium">{c.name}</span> · {dateFmt.format(c.date)}
+                  {c.type === 'absence' &&
+                    ` · ${tAbsences(`type${c.absenceType}` as 'typeVACATION')}`}
                 </li>
               ))}
               {conflicts.length > 6 && (

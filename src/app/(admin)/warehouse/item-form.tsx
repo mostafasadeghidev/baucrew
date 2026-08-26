@@ -16,6 +16,7 @@ export type ItemFormValues = {
   stockQuantity: string
   minStock: string
   location: string
+  videoUrl: string
   active: boolean
   notes: string
 }
@@ -102,6 +103,19 @@ export function ItemForm({
               {t('location')}
             </label>
             <input id="location" name="location" defaultValue={initial.location} className={inputClass} />
+          </div>
+          <div>
+            <label htmlFor="videoUrl" className="block text-sm font-medium">
+              {t('videoUrl')}
+            </label>
+            <input
+              id="videoUrl"
+              name="videoUrl"
+              type="url"
+              placeholder="https://…"
+              defaultValue={initial.videoUrl}
+              className={inputClass}
+            />
           </div>
           <div className="flex items-end pb-2">
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">

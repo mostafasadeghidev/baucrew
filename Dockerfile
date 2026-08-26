@@ -35,6 +35,9 @@ COPY --chown=nextjs:nodejs scripts/bootstrap.mjs /migrate/scripts/bootstrap.mjs
 COPY --chown=nextjs:nodejs docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+# Uploaded project files (docker-compose mounts a volume here)
+RUN mkdir -p /app/storage && chown nextjs:nodejs /app/storage
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

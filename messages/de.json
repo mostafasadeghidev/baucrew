@@ -162,7 +162,8 @@
     "packingNotAllowed": "Dafür fehlt die Berechtigung — nur eigene Projekte.",
     "jobsCount": "{count, plural, one {# Einsatz} other {# Einsätze}}",
     "noJobsShort": "Nichts geplant",
-    "navigate": "Navigation"
+    "navigate": "Navigation",
+    "itemVideo": "Video: {name}"
   },
   "customers": {
     "title": "Kunden",
@@ -263,7 +264,12 @@
     "addOnLabel": "Bezeichnung",
     "addOnDate": "Datum",
     "addOnLabelRequired": "Bitte eine Bezeichnung angeben.",
-    "checklistProgressTitle": "Checklisten: abgehakte Punkte (⚠ = Problem notiert)"
+    "checklistProgressTitle": "Checklisten: abgehakte Punkte (⚠ = Problem notiert)",
+    "priority": "Priorität",
+    "priorityHigh": "Hoch",
+    "priorityLow": "Niedrig",
+    "priorityNormal": "Normal",
+    "leadSource": "Anfrage über"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -408,7 +414,9 @@
     "optionLabelDe": "Bezeichnung (DE)",
     "optionLabelEn": "Bezeichnung (EN)",
     "optionAdd": "Eintrag hinzufügen",
-    "optionBuiltIn": "Standard"
+    "optionBuiltIn": "Standard",
+    "leadSourcesTitle": "Anfragequellen",
+    "leadSourcesHint": "Woher Anfragen kommen (Telefon, E-Mail, Instagram …) — Auswahl im Projekt."
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -627,7 +635,8 @@
     "previousDay": "Vorheriger Tag",
     "nextDay": "Nächster Tag",
     "todayButton": "Heute",
-    "mapApproximate": "ca. Ortsmitte"
+    "mapApproximate": "ca. Ortsmitte",
+    "absentConflict": "{name} ist am {date} abwesend ({type})"
   },
   "warehouse": {
     "title": "Lager",
@@ -664,7 +673,8 @@
     "quickCreateHint": "Wird sofort in den Katalog aufgenommen — Bestand, Kategorie und Lagerort können später unter „Lager“ ergänzt werden.",
     "quickCreateSubmit": "Anlegen und hinzufügen",
     "unitPlaceholder": "z. B. Stück, Rolle, Liter",
-    "createItemOption": "„{name}“ als neuen Artikel anlegen"
+    "createItemOption": "„{name}“ als neuen Artikel anlegen",
+    "videoUrl": "Video-Anleitung (Link)"
   },
   "itemKind": {
     "TOOL": "Werkzeug",
@@ -877,5 +887,34 @@
     "projectChecklistsHint": "Werden beim Speichern in das Projekt kopiert.",
     "keptBecauseTicked": "Bereits abgehakte Listen wurden behalten: {names}",
     "templateChecklistsHint": "Jedes Projekt aus dieser Vorlage bekommt diese Listen."
+  },
+  "absences": {
+    "title": "Abwesenheiten",
+    "none": "Keine Abwesenheiten eingetragen.",
+    "add": "Eintragen",
+    "type": "Art",
+    "from": "Von",
+    "to": "Bis",
+    "note": "Notiz (optional)",
+    "noteHint": "z. B. Reha, Schulung …",
+    "invalidRange": "Das Ende liegt vor dem Beginn.",
+    "currently": "aktuell",
+    "typeVACATION": "Urlaub",
+    "typeSICK": "Krank",
+    "typeOTHER": "Sonstiges"
+  },
+  "files": {
+    "title": "Dateien",
+    "hint": "Pläne, Angebote, Fotos — am Projekt gespeichert.",
+    "none": "Noch keine Dateien.",
+    "upload": "Datei hochladen",
+    "uploadHint": "PDF, Bilder, Excel, Word · max. 25 MB",
+    "tooLarge": "Datei ist größer als 25 MB.",
+    "badType": "Dateityp wird nicht unterstützt.",
+    "uploadFailed": "Hochladen fehlgeschlagen.",
+    "crewShort": "Team",
+    "officeShort": "Büro",
+    "crewCanSee": "Das Team sieht diese Datei im Mitarbeiter-Bereich. Klicken, um sie nur fürs Büro zu behalten.",
+    "officeOnly": "Nur das Büro sieht diese Datei. Klicken, um sie fürs Team freizugeben."
   }
 }

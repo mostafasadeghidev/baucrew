@@ -34,6 +34,7 @@ const itemSchema = z.object({
   stockQuantity: optionalNumber,
   minStock: optionalNumber,
   location: optional,
+  videoUrl: optional,
   active: z.string().transform((v) => v === 'on'),
   notes: z
     .string()
@@ -53,6 +54,7 @@ function parseItemForm(formData: FormData) {
     stockQuantity: formData.get('stockQuantity') ?? '',
     minStock: formData.get('minStock') ?? '',
     location: formData.get('location') ?? '',
+    videoUrl: formData.get('videoUrl') ?? '',
     active: formData.get('active') ?? '',
     notes: formData.get('notes') ?? '',
   })

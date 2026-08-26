@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
-import { Check, Circle, TriangleAlert } from 'lucide-react'
+import { Check, Circle, PlayCircle, TriangleAlert } from 'lucide-react'
 import { setMyItemStatus } from './actions'
 
 export type MyItem = {
@@ -11,6 +11,8 @@ export type MyItem = {
   unit: string | null
   quantity: number | null
   status: 'REQUIRED' | 'COLLECTED' | 'MISSING'
+  /** Short "how to operate this device" video, opened next to the tick button. */
+  videoUrl?: string | null
 }
 
 const NEXT: Record<MyItem['status'], MyItem['status']> = {
@@ -51,13 +53,24 @@ export function PackingList({ items }: { items: MyItem[] }) {
         {items.map((item) => {
           const status = statusOf(item)
           return (
-            <li key={item.id}>
+            <li key={item.id} className="flex items-stretch gap-1.5">
+              {item.videoUrl && (
+                <a
+                  href={item.videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={t('itemVideo', { name: item.name })}
+                  className="order-2 flex shrink-0 items-center rounded-lg border border-border bg-surface px-3 text-accent"
+                >
+                  <PlayCircle className="h-5 w-5" aria-hidden />
+                </a>
+              )}
               <button
                 type="button"
                 disabled={pending}
                 onClick={() => toggle(item)}
                 aria-label={`${item.name} — ${tStatus(status)}`}
-                className={`flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left text-base transition-colors disabled:opacity-70 ${
+                className={`order-1 flex w-full min-w-0 items-center gap-3 rounded-lg border px-3 py-3 text-left text-base transition-colors disabled:opacity-70 ${
                   status === 'COLLECTED'
                     ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
                     : status === 'MISSING'

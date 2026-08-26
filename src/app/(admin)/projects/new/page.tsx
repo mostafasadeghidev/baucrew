@@ -112,6 +112,7 @@ export default async function NewProjectPage({
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
         checklists={checklists.map((c) => ({ value: c.id, label: c.name }))}
+        leadSources={lists.leadSources.map((e) => ({ value: e.value, label: optionLabel(lists.leadSources, e.value, locale) }))}
         clientTypes={lists.clientTypes.map((e) => ({ value: e.value, label: optionLabel(lists.clientTypes, e.value, locale) }))}
         buildingTypes={lists.buildingTypes.map((e) => ({ value: e.value, label: optionLabel(lists.buildingTypes, e.value, locale) }))}
         categories={categories.map((c) => ({
@@ -125,6 +126,8 @@ export default async function NewProjectPage({
           isSub: false,
           clientType: '',
           buildingType: '',
+          priority: '',
+          leadSource: '',
           street: '',
           postalCode: '',
           city: '',

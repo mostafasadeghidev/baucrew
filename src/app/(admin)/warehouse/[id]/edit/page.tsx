@@ -50,6 +50,7 @@ export default async function EditItemPage({
           stockQuantity: item.stockQuantity != null ? String(Number(item.stockQuantity)) : '',
           minStock: item.minStock != null ? String(Number(item.minStock)) : '',
           location: item.location ?? '',
+          videoUrl: item.videoUrl ?? '',
           active: item.active,
           notes: item.notes ?? '',
         }}

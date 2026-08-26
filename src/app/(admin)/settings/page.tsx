@@ -11,6 +11,7 @@ import {
   updateBuildingTypes,
   updateClientTypes,
   updateItemKinds,
+  updateLeadSources,
   updatePrepTab,
   updateRainThreshold,
 } from "./actions";
@@ -421,6 +422,15 @@ export default async function SettingsPage({
               entries={lists.buildingTypes}
               suggestions={SUGGESTED.buildingTypes}
               builtIn={BUILT_IN.buildingTypes.map((e) => e.value)}
+            />
+          </Card>
+
+          <Card title={t("leadSourcesTitle")} description={t("leadSourcesHint")}>
+            <OptionListManager
+              action={updateLeadSources}
+              entries={lists.leadSources}
+              suggestions={SUGGESTED.leadSources}
+              builtIn={BUILT_IN.leadSources.map((e) => e.value)}
             />
           </Card>
 

@@ -289,6 +289,22 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 
 ---
 
+### Dateien am Projekt
+
+Auf der Projektseite gibt es die Karte **Dateien**: Pläne, Angebots-PDFs und
+Fotos werden hochgeladen (PDF, Bilder, Excel, Word · max. 25 MB) und liegen am
+Projekt. Jede Datei hat einen Schalter **Büro / Team**: Neue Dateien sieht nur
+das Büro; erst mit einem Klick auf **Team** erscheint sie im
+Mitarbeiter-Bereich beim Einsatz — so bleiben Angebote mit Preisen automatisch
+beim Büro.
+
+### Priorität und Anfragequelle
+
+Im Projektformular lassen sich zwei kleine Felder setzen: **Priorität**
+(Normal / Hoch / Niedrig — bei *Hoch* steht in der Projektliste ein rotes **!**
+vor dem Namen) und **Anfrage über** (Telefon, E-Mail, Instagram … — die Liste
+ist unter Einstellungen → Arbeitsbereiche → Anfragequellen anpassbar).
+
 ## 7. Einsatzplanung (der Wochenplan)
 
 **Wo:** Menü → **Einsatzplanung**. Hier planen Sie, wer wann wo mit welchem Fahrzeug arbeitet.
@@ -394,6 +410,13 @@ Nicht mehr benötigte Artikel setzen Sie auf **inaktiv** — sie bleiben in alte
 
 ---
 
+### Video-Anleitung am Artikel
+
+Jeder Artikel kann einen **Video-Link** tragen (z. B. eine kurze
+Bedienungsanleitung eines Geräts). In der Lagerliste erscheint dann ein kleines
+Abspiel-Symbol, und der Mitarbeiter sieht denselben Knopf direkt neben dem
+Artikel in seiner Packliste auf dem Handy.
+
 ## 10. Mitarbeiter, Fähigkeiten und Benutzerkonten
 
 **Wo:** Menü → **Mitarbeiter**.
@@ -433,6 +456,15 @@ Im selben Kasten: **Rolle**, **Neues Passwort** (leer lassen = unverändert; ein
 **Mitarbeiter scheidet aus:** Haken **Aktiv** entfernen → Speichern (kann sich nicht mehr anmelden). Mitarbeiter selbst auf **inaktiv** setzen. Nichts löschen — die alten Einsätze bleiben nachvollziehbar. **Konto löschen** gibt es auch, mit Schutzregeln (Kapitel 15).
 
 ---
+
+### Abwesenheiten (Urlaub / Krank)
+
+Auf der Seite eines Mitarbeiters gibt es die Karte **Abwesenheiten**: Art
+(Urlaub, Krank, Sonstiges), Von–Bis und eine Notiz. Ab dann warnt die
+Einsatzplanung von selbst: Im Einsatzfenster steht neben dem Namen **⚠ Urlaub**,
+sobald das gewählte Datum in eine Abwesenheit fällt, und ist jemand trotzdem
+(oder schon vorher) verplant, erscheint es als Konflikt — im gelben Kasten der
+Wochenansicht und auf der Übersicht unter *Konflikte diese Woche*.
 
 ## 11. Fahrzeuge
 
@@ -496,6 +528,12 @@ Sie sehen nur Ihre eigenen Einsätze — und nie Preise. Ändern kann hier niema
 💡 „Zum Startbildschirm hinzufügen“ — dann liegt BauCrew wie eine App auf dem Handy.
 
 ---
+
+### Dokumente beim Einsatz
+
+Gibt das Büro eine Projekt-Datei für das Team frei, erscheint sie in der
+Einsatzkarte unter **Dateien** — ein Tipp öffnet sie. Ohne Freigabe sieht das
+Team nichts, Preise bleiben beim Büro.
 
 ## 14. Berichte
 

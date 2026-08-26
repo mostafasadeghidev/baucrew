@@ -10,6 +10,8 @@ services:
     environment:
       DATABASE_URL: postgresql://baucrew:${POSTGRES_PASSWORD}@db:5432/baucrew?schema=public
       SESSION_SECRET: ${SESSION_SECRET}
+    volumes:
+      - baucrew_files:/app/storage
     ports:
       - "3000:3000"
     depends_on:
@@ -33,3 +35,4 @@ services:
 
 volumes:
   baucrew_pgdata:
+  baucrew_files:

@@ -11,7 +11,7 @@ import {
   moveScheduleEntry,
   updateScheduleEntry,
 } from './actions'
-import { EntryDialog, type DialogState, type BoardEntry } from './entry-dialog'
+import { EntryDialog, type AbsenceHint, type DialogState, type BoardEntry } from './entry-dialog'
 import { btn } from '@/components/ui/button'
 export type { BoardEntry } from './entry-dialog'
 
@@ -34,6 +34,7 @@ export function ScheduleBoard({
   projects,
   employees,
   vehicles,
+  absences = [],
   locale,
 }: {
   days: string[]
@@ -53,6 +54,7 @@ export function ScheduleBoard({
   projects: ComboboxOption[]
   employees: ComboboxOption[]
   vehicles: ComboboxOption[]
+  absences?: AbsenceHint[]
   locale: string
 }) {
   const t = useTranslations('schedule')
@@ -404,6 +406,7 @@ export function ScheduleBoard({
           projects={projects}
           employees={employees}
           vehicles={vehicles}
+          absences={absences}
           pending={pending}
           onClose={() => setDialog({ mode: 'closed' })}
           onSubmit={(input, entryId) => {

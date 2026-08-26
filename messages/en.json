@@ -162,7 +162,8 @@
     "packingNotAllowed": "Not allowed — only your own projects.",
     "jobsCount": "{count, plural, one {# assignment} other {# assignments}}",
     "noJobsShort": "Nothing planned",
-    "navigate": "Navigate"
+    "navigate": "Navigate",
+    "itemVideo": "Video: {name}"
   },
   "customers": {
     "title": "Customers",
@@ -263,7 +264,12 @@
     "addOnLabel": "Description",
     "addOnDate": "Date",
     "addOnLabelRequired": "Please enter a description.",
-    "checklistProgressTitle": "Checklists: ticked items (⚠ = problem noted)"
+    "checklistProgressTitle": "Checklists: ticked items (⚠ = problem noted)",
+    "priority": "Priority",
+    "priorityHigh": "High",
+    "priorityLow": "Low",
+    "priorityNormal": "Normal",
+    "leadSource": "Request via"
   },
   "employees": {
     "title": "Employees",
@@ -408,7 +414,9 @@
     "optionLabelDe": "Label (DE)",
     "optionLabelEn": "Label (EN)",
     "optionAdd": "Add entry",
-    "optionBuiltIn": "Built-in"
+    "optionBuiltIn": "Built-in",
+    "leadSourcesTitle": "Lead sources",
+    "leadSourcesHint": "Where requests come from (phone, e-mail, Instagram …) — picked on the project."
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -627,7 +635,8 @@
     "previousDay": "Previous day",
     "nextDay": "Next day",
     "todayButton": "Today",
-    "mapApproximate": "approx. town centre"
+    "mapApproximate": "approx. town centre",
+    "absentConflict": "{name} is away on {date} ({type})"
   },
   "warehouse": {
     "title": "Warehouse",
@@ -664,7 +673,8 @@
     "quickCreateHint": "Added to the catalog right away — stock, category and location can be filled in later under \"Warehouse\".",
     "quickCreateSubmit": "Create and add",
     "unitPlaceholder": "e.g. piece, roll, litre",
-    "createItemOption": "Create \"{name}\" as a new item"
+    "createItemOption": "Create \"{name}\" as a new item",
+    "videoUrl": "Instruction video (link)"
   },
   "itemKind": {
     "TOOL": "Tool",
@@ -877,5 +887,34 @@
     "projectChecklistsHint": "Copied into the project when you save.",
     "keptBecauseTicked": "Lists that were already ticked were kept: {names}",
     "templateChecklistsHint": "Every project made from this template starts with these lists."
+  },
+  "absences": {
+    "title": "Absences",
+    "none": "No absences recorded.",
+    "add": "Add",
+    "type": "Type",
+    "from": "From",
+    "to": "To",
+    "note": "Note (optional)",
+    "noteHint": "e.g. rehab, training …",
+    "invalidRange": "The end lies before the start.",
+    "currently": "now",
+    "typeVACATION": "Holiday",
+    "typeSICK": "Sick",
+    "typeOTHER": "Other"
+  },
+  "files": {
+    "title": "Files",
+    "hint": "Plans, offers, photos — stored on the project.",
+    "none": "No files yet.",
+    "upload": "Upload file",
+    "uploadHint": "PDF, images, Excel, Word · max. 25 MB",
+    "tooLarge": "File is larger than 25 MB.",
+    "badType": "File type is not supported.",
+    "uploadFailed": "Upload failed.",
+    "crewShort": "Crew",
+    "officeShort": "Office",
+    "crewCanSee": "The crew sees this file in the worker area. Click to keep it office-only.",
+    "officeOnly": "Only the office sees this file. Click to share it with the crew."
   }
 }

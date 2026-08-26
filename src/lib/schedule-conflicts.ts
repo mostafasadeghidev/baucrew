@@ -1,5 +1,7 @@
 // Pure logic — no server-only import so it can be unit-tested directly.
 
+import { absentEmployeesOn, type AbsenceRange } from './absences'
+
 export type ConflictEntry = {
   id: string
   date: Date
@@ -13,6 +15,7 @@ export type Conflict =
   | { type: 'employee'; name: string; date: Date; entryIds: string[] }
   | { type: 'vehicle'; name: string; date: Date; entryIds: string[] }
   | { type: 'vehicleUnavailable'; name: string; status: string; date: Date; entryIds: string[] }
+  | { type: 'absence'; name: string; absenceType: string; date: Date; entryIds: string[] }
 
 /** "07:30" → 450 minutes. Invalid/empty → null. */
 export function timeToMinutes(value: string | null | undefined): number | null {
@@ -105,4 +108,39 @@ export function detectConflicts(entries: ConflictEntry[]): Conflict[] {
     if (ids.length > 1) conflicts.push({ type: 'vehicle', name: c.name, date: c.date, entryIds: ids })
   }
   return conflicts
+}
+
+/**
+ * Crew members scheduled on a day they are away (holiday, sick …).
+ * One conflict per employee and day, carrying every affected entry.
+ */
+export function detectAbsenceConflicts(
+  entries: ConflictEntry[],
+  absences: AbsenceRange[]
+): Conflict[] {
+  if (absences.length === 0) return []
+  const grouped = new Map<
+    string,
+    { name: string; absenceType: string; date: Date; entryIds: string[] }
+  >()
+  for (const entry of entries) {
+    const away = absentEmployeesOn(absences, entry.date)
+    if (away.size === 0) continue
+    const dateKey = entry.date.toISOString().slice(0, 10)
+    for (const ee of entry.employees) {
+      const absenceType = away.get(ee.employee.id)
+      if (!absenceType) continue
+      const key = `${ee.employee.id}|${dateKey}`
+      const existing = grouped.get(key)
+      if (existing) existing.entryIds.push(entry.id)
+      else
+        grouped.set(key, {
+          name: `${ee.employee.firstName} ${ee.employee.lastName}`.trim(),
+          absenceType,
+          date: entry.date,
+          entryIds: [entry.id],
+        })
+    }
+  }
+  return [...grouped.values()].map((g) => ({ type: 'absence' as const, ...g }))
 }

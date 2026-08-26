@@ -5,19 +5,21 @@ import { parseOptionList, type OptionEntry, type OptionList } from './option-lis
 export async function getOptionLists(): Promise<Record<OptionList, OptionEntry[]>> {
   try {
     const rows = await db.appSetting.findMany({
-      where: { key: { in: ['clientTypes', 'buildingTypes', 'itemKinds'] } },
+      where: { key: { in: ['clientTypes', 'buildingTypes', 'itemKinds', 'leadSources'] } },
     })
     const value = (key: OptionList) => rows.find((r) => r.key === key)?.value
     return {
       clientTypes: parseOptionList('clientTypes', value('clientTypes')),
       buildingTypes: parseOptionList('buildingTypes', value('buildingTypes')),
       itemKinds: parseOptionList('itemKinds', value('itemKinds')),
+      leadSources: parseOptionList('leadSources', value('leadSources')),
     }
   } catch {
     return {
       clientTypes: parseOptionList('clientTypes', null),
       buildingTypes: parseOptionList('buildingTypes', null),
       itemKinds: parseOptionList('itemKinds', null),
+      leadSources: parseOptionList('leadSources', null),
     }
   }
 }

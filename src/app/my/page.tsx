@@ -8,7 +8,7 @@ import { PackingList } from './packing-buttons'
 import { Checklist } from '@/components/checklist'
 import { WeekStrip, buildWeek } from './week-strip'
 import { formatDate } from '@/lib/format'
-import { MapPin, Phone, Printer, Truck, Users } from 'lucide-react'
+import { MapPin, Paperclip, Phone, Printer, Truck, Users } from 'lucide-react'
 
 /**
  * The worker's own day on the phone: week strip, one card per assignment with
@@ -22,10 +22,11 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tChecklists, tToday, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, tFiles, tToday, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
     getTranslations('checklists'),
+    getTranslations('files'),
     getTranslations('today'),
     getLocale(),
   ])
@@ -46,8 +47,13 @@ export default async function MyAreaPage({
                 customer: { select: { name: true, phone: true, contactPerson: true } },
                 manager: { select: { firstName: true, lastName: true, phone: true } },
                 items: {
-                  include: { catalogItem: { select: { name: true, unit: true, stockQuantity: true } } },
+                  include: { catalogItem: { select: { name: true, unit: true, stockQuantity: true, videoUrl: true } } },
                   orderBy: { catalogItem: { name: 'asc' } },
+                },
+                documents: {
+                  where: { visibleToCrew: true },
+                  select: { id: true, filename: true },
+                  orderBy: { createdAt: 'asc' },
                 },
                 checklists: {
                   orderBy: { createdAt: 'asc' },
@@ -313,10 +319,32 @@ export default async function MyAreaPage({
                     unit: item.catalogItem.unit,
                     quantity: item.quantity != null ? Number(item.quantity) : null,
                     status: item.status,
+                    videoUrl: item.catalogItem.videoUrl,
                   }))}
                 />
               )}
             </div>
+
+            {/* Documents the office shared with the crew (never with prices) */}
+            {p.documents.length > 0 && (
+              <div className="border-t border-border px-4 py-3">
+                <p className="text-xs uppercase tracking-wide text-muted">{tFiles('title')}</p>
+                <ul className="mt-2 space-y-1.5">
+                  {p.documents.map((doc) => (
+                    <li key={doc.id}>
+                      <a
+                        href={`/api/files/${doc.id}`}
+                        target="_blank"
+                        className="flex items-center gap-2 text-sm font-medium text-accent hover:underline"
+                      >
+                        <Paperclip className="h-4 w-4 shrink-0" aria-hidden />
+                        <span className="truncate">{doc.filename}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Site checklists — tick them off right here */}
             {p.checklists.length > 0 && (

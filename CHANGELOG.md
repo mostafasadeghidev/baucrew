@@ -3,6 +3,34 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.19.0] — 2026-08-26
+
+Groundwork from the meeting notes — three things the recordings asked for
+that never reached the item database.
+
+### Added
+- **Absences** (holiday, sick, other) on the employee page. The planner warns
+  everywhere: the entry dialog marks an absent crew member with **⚠** and the
+  absence type on the chosen day, and scheduling someone who is away shows up
+  as a conflict in the week view, the month view, the multi-week overview and
+  on the dashboard card.
+- **Files on a project**: plans, offer PDFs and photos (PDF, images, Excel,
+  Word · max. 25 MB) uploaded onto the project. Every file has a **Büro/Team**
+  switch — new files are office-only, one click shares a file with the crew,
+  and only shared files appear in the worker area. Files live under
+  `FILE_STORAGE_DIR` (Docker: a volume at `/app/storage`); deleting a file
+  removes it from disk as well. Every file carries a `source`, so files
+  arriving later from a card, mail or AI extraction land in the same store.
+- **Priority** (normal/high/low — high shows a red **!** in the project list)
+  and **request source** (phone, e-mail, Instagram … — a configurable list in
+  Settings) on the project.
+- **Instruction-video link** on a catalog item: a play icon in the warehouse
+  list and next to the item in the worker's packing list.
+
+### Changed
+- docker-compose mounts a named volume for uploads; the Dockerfile prepares
+  `/app/storage`.
+
 ## [1.18.0] — 2026-08-24
 
 ### Changed — checklists belong to the projects now

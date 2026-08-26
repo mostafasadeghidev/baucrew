@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/format'
 import { deleteEmployee } from '../actions'
 import { requireManagement } from '@/lib/authz'
 import { AccountSection } from './account-section'
+import { AbsencesCard } from './absences-card'
 import { btn } from '@/components/ui/button'
 
 function todayUtc() {
@@ -33,6 +34,7 @@ export default async function EmployeeDetailPage({
     where: { id },
     include: {
       user: { select: { id: true, username: true, role: true, canViewFinancials: true, active: true } },
+      absences: { orderBy: { startDate: 'desc' }, take: 20 },
       projectMemberships: {
         include: {
           project: {
@@ -157,6 +159,8 @@ export default async function EmployeeDetailPage({
           )}
         </section>
       </div>
+
+      <AbsencesCard employeeId={employee.id} absences={employee.absences} />
 
       <AccountSection
         employeeId={employee.id}

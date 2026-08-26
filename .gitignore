@@ -63,3 +63,6 @@ next-env.d.ts
 
 # the roadmap and the customer's wish list never go into the repository
 /docs/BACKLOG.md
+
+# uploaded project files (local dev storage)
+/storage

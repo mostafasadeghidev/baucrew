@@ -34,6 +34,7 @@ model User {
   sessions  Session[]
   auditLogs AuditLog[]
   notes     Note[]
+  uploadedDocuments Document[] @relation("DocumentUploader")
 }
 
 model Session {
@@ -72,6 +73,24 @@ model Employee {
   templateMemberships TemplateEmployee[]
   checkedItems        ProjectChecklistItem[] @relation("ChecklistCheckedBy")
   managedTemplates    ProjectTemplate[]      @relation("TemplateManager")
+  absences            Absence[]
+}
+
+/// Holiday, sick leave and other absences — the planner warns about them.
+model Absence {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  startDate  DateTime @db.Date
+  endDate    DateTime @db.Date
+  /// VACATION | SICK | OTHER
+  type       String
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([startDate, endDate])
 }
 
 model Customer {
@@ -133,6 +152,10 @@ model Project {
   // Configurable in Settings (AppSetting `clientTypes` / `buildingTypes`)
   clientType    String?
   buildingType  String?
+  /// empty = normal, HIGH | LOW
+  priority      String?
+  /// Where the request came from — configurable list in Settings.
+  leadSource    String?
 
   // Site address (may differ from customer address)
   street     String?
@@ -266,6 +289,8 @@ model CatalogItem {
   minStock      Decimal? @db.Decimal(12, 2)
   location      String?
   notes         String?
+  /// Link to a short "how to operate this device" video.
+  videoUrl      String?
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -495,15 +520,23 @@ model Note {
   @@index([projectId])
 }
 
+/// A file on a project (plan, offer PDF, photo). `path` is the storage key
+/// under FILE_STORAGE_DIR; `source` says where the file came from (manual
+/// upload, later: card, mail, extraction). Crew accounts only ever see files
+/// with `visibleToCrew` — offers with prices stay office-only by default.
 model Document {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  filename  String
-  mimeType  String
-  size      Int
-  path      String
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  filename      String
+  mimeType      String
+  size          Int
+  path          String   @unique
+  source        String   @default("manual")
+  visibleToCrew Boolean  @default(false)
+  uploadedById  String?
+  uploadedBy    User?    @relation("DocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
 
   @@index([projectId])
 }

@@ -28,6 +28,8 @@ export type ProjectFormValues = {
   isSub: boolean
   clientType: string
   buildingType: string
+  priority: string
+  leadSource: string
   street: string
   postalCode: string
   city: string
@@ -225,6 +227,7 @@ export function ProjectForm({
   checklists,
   clientTypes,
   buildingTypes,
+  leadSources,
   showPrice,
   templateId,
   extraSection,
@@ -242,6 +245,7 @@ export function ProjectForm({
   /** Configurable lists from Settings. */
   clientTypes: Option[]
   buildingTypes: Option[]
+  leadSources: Option[]
   showPrice: boolean
   /** When creating from a template, its items are copied on save. */
   templateId?: string
@@ -398,6 +402,23 @@ export function ProjectForm({
           name="buildingType"
           defaultValue={initial.buildingType}
           options={buildingTypes}
+          emptyOption={tc('none')}
+        />
+        <SelectField
+          label={t('priority')}
+          name="priority"
+          defaultValue={initial.priority}
+          options={[
+            { value: 'HIGH', label: t('priorityHigh') },
+            { value: 'LOW', label: t('priorityLow') },
+          ]}
+          emptyOption={t('priorityNormal')}
+        />
+        <SelectField
+          label={t('leadSource')}
+          name="leadSource"
+          defaultValue={initial.leadSource}
+          options={leadSources}
           emptyOption={tc('none')}
         />
         <CheckboxGroup

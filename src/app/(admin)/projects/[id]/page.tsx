@@ -14,6 +14,7 @@ import { deleteProject, setProjectStatus } from '../actions'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
 import { PlanEntryButton } from './plan-entry-button'
 import { ChecklistSection } from './checklist-section'
+import { FilesCard } from './files-card'
 import { btn } from '@/components/ui/button'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
@@ -44,6 +45,10 @@ export default async function ProjectDetailPage({
       manager: true,
       vehicles: { include: { vehicle: true } },
       addOns: { orderBy: { date: 'asc' } },
+      documents: {
+        orderBy: { createdAt: 'desc' },
+        include: { uploadedBy: { select: { username: true } } },
+      },
       workCategories: { include: { workCategory: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
       items: { include: { catalogItem: true }, orderBy: { catalogItem: { name: 'asc' } } },
@@ -176,6 +181,26 @@ export default async function ProjectDetailPage({
               <dt className="w-44 shrink-0 text-muted">{t('buildingType')}</dt>
               <dd>{optionLabel(lists.buildingTypes, project.buildingType, locale) || '—'}</dd>
             </div>
+            {project.priority && (
+              <div className="flex gap-2">
+                <dt className="w-44 shrink-0 text-muted">{t('priority')}</dt>
+                <dd
+                  className={
+                    project.priority === 'HIGH'
+                      ? 'font-semibold text-red-700 dark:text-red-400'
+                      : 'text-muted'
+                  }
+                >
+                  {project.priority === 'HIGH' ? t('priorityHigh') : t('priorityLow')}
+                </dd>
+              </div>
+            )}
+            {project.leadSource && (
+              <div className="flex gap-2">
+                <dt className="w-44 shrink-0 text-muted">{t('leadSource')}</dt>
+                <dd>{optionLabel(lists.leadSources, project.leadSource, locale) || project.leadSource}</dd>
+              </div>
+            )}
             <div className="flex gap-2">
               <dt className="w-44 shrink-0 text-muted">{t('workCategories')}</dt>
               <dd className="flex flex-wrap gap-1">
@@ -322,6 +347,19 @@ export default async function ProjectDetailPage({
             />
           </div>
         </section>
+
+        <FilesCard
+          projectId={project.id}
+          files={project.documents.map((d) => ({
+            id: d.id,
+            filename: d.filename,
+            size: d.size,
+            source: d.source,
+            visibleToCrew: d.visibleToCrew,
+            createdAt: d.createdAt,
+            uploadedBy: d.uploadedBy,
+          }))}
+        />
 
         {/* Schedule (read-only until Phase 5) */}
         <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">

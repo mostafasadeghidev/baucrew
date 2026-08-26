@@ -526,3 +526,7 @@ export async function updateItemKinds(formData: FormData): Promise<SaveState> {
   return updateOptionList("itemKinds", formData);
 }
 
+export async function updateLeadSources(formData: FormData): Promise<SaveState> {
+  return updateOptionList("leadSources", formData);
+}
+

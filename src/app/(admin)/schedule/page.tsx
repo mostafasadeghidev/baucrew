@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
-import { detectConflicts } from '@/lib/schedule-conflicts'
+import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflicts'
 import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, addMonths, iso, isoWeek, mondayOf, monthStart, utcDate } from '@/lib/dates'
 import { MonthBoard } from './month-board'
@@ -29,6 +29,16 @@ function projectOptions(
 
 const OVERVIEW_WEEK_OPTIONS = [4, 6, 8, 12] as const
 const DEFAULT_OVERVIEW_WEEKS = 6
+
+/** Absences overlapping [start, end) — feeds warnings in every view. */
+function absencesBetween(start: Date, end: Date) {
+  return db.absence.findMany({
+    where: { startDate: { lt: end }, endDate: { gte: start } },
+    select: { employeeId: true, startDate: true, endDate: true, type: true },
+  })
+}
+
+type AbsenceHint = { employeeId: string; start: string; end: string; label: string }
 
 const ENTRY_INCLUDE = {
   project: {
@@ -59,11 +69,22 @@ export default async function SchedulePage({
 }) {
   await requireManagement()
   const { week, view, weekend, weeks: weeksParam } = await searchParams
-  const [t, tVehicleStatus, locale] = await Promise.all([
+  const [t, tVehicleStatus, tAbsences, locale] = await Promise.all([
     getTranslations('schedule'),
     getTranslations('vehicleStatus'),
+    getTranslations('absences'),
     getLocale(),
   ])
+  const absenceLabel = (type: string) => tAbsences(`type${type}` as 'typeVACATION')
+  const toHints = (
+    rows: Array<{ employeeId: string; startDate: Date; endDate: Date; type: string }>
+  ): AbsenceHint[] =>
+    rows.map((a) => ({
+      employeeId: a.employeeId,
+      start: iso(a.startDate),
+      end: iso(a.endDate),
+      label: absenceLabel(a.type),
+    }))
 
   const base =
     week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? utcDate(week) : new Date()
@@ -73,7 +94,7 @@ export default async function SchedulePage({
     const start = monthStart(base)
     const gridStart = mondayOf(start)
     const gridEnd = addDays(mondayOf(addDays(addMonths(start, 1), -1)), 7)
-    const [monthEntries, projects, employees, vehicles] = await Promise.all([
+    const [monthEntries, projects, employees, vehicles, monthAbsences] = await Promise.all([
       db.scheduleEntry.findMany({
         where: { date: { gte: gridStart, lt: gridEnd }, cancelledAt: null },
         include: ENTRY_INCLUDE,
@@ -86,10 +107,14 @@ export default async function SchedulePage({
       }),
       db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
       db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, status: true } }),
+      absencesBetween(gridStart, gridEnd),
     ])
     // Sa/So columns only when the month actually has weekend assignments.
     const monthShowWeekend = monthEntries.some((e) => [0, 6].includes(e.date.getUTCDay()))
-    const monthConflicts = detectConflicts(monthEntries)
+    const monthConflicts = [
+      ...detectConflicts(monthEntries),
+      ...detectAbsenceConflicts(monthEntries, monthAbsences),
+    ]
     const conflicted = new Set(monthConflicts.flatMap((c) => c.entryIds))
     const dayCount = monthShowWeekend ? 7 : 5
     const weeks: string[][] = []
@@ -130,6 +155,7 @@ export default async function SchedulePage({
         projects={projectOptions(projects, monthEntries)}
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
+        absences={toHints(monthAbsences)}
       />
     )
   }
@@ -149,7 +175,7 @@ export default async function SchedulePage({
   // when an assignment falls on them (or when the user asks via ?weekend=1).
   const weekEnd = addDays(monday, 7)
 
-  const [entries, projects, employees, vehicles] = await Promise.all([
+  const [entries, projects, employees, vehicles, weekAbsences] = await Promise.all([
     db.scheduleEntry.findMany({
       where: { date: { gte: monday, lt: weekEnd }, cancelledAt: null },
       include: ENTRY_INCLUDE,
@@ -170,6 +196,7 @@ export default async function SchedulePage({
       orderBy: { name: 'asc' },
       select: { id: true, name: true, status: true },
     }),
+    absencesBetween(monday, weekEnd),
   ])
 
   const hasWeekendEntries = entries.some((e) => [0, 6].includes(e.date.getUTCDay()))
@@ -182,14 +209,20 @@ export default async function SchedulePage({
     month: '2-digit',
     timeZone: 'UTC',
   })
-  const conflicts = detectConflicts(entries)
+  const conflicts = [...detectConflicts(entries), ...detectAbsenceConflicts(entries, weekAbsences)]
   const conflictedEntryIds = new Set(conflicts.flatMap((c) => c.entryIds))
   const conflictMessages = conflicts.map((c) =>
     c.type === 'employee'
       ? t('employeeConflict', { name: c.name, date: dateFmt.format(c.date) })
       : c.type === 'vehicle'
         ? t('vehicleConflict', { name: c.name, date: dateFmt.format(c.date) })
-        : t('vehicleUnavailable', {
+        : c.type === 'absence'
+          ? t('absentConflict', {
+              name: c.name,
+              date: dateFmt.format(c.date),
+              type: absenceLabel(c.absenceType),
+            })
+          : t('vehicleUnavailable', {
             name: c.name,
             date: dateFmt.format(c.date),
             status: tVehicleStatus(c.status),
@@ -270,6 +303,7 @@ export default async function SchedulePage({
         value: v.id,
         label: v.status === 'AVAILABLE' ? v.name : `${v.name} (${tVehicleStatus(v.status)})`,
       }))}
+      absences={toHints(weekAbsences)}
       locale={locale}
     />
   )
@@ -293,11 +327,14 @@ async function OverviewView({
   t: Awaited<ReturnType<typeof getTranslations<'schedule'>>>
 }) {
   const overviewEnd = addDays(monday, weeksCount * 7)
-  const entries = await db.scheduleEntry.findMany({
-    where: { date: { gte: monday, lt: overviewEnd } },
-    include: ENTRY_INCLUDE,
-    orderBy: { date: 'asc' },
-  })
+  const [entries, overviewAbsences] = await Promise.all([
+    db.scheduleEntry.findMany({
+      where: { date: { gte: monday, lt: overviewEnd } },
+      include: ENTRY_INCLUDE,
+      orderBy: { date: 'asc' },
+    }),
+    absencesBetween(monday, overviewEnd),
+  ])
 
   const weekdayFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
     weekday: 'short',
@@ -341,7 +378,10 @@ async function OverviewView({
     const start = addDays(monday, w * 7)
     const end = addDays(start, 7)
     const weekEntries = entries.filter((e) => e.date >= start && e.date < end)
-    const conflicts = detectConflicts(weekEntries)
+    const conflicts = [
+      ...detectConflicts(weekEntries),
+      ...detectAbsenceConflicts(weekEntries, overviewAbsences),
+    ]
     const conflictedEntryIds = new Set(conflicts.flatMap((c) => c.entryIds))
 
     const byProject = new Map<

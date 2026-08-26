@@ -11,7 +11,7 @@ import {
   moveScheduleEntry,
   updateScheduleEntry,
 } from "./actions";
-import { EntryDialog, type BoardEntry, type DialogState } from "./entry-dialog";
+import { EntryDialog, type AbsenceHint, type BoardEntry, type DialogState } from "./entry-dialog";
 import { btn } from "@/components/ui/button";
 
 const MAX_PER_DAY = 5;
@@ -38,6 +38,7 @@ export function MonthBoard({
   projects,
   employees,
   vehicles,
+  absences = [],
 }: {
   weeks: string[][];
   /** "yyyy-mm" of the displayed month (other days are dimmed). */
@@ -56,6 +57,7 @@ export function MonthBoard({
   projects: ComboboxOption[];
   employees: ComboboxOption[];
   vehicles: ComboboxOption[];
+  absences?: AbsenceHint[];
 }) {
   const t = useTranslations("schedule");
   const tc = useTranslations("common");
@@ -401,6 +403,7 @@ export function MonthBoard({
           projects={projects}
           employees={employees}
           vehicles={vehicles}
+          absences={absences}
           pending={pending}
           onClose={() => setDialog({ mode: "closed" })}
           onSubmit={(input, entryId) => {

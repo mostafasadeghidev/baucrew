@@ -8,6 +8,7 @@ import { requireManagement, requireAdmin } from '@/lib/authz'
 import { hashPassword } from '@/lib/auth'
 import { Role } from '@/generated/prisma/enums'
 import { audit } from '@/lib/audit'
+import { isAbsenceType } from '@/lib/absences'
 
 const optional = z
   .string()
@@ -284,5 +285,62 @@ export async function removeSkill(name: string, _prev: { error?: string }, _form
   }
   await audit({ userId: user.id, action: 'skill.remove', entity: 'Employee', entityId: name, oldValue: `${name} (${affected.length})` })
   revalidatePath('/employees')
+  return {}
+}
+
+// ── Absences (holiday, sick, other) ─────────────────────────
+
+export type AbsenceState = { error?: 'invalidRange' | 'saveFailed'; savedAt?: number }
+
+export async function createAbsence(employeeId: string, formData: FormData): Promise<AbsenceState> {
+  const user = await requireManagement()
+  const type = String(formData.get('type') ?? '')
+  const start = String(formData.get('startDate') ?? '')
+  const end = String(formData.get('endDate') ?? '') || start
+  if (!isAbsenceType(type) || !/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end))
+    return { error: 'saveFailed' }
+  if (end < start) return { error: 'invalidRange' }
+
+  const absence = await db.absence.create({
+    data: {
+      employeeId,
+      startDate: new Date(`${start}T00:00:00Z`),
+      endDate: new Date(`${end}T00:00:00Z`),
+      type,
+      note: String(formData.get('note') ?? '').trim().slice(0, 300) || null,
+    },
+  })
+  await audit({
+    userId: user.id,
+    action: 'absence.create',
+    entity: 'Employee',
+    entityId: employeeId,
+    newValue: `${type} ${start} – ${end}`,
+  })
+  revalidatePath(`/employees/${employeeId}`)
+  revalidatePath('/schedule')
+  revalidatePath('/dashboard')
+  return { savedAt: Date.now(), ...(absence ? {} : {}) }
+}
+
+export async function deleteAbsence(
+  id: string,
+  _prev: { error?: string },
+  _formData: FormData
+): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  const absence = await db.absence.findUnique({ where: { id } })
+  if (!absence) return { error: 'saveFailed' }
+  await db.absence.delete({ where: { id } })
+  await audit({
+    userId: user.id,
+    action: 'absence.delete',
+    entity: 'Employee',
+    entityId: absence.employeeId,
+    oldValue: `${absence.type} ${absence.startDate.toISOString().slice(0, 10)} – ${absence.endDate.toISOString().slice(0, 10)}`,
+  })
+  revalidatePath(`/employees/${absence.employeeId}`)
+  revalidatePath('/schedule')
+  revalidatePath('/dashboard')
   return {}
 }

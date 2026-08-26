@@ -4,7 +4,7 @@
  * existing records keep their labels. Pure — DB access in `option-lists-db.ts`.
  */
 
-export type OptionList = 'clientTypes' | 'buildingTypes' | 'itemKinds'
+export type OptionList = 'clientTypes' | 'buildingTypes' | 'itemKinds' | 'leadSources'
 
 export type OptionEntry = {
   /** Stored in the database — never changes when the label is edited. */
@@ -27,6 +27,10 @@ export const BUILT_IN: Record<OptionList, OptionEntry[]> = {
     { value: 'TOOL', labelDe: 'Werkzeug', labelEn: 'Tool' },
     { value: 'MATERIAL', labelDe: 'Material', labelEn: 'Material' },
   ],
+  leadSources: [
+    { value: 'TELEFON', labelDe: 'Telefon', labelEn: 'Phone' },
+    { value: 'EMAIL', labelDe: 'E-Mail', labelEn: 'E-mail' },
+  ],
 }
 
 /** Suggested extras the owner asked for — offered as "add" buttons in Settings. */
@@ -40,6 +44,12 @@ export const SUGGESTED: Record<OptionList, OptionEntry[]> = {
   itemKinds: [
     { value: 'WARNSCHILD', labelDe: 'Warnschild', labelEn: 'Warning sign' },
     { value: 'ABSPERRBAND', labelDe: 'Absperrband', labelEn: 'Barrier tape' },
+  ],
+  leadSources: [
+    { value: 'WEBSEITE', labelDe: 'Webseite', labelEn: 'Website' },
+    { value: 'INSTAGRAM', labelDe: 'Instagram', labelEn: 'Instagram' },
+    { value: 'EMPFEHLUNG', labelDe: 'Empfehlung', labelEn: 'Referral' },
+    { value: 'AUSSCHREIBUNG', labelDe: 'Ausschreibung', labelEn: 'Tender' },
   ],
 }
 

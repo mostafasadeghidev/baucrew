@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PlayCircle } from 'lucide-react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { getOptionList } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
@@ -126,7 +127,20 @@ export default async function WarehousePage({
                   <td className="px-4 py-3 text-right tabular-nums text-muted">
                     {item.stockQuantity != null ? Number(item.stockQuantity) : '—'}
                   </td>
-                  <td className="px-4 py-3 text-muted">{item.location ?? '—'}</td>
+                  <td className="px-4 py-3 text-muted">
+                    {item.location ?? '—'}
+                    {item.videoUrl && (
+                      <a
+                        href={item.videoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={t('videoUrl')}
+                        className="ml-2 inline-flex align-middle text-accent hover:underline"
+                      >
+                        <PlayCircle className="h-4 w-4" aria-hidden />
+                      </a>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${

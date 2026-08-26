@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { RotateCcw } from 'lucide-react'
@@ -32,6 +32,8 @@ export type BoardEntry = {
   projectStatus?: string
 }
 
+export type AbsenceHint = { employeeId: string; start: string; end: string; label: string }
+
 export type DialogState =
   | { mode: 'closed' }
   | { mode: 'create'; date: string; projectId?: string }
@@ -53,6 +55,7 @@ export function EntryDialog({
   projects,
   employees,
   vehicles,
+  absences = [],
   pending,
   onClose,
   onSubmit,
@@ -62,6 +65,8 @@ export function EntryDialog({
   projects: ComboboxOption[]
   employees: ComboboxOption[]
   vehicles: ComboboxOption[]
+  /** Who is away on which day — marks crew members while planning. */
+  absences?: AbsenceHint[]
   pending: boolean
   onClose: () => void
   onSubmit: (input: EntryInput, entryId?: string) => void
@@ -112,6 +117,17 @@ export function EntryDialog({
     new Set(entry?.employees.map((e) => e.id) ?? [])
   )
   const [items, setItems] = useState<ProjectItemRow[] | null>(null)
+
+  // Away on the selected day → the crew list warns before the entry is saved.
+  const absentById = useMemo(() => {
+    const map = new Map<string, string>()
+    if (typeof date === 'string' && date) {
+      for (const a of absences) {
+        if (a.start <= date && date <= a.end && !map.has(a.employeeId)) map.set(a.employeeId, a.label)
+      }
+    }
+    return map
+  }, [absences, date])
   const [catalogOptions, setCatalogOptions] = useState<ComboboxOption[]>([])
   const [prefilled, setPrefilled] = useState(false)
   const [loadingDefaults, startLoadDefaults] = useTransition()
@@ -427,6 +443,11 @@ export function EntryDialog({
                     className="h-4 w-4 accent-[var(--accent)]"
                   />
                   <span className="truncate">{e.label}</span>
+                  {absentById.has(e.value) && (
+                    <span className="ml-auto shrink-0 text-xs font-medium text-amber-700 dark:text-amber-400">
+                      ⚠ {absentById.get(e.value)}
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
