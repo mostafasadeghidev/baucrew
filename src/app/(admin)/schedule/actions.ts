@@ -15,6 +15,8 @@ export type EntryResult = {
   created?: number
   /** Number of days taken out of the plan (shortened range). */
   removed?: number
+  /** Number of days that already existed and were brought in line. */
+  updated?: number
 }
 
 const timeField = z
@@ -40,6 +42,7 @@ const entrySchema = z.object({
     .transform((v) => (v ? v : null)),
   saturday: z.boolean().optional().default(false),
   sunday: z.boolean().optional().default(false),
+  applyToExisting: z.boolean().optional().default(true),
   vehicleIds: z.array(z.string().min(1)).max(20),
   employeeIds: z.array(z.string().min(1)).max(50),
   startTime: timeField,
@@ -59,6 +62,8 @@ export type EntryInput = {
   /** Range mode: plan Saturdays / Sundays inside the range (default off). */
   saturday?: boolean
   sunday?: boolean
+  /** Edit mode: bring days of the range that already exist in line with this entry. */
+  applyToExisting?: boolean
   vehicleIds: string[]
   employeeIds: string[]
   startTime: string
@@ -393,6 +398,7 @@ export async function updateScheduleEntry(id: string, input: EntryInput): Promis
       })
     }
   }
+  let updated = 0
   if (d.endDate && d.endDate > d.date) {
     const range = expandDateRange(d.date, d.endDate, { saturday: d.saturday, sunday: d.sunday })
     if (range.error) return { error: range.error }
@@ -400,10 +406,22 @@ export async function updateScheduleEntry(id: string, input: EntryInput): Promis
     if (extraDays.length > 0) {
       const existing = await db.scheduleEntry.findMany({
         where: { projectId: d.projectId, date: { in: extraDays.map((x) => new Date(`${x}T00:00:00.000Z`)) } },
-        select: { date: true },
+        select: { id: true, date: true, cancelledAt: true },
       })
-      const taken = new Set(existing.map((e) => e.date.toISOString().slice(0, 10)))
+      const day = (x: { date: Date }) => x.date.toISOString().slice(0, 10)
+      const active = existing.filter((e) => e.cancelledAt === null)
+      const cancelled = existing.filter((e) => e.cancelledAt !== null)
+      const taken = new Set(existing.map(day))
       const todo = extraDays.filter((x) => !taken.has(x))
+
+      const crew = {
+        startTime: d.startTime,
+        endTime: d.endTime,
+        note: d.note,
+        employees: { deleteMany: {}, create: d.employeeIds.map((eid) => ({ employeeId: eid })) },
+        vehicles: { deleteMany: {}, create: d.vehicleIds.map((vid) => ({ vehicleId: vid })) },
+      }
+
       if (todo.length > 0) {
         const ids = await db.$transaction(
           todo.map((x) =>
@@ -430,12 +448,40 @@ export async function updateScheduleEntry(id: string, input: EntryInput): Promis
           newValue: `${before.project.number} @ ${todo[0]} – ${todo[todo.length - 1]} (${todo.length})`,
         })
       }
+
+      // A day that was taken out of the plan earlier comes back — the range
+      // says the block runs over it again.
+      if (cancelled.length > 0) {
+        await db.$transaction(
+          cancelled.map((e) =>
+            db.scheduleEntry.update({ where: { id: e.id }, data: { ...crew, cancelledAt: null } })
+          )
+        )
+        created += cancelled.length
+      }
+
+      // Days that already have an assignment get the same crew, vehicles and
+      // times — otherwise a change made "until Friday" would quietly stop at
+      // the edited day.
+      if (d.applyToExisting && active.length > 0) {
+        await db.$transaction(
+          active.map((e) => db.scheduleEntry.update({ where: { id: e.id }, data: crew }))
+        )
+        updated = active.length
+        await audit({
+          userId: user.id,
+          action: 'schedule.applyRange',
+          entity: 'Project',
+          entityId: d.projectId,
+          newValue: `${before.project.number} @ ${day(active[0])} – ${day(active[active.length - 1])} (${updated})`,
+        })
+      }
     }
   }
 
   revalidateBoard(d.projectId)
   if (before.projectId !== d.projectId) revalidateBoard(before.projectId)
-  return { created, removed }
+  return { created, removed, updated }
 }
 
 export async function moveScheduleEntry(id: string, newDate: string): Promise<EntryResult> {

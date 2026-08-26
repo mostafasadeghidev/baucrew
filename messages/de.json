@@ -612,7 +612,7 @@
     "moreEntries": "+{count} weitere",
     "dateFrom": "Von",
     "dateTo": "Bis",
-    "rangeCount": "{count} Einsätze werden angelegt (einer pro Tag)",
+    "rangeCount": "{count, plural, one {# Einsatz wird angelegt} other {# Einsätze werden angelegt (einer pro Tag)}}",
     "rangeTooLong": "Maximal {max} Tage am Stück",
     "rangeNoWorkingDays": "Kein Werktag im Zeitraum",
     "rangeInvalid": "Ungültiger Zeitraum",
@@ -640,7 +640,11 @@
     "nextDay": "Nächster Tag",
     "todayButton": "Heute",
     "mapApproximate": "ca. Ortsmitte",
-    "absentConflict": "{name} ist am {date} abwesend ({type})"
+    "absentConflict": "{name} ist am {date} abwesend ({type})",
+    "rangeApplyExisting": "{count, plural, one {Den bestehenden Tag auch anpassen (Team, Fahrzeuge, Zeiten)} other {Die # bestehenden Tage auch anpassen (Team, Fahrzeuge, Zeiten)}}",
+    "rangeExistingKept": "{count, plural, one {# Tag ist schon geplant und bleibt unverändert} other {# Tage sind schon geplant und bleiben unverändert}}",
+    "createAndApply": "{create} anlegen · {update} anpassen",
+    "applyOnly": "{count, plural, one {Speichern und # Tag anpassen} other {Speichern und # Tage anpassen}}"
   },
   "warehouse": {
     "title": "Lager",

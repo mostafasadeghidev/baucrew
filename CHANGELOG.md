@@ -3,6 +3,22 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.21.1] — 2026-08-26
+
+### Fixed
+- **The "to" date in the assignment dialog promised more than it did.** The
+  button counted every day of the range ("2 Einsätze anlegen") while saving
+  silently skipped days on which the project was already planned — adding
+  somebody to the crew and extending to the next day left that next day
+  untouched. The dialog now says what really happens: it counts only the days
+  it will create, states how many days already exist, and offers a tick box
+  **"Die bestehenden Tage auch anpassen"** that brings crew, vehicles and times
+  of those days in line (off by default, so an edit never overwrites a
+  deliberately different day by itself). The button label follows suit
+  ("Speichern und 2 Tage anpassen").
+- A day inside the range that had been taken out of the plan earlier is now
+  brought back instead of being skipped.
+
 ## [1.21.0] — 2026-08-26
 
 The groundwork that unblocks the yearly-Excel wish and the board automation.

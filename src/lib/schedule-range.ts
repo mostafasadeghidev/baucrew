@@ -73,3 +73,24 @@ export function expandDateRange(start: string, end: string | null | undefined, o
   if (dates.length === 0) return { dates: [], error: 'noWorkingDays' }
   return { dates }
 }
+
+/**
+ * Splits the days of a range into the ones that still need an assignment and
+ * the ones the project already has. `current` (the day being edited) counts as
+ * neither — it is saved on its own.
+ */
+export function splitRangeDays(
+  rangeDates: string[],
+  scheduledDays: string[],
+  current?: string
+): { newDays: string[]; existingDays: string[] } {
+  const scheduled = new Set(scheduledDays)
+  const newDays: string[] = []
+  const existingDays: string[] = []
+  for (const day of rangeDates) {
+    if (current && day === current) continue
+    if (scheduled.has(day)) existingDays.push(day)
+    else newDays.push(day)
+  }
+  return { newDays, existingDays }
+}

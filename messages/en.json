@@ -612,7 +612,7 @@
     "moreEntries": "+{count} more",
     "dateFrom": "From",
     "dateTo": "To",
-    "rangeCount": "{count} assignments will be created (one per day)",
+    "rangeCount": "{count, plural, one {# assignment will be created} other {# assignments will be created (one per day)}}",
     "rangeTooLong": "At most {max} days at once",
     "rangeNoWorkingDays": "No working day in range",
     "rangeInvalid": "Invalid range",
@@ -640,7 +640,11 @@
     "nextDay": "Next day",
     "todayButton": "Today",
     "mapApproximate": "approx. town centre",
-    "absentConflict": "{name} is away on {date} ({type})"
+    "absentConflict": "{name} is away on {date} ({type})",
+    "rangeApplyExisting": "{count, plural, one {Update the existing day as well (crew, vehicles, times)} other {Update the # existing days as well (crew, vehicles, times)}}",
+    "rangeExistingKept": "{count, plural, one {# day is already planned and stays unchanged} other {# days are already planned and stay unchanged}}",
+    "createAndApply": "Create {create} · update {update}",
+    "applyOnly": "{count, plural, one {Save and update # day} other {Save and update # days}}"
   },
   "warehouse": {
     "title": "Warehouse",

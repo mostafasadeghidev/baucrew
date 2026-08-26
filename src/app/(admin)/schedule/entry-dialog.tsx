@@ -11,7 +11,7 @@ import { AlertDialog } from '@/components/ui/alert-dialog'
 import { MultiCombobox } from '@/components/multi-combobox'
 import { ProjectItemsEditor, type ProjectItemRow } from '../projects/[id]/project-items'
 import { getProjectScheduleDefaults, setProjectManager, type EntryInput } from './actions'
-import { MAX_RANGE_DAYS, expandDateRange, isWeekendIso, weekendDaysInRange } from '@/lib/schedule-range'
+import { MAX_RANGE_DAYS, expandDateRange, isWeekendIso, splitRangeDays, weekendDaysInRange } from '@/lib/schedule-range'
 import { assignmentBlock } from '@/lib/schedule-block'
 import { btn } from '@/components/ui/button'
 
@@ -106,6 +106,8 @@ export function EntryDialog({
   const [date, setDate] = useState(entry?.date ?? (dialog.mode === 'create' ? dialog.date : ''))
   const [endDate, setEndDate] = useState('')
   const [saturday, setSaturday] = useState(false)
+  // Days of the range that already exist keep their own crew unless this is ticked.
+  const [applyToExisting, setApplyToExisting] = useState(false)
   const [sunday, setSunday] = useState(false)
   const [managerId, setManagerId] = useState('')
   const [scheduledDays, setScheduledDays] = useState<string[]>([])
@@ -200,7 +202,7 @@ export function EntryDialog({
       {
         projectId,
         date,
-        ...(endDate && endDate > date ? { endDate, saturday, sunday } : {}),
+        ...(endDate && endDate > date ? { endDate, saturday, sunday, applyToExisting } : {}),
         vehicleIds,
         employeeIds: [...selectedEmployees],
         startTime,
@@ -221,7 +223,14 @@ export function EntryDialog({
     isEdit && date && endDate
       ? assignmentBlock(scheduledDays, date).filter((d) => d > endDate).length
       : 0
-  const rangeCount = range && !range.error ? range.dates.length : 0
+  // What the save will really do: create the missing days, and only touch the
+  // days that already exist when the user asks for it.
+  const { newDays, existingDays } =
+    range && !range.error
+      ? splitRangeDays(range.dates, scheduledDays, isEdit ? date : undefined)
+      : { newDays: [] as string[], existingDays: [] as string[] }
+  const createCount = newDays.length
+  const existingCount = existingDays.length
   const touchesWeekend = range
     ? !range.error && range.dates.some(isWeekendIso)
     : Boolean(date) && isWeekendIso(date)
@@ -379,7 +388,25 @@ export function EntryDialog({
                   {rangeError === 'rangeTooLong' ? t('rangeTooLong', { max: MAX_RANGE_DAYS }) : rangeError === 'noWorkingDays' ? t('rangeNoWorkingDays') : t('rangeInvalid')}
                 </span>
               ) : (
-                <span className="font-medium text-accent">{t('rangeCount', { count: rangeCount })}</span>
+                <>
+                  {createCount > 0 && (
+                    <span className="font-medium text-accent">{t('rangeCount', { count: createCount })}</span>
+                  )}
+                  {existingCount > 0 &&
+                    (isEdit ? (
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={applyToExisting}
+                          onChange={(e) => setApplyToExisting(e.target.checked)}
+                          className="h-4 w-4 accent-[var(--accent)]"
+                        />
+                        {t('rangeApplyExisting', { count: existingCount })}
+                      </label>
+                    ) : (
+                      <span className="text-muted">{t('rangeExistingKept', { count: existingCount })}</span>
+                    ))}
+                </>
               )}
             </div>
           )}
@@ -490,7 +517,13 @@ export function EntryDialog({
                 disabled={pending || Boolean(rangeError)}
                 className={btn.primary}
               >
-                {rangeCount > 1 ? t('createEntries', { count: rangeCount }) : tc('save')}
+                {createCount > 0 && existingCount > 0 && applyToExisting
+                  ? t('createAndApply', { create: createCount, update: existingCount })
+                  : createCount > 0
+                    ? t('createEntries', { count: createCount })
+                    : existingCount > 0 && applyToExisting
+                      ? t('applyOnly', { count: existingCount })
+                      : tc('save')}
               </button>
               <button
                 type="button"
