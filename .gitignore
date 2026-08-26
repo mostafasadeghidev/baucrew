@@ -60,3 +60,6 @@ next-env.d.ts
 
 # the repository stays German/English — the Persian manual is local-only
 /docs/RAHNAMA-FA.md
+
+# the roadmap and the customer's wish list never go into the repository
+/docs/BACKLOG.md

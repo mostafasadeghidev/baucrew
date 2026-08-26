@@ -26,10 +26,15 @@ must never be pushed, no matter how small or how convenient:
    of the real company; no logos; no screenshots or PDFs made with real data;
    no dumps, backups or `.env` values. Examples in code, tests and manuals use
    invented names (`Muster …`, `Beispiel …`).
+3. **No roadmap and no customer wish list.** What the customer asked for, what
+   is planned and where their processes hurt stays out of the repository even
+   with every name removed. That list lives in Notion and in the git-ignored
+   `docs/BACKLOG.md`. The repository documents *the product* — code, the user
+   manual, technical change notes — never the plan behind it.
 
 Git-ignored and to be kept that way: `messages/fa.json`, `docs/RAHNAMA-FA.md`,
-`docs/*.pdf`, `docs/screenshots/`, `prisma/seed.company.ts`, `.env*`,
-`docker-compose.local.yml`.
+`docs/BACKLOG.md`, `docs/*.pdf`, `docs/screenshots/`, `prisma/seed.company.ts`,
+`.env*`, `docker-compose.local.yml`.
 
 Before every push: `git status --porcelain` must be empty of surprises, and the
 diff must contain no Persian script and no real names. When in doubt, ask the
@@ -73,10 +78,10 @@ owner instead of pushing.
 
 ## Backlog
 
-`docs/BACKLOG.md` is the single overview: what the customer asked for (done /
-open / blocked by an external system) and our own parked ideas. The customer's
-source list lives in Notion ("Automation & Process Backlog"); keep the
-`Ref` ids in sync when something changes.
+The customer's wish list lives in Notion ("Automation & Process Backlog"); the
+working overview is the **git-ignored** `docs/BACKLOG.md` on the owner's
+machine (done / ready to build / waiting on the customer / our own ideas). Keep
+the `Ref` ids in sync when something changes — and never commit that file.
 
 ## Commands
 
