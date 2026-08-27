@@ -16,7 +16,7 @@ describe('parseTrelloExport', () => {
       cards: [
         {
           id: 'C1',
-          name: '  Muster Effeltrich DD ',
+          name: '  Muster Musterdorf DD ',
           desc: 'WDVS',
           idList: 'L1',
           closed: false,
@@ -32,7 +32,7 @@ describe('parseTrelloExport', () => {
     expect(board!.cards).toHaveLength(1)
     expect(board!.cards[0]).toMatchObject({
       id: 'C1',
-      name: 'Muster Effeltrich DD',
+      name: 'Muster Musterdorf DD',
       desc: 'WDVS',
       idList: 'L1',
       closed: false,
@@ -44,9 +44,9 @@ describe('parseTrelloExport', () => {
 
 describe('splitCardTitle', () => {
   it('uses the first word as the customer', () => {
-    expect(splitCardTitle('Muster Effeltrich DD')).toEqual({
+    expect(splitCardTitle('Muster Musterdorf DD')).toEqual({
       customer: 'Muster',
-      project: 'Muster Effeltrich DD',
+      project: 'Muster Musterdorf DD',
     })
   })
   it('honours explicit separators', () => {

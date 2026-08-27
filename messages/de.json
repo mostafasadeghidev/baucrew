@@ -760,7 +760,7 @@
     "skipList": "Nicht importieren",
     "archived": "archiviert",
     "includeArchived": "Archivierte Karten ebenfalls importieren ({count})",
-    "titleRuleHint": "Aus jedem Kartentitel wird das erste Wort als Kunde übernommen (z. B. „Muster Effeltrich DD“ → Kunde „Muster“). Bestehende Kunden werden wiederverwendet, bereits vorhandene Projekte übersprungen.",
+    "titleRuleHint": "Aus jedem Kartentitel wird das erste Wort als Kunde übernommen (z. B. „Muster Musterdorf DD“ → Kunde „Muster“). Bestehende Kunden werden wiederverwendet, bereits vorhandene Projekte übersprungen.",
     "startImport": "Import starten",
     "doneTitle": "Import abgeschlossen",
     "doneCreated": "{count} Projekte angelegt",

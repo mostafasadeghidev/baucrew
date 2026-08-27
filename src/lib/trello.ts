@@ -56,8 +56,8 @@ export function parseTrelloExport(json: unknown): TrelloBoard | null {
 
 /**
  * Splits a Trello card title into customer + project name.
- * Convention used on the boards ("Muster Effeltrich DD",
- * "Beispiel Nürnberg Hauptstraße 28"): the first word is the
+ * Convention used on the boards ("Muster Musterdorf DD",
+ * "Beispiel Musterstadt Hauptstraße 28"): the first word is the
  * customer, the rest describes the job. Titles with " - " or ": " use that
  * separator instead. Single-word titles are both customer and project.
  */

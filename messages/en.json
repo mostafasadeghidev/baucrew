@@ -760,7 +760,7 @@
     "skipList": "Do not import",
     "archived": "archived",
     "includeArchived": "Also import archived cards ({count})",
-    "titleRuleHint": "The first word of each card title becomes the customer (e.g. “Muster Effeltrich DD” → customer “Muster”). Existing customers are reused, existing projects are skipped.",
+    "titleRuleHint": "The first word of each card title becomes the customer (e.g. “Muster Musterdorf DD” → customer “Muster”). Existing customers are reused, existing projects are skipped.",
     "startImport": "Start import",
     "doneTitle": "Import complete",
     "doneCreated": "{count} projects created",
