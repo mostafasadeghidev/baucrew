@@ -19,7 +19,7 @@ export default async function EditProjectPage({
   const locale = await getLocale()
   const lists = await getOptionLists()
 
-  const [project, customers, employees, vehicles, categories, checklists] = await Promise.all([
+  const [project, customers, employees, vehicles, categories, checklists, devices] = await Promise.all([
     db.project.findUnique({
       where: { id },
       include: {
@@ -27,6 +27,7 @@ export default async function EditProjectPage({
         team: { select: { employeeId: true } },
         vehicles: { select: { vehicleId: true } },
         checklists: { select: { templateId: true } },
+        deviceNeeds: { select: { deviceId: true } },
       },
     }),
     db.customer.findMany({
@@ -53,6 +54,11 @@ export default async function EditProjectPage({
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true },
     }),
+    db.device.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, inventoryNo: true },
+    }),
   ])
   if (!project) notFound()
 
@@ -77,6 +83,10 @@ export default async function EditProjectPage({
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}` }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
         checklists={checklists.map((c) => ({ value: c.id, label: c.name }))}
+        devices={devices.map((d) => ({
+          value: d.id,
+          label: d.inventoryNo ? `${d.name} (${d.inventoryNo})` : d.name,
+        }))}
         leadSources={lists.leadSources.map((e) => ({ value: e.value, label: optionLabel(lists.leadSources, e.value, locale) }))}
         clientTypes={lists.clientTypes.map((e) => ({ value: e.value, label: optionLabel(lists.clientTypes, e.value, locale) }))}
         buildingTypes={lists.buildingTypes.map((e) => ({ value: e.value, label: optionLabel(lists.buildingTypes, e.value, locale) }))}
@@ -115,6 +125,7 @@ export default async function EditProjectPage({
           checklistIds: project.checklists
             .map((c) => c.templateId)
             .filter((cid): cid is string => cid !== null),
+          deviceIds: project.deviceNeeds.map((pd) => pd.deviceId),
         }}
       />
     </div>

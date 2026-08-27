@@ -22,6 +22,7 @@ const templateSchema = z.object({
   vehicleIds: z.array(z.string().min(1)).max(20),
   employeeIds: z.array(z.string().min(1)).max(50),
   checklistIds: z.array(z.string().min(1)).max(30),
+  deviceIds: z.array(z.string().min(1)).max(30),
 })
 
 function parseTemplateForm(formData: FormData) {
@@ -34,6 +35,7 @@ function parseTemplateForm(formData: FormData) {
     vehicleIds: formData.getAll('vehicleIds').map(String).filter(Boolean),
     employeeIds: formData.getAll('employeeIds').map(String).filter(Boolean),
     checklistIds: formData.getAll('checklistIds').map(String).filter(Boolean),
+    deviceIds: formData.getAll('deviceIds').map(String).filter(Boolean),
   })
 }
 
@@ -70,13 +72,14 @@ export async function createTemplate(
   const user = await requireManagement()
   const parsed = parseTemplateForm(formData)
   if (!parsed.success) return { error: errorKey(parsed.error.issues) }
-  const { vehicleIds, employeeIds, checklistIds, ...templateData } = parsed.data
+  const { vehicleIds, employeeIds, checklistIds, deviceIds, ...templateData } = parsed.data
   const template = await db.projectTemplate.create({
     data: {
       ...templateData,
       vehicles: { create: vehicleIds.map((id) => ({ vehicleId: id })) },
       employees: { create: employeeIds.map((id) => ({ employeeId: id })) },
       checklists: { create: checklistIds.map((id) => ({ checklistTemplateId: id })) },
+      deviceNeeds: { create: deviceIds.map((id) => ({ deviceId: id })) },
     },
   })
   // Items picked before the first save (new template page).
@@ -108,7 +111,7 @@ export async function updateTemplate(
   if (!parsed.success) return { error: errorKey(parsed.error.issues) }
   const before = await db.projectTemplate.findUnique({ where: { id } })
   if (!before) return { error: 'saveFailed' }
-  const { vehicleIds: vIds, employeeIds: eIds, checklistIds: cIds, ...templateData } = parsed.data
+  const { vehicleIds: vIds, employeeIds: eIds, checklistIds: cIds, deviceIds: dIds, ...templateData } = parsed.data
   await db.projectTemplate.update({
     where: { id },
     data: {
@@ -116,6 +119,7 @@ export async function updateTemplate(
       vehicles: { deleteMany: {}, create: vIds.map((vid) => ({ vehicleId: vid })) },
       employees: { deleteMany: {}, create: eIds.map((eid) => ({ employeeId: eid })) },
       checklists: { deleteMany: {}, create: cIds.map((cid) => ({ checklistTemplateId: cid })) },
+      deviceNeeds: { deleteMany: {}, create: dIds.map((did) => ({ deviceId: did })) },
     },
   })
   await audit({

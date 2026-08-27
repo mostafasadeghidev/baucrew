@@ -65,6 +65,7 @@ const projectSchema = z
     managerId: z.string().transform((v) => (v ? v : null)),
     vehicleIds: z.array(z.string().min(1)).max(20),
     checklistIds: z.array(z.string().min(1)).max(30),
+    deviceIds: z.array(z.string().min(1)).max(30),
     description: z
       .string()
       .trim()
@@ -118,6 +119,7 @@ function parseProjectForm(formData: FormData) {
     managerId: formData.get('managerId') ?? '',
     vehicleIds: formData.getAll('vehicleIds').map(String).filter(Boolean),
     checklistIds: formData.getAll('checklistIds').map(String).filter(Boolean),
+    deviceIds: formData.getAll('deviceIds').map(String).filter(Boolean),
     description: formData.get('description') ?? '',
     internalNotes: formData.get('internalNotes') ?? '',
     categoryIds: formData.getAll('categoryIds').map(String),
@@ -235,6 +237,7 @@ export async function createProject(
           workCategories: { create: d.categoryIds.map((id) => ({ workCategoryId: id })) },
           team: { create: d.teamIds.map((id) => ({ employeeId: id })) },
           vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
+          deviceNeeds: { create: d.deviceIds.map((id) => ({ deviceId: id })) },
         },
       })
     } catch (e: unknown) {
@@ -378,6 +381,10 @@ export async function updateProject(
       vehicles: {
         deleteMany: {},
         create: d.vehicleIds.map((vid) => ({ vehicleId: vid })),
+      },
+      deviceNeeds: {
+        deleteMany: {},
+        create: d.deviceIds.map((did) => ({ deviceId: did })),
       },
     },
   })

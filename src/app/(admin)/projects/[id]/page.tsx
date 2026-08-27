@@ -20,7 +20,7 @@ import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { ProjectAddOns } from './add-ons'
 import { ProjectTimeSummary } from './time-summary'
-import { daysOut } from '@/lib/devices'
+import { daysOut, deviceState } from '@/lib/devices'
 import { orderValue } from '@/lib/reports'
 
 export default async function ProjectDetailPage({
@@ -55,6 +55,25 @@ export default async function ProjectDetailPage({
       workCategories: { include: { workCategory: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
       items: { include: { catalogItem: true }, orderBy: { catalogItem: { name: 'asc' } } },
+      deviceNeeds: {
+        include: {
+          device: {
+            select: {
+              id: true,
+              name: true,
+              inventoryNo: true,
+              assignments: {
+                where: { returnedAt: null },
+                select: {
+                  returnedAt: true,
+                  project: { select: { id: true, number: true, name: true } },
+                  employee: { select: { id: true, firstName: true, lastName: true } },
+                },
+              },
+            },
+          },
+        },
+      },
       devices: {
         where: { returnedAt: null },
         include: { device: { select: { id: true, name: true, inventoryNo: true } } },
@@ -344,7 +363,7 @@ export default async function ProjectDetailPage({
           <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} />
         </section>
 
-        {/* Devices standing on this site right now */}
+        {/* What this job needs, and what is actually standing there */}
         <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tDevices('onProject')}</h2>
@@ -352,6 +371,40 @@ export default async function ProjectDetailPage({
               {tDevices('openDevices')} <span aria-hidden>→</span>
             </Link>
           </div>
+          {project.deviceNeeds.length > 0 && (
+            <div className="border-b border-border px-5 py-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                {tDevices('needTitle')}
+              </h3>
+              <ul className="mt-2 space-y-1 text-sm">
+                {project.deviceNeeds.map((need) => {
+                  const state = deviceState(need.device.assignments)
+                  const here = state.status === 'onSite' && state.projectId === project.id
+                  return (
+                    <li key={need.deviceId} className="flex flex-wrap items-baseline gap-x-2">
+                      <Link
+                        href={`/devices/${need.device.id}`}
+                        className="font-medium text-accent hover:underline"
+                      >
+                        {need.device.name}
+                      </Link>
+                      {here ? (
+                        <span className="text-xs text-emerald-700 dark:text-emerald-400">
+                          ● {tDevices('needHere')}
+                        </span>
+                      ) : state.status === 'free' ? (
+                        <span className="text-xs text-muted">● {tDevices('free')}</span>
+                      ) : (
+                        <span className="text-xs text-red-700 dark:text-red-400">
+                          ● {state.status === 'out' ? tDevices('out') : state.label}
+                        </span>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
           {project.devices.length === 0 ? (
             <p className="px-5 py-6 text-sm text-muted">{tDevices('noneOnProject')}</p>
           ) : (

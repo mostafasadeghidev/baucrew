@@ -50,6 +50,8 @@ export type ProjectFormValues = {
   teamIds: string[]
   /** Checklist templates copied into the project on save. */
   checklistIds: string[]
+  /** Machines this job needs — a wish list, not a handout. */
+  deviceIds: string[]
 }
 
 const STATUSES = [
@@ -225,6 +227,7 @@ export function ProjectForm({
   vehicles,
   categories,
   checklists,
+  devices,
   clientTypes,
   buildingTypes,
   leadSources,
@@ -243,6 +246,8 @@ export function ProjectForm({
   categories: Option[]
   /** Active checklists to choose from. */
   checklists: Option[]
+  /** Active devices to choose from. */
+  devices: Option[]
   /** Configurable lists from Settings. */
   clientTypes: Option[]
   buildingTypes: Option[]
@@ -264,10 +269,12 @@ export function ProjectForm({
   const tEmployees = useTranslations('employees')
   const tVehicles = useTranslations('vehicles')
   const tChecklists = useTranslations('checklists')
+  const tDevices = useTranslations('devices')
   const [state, formAction, pending] = useActionState<ProjectFormState, FormData>(action, {})
 
   const [vehicleIds, setVehicleIds] = useState<string[]>(initial.vehicleIds)
   const [checklistIds, setChecklistIds] = useState<string[]>(initial.checklistIds)
+  const [deviceIds, setDeviceIds] = useState<string[]>(initial.deviceIds)
   const [teamIds, setTeamIds] = useState<string[]>(initial.teamIds)
   const [managerAdded, setManagerAdded] = useState(false)
   const [managerId, setManagerId] = useState(initial.managerId)
@@ -576,6 +583,20 @@ export function ProjectForm({
             <input key={c} type="hidden" name="checklistIds" value={c} />
           ))}
           <p className="mt-1 text-xs text-muted">{tChecklists('projectChecklistsHint')}</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium">{tDevices('needTitle')}</label>
+          <MultiCombobox
+            options={devices}
+            value={deviceIds}
+            onChange={setDeviceIds}
+            placeholder={tc('none')}
+            noResultsLabel={tDevices('noResults')}
+          />
+          {deviceIds.map((d) => (
+            <input key={d} type="hidden" name="deviceIds" value={d} />
+          ))}
+          <p className="mt-1 text-xs text-muted">{tDevices('needProjectHint')}</p>
         </div>
         <CheckboxGroup
           legend={t('team')}

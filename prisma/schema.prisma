@@ -228,6 +228,7 @@ model Project {
   timeEntries     TimeEntry[]
   checklists      ProjectChecklist[]
   devices         DeviceAssignment[]
+  deviceNeeds     ProjectDevice[]
 
   @@index([customerId])
   @@index([status])
@@ -309,9 +310,32 @@ model Device {
   updatedAt       DateTime @updatedAt
 
   assignments DeviceAssignment[]
+  templates   TemplateDevice[]
+  projects    ProjectDevice[]
 
   @@unique([externalSystem, externalId])
   @@index([active])
+}
+
+/// "This job needs that machine" — a wish list, not a booking.
+model TemplateDevice {
+  templateId String
+  deviceId   String
+  template   ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  device     Device          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, deviceId])
+  @@index([deviceId])
+}
+
+model ProjectDevice {
+  projectId String
+  deviceId  String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  device    Device  @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, deviceId])
+  @@index([deviceId])
 }
 
 /// One handout: the device is on a site or with a person until it comes back.
@@ -418,10 +442,11 @@ model ProjectTemplate {
   managerId String?
   manager   Employee? @relation("TemplateManager", fields: [managerId], references: [id], onDelete: SetNull)
 
-  items      TemplateItem[]
-  vehicles   TemplateVehicle[]
-  employees  TemplateEmployee[]
-  checklists TemplateChecklist[]
+  items       TemplateItem[]
+  vehicles    TemplateVehicle[]
+  employees   TemplateEmployee[]
+  checklists  TemplateChecklist[]
+  deviceNeeds TemplateDevice[]
 }
 
 model TemplateVehicle {

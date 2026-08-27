@@ -1035,6 +1035,13 @@
     "stillOut": "noch draußen",
     "onProject": "Geräte auf dieser Baustelle",
     "noneOnProject": "Kein Gerät auf dieser Baustelle.",
-    "openDevices": "Zu den Geräten"
+    "openDevices": "Zu den Geräten",
+    "needTitle": "Benötigte Geräte",
+    "needTemplateHint": "Standard-Ausstattung für diese Art Baustelle — wird in neue Projekte übernommen.",
+    "needProjectHint": "Was diese Baustelle braucht. Ausgegeben wird erst beim Gerät oder in der Einsatzplanung.",
+    "needHere": "ist hier",
+    "needStrip": "Benötigte Geräte für dieses Projekt",
+    "handOutNow": "Jetzt ausgeben",
+    "handedOut": "ausgegeben ✓"
   }
 }

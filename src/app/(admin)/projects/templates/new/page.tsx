@@ -11,7 +11,7 @@ export default async function NewTemplatePage() {
   const t = await getTranslations('templates')
   const locale = await getLocale()
 
-  const [categories, catalog, employees, vehicles, checklists] = await Promise.all([
+  const [categories, catalog, employees, vehicles, checklists, devices] = await Promise.all([
     db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' } }),
     db.catalogItem.findMany({
       where: { active: true },
@@ -28,6 +28,11 @@ export default async function NewTemplatePage() {
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true },
+    }),
+    db.device.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, inventoryNo: true },
     }),
   ])
 
@@ -46,6 +51,10 @@ export default async function NewTemplatePage() {
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
         checklists={checklists.map((c) => ({ value: c.id, label: c.name }))}
+        devices={devices.map((d) => ({
+          value: d.id,
+          label: d.inventoryNo ? `${d.name} (${d.inventoryNo})` : d.name,
+        }))}
         initial={{
           name: '',
           workCategoryId: '',
@@ -55,6 +64,7 @@ export default async function NewTemplatePage() {
           vehicleIds: [],
           employeeIds: [],
           checklistIds: [],
+          deviceIds: [],
         }}
         itemsSection={
           // Tools/materials can be picked before the first save; they are stored

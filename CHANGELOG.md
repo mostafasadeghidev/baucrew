@@ -3,6 +3,20 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.24.0] — 2026-08-27
+
+### Added
+- **Devices needed, on templates and projects.** A template carries the
+  standard machines for that kind of job and a new project takes the list
+  over. The list says what is *needed*; it books nothing — handing out stays
+  one physical act with one holder.
+- **The project page shows both sides:** what the job needs (with green/red for
+  where each machine is right now) and what is actually standing on the site.
+- **Green or red while planning.** The assignment dialog lists the project's
+  needed devices with their state; a free one carries **Jetzt ausgeben** and is
+  booked onto that site with one click, a busy one says where it is instead of
+  being assigned silently (customer request M18).
+
 ## [1.23.0] — 2026-08-27
 
 ### Added

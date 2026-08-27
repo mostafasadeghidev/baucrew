@@ -1035,6 +1035,13 @@
     "stillOut": "still out",
     "onProject": "Devices on this site",
     "noneOnProject": "No device on this site.",
-    "openDevices": "Open devices"
+    "openDevices": "Open devices",
+    "needTitle": "Devices needed",
+    "needTemplateHint": "Standard equipment for this kind of job — copied into new projects.",
+    "needProjectHint": "What this site needs. Handing out happens on the device or while planning.",
+    "needHere": "is here",
+    "needStrip": "Devices needed for this project",
+    "handOutNow": "Hand out now",
+    "handedOut": "handed out ✓"
   }
 }

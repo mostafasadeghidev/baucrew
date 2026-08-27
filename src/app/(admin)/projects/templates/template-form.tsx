@@ -20,6 +20,7 @@ export type TemplateFormValues = {
   employeeIds: string[]
   /** Checklists every project from this template starts with. */
   checklistIds: string[]
+  deviceIds: string[]
 }
 
 const FORM_ID = 'template-form'
@@ -34,6 +35,7 @@ export function TemplateForm({
   employees,
   vehicles,
   checklists,
+  devices,
   itemsSection,
 }: {
   action: (prev: TemplateFormState, formData: FormData) => Promise<TemplateFormState>
@@ -42,6 +44,8 @@ export function TemplateForm({
   employees: ComboboxOption[]
   vehicles: ComboboxOption[]
   checklists: ComboboxOption[]
+  /** Machines this kind of job usually needs. */
+  devices: ComboboxOption[]
   /** Draft tools/materials, shown while creating (saved together with the template). */
   itemsSection?: ReactNode
 }) {
@@ -51,9 +55,11 @@ export function TemplateForm({
   const tEmployees = useTranslations('employees')
   const tVehicles = useTranslations('vehicles')
   const tChecklists = useTranslations('checklists')
+  const tDevices = useTranslations('devices')
   const [vehicleIds, setVehicleIds] = useState<string[]>(initial.vehicleIds)
   const [employeeIds, setEmployeeIds] = useState<string[]>(initial.employeeIds)
   const [checklistIds, setChecklistIds] = useState<string[]>(initial.checklistIds)
+  const [deviceIds, setDeviceIds] = useState<string[]>(initial.deviceIds)
   const [managerId, setManagerId] = useState(initial.managerId)
   const [state, formAction, pending] = useActionState<TemplateFormState, FormData>(action, {})
 
@@ -170,6 +176,20 @@ export function TemplateForm({
               <input key={c} type="hidden" form={FORM_ID} name="checklistIds" value={c} />
             ))}
             <p className="mt-1 text-xs text-muted">{tChecklists('templateChecklistsHint')}</p>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium">{tDevices('needTitle')}</label>
+            <MultiCombobox
+              options={devices}
+              value={deviceIds}
+              onChange={setDeviceIds}
+              placeholder={tc('none')}
+              noResultsLabel={tDevices('noResults')}
+            />
+            {deviceIds.map((d) => (
+              <input key={d} type="hidden" form={FORM_ID} name="deviceIds" value={d} />
+            ))}
+            <p className="mt-1 text-xs text-muted">{tDevices('needTemplateHint')}</p>
           </div>
         </div>
       </div>

@@ -21,7 +21,7 @@ export default async function EditTemplatePage({
     getLocale(),
   ])
 
-  const [template, categories, catalog, employees, vehicles, checklists] = await Promise.all([
+  const [template, categories, catalog, employees, vehicles, checklists, devices] = await Promise.all([
     db.projectTemplate.findUnique({
       where: { id },
       include: {
@@ -32,6 +32,7 @@ export default async function EditTemplatePage({
         vehicles: { select: { vehicleId: true } },
         employees: { select: { employeeId: true } },
         checklists: { select: { checklistTemplateId: true } },
+        deviceNeeds: { select: { deviceId: true } },
       },
     }),
     db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' } }),
@@ -50,6 +51,11 @@ export default async function EditTemplatePage({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true },
+    }),
+    db.device.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, inventoryNo: true },
     }),
   ])
   if (!template) notFound()
@@ -87,6 +93,10 @@ export default async function EditTemplatePage({
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
         checklists={checklists.map((c) => ({ value: c.id, label: c.name }))}
+        devices={devices.map((d) => ({
+          value: d.id,
+          label: d.inventoryNo ? `${d.name} (${d.inventoryNo})` : d.name,
+        }))}
         initial={{
           name: template.name,
           workCategoryId: template.workCategoryId ?? '',
@@ -96,6 +106,7 @@ export default async function EditTemplatePage({
           vehicleIds: template.vehicles.map((tv) => tv.vehicleId),
           employeeIds: template.employees.map((te) => te.employeeId),
           checklistIds: template.checklists.map((tc) => tc.checklistTemplateId),
+          deviceIds: template.deviceNeeds.map((td) => td.deviceId),
         }}
         itemsSection={
           // Same order as on the create page: the item list sits above the
