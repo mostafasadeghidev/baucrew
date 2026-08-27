@@ -177,20 +177,24 @@ export function TemplateForm({
             ))}
             <p className="mt-1 text-xs text-muted">{tChecklists('templateChecklistsHint')}</p>
           </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium">{tDevices('needTitle')}</label>
-            <MultiCombobox
-              options={devices}
-              value={deviceIds}
-              onChange={setDeviceIds}
-              placeholder={tc('none')}
-              noResultsLabel={tDevices('noResults')}
-            />
-            {deviceIds.map((d) => (
-              <input key={d} type="hidden" form={FORM_ID} name="deviceIds" value={d} />
-            ))}
-            <p className="mt-1 text-xs text-muted">{tDevices('needTemplateHint')}</p>
-          </div>
+        </div>
+      </div>
+
+
+      <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
+        <p className="mt-0.5 text-xs text-muted">{tDevices('needTemplateHint')}</p>
+        <div className="mt-3">
+          <MultiCombobox
+            options={devices}
+            value={deviceIds}
+            onChange={setDeviceIds}
+            placeholder={tc('none')}
+            noResultsLabel={tDevices('noResults')}
+          />
+          {deviceIds.map((d) => (
+            <input key={d} type="hidden" form={FORM_ID} name="deviceIds" value={d} />
+          ))}
         </div>
       </div>
 

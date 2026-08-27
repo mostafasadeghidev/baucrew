@@ -10,6 +10,7 @@ import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { listCategories } from './actions'
 import { CategoryManager } from './category-manager'
 import { btn } from '@/components/ui/button'
+import { daysOut } from '@/lib/devices'
 
 export default async function WarehousePage({
   searchParams,
@@ -17,9 +18,10 @@ export default async function WarehousePage({
   searchParams: Promise<{ q?: string; kind?: string; page?: string }>
 }) {
   const { q, kind, page: pageParam } = await searchParams
-  const [t, tc, locale, kinds] = await Promise.all([
+  const [t, tc, tDevices, locale, kinds] = await Promise.all([
     getTranslations('warehouse'),
     getTranslations('common'),
+    getTranslations('devices'),
     getLocale(),
     getOptionList('itemKinds'),
   ])
@@ -51,6 +53,18 @@ export default async function WarehousePage({
     db.catalogItem.count({ where }),
   ])
   const categories = await listCategories()
+
+  // Machines that are not in the store — the "who has it?" question, answered
+  // on the page the warehouse people already have open.
+  const out = await db.deviceAssignment.findMany({
+    where: { returnedAt: null },
+    include: {
+      device: { select: { id: true, name: true, inventoryNo: true } },
+      project: { select: { id: true, number: true, name: true } },
+      employee: { select: { id: true, firstName: true, lastName: true } },
+    },
+    orderBy: { takenAt: 'asc' },
+  })
 
   return (
     <div className="space-y-4">
@@ -160,6 +174,52 @@ export default async function WarehousePage({
       </div>
 
       <Pagination page={page} total={total} />
+
+      {/* Devices out of the store — who has what */}
+      <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-4 py-3">
+          <h2 className="text-sm font-semibold">{tDevices('holder')}</h2>
+          <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+            {tDevices('openDevices')} <span aria-hidden>→</span>
+          </Link>
+        </div>
+        {out.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-muted">{tDevices('allInStore')}</p>
+        ) : (
+          <ul className="divide-y divide-border text-sm">
+            {out.map((handout) => (
+              <li key={handout.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
+                <Link
+                  href={`/devices/${handout.device.id}`}
+                  className="font-medium text-accent hover:underline"
+                >
+                  {handout.device.name}
+                </Link>
+                {handout.device.inventoryNo && (
+                  <span className="text-xs tabular-nums text-muted">{handout.device.inventoryNo}</span>
+                )}
+                <span className="min-w-0 flex-1 truncate text-red-700 dark:text-red-400">
+                  ●{' '}
+                  {handout.project ? (
+                    <Link href={`/projects/${handout.project.id}`} className="hover:underline">
+                      {handout.project.number} — {handout.project.name}
+                    </Link>
+                  ) : handout.employee ? (
+                    <Link href={`/employees/${handout.employee.id}`} className="hover:underline">
+                      {`${handout.employee.firstName} ${handout.employee.lastName}`.trim()}
+                    </Link>
+                  ) : (
+                    tDevices('out')
+                  )}
+                </span>
+                <span className="shrink-0 text-xs text-muted">
+                  {tDevices('sinceDays', { days: daysOut(handout.takenAt, new Date()) })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <CategoryManager categories={categories} />
     </div>
   )

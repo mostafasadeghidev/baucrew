@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
-import { deviceState } from '@/lib/devices'
+import { getProjectDevices } from '../devices/actions'
 import { promoteToPlanned, actualDatesForStatus } from '@/lib/project-lifecycle'
 import { expandDateRange } from '@/lib/schedule-range'
 import { assignmentBlock } from '@/lib/schedule-block'
@@ -539,10 +539,12 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
   devices: Array<{
     id: string
     name: string
-    /** 'free' | 'here' | 'busy' */
+    inventoryNo: string | null
     state: 'free' | 'here' | 'busy'
     where: string
   }>
+  /** Devices not on the list yet — for the picker. */
+  deviceOptions: Array<{ value: string; label: string }>
 } | null> {
   await requireManagement()
   const project = await db.project.findUnique({
@@ -564,38 +566,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
     orderBy: { date: 'asc' },
     take: 60,
   })
-  const needs = await db.projectDevice.findMany({
-    where: { projectId },
-    include: {
-      device: {
-        select: {
-          id: true,
-          name: true,
-          assignments: {
-            where: { returnedAt: null },
-            select: {
-              returnedAt: true,
-              project: { select: { id: true, number: true, name: true } },
-              employee: { select: { id: true, firstName: true, lastName: true } },
-            },
-          },
-        },
-      },
-    },
-  })
-  const devices = needs.map((need) => {
-    const state = deviceState(need.device.assignments)
-    if (state.status === 'free') return { id: need.device.id, name: need.device.name, state: 'free' as const, where: '' }
-    if (state.status === 'onSite' && state.projectId === projectId) {
-      return { id: need.device.id, name: need.device.name, state: 'here' as const, where: '' }
-    }
-    return {
-      id: need.device.id,
-      name: need.device.name,
-      state: 'busy' as const,
-      where: state.status === 'out' ? '' : state.label,
-    }
-  })
+  const { rows: devices, options: deviceOptions } = await getProjectDevices(projectId)
 
   const assigned = new Set(project.items.map((i) => i.catalogItemId))
   const catalog = await db.catalogItem.findMany({
@@ -608,6 +579,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
     managerId: project.managerId ?? '',
     scheduledDays: scheduled.map((e) => e.date.toISOString().slice(0, 10)),
     devices,
+    deviceOptions,
     vehicleIds: project.vehicles.map((v) => v.vehicleId),
     items: project.items.map((i) => ({
       id: i.id,

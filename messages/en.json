@@ -1042,6 +1042,12 @@
     "needHere": "is here",
     "needStrip": "Devices needed for this project",
     "handOutNow": "Hand out now",
-    "handedOut": "handed out ✓"
+    "handedOut": "handed out ✓",
+    "noneNeeded": "No device listed for this site yet.",
+    "selectDevice": "Pick a device …",
+    "removeNeed": "Remove from the list",
+    "alreadyAdded": "Already on the list.",
+    "holder": "Who has it?",
+    "allInStore": "All devices are in the store."
   }
 }

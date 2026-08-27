@@ -11,7 +11,7 @@ import { AlertDialog } from '@/components/ui/alert-dialog'
 import { MultiCombobox } from '@/components/multi-combobox'
 import { ProjectItemsEditor, type ProjectItemRow } from '../projects/[id]/project-items'
 import { getProjectScheduleDefaults, setProjectManager, type EntryInput } from './actions'
-import { handOutDevice } from '../devices/actions'
+import { ProjectDevicesEditor, type ProjectDeviceRow } from '../projects/[id]/project-devices'
 import { MAX_RANGE_DAYS, expandDateRange, isWeekendIso, splitRangeDays, weekendDaysInRange } from '@/lib/schedule-range'
 import { assignmentBlock } from '@/lib/schedule-block'
 import { btn } from '@/components/ui/button'
@@ -113,10 +113,8 @@ export function EntryDialog({
   const [sunday, setSunday] = useState(false)
   const [managerId, setManagerId] = useState('')
   const [scheduledDays, setScheduledDays] = useState<string[]>([])
-  const [devices, setDevices] = useState<
-    Array<{ id: string; name: string; state: 'free' | 'here' | 'busy'; where: string }>
-  >([])
-  const [handedOut, setHandedOut] = useState<string[]>([])
+  const [devices, setDevices] = useState<ProjectDeviceRow[] | null>(null)
+  const [deviceOptions, setDeviceOptions] = useState<ComboboxOption[]>([])
   const [vehicleIds, setVehicleIds] = useState<string[]>(entry?.vehicles.map((v) => v.id) ?? [])
   const [startTime, setStartTime] = useState(entry?.startTime ?? '07:00')
   const [endTime, setEndTime] = useState(entry?.endTime ?? '')
@@ -154,6 +152,7 @@ export function EntryDialog({
       setManagerId(d.managerId)
       setScheduledDays(d.scheduledDays)
       setDevices(d.devices)
+      setDeviceOptions(d.deviceOptions)
       if (applyAssignments) {
         setSelectedEmployees(new Set(d.employeeIds))
         setVehicleIds(d.vehicleIds)
@@ -180,6 +179,7 @@ export function EntryDialog({
       setManagerId(d.managerId)
       setScheduledDays(d.scheduledDays)
       setDevices(d.devices)
+      setDeviceOptions(d.deviceOptions)
       // Editing: the field starts at the last day of this block, so shortening
       // it removes the later days and extending it adds new ones.
       if (isEdit && entryDate) {
@@ -488,57 +488,6 @@ export function EntryDialog({
             </div>
           </fieldset>
 
-          {devices.length > 0 && (
-            <fieldset>
-              <legend className="text-sm font-medium">{tDevices('needStrip')}</legend>
-              <ul className="mt-2 space-y-1">
-                {devices.map((device) => {
-                  const out = handedOut.includes(device.id)
-                  return (
-                    <li
-                      key={device.id}
-                      className="flex flex-wrap items-center gap-x-2 rounded-md border border-border px-2 py-1.5 text-sm"
-                    >
-                      <span
-                        aria-hidden
-                        className={
-                          device.state === 'busy'
-                            ? 'text-red-700 dark:text-red-400'
-                            : 'text-emerald-700 dark:text-emerald-400'
-                        }
-                      >
-                        ●
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">{device.name}</span>
-                      {device.state === 'here' || out ? (
-                        <span className="text-xs text-emerald-700 dark:text-emerald-400">
-                          {out ? tDevices('handedOut') : tDevices('needHere')}
-                        </span>
-                      ) : device.state === 'busy' ? (
-                        <span className="text-xs text-red-700 dark:text-red-400">
-                          {device.where || tDevices('out')}
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!projectId) return
-                            handOutDevice(device.id, { projectId }).then((res) => {
-                              if (!res.error) setHandedOut((prev) => [...prev, device.id])
-                            })
-                          }}
-                          className={`${btn.outlineSm} px-2 py-0.5 text-xs`}
-                        >
-                          {tDevices('handOutNow')}
-                        </button>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            </fieldset>
-          )}
-
           <div>
             <label htmlFor="entry-note" className="block text-sm font-medium">
               {t('note')}
@@ -563,6 +512,27 @@ export function EntryDialog({
                   pending={loadingDefaults}
                   items={items}
                   options={catalogOptions}
+                  onChanged={() => loadDefaults(projectId, false)}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Machines this site needs — the same block as on the project page */}
+          {projectId && (
+            <div className="rounded-lg border border-border">
+              <div className="border-b border-border px-4 py-2">
+                <p className="text-sm font-semibold">{tDevices('needTitle')}</p>
+                <p className="text-xs text-muted">{tDevices('needProjectHint')}</p>
+              </div>
+              {devices === null ? (
+                <p className="px-4 py-3 text-sm text-muted">{tc('loading')}</p>
+              ) : (
+                <ProjectDevicesEditor
+                  projectId={projectId}
+                  pending={loadingDefaults}
+                  devices={devices}
+                  options={deviceOptions}
                   onChanged={() => loadDefaults(projectId, false)}
                 />
               )}

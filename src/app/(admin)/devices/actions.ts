@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import type { SaveState } from '@/components/saved-form'
+import { deviceState } from '@/lib/devices'
 
 function text(formData: FormData, field: string, max = 200): string | null {
   const value = String(formData.get(field) ?? '').trim().slice(0, max)
@@ -154,4 +155,97 @@ export async function returnDevice(deviceId: string): Promise<HandoutResult> {
   revalidatePath(`/devices/${deviceId}`)
   if (open.projectId) revalidatePath(`/projects/${open.projectId}`)
   return { savedAt: Date.now() }
+}
+
+export type NeedResult = { error?: 'alreadyAdded' | 'saveFailed' }
+
+/** Adds a machine to the list a project needs (no handout yet). */
+export async function addProjectDevice(projectId: string, deviceId: string): Promise<NeedResult> {
+  const user = await requireManagement()
+  if (!deviceId) return { error: 'saveFailed' }
+  try {
+    await db.projectDevice.create({ data: { projectId, deviceId } })
+  } catch (e: unknown) {
+    const duplicate =
+      typeof e === 'object' && e !== null && 'code' in e && (e as { code?: string }).code === 'P2002'
+    return { error: duplicate ? 'alreadyAdded' : 'saveFailed' }
+  }
+  await audit({
+    userId: user.id,
+    action: 'projectDevice.add',
+    entity: 'Project',
+    entityId: projectId,
+    newValue: deviceId,
+  })
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/schedule')
+  return {}
+}
+
+export async function removeProjectDevice(projectId: string, deviceId: string): Promise<NeedResult> {
+  const user = await requireManagement()
+  await db.projectDevice.deleteMany({ where: { projectId, deviceId } })
+  await audit({
+    userId: user.id,
+    action: 'projectDevice.remove',
+    entity: 'Project',
+    entityId: projectId,
+    oldValue: deviceId,
+  })
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/schedule')
+  return {}
+}
+
+/** The machines a project needs, each with where it is right now. */
+export async function getProjectDevices(projectId: string): Promise<{
+  rows: Array<{ id: string; name: string; inventoryNo: string | null; state: 'free' | 'here' | 'busy'; where: string }>
+  options: Array<{ value: string; label: string }>
+}> {
+  await requireManagement()
+  const [needs, all] = await Promise.all([
+    db.projectDevice.findMany({
+      where: { projectId },
+      include: {
+        device: {
+          select: {
+            id: true,
+            name: true,
+            inventoryNo: true,
+            assignments: {
+              where: { returnedAt: null },
+              select: {
+                returnedAt: true,
+                project: { select: { id: true, number: true, name: true } },
+                employee: { select: { id: true, firstName: true, lastName: true } },
+              },
+            },
+          },
+        },
+      },
+    }),
+    db.device.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, inventoryNo: true },
+    }),
+  ])
+
+  const taken = new Set(needs.map((n) => n.deviceId))
+  return {
+    rows: needs.map((need) => {
+      const state = deviceState(need.device.assignments)
+      const here = state.status === 'onSite' && state.projectId === projectId
+      return {
+        id: need.device.id,
+        name: need.device.name,
+        inventoryNo: need.device.inventoryNo,
+        state: here ? ('here' as const) : state.status === 'free' ? ('free' as const) : ('busy' as const),
+        where: state.status === 'onSite' || state.status === 'withEmployee' ? state.label : '',
+      }
+    }),
+    options: all
+      .filter((d) => !taken.has(d.id))
+      .map((d) => ({ value: d.id, label: d.inventoryNo ? `${d.name} (${d.inventoryNo})` : d.name })),
+  }
 }

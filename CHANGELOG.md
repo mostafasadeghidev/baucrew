@@ -3,6 +3,21 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.25.0] — 2026-08-27
+
+### Changed — devices sit where the tools already sit
+- **The project page and the assignment dialog carry the same device block as
+  tools and materials**: a picker at the bottom to add one, a ✕ per row to take
+  it off the list, and per row a green or red dot with where the machine is
+  (*im Lager* · *ist hier* · the other site). A free one shows **Jetzt
+  ausgeben**, one standing here shows **Zurücknehmen** — no detour over the
+  device page any more. What is actually on the site is listed underneath.
+- **The template has its own card** for the standard machines of that kind of
+  job, next to the recommended tools instead of squeezed between other fields.
+- **The warehouse page answers "who has it?"**: a card at the bottom lists every
+  device that is not in the store, with the site or the person and how long it
+  has been out.
+
 ## [1.24.0] — 2026-08-27
 
 ### Added

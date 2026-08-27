@@ -1042,6 +1042,12 @@
     "needHere": "ist hier",
     "needStrip": "Benötigte Geräte für dieses Projekt",
     "handOutNow": "Jetzt ausgeben",
-    "handedOut": "ausgegeben ✓"
+    "handedOut": "ausgegeben ✓",
+    "noneNeeded": "Noch kein Gerät für diese Baustelle vorgemerkt.",
+    "selectDevice": "Gerät auswählen …",
+    "removeNeed": "Von der Liste nehmen",
+    "alreadyAdded": "Steht schon auf der Liste.",
+    "holder": "Wer hat es?",
+    "allInStore": "Alle Geräte sind im Lager."
   }
 }

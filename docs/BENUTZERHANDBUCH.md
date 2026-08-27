@@ -523,17 +523,21 @@ ist, kann es niemand ein zweites Mal ausgeben — es gibt dann nur noch
 **Zurücknehmen**. Darunter steht, seit wie vielen Tagen es unterwegs ist, und
 der **Verlauf** zeigt, wer es wann hatte.
 
-**Benötigte Geräte:** Vorlagen und Projekte führen zusätzlich eine Liste
-*Benötigte Geräte* — die Standard-Ausstattung für diese Art Baustelle. Sie sagt,
-was gebraucht wird; ausgegeben ist damit noch nichts. Ein Projekt aus einer
-Vorlage übernimmt die Liste. Auf der Projektseite steht dann oben, was gebraucht
-wird (mit grün/rot, wo das Gerät gerade ist) und darunter, was tatsächlich auf
-der Baustelle steht.
+**Benötigte Geräte — wie die Werkzeugliste:** Auf der **Projektseite** und im
+**Einsatzfenster** steht die Karte *Benötigte Geräte* mit demselben Aufbau wie
+Werkzeug und Material: unten ein Auswahlfeld zum Hinzufügen, pro Zeile ein ✕ zum
+Entfernen. Jede Zeile zeigt mit grünem oder rotem Punkt, wo das Gerät gerade
+ist — *im Lager*, *ist hier*, oder der Name der anderen Baustelle. Ist es frei,
+steht daneben **Jetzt ausgeben** (ein Klick, und es ist auf diese Baustelle
+gebucht); steht es hier, steht dort **Zurücknehmen**. Darunter listet die Karte,
+was tatsächlich auf der Baustelle steht.
 
-**Beim Planen:** Im Einsatzfenster erscheinen die benötigten Geräte des Projekts
-mit grünem oder rotem Punkt. Ist eines frei, gibt es daneben **Jetzt ausgeben**
-— ein Klick, und es ist auf diese Baustelle gebucht. Ist es rot, steht dabei, wo
-es gerade ist, statt es still zu vergeben.
+In der **Vorlage** hat *Benötigte Geräte* eine eigene Karte — die
+Standard-Ausstattung für diese Art Baustelle, die jedes neue Projekt aus der
+Vorlage übernimmt.
+
+Im **Lager** steht unten die Karte *Wer hat es?*: jedes Gerät, das gerade nicht
+im Lager ist, mit Baustelle oder Mitarbeiter und seit wie vielen Tagen.
 
 **Auf der Baustelle:** Die Projektseite hat eine Karte **Geräte auf dieser
 Baustelle** — praktisch, wenn eine Baustelle unterbrochen wird und jemand
