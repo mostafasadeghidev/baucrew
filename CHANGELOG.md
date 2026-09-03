@@ -3,6 +3,28 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.26.0] — 2026-09-03
+
+### Added — the year planning sheet, read as it is
+- **Einstellungen → Daten → Jahresplanung importieren.** The monthly planning
+  spreadsheet can be read straight in, in the shape such sheets actually have:
+  one worksheet per year, the months **next to each other** as blocks with a
+  *Baustelle* and a *Planumsatz* column. The subtotal lines are understood —
+  everything below *Eigene Leute* counts as **SUB**, even where the caption
+  cell is empty — and a *Baustellen für &lt;Jahr&gt;* column is kept as sites
+  promised without a month.
+- **A preview before anything is written:** every year found is listed with its
+  rows, own-crew and SUB sums and total; years can be unticked. A year is then
+  replaced as a whole, and the preview says beforehand how many existing rows
+  that costs. Stored years are listed on the page and can be deleted one by one.
+- **A month block whose month cannot be read is skipped rather than guessed** —
+  a gap is better than a wrong figure.
+
+### Changed
+- **Berichte → Umsatz** shows the **Plan** and the difference under every month
+  card and for the whole period — green once the plan is reached, amber below.
+- **The monthly chart** carries a dashed marker per month at the planned level.
+
 ## [1.25.0] — 2026-08-27
 
 ### Changed — devices sit where the tools already sit

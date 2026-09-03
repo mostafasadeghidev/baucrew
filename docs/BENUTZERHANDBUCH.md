@@ -643,8 +643,8 @@ Buchungen **nachgetragen**, damit man sie von den gestoppten unterscheiden kann.
 
 Die Reiter:
 
-- **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in vier Stufen (*Angebote offen* · *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*), das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr) und daneben der **Quartalsring**: Q1 bis Q4 als Kreis mit der Jahressumme in der Mitte — ein Blick genügt, um zu sehen, welches Quartal trägt.
-- **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt).
+- **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in vier Stufen (*Angebote offen* · *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*), das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr) und daneben der **Quartalsring**: Q1 bis Q4 als Kreis mit der Jahressumme in der Mitte — ein Blick genügt, um zu sehen, welches Quartal trägt. Ist eine **Jahresplanung** eingelesen, liegt im Monatsdiagramm über jedem Monat zusätzlich eine **gestrichelte Linie** auf Höhe des Planumsatzes.
+- **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt). Ist eine **Jahresplanung** eingelesen (Kapitel 15), steht unter jeder Monatskarte zusätzlich der **Plan** und die Abweichung — grün, sobald der Plan erreicht ist, sonst gelb. Oben rechts dasselbe für den ganzen Zeitraum.
 
 ![Berichte — Plan vs. Ist](screenshots/26-berichte-projekte.png)
 
@@ -692,13 +692,31 @@ Die Reiter:
 
 **Import aus Trello** — einmalig bestehende Trello-Boards übernehmen: In Trello *Menü ⋯ → Print, export and share → Export as JSON*, Datei hier hochladen, je Liste einen Status wählen, **Import starten**.
 
+**Jahresplanung importieren** — die eigene Monatsplanumsatz-Tabelle einlesen, damit in den Berichten
+neben dem tatsächlichen Umsatz auch der **Plan** steht.
+
+Erwartet wird genau die übliche Form dieser Tabellen: je Jahr ein Blatt, und darauf die Monate
+**nebeneinander** als Blöcke mit den Spalten **Baustelle** und **Planumsatz**. Erkannt werden dabei
+auch die Zwischensummen — alles unterhalb von *Eigene Leute* zählt als **SUB**, und eine Spalte
+*Baustellen für <Jahr>* wird als vorgemerkt ohne Monat übernommen.
+
+So geht es: Datei wählen → **Datei prüfen** → die gefundenen Jahre werden mit Zeilenzahl, eigenen
+Leuten, SUB und Gesamtsumme angezeigt → abwählen, was nicht übernommen werden soll → **Übernehmen**.
+
+⚠ Ein Jahr wird immer **komplett ersetzt** — die Tabelle gilt als Vorlage. Vor dem Übernehmen steht
+bei jedem Jahr, wie viele vorhandene Zeilen ersetzt werden. Oben auf der Seite stehen die bereits
+gespeicherten Jahre; jedes lässt sich einzeln wieder **löschen**.
+
+Ein Monatsblock, dessen Monat nicht zu erkennen ist, wird übersprungen statt geraten — lieber eine
+Lücke als eine falsche Zahl.
+
 **Arbeitskategorien** — die Kreuze im Projektformular (Malern, Putz, WDVS …) umbenennen, deaktivieren, ergänzen.
 
 **Wetterwarnung** — ab welcher Regenwahrscheinlichkeit (in %) gewarnt wird; Standard 60. Darunter steht, woher die Daten kommen: Open-Meteo mit den Modellen des Deutschen Wetterdienstes (DWD ICON), kostenlos, bis 16 Tage im Voraus, geprüft wird die maximale Regenwahrscheinlichkeit des Tages am Ort des Projekts. Für die nächsten 1–2 Tage verlässlich, weiter voraus eine Tendenz. Wer weniger Warnungen möchte, stellt z. B. 70 % ein.
 
 **Änderungsprotokoll** — **Protokoll öffnen** zeigt jede Änderung in BauCrew in Klartext: Zeit, Benutzer, Aktion („Einsatz verschoben“, „Projektstatus geändert“ …), Bereich und alter → neuer Wert. Suchfeld (z. B. Benutzername oder Projektnummer) und Filter nach Bereich; ein Klick auf den Bereich öffnet den betroffenen Datensatz. „System“ als Benutzer = automatische Änderung (Status-Automatik). Oben rechts: **Älter als 90 Tage löschen** oder **Protokoll leeren** (mit Rückfrage; das Leeren selbst wird protokolliert).
 
-Die Einstellungen sind in vier Reiter gegliedert: **Allgemein** (Firmenauftritt — Name, **Firmenfarbe** und Logo in einer Karte —, Wetterwarnung, Sammel-Tab der Projektliste) · **Benutzerkonten** · **Arbeitsbereiche** · **Daten & Protokoll** (Backup, Trello-Import, Änderungsprotokoll).
+Die Einstellungen sind in vier Reiter gegliedert: **Allgemein** (Firmenauftritt — Name, **Firmenfarbe** und Logo in einer Karte —, Wetterwarnung, Sammel-Tab der Projektliste) · **Benutzerkonten** · **Arbeitsbereiche** · **Daten & Protokoll** (Backup, Trello-Import, Jahresplanung, Änderungsprotokoll).
 
 Unter **Arbeitsbereiche** legen Sie außerdem die Auswahllisten selbst fest: **Auftraggeber-Arten** (Privat, Gewerblich, Öffentlich …), **Bauarten** (Neubau, Sanierung, Brücke, Straße …), **Artikelarten** im Lager (Werkzeug, Material, Warnschild, Absperrband …) und die **Arbeitsbereiche** selbst. Vorschläge fügen Sie mit einem Klick hinzu; Standard-Einträge lassen sich umbenennen, aber nicht löschen, damit bestehende Projekte lesbar bleiben. Auf dem Arbeitsauftrag steht „Werkzeug“ in der linken Spalte, alle anderen Artikelarten rechts.
 
