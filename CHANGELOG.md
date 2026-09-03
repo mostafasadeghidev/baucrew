@@ -3,6 +3,28 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.27.0] — 2026-09-03
+
+### Added — the planning sheet and the projects, tied together
+- **Berichte → Umsatz now names the gaps:** *Geplant, aber noch kein Projekt* —
+  the planned sites of the year that no project carries yet, with their sum.
+  The honest answer to "what did we promise that never reached the system?".
+- **Berichte → Planabgleich** (new page): every line of the year for the chosen
+  year with a project picker, the plan and the order value side by side, and
+  counters for planned / linked / still open.
+- **Suggestions, never guesses.** The matcher compares the identifying words of
+  both sides — trade words like *Fassade* or *Innenausbau* can never carry a
+  match on their own — and the month only breaks a tie. Anything unclear, or
+  where two projects are equally close, is left alone. *Alle Vorschläge
+  übernehmen* applies the sure ones at once; one project is never offered twice.
+- **The project page shows *Planumsatz*** with the difference to the order
+  value — green once the order reaches the plan, amber below it.
+
+### Changed
+- **A re-import keeps the links.** A year is still replaced as a whole, but the
+  links to projects are carried over by month and name and the result says how
+  many survived — otherwise every re-import silently undid that work.
+
 ## [1.26.0] — 2026-09-03
 
 ### Added — the year planning sheet, read as it is

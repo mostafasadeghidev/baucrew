@@ -272,7 +272,8 @@
     "priorityNormal": "Normal",
     "leadSource": "Request via",
     "externalSource": "Source",
-    "externalSourceLink": "Open origin"
+    "externalSourceLink": "Open origin",
+    "plannedRevenue": "Planned revenue"
   },
   "employees": {
     "title": "Employees",
@@ -530,7 +531,12 @@
     "colPerHour": "€ / hour",
     "planned": "Plan",
     "legendPlan": "Planned revenue",
-    "planWithoutMonth": "Plus {amount} for sites not yet put on a month (pencilled in)."
+    "planWithoutMonth": "Plus {amount} for sites not yet put on a month (pencilled in).",
+    "planGapsTitle": "Planned, but no project yet",
+    "planGapsSummary": "{count, plural, one {# site} other {# sites}} ·",
+    "planGapsMore": "… and {count} more.",
+    "planGapsLink": "Go to plan reconciliation",
+    "noMonthShort": "n/m"
   },
   "sheet": {
     "title": "Work order",
@@ -1084,6 +1090,31 @@
     "importAnother": "Another file",
     "storedTitle": "Stored year planning",
     "storedEntries": "{count, plural, one {# row} other {# rows}}",
-    "confirmClear": "Delete year planning {year}?"
+    "confirmClear": "Delete year planning {year}?",
+    "doneRelinked": "{count, plural, one {# link} other {# links}} to projects kept"
+  },
+  "planMatch": {
+    "title": "Plan reconciliation",
+    "hint": "Which site from the year planning is which project? Linked lines show the plan and the order value side by side.",
+    "yearLabel": "Year",
+    "noMonth": "without a month",
+    "kpiPlanned": "Planned revenue",
+    "kpiLines": "{count, plural, one {# line} other {# lines}}",
+    "kpiLinked": "Linked",
+    "kpiOfLines": "of {count, plural, one {# line} other {# lines}}",
+    "kpiOpen": "Without a project",
+    "kpiOpenLines": "{count, plural, one {# line} other {# lines}} open",
+    "colMonth": "Month",
+    "colSite": "Site",
+    "colPlan": "Plan",
+    "colProject": "Project",
+    "colActual": "Order value",
+    "pickProject": "Pick a project …",
+    "noResults": "No project found",
+    "takeSuggestion": "Suggestion: {project}",
+    "applyAll": "Apply {count, plural, one {# suggestion} other {# suggestions}}",
+    "clearAll": "Undo {count, plural, one {# link} other {# links}}",
+    "unlink": "unlink",
+    "none": "No planning is stored for this year."
   }
 }

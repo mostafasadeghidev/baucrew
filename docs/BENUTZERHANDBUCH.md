@@ -648,6 +648,18 @@ Die Reiter:
 
 ![Berichte — Plan vs. Ist](screenshots/26-berichte-projekte.png)
 
+- **Planabgleich** (unter *Umsatz*, wenn eine Jahresplanung eingelesen ist): Die Karte
+  *Geplant, aber noch kein Projekt* listet die geplanten Baustellen, zu denen es noch kein
+  Projekt gibt, mit Summe. **Zum Planabgleich** öffnet die eigene Seite: dort steht jede
+  Zeile des Jahres mit Monat, Betrag und einem Feld, um das passende Projekt zu wählen.
+  Wo die Zuordnung eindeutig ist, steht darunter ein **Vorschlag** zum Anklicken;
+  **Alle Vorschläge übernehmen** erledigt sie auf einmal. Ein Vorschlag kommt nur, wenn er
+  eindeutig ist — Wörter wie *Fassade* oder *Innenausbau* allein reichen nie, und wenn zwei
+  Projekte gleich gut passen, schlägt BauCrew lieber nichts vor. Ein Projekt wird nie zweimal
+  vergeben. Verknüpfte Zeilen zeigen Plan und Auftragswert nebeneinander; auf der Projektseite
+  erscheint dann die Zeile **Planumsatz** mit der Abweichung. Ein erneuter Import der Tabelle
+  **behält die Verknüpfungen**.
+
 - **Projekte:** *Abgeschlossene Projekte — Plan vs. Ist* — geplante Arbeitstage gegen tatsächliche Einsatztage, Personentage und **€ pro Personentag** (Auftragswert ÷ Personentage — zeigt ohne jede Kostenerfassung, welche Projekte sich lohnen). *Verzug (Ende)* nur, wenn „Ende (tatsächlich)“ eingetragen ist.
 
 ![Berichte — Kunden](screenshots/27-berichte-kunden.png)

@@ -29,6 +29,7 @@ export function ImportWizard() {
             <li>{t('doneYears', { years: state.years.join(', ') })}</li>
             <li>{t('doneImported', { count: state.imported })}</li>
             {state.replaced > 0 && <li>{t('doneReplaced', { count: state.replaced })}</li>}
+            {state.relinked > 0 && <li>{t('doneRelinked', { count: state.relinked })}</li>}
           </ul>
         </div>
         <div className="flex flex-wrap gap-2">

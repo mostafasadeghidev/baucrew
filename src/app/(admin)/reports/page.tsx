@@ -11,6 +11,7 @@ import {
   getProjectEfficiency,
   getYearRevenue,
   getYearPlan,
+  getPlanGaps,
   getYearUsage,
 } from '@/lib/reports'
 import {
@@ -70,10 +71,11 @@ export default async function ReportsPage({
   const tab: Tab = (TABS as readonly string[]).includes(tabParam ?? '') ? (tabParam as Tab) : 'overview'
   const showFinancials = canViewFinancials(user)
 
-  const [revenue, prevRevenue, plan, pipeline, openOffers, efficiency, usage, statusCounts, customers, quality] = await Promise.all([
+  const [revenue, prevRevenue, plan, planGaps, pipeline, openOffers, efficiency, usage, statusCounts, customers, quality] = await Promise.all([
     showFinancials ? getYearRevenue(year) : null,
     showFinancials ? getYearRevenue(year - 1) : null,
     showFinancials ? getYearPlan(year) : null,
+    showFinancials ? getPlanGaps(year) : null,
     showFinancials ? getPipeline() : null,
     showFinancials ? getOpenOffers() : null,
     getProjectEfficiency(year, range),
@@ -414,6 +416,45 @@ export default async function ReportsPage({
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Promised in the sheet, but no project carries it yet. */}
+            {hasPlan && planGaps && planGaps.rows.length > 0 && (
+              <div className={`${card} p-4`}>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="text-sm font-semibold">{t('planGapsTitle')}</h3>
+                  <p className="text-xs text-muted">
+                    {t('planGapsSummary', { count: planGaps.rows.length })}{' '}
+                    <span className="font-semibold text-amber-700 tabular-nums dark:text-amber-400">
+                      {money(planGaps.total)}
+                    </span>
+                  </p>
+                </div>
+                <ul className="mt-2 grid gap-x-6 gap-y-1 text-[13px] sm:grid-cols-2">
+                  {planGaps.rows.slice(0, 12).map((gap) => (
+                    <li key={gap.id} className="flex items-center justify-between gap-2">
+                      <span className="truncate">
+                        <span className="text-muted">
+                          {gap.month ? shortMonths[gap.month - 1] : t('noMonthShort')}
+                        </span>{' '}
+                        {gap.name}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-muted">{money(gap.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {planGaps.rows.length > 12 && (
+                  <p className="mt-1 text-xs text-muted">
+                    {t('planGapsMore', { count: planGaps.rows.length - 12 })}
+                  </p>
+                )}
+                <Link
+                  href={`/reports/plan?year=${year}`}
+                  className="mt-3 inline-block text-sm text-accent hover:underline"
+                >
+                  {t('planGapsLink')} →
+                </Link>
               </div>
             )}
           </section>

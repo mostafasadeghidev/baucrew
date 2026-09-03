@@ -130,6 +130,28 @@ export async function getYearPlan(year: number): Promise<YearPlan> {
   }
 }
 
+export type PlanGap = {
+  id: string
+  month: number | null
+  name: string
+  amount: number
+  isSub: boolean
+}
+
+/**
+ * Planned sites of a year that are not tied to any project — the honest answer
+ * to "what did we promise that never made it into the system?".
+ */
+export async function getPlanGaps(year: number): Promise<{ rows: PlanGap[]; total: number }> {
+  const rows = await db.planEntry.findMany({
+    where: { year, projectId: null },
+    orderBy: [{ month: 'asc' }, { name: 'asc' }],
+    select: { id: true, month: true, name: true, amount: true, isSub: true },
+  })
+  const mapped = rows.map((r) => ({ ...r, amount: Number(r.amount) }))
+  return { rows: mapped, total: mapped.reduce((sum, r) => sum + r.amount, 0) }
+}
+
 /** Years that have an imported plan — for the year picker and the import page. */
 export async function getPlanYears(): Promise<Array<{ year: number; entries: number }>> {
   const grouped = await db.planEntry.groupBy({

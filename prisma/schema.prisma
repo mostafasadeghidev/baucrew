@@ -205,6 +205,9 @@ model Project {
   actualStart  DateTime? @db.Date
   actualEnd    DateTime? @db.Date
 
+  /// Lines of the year-planning sheet that were tied to this project.
+  planEntries PlanEntry[]
+
   managerId String?
   manager   Employee? @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
 
@@ -712,7 +715,13 @@ model PlanEntry {
   /// excel | manual — where the row came from.
   source String  @default("excel")
 
+  /// Set once the planned line is tied to the real project it became.
+  /// Kept across a re-import: the link is re-applied by month + name.
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
   @@index([year, month])
+  @@index([projectId])
 }

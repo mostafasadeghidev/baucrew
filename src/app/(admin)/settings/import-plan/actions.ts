@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { parseYearPlanWorkbook } from '@/lib/year-plan-server'
 import { mergePlanSheets, planTotals, type PlanEntry } from '@/lib/year-plan-excel'
+import { linkKey } from '@/lib/plan-match'
 
 /** What the preview shows per year found in the workbook. */
 export type PlanYearSummary = {
@@ -26,7 +27,7 @@ export type PlanYearSummary = {
 export type PlanImportState =
   | { step: 'upload'; error?: 'invalidFile' | 'tooLarge' | 'noPlan' }
   | { step: 'preview'; years: PlanYearSummary[]; entries: PlanEntry[] }
-  | { step: 'done'; imported: number; replaced: number; years: number[] }
+  | { step: 'done'; imported: number; replaced: number; relinked: number; years: number[] }
 
 const MAX_BYTES = 10 * 1024 * 1024
 
@@ -94,8 +95,18 @@ async function run(prev: PlanImportState, formData: FormData): Promise<PlanImpor
 
   const years = [...selected].sort((a, b) => a - b)
   // A year is imported as a whole: the sheet is the truth for it, so the old
-  // rows go and the new ones take their place.
-  const replaced = await db.$transaction(async (tx) => {
+  // rows go and the new ones take their place. Links to projects are the one
+  // thing the sheet does not know about, so they are carried over by month +
+  // name — otherwise every re-import would silently undo that work.
+  const { replaced, relinked } = await db.$transaction(async (tx) => {
+    const linked = await tx.planEntry.findMany({
+      where: { year: { in: years }, projectId: { not: null } },
+      select: { year: true, month: true, name: true, projectId: true },
+    })
+    const byKey = new Map(
+      linked.map((l) => [`${l.year}|${linkKey(l.month, l.name)}`, l.projectId!])
+    )
+
     const removed = await tx.planEntry.deleteMany({ where: { year: { in: years } } })
     await tx.planEntry.createMany({
       data: rows.map((e) => ({
@@ -105,9 +116,14 @@ async function run(prev: PlanImportState, formData: FormData): Promise<PlanImpor
         amount: e.amount,
         isSub: e.isSub,
         source: 'excel',
+        projectId: byKey.get(`${e.year}|${linkKey(e.month, e.name)}`) ?? null,
       })),
     })
-    return removed.count
+
+    const kept = await tx.planEntry.count({
+      where: { year: { in: years }, projectId: { not: null } },
+    })
+    return { replaced: removed.count, relinked: kept }
   })
 
   await audit({
@@ -120,7 +136,7 @@ async function run(prev: PlanImportState, formData: FormData): Promise<PlanImpor
 
   revalidatePath('/reports')
   revalidatePath('/settings/import-plan')
-  return { step: 'done', imported: rows.length, replaced, years }
+  return { step: 'done', imported: rows.length, replaced, relinked, years }
 }
 
 /** Upload → preview → import, all three phases on one action. */

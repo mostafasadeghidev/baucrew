@@ -50,6 +50,8 @@ export default async function ProjectDetailPage({
       manager: true,
       vehicles: { include: { vehicle: true } },
       addOns: { orderBy: { date: 'asc' } },
+      // Lines of the year-planning sheet someone tied to this project.
+      planEntries: { orderBy: [{ year: 'asc' }, { month: 'asc' }] },
       documents: {
         orderBy: { createdAt: 'desc' },
         include: { uploadedBy: { select: { username: true } } },
@@ -120,6 +122,9 @@ export default async function ProjectDetailPage({
 
   const showPrice = canViewFinancials(user)
   const addOnTotal = project.addOns.reduce((sum, a) => sum + Number(a.amount), 0)
+  // What the year-planning sheet had pencilled in for this project.
+  const plannedTotal = project.planEntries.reduce((sum, e) => sum + Number(e.amount), 0)
+  const orderTotal = orderValue(project.price, project.addOns)
   const categoryLabel = (c: { nameDe: string; nameEn: string }) =>
     locale === 'en' ? c.nameEn : c.nameDe
 
@@ -262,6 +267,29 @@ export default async function ProjectDetailPage({
                       <span className="font-medium text-foreground">
                         {formatCurrency(orderValue(project.price, project.addOns), locale)}
                       </span>
+                    </span>
+                  )}
+                </dd>
+              </div>
+            )}
+            {showPrice && project.planEntries.length > 0 && (
+              <div className="flex gap-2">
+                <dt className="w-44 shrink-0 text-muted">{t('plannedRevenue')}</dt>
+                <dd className="tabular-nums">
+                  {formatCurrency(plannedTotal, locale)}
+                  <span className="ml-1 text-xs font-normal text-muted">
+                    ({project.planEntries.map((e) => e.year).join(', ')})
+                  </span>
+                  {orderTotal != null && (
+                    <span
+                      className={`ml-2 text-xs font-medium ${
+                        orderTotal >= plannedTotal
+                          ? 'text-emerald-700 dark:text-emerald-400'
+                          : 'text-amber-700 dark:text-amber-400'
+                      }`}
+                    >
+                      {orderTotal >= plannedTotal ? '+' : '−'}
+                      {formatCurrency(Math.abs(orderTotal - plannedTotal), locale)}
                     </span>
                   )}
                 </dd>

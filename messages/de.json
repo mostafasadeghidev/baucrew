@@ -272,7 +272,8 @@
     "priorityNormal": "Normal",
     "leadSource": "Anfrage über",
     "externalSource": "Quelle",
-    "externalSourceLink": "Zum Ursprung"
+    "externalSourceLink": "Zum Ursprung",
+    "plannedRevenue": "Planumsatz"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -530,7 +531,12 @@
     "colPerHour": "€ / Stunde",
     "planned": "Plan",
     "legendPlan": "Planumsatz",
-    "planWithoutMonth": "Zusätzlich {amount} für Baustellen, die noch auf keinen Monat gelegt sind (vorgemerkt)."
+    "planWithoutMonth": "Zusätzlich {amount} für Baustellen, die noch auf keinen Monat gelegt sind (vorgemerkt).",
+    "planGapsTitle": "Geplant, aber noch kein Projekt",
+    "planGapsSummary": "{count, plural, one {# Baustelle} other {# Baustellen}} ·",
+    "planGapsMore": "… und {count} weitere.",
+    "planGapsLink": "Zum Planabgleich",
+    "noMonthShort": "o. M."
   },
   "sheet": {
     "title": "Arbeitsauftrag",
@@ -1084,6 +1090,31 @@
     "importAnother": "Weitere Datei",
     "storedTitle": "Gespeicherte Jahresplanung",
     "storedEntries": "{count, plural, one {# Zeile} other {# Zeilen}}",
-    "confirmClear": "Jahresplanung {year} löschen?"
+    "confirmClear": "Jahresplanung {year} löschen?",
+    "doneRelinked": "{count, plural, one {# Verknüpfung} other {# Verknüpfungen}} zu Projekten erhalten"
+  },
+  "planMatch": {
+    "title": "Planabgleich",
+    "hint": "Welche Baustelle aus der Jahresplanung ist welches Projekt? Verknüpfte Zeilen zeigen Plan und Auftragswert nebeneinander.",
+    "yearLabel": "Jahr",
+    "noMonth": "ohne Monat",
+    "kpiPlanned": "Geplanter Umsatz",
+    "kpiLines": "{count, plural, one {# Zeile} other {# Zeilen}}",
+    "kpiLinked": "Verknüpft",
+    "kpiOfLines": "von {count, plural, one {# Zeile} other {# Zeilen}}",
+    "kpiOpen": "Ohne Projekt",
+    "kpiOpenLines": "{count, plural, one {# Zeile} other {# Zeilen}} offen",
+    "colMonth": "Monat",
+    "colSite": "Baustelle",
+    "colPlan": "Plan",
+    "colProject": "Projekt",
+    "colActual": "Auftragswert",
+    "pickProject": "Projekt wählen …",
+    "noResults": "Kein Projekt gefunden",
+    "takeSuggestion": "Vorschlag: {project}",
+    "applyAll": "{count, plural, one {# Vorschlag} other {# Vorschläge}} übernehmen",
+    "clearAll": "{count, plural, one {# Verknüpfung} other {# Verknüpfungen}} lösen",
+    "unlink": "lösen",
+    "none": "Für dieses Jahr ist keine Planung gespeichert."
   }
 }
