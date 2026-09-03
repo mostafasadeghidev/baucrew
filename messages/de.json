@@ -529,7 +529,8 @@
     "colRecordedHours": "Std. erfasst",
     "colPerHour": "€ / Stunde",
     "planned": "Plan",
-    "legendPlan": "Planumsatz"
+    "legendPlan": "Planumsatz",
+    "planWithoutMonth": "Zusätzlich {amount} für Baustellen, die noch auf keinen Monat gelegt sind (vorgemerkt)."
   },
   "sheet": {
     "title": "Arbeitsauftrag",

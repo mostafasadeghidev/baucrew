@@ -352,6 +352,13 @@ export default async function ReportsPage({
                 )}
               </p>
             </div>
+            {/* Sites the sheet parks on the year without picking a month yet —
+                they belong to no month card, so they get their own line. */}
+            {hasPlan && !range && plan!.open > 0 && (
+              <p className="text-xs text-muted">
+                {t('planWithoutMonth', { amount: money(plan!.open) })}
+              </p>
+            )}
             {visibleMonths.length === 0 ? (
               <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
             ) : (

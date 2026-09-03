@@ -644,7 +644,7 @@ Buchungen **nachgetragen**, damit man sie von den gestoppten unterscheiden kann.
 Die Reiter:
 
 - **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in vier Stufen (*Angebote offen* · *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*), das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr) und daneben der **Quartalsring**: Q1 bis Q4 als Kreis mit der Jahressumme in der Mitte — ein Blick genügt, um zu sehen, welches Quartal trägt. Ist eine **Jahresplanung** eingelesen, liegt im Monatsdiagramm über jedem Monat zusätzlich eine **gestrichelte Linie** auf Höhe des Planumsatzes.
-- **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt). Ist eine **Jahresplanung** eingelesen (Kapitel 15), steht unter jeder Monatskarte zusätzlich der **Plan** und die Abweichung — grün, sobald der Plan erreicht ist, sonst gelb. Oben rechts dasselbe für den ganzen Zeitraum.
+- **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt). Ist eine **Jahresplanung** eingelesen (Kapitel 15), steht unter jeder Monatskarte zusätzlich der **Plan** und die Abweichung — grün, sobald der Plan erreicht ist, sonst gelb. Oben rechts dasselbe für den ganzen Zeitraum. Baustellen, die in der Tabelle noch auf keinen Monat gelegt sind (Spalte *Baustellen für <Jahr>*), stehen als eigene Zeile unter der Überschrift — sie gehören zu keiner Monatskarte.
 
 ![Berichte — Plan vs. Ist](screenshots/26-berichte-projekte.png)
 

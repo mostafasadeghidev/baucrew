@@ -24,6 +24,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 - **Berichte → Umsatz** shows the **Plan** and the difference under every month
   card and for the whole period — green once the plan is reached, amber below.
 - **The monthly chart** carries a dashed marker per month at the planned level.
+- **Sites parked on a year without a month** (the sheet's *Baustellen für
+  &lt;Jahr&gt;* column) get their own line under the revenue heading — they
+  belong to no month card and were invisible before.
 
 ## [1.25.0] — 2026-08-27
 

@@ -529,7 +529,8 @@
     "colRecordedHours": "Hours recorded",
     "colPerHour": "€ / hour",
     "planned": "Plan",
-    "legendPlan": "Planned revenue"
+    "legendPlan": "Planned revenue",
+    "planWithoutMonth": "Plus {amount} for sites not yet put on a month (pencilled in)."
   },
   "sheet": {
     "title": "Work order",
