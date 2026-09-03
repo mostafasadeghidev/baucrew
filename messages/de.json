@@ -527,7 +527,9 @@
     "groupHalves": "Halbjahre",
     "groupMonths": "Monate",
     "colRecordedHours": "Std. erfasst",
-    "colPerHour": "€ / Stunde"
+    "colPerHour": "€ / Stunde",
+    "planned": "Plan",
+    "legendPlan": "Planumsatz"
   },
   "sheet": {
     "title": "Arbeitsauftrag",
@@ -1049,5 +1051,38 @@
     "alreadyAdded": "Steht schon auf der Liste.",
     "holder": "Wer hat es?",
     "allInStore": "Alle Geräte sind im Lager."
+  },
+  "importPlan": {
+    "title": "Jahresplanung importieren",
+    "hint": "Die Monatsplanumsatz-Tabelle einlesen — Planzahlen erscheinen danach in den Berichten neben dem tatsächlichen Umsatz.",
+    "settingsLink": "Jahresplanung importieren",
+    "howTo": "So geht es:",
+    "step1": "Die Excel-Datei der Jahresplanung bereitlegen (ein Blatt je Jahr).",
+    "step2": "Datei auswählen und prüfen lassen.",
+    "step3": "Jahre auswählen und übernehmen.",
+    "analyze": "Datei prüfen",
+    "invalidFile": "Die Datei konnte nicht gelesen werden.",
+    "tooLarge": "Die Datei ist zu groß (max. 10 MB).",
+    "noPlan": "In der Datei wurden keine Monatsblöcke gefunden. Erwartet werden Spalten „Baustelle“ und „Planumsatz“.",
+    "previewHint": "Gefunden wurden diese Jahre. Abwählen, was nicht übernommen werden soll.",
+    "colYear": "Jahr",
+    "colMonths": "Umfang",
+    "colOwn": "Eigene Leute",
+    "colSub": "SUB",
+    "colTotal": "Geplanter Umsatz",
+    "monthsFilled": "{count, plural, one {# Monat} other {# Monate}} · {entries, plural, one {# Zeile} other {# Zeilen}}",
+    "withoutMonth": "ohne Monat: {amount}",
+    "willReplace": "ersetzt {count, plural, one {# vorhandene Zeile} other {# vorhandene Zeilen}}",
+    "replaceHint": "Ein Jahr wird immer komplett ersetzt — die Tabelle gilt als Vorlage.",
+    "startImport": "Übernehmen",
+    "doneTitle": "Jahresplanung übernommen",
+    "doneYears": "Jahre: {years}",
+    "doneImported": "{count, plural, one {# Zeile} other {# Zeilen}} gespeichert",
+    "doneReplaced": "{count, plural, one {# alte Zeile} other {# alte Zeilen}} ersetzt",
+    "goToReports": "Zu den Berichten",
+    "importAnother": "Weitere Datei",
+    "storedTitle": "Gespeicherte Jahresplanung",
+    "storedEntries": "{count, plural, one {# Zeile} other {# Zeilen}}",
+    "confirmClear": "Jahresplanung {year} löschen?"
   }
 }

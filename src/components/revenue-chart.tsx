@@ -1,10 +1,18 @@
 /**
  * Monthly revenue bar chart (server component, plain SVG — no client JS).
  * Current year as stacked bars (own + SUB), previous year as a grey bar
- * beside it. Values in EUR; the y-axis is auto-scaled to a "nice" step.
+ * beside it, and — when a year plan has been imported — the planned figure as
+ * a dashed marker across the month, so plan and reality read at a glance.
+ * Values in EUR; the y-axis is auto-scaled to a "nice" step.
  */
 
-export type RevenueChartMonth = { own: number; sub: number; prev: number | null }
+export type RevenueChartMonth = {
+  own: number
+  sub: number
+  prev: number | null
+  /** Planned revenue for the month; null when nothing was imported. */
+  plan?: number | null
+}
 
 function niceStep(max: number): number {
   if (max <= 0) return 1
@@ -30,7 +38,7 @@ export function RevenueChart({
 }: {
   months: RevenueChartMonth[] // 12 entries
   labels: string[] // 12 short month names
-  legend: { own: string; sub: string; prev: string }
+  legend: { own: string; sub: string; prev: string; plan?: string }
   formatValue: (v: number) => string
   /** 0-11 inclusive range: dim all months outside it. */
   highlightRange?: { from: number; to: number } | null
@@ -44,7 +52,7 @@ export function RevenueChart({
   const plotW = W - padL - padR
   const plotH = H - padT - padB
 
-  const maxVal = Math.max(1, ...months.map((m) => Math.max(m.own + m.sub, m.prev ?? 0)))
+  const maxVal = Math.max(1, ...months.map((m) => Math.max(m.own + m.sub, m.prev ?? 0, m.plan ?? 0)))
   const step = niceStep(maxVal)
   const yMax = Math.ceil(maxVal / step) * step
   const y = (v: number) => padT + plotH - (v / yMax) * plotH
@@ -53,6 +61,7 @@ export function RevenueChart({
   const barW = Math.min(18, slot * 0.26)
   const gap = 3
   const ticks = Array.from({ length: Math.round(yMax / step) + 1 }, (_, i) => i * step)
+  const hasPlan = months.some((m) => (m.plan ?? 0) > 0)
 
   return (
     <div className="space-y-2">
@@ -66,6 +75,12 @@ export function RevenueChart({
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-[3px] bg-neutral-400/70" /> {legend.prev}
         </span>
+        {hasPlan && legend.plan && (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-0 w-3 border-t-2 border-dashed border-foreground/60" />{' '}
+            {legend.plan}
+          </span>
+        )}
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}
@@ -126,6 +141,20 @@ export function RevenueChart({
                 >
                   <title>{`${labels[i]} · ${legend.own}: ${formatValue(m.own)}`}</title>
                 </rect>
+              )}
+              {m.plan != null && m.plan > 0 && (
+                <line
+                  x1={curX - gap}
+                  x2={prevX + barW + gap}
+                  y1={y(m.plan)}
+                  y2={y(m.plan)}
+                  className="stroke-foreground/60"
+                  strokeWidth={2}
+                  strokeDasharray="5 3"
+                  strokeLinecap="round"
+                >
+                  <title>{`${labels[i]} · ${legend.plan ?? 'Plan'}: ${formatValue(m.plan)}`}</title>
+                </line>
               )}
               {m.prev != null && m.prev > 0 && (
                 <rect

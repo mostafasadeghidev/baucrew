@@ -18,24 +18,24 @@ enum Role {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  username     String    @unique
-  passwordHash String
-  role         Role      @default(EMPLOYEE)
+  id                String   @id @default(cuid())
+  username          String   @unique
+  passwordHash      String
+  role              Role     @default(EMPLOYEE)
   // Managers may optionally be granted access to financial data (prices, revenue).
-  canViewFinancials Boolean @default(false)
-  active       Boolean   @default(true)
+  canViewFinancials Boolean  @default(false)
+  active            Boolean  @default(true)
   // Personal dashboard layout (order, hidden widgets, widths) as JSON.
-  dashboardLayout String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  dashboardLayout   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  employee  Employee?
-  sessions  Session[]
-  auditLogs AuditLog[]
-  notes     Note[]
-  uploadedDocuments Document[] @relation("DocumentUploader")
-  timeEntryEdits    TimeEntry[] @relation("TimeEntryEditor")
+  employee          Employee?
+  sessions          Session[]
+  auditLogs         AuditLog[]
+  notes             Note[]
+  uploadedDocuments Document[]         @relation("DocumentUploader")
+  timeEntryEdits    TimeEntry[]        @relation("TimeEntryEditor")
   deviceHandouts    DeviceAssignment[] @relation("DeviceAssignmentEditor")
 }
 
@@ -69,13 +69,13 @@ model Employee {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  projectMemberships ProjectEmployee[]
-  scheduleEntries    ScheduleEntryEmployee[]
-  managedProjects    Project[]               @relation("ProjectManager")
+  projectMemberships  ProjectEmployee[]
+  scheduleEntries     ScheduleEntryEmployee[]
+  managedProjects     Project[]               @relation("ProjectManager")
   templateMemberships TemplateEmployee[]
-  checkedItems        ProjectChecklistItem[] @relation("ChecklistCheckedBy")
+  checkedItems        ProjectChecklistItem[]  @relation("ChecklistCheckedBy")
   deviceAssignments   DeviceAssignment[]
-  managedTemplates    ProjectTemplate[]      @relation("TemplateManager")
+  managedTemplates    ProjectTemplate[]       @relation("TemplateManager")
   absences            Absence[]
   timeEntries         TimeEntry[]
 }
@@ -167,20 +167,20 @@ model WorkCategory {
 }
 
 model Project {
-  id            String        @id @default(cuid())
+  id             String        @id @default(cuid())
   // Human-readable sequential number, e.g. "2026-0048"
-  number        String        @unique
-  name          String
-  customerId    String
-  customer      Customer      @relation(fields: [customerId], references: [id])
-  status        ProjectStatus @default(LEAD)
+  number         String        @unique
+  name           String
+  customerId     String
+  customer       Customer      @relation(fields: [customerId], references: [id])
+  status         ProjectStatus @default(LEAD)
   // Configurable in Settings (AppSetting `clientTypes` / `buildingTypes`)
-  clientType    String?
-  buildingType  String?
+  clientType     String?
+  buildingType   String?
   /// empty = normal, HIGH | LOW
-  priority      String?
+  priority       String?
   /// Where the request came from — configurable list in Settings.
-  leadSource    String?
+  leadSource     String?
   /// Link back to the source record (board card, import row …).
   externalSystem String?
   externalId     String?
@@ -208,8 +208,7 @@ model Project {
   managerId String?
   manager   Employee? @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
 
-
-  description String?
+  description   String?
   // Internal notes visible to management only
   internalNotes String?
 
@@ -262,8 +261,8 @@ model ProjectAddOn {
 model ProjectVehicle {
   projectId String
   vehicleId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@id([projectId, vehicleId])
@@ -379,12 +378,12 @@ model Vehicle {
 // ─────────────────────────────────────────────
 
 model CatalogItem {
-  id       String   @id @default(cuid())
+  id            String   @id @default(cuid())
   // Configurable in Settings (AppSetting `itemKinds`) — TOOL / MATERIAL by default
-  kind     String
-  name     String
-  category String?
-  unit     String?
+  kind          String
+  name          String
+  category      String?
+  unit          String?
   // Inventory fields — minimal for MVP, extended later
   stockQuantity Decimal? @db.Decimal(12, 2)
   minStock      Decimal? @db.Decimal(12, 2)
@@ -539,7 +538,9 @@ model ProjectChecklistItem {
   checklist   ProjectChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
   text        String
   sortOrder   Int              @default(0)
-  /** null = open, true = in order, false = problem (note says what). */
+  /**
+   * null = open, true = in order, false = problem (note says what).
+   */
   ok          Boolean?
   note        String?
   checkedAt   DateTime?
@@ -558,19 +559,19 @@ model ProjectChecklistItem {
 // The weekly board is built from these entries; conflicts are detected across
 // entries sharing the same date.
 model ScheduleEntry {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  date      DateTime @db.Date
-  startTime String? // "07:30" — optional; both empty = all-day
-  endTime   String? // "13:00"
-  note      String?
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date        DateTime  @db.Date
+  startTime   String? // "07:30" — optional; both empty = all-day
+  endTime     String? // "13:00"
+  note        String?
   // Set when the day was taken out of the plan (e.g. the project was completed
   // earlier). Such entries are hidden everywhere and ignored by conflicts,
   // reports and packing — but can be restored when the project is reopened.
   cancelledAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   employees ScheduleEntryEmployee[]
   vehicles  ScheduleEntryVehicle[]
@@ -605,7 +606,7 @@ model ScheduleEntryEmployee {
 // ─────────────────────────────────────────────
 
 enum NoteVisibility {
-  TEAM       // visible to assigned employees
+  TEAM // visible to assigned employees
   MANAGEMENT // admin/manager only
 }
 
@@ -650,15 +651,15 @@ model AppSetting {
 }
 
 model AuditLog {
-  id       String   @id @default(cuid())
-  userId   String?
-  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action   String // e.g. "project.update", "projectItem.status"
-  entity   String // e.g. "Project"
-  entityId String
-  field    String?
-  oldValue String?
-  newValue String?
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String // e.g. "project.update", "projectItem.status"
+  entity    String // e.g. "Project"
+  entityId  String
+  field     String?
+  oldValue  String?
+  newValue  String?
   createdAt DateTime @default(now())
 
   @@index([entity, entityId])
@@ -693,4 +694,25 @@ model ProjectDraft {
 
   @@unique([externalSystem, externalId])
   @@index([status])
+}
+
+/// One line of the year-planning sheet: a site and the net revenue planned for
+/// it in that month. Imported from the office's own spreadsheet and held next
+/// to what the projects actually add up to, so plan and reality can be
+/// compared without anyone retyping the sheet.
+model PlanEntry {
+  id     String  @id @default(cuid())
+  year   Int
+  /// 1-12, or null when the sheet parks a site on a year without a month yet.
+  month  Int?
+  name   String
+  amount Decimal @db.Decimal(12, 2)
+  /// True for work planned for a subcontractor ("SUB" in the sheet).
+  isSub  Boolean @default(false)
+  /// excel | manual — where the row came from.
+  source String  @default("excel")
+
+  createdAt DateTime @default(now())
+
+  @@index([year, month])
 }

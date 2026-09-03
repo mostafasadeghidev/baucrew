@@ -527,7 +527,9 @@
     "groupHalves": "Half-years",
     "groupMonths": "Months",
     "colRecordedHours": "Hours recorded",
-    "colPerHour": "€ / hour"
+    "colPerHour": "€ / hour",
+    "planned": "Plan",
+    "legendPlan": "Planned revenue"
   },
   "sheet": {
     "title": "Work order",
@@ -1049,5 +1051,38 @@
     "alreadyAdded": "Already on the list.",
     "holder": "Who has it?",
     "allInStore": "All devices are in the store."
+  },
+  "importPlan": {
+    "title": "Import year planning",
+    "hint": "Read the monthly planning sheet — the planned figures then show up in the reports next to the actual revenue.",
+    "settingsLink": "Import year planning",
+    "howTo": "How it works:",
+    "step1": "Have the year planning spreadsheet ready (one sheet per year).",
+    "step2": "Pick the file and let it be checked.",
+    "step3": "Select the years and apply.",
+    "analyze": "Check file",
+    "invalidFile": "The file could not be read.",
+    "tooLarge": "The file is too large (max. 10 MB).",
+    "noPlan": "No month blocks were found in the file. Columns \"Baustelle\" and \"Planumsatz\" are expected.",
+    "previewHint": "These years were found. Untick whatever should not be taken over.",
+    "colYear": "Year",
+    "colMonths": "Scope",
+    "colOwn": "Own crew",
+    "colSub": "SUB",
+    "colTotal": "Planned revenue",
+    "monthsFilled": "{count, plural, one {# month} other {# months}} · {entries, plural, one {# row} other {# rows}}",
+    "withoutMonth": "without a month: {amount}",
+    "willReplace": "replaces {count, plural, one {# existing row} other {# existing rows}}",
+    "replaceHint": "A year is always replaced as a whole — the sheet counts as the master.",
+    "startImport": "Apply",
+    "doneTitle": "Year planning applied",
+    "doneYears": "Years: {years}",
+    "doneImported": "{count, plural, one {# row} other {# rows}} saved",
+    "doneReplaced": "{count, plural, one {# old row} other {# old rows}} replaced",
+    "goToReports": "Go to reports",
+    "importAnother": "Another file",
+    "storedTitle": "Stored year planning",
+    "storedEntries": "{count, plural, one {# row} other {# rows}}",
+    "confirmClear": "Delete year planning {year}?"
   }
 }

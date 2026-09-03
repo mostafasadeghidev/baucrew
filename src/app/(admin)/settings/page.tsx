@@ -41,15 +41,17 @@ export default async function SettingsPage({
   const tab = ["accounts", "categories", "data"].includes(tabParam ?? "")
     ? (tabParam as string)
     : "";
-  const [t, tNav, tRoles, tc, tImport, tStatus, tProjects] = await Promise.all([
-    getTranslations("settings"),
-    getTranslations("nav"),
-    getTranslations("roles"),
-    getTranslations("common"),
-    getTranslations("importTrello"),
-    getTranslations("status"),
-    getTranslations("projects"),
-  ]);
+  const [t, tNav, tRoles, tc, tImport, tImportPlan, tStatus, tProjects] =
+    await Promise.all([
+      getTranslations("settings"),
+      getTranslations("nav"),
+      getTranslations("roles"),
+      getTranslations("common"),
+      getTranslations("importTrello"),
+      getTranslations("importPlan"),
+      getTranslations("status"),
+      getTranslations("projects"),
+    ]);
 
   const [users, categories, branding] = await Promise.all([
     db.user.findMany({
@@ -393,6 +395,13 @@ export default async function SettingsPage({
           <Card title={tImport("title")}>
             <Link href="/settings/import-trello" className={btn.outline}>
               {tImport("settingsLink")}
+            </Link>
+          </Card>
+
+          {/* Year planning sheet */}
+          <Card title={tImportPlan("title")} description={tImportPlan("hint")}>
+            <Link href="/settings/import-plan" className={btn.outline}>
+              {tImportPlan("settingsLink")}
             </Link>
           </Card>
         </div>

@@ -4,6 +4,7 @@ import { computeEfficiency, type EfficiencyResult, type MonthRange } from './rep
 import { geocodeCity } from './geocode'
 import { stockShortage } from './stock'
 import { sumMinutes } from './time-entries'
+import { planTotals, type PlanEntry } from './year-plan-excel'
 
 export type RevenueProject = {
   id: string
@@ -93,6 +94,50 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     months,
     yearTotal: months.reduce((sum, m) => sum + m.total, 0),
   }
+}
+
+export type YearPlan = {
+  year: number
+  /** Index 0-11, same shape as `MonthRevenue`, so both line up in the UI. */
+  months: Array<{ own: number; sub: number; total: number }>
+  /** Sites promised for that year with no month picked yet. */
+  open: number
+  yearTotal: number
+  /** False when nothing has been imported for this year. */
+  hasPlan: boolean
+}
+
+/** The planned figures for a year, as imported from the planning sheet. */
+export async function getYearPlan(year: number): Promise<YearPlan> {
+  const rows = await db.planEntry.findMany({
+    where: { year },
+    select: { year: true, month: true, name: true, amount: true, isSub: true },
+  })
+  const entries: PlanEntry[] = rows.map((r) => ({
+    year: r.year,
+    month: r.month,
+    name: r.name,
+    amount: Number(r.amount),
+    isSub: r.isSub,
+  }))
+  const totals = planTotals(entries, year)
+  return {
+    year,
+    months: totals.months.map((m) => ({ own: m.own, sub: m.sub, total: m.total })),
+    open: totals.open,
+    yearTotal: totals.yearTotal,
+    hasPlan: rows.length > 0,
+  }
+}
+
+/** Years that have an imported plan — for the year picker and the import page. */
+export async function getPlanYears(): Promise<Array<{ year: number; entries: number }>> {
+  const grouped = await db.planEntry.groupBy({
+    by: ['year'],
+    _count: { _all: true },
+    orderBy: { year: 'desc' },
+  })
+  return grouped.map((g) => ({ year: g.year, entries: g._count._all }))
 }
 
 /**

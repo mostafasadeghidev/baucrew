@@ -10,6 +10,7 @@ import {
   getPipeline,
   getProjectEfficiency,
   getYearRevenue,
+  getYearPlan,
   getYearUsage,
 } from '@/lib/reports'
 import {
@@ -69,9 +70,10 @@ export default async function ReportsPage({
   const tab: Tab = (TABS as readonly string[]).includes(tabParam ?? '') ? (tabParam as Tab) : 'overview'
   const showFinancials = canViewFinancials(user)
 
-  const [revenue, prevRevenue, pipeline, openOffers, efficiency, usage, statusCounts, customers, quality] = await Promise.all([
+  const [revenue, prevRevenue, plan, pipeline, openOffers, efficiency, usage, statusCounts, customers, quality] = await Promise.all([
     showFinancials ? getYearRevenue(year) : null,
     showFinancials ? getYearRevenue(year - 1) : null,
+    showFinancials ? getYearPlan(year) : null,
     showFinancials ? getPipeline() : null,
     showFinancials ? getOpenOffers() : null,
     getProjectEfficiency(year, range),
@@ -129,12 +131,24 @@ export default async function ReportsPage({
     ? t('vsPrevPeriod', { period: periodLabel, year: year - 1 })
     : t('vsPrevYear', { year: year - 1 })
 
+  const hasPlan = plan?.hasPlan ?? false
   const visibleMonths = revenue
     ? revenue.months.filter(
-        (m) => (!range || (m.month >= range.from && m.month <= range.to)) && (m.own.length > 0 || m.sub.length > 0)
+        (m) =>
+          (!range || (m.month >= range.from && m.month <= range.to)) &&
+          (m.own.length > 0 || m.sub.length > 0 || (plan?.months[m.month].total ?? 0) > 0)
       )
     : []
   const periodRevenueTotal = revenue ? sumRange(revenue.months.map((m) => m.total), range) : 0
+  // The planned figures from the office's own year sheet, same period.
+  const periodPlanTotal = plan ? sumRange(plan.months.map((m) => m.total), range) : 0
+  /** Actual against plan: green once the plan is reached, amber below it. */
+  const planDelta = (actual: number, planned: number) => {
+    const diff = actual - planned
+    const tone = diff >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'
+    const percent = planned > 0 ? Math.round((diff / planned) * 100) : null
+    return { diff, tone, percent, label: `${diff >= 0 ? '+' : '−'}${money(Math.abs(diff))}` }
+  }
   const statusOrder = Object.keys(ProjectStatus) as ProjectStatus[]
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
   const yearOptions = Array.from({ length: 6 }, (_, i) => String(currentYear + 1 - i))
@@ -276,12 +290,14 @@ export default async function ReportsPage({
                   own: m.ownTotal,
                   sub: m.subTotal,
                   prev: prevRevenue ? prevRevenue.months[i].total : null,
+                  plan: hasPlan ? plan!.months[i].total : null,
                 }))}
                 labels={shortMonths}
                 legend={{
                   own: t('legendOwn', { year }),
                   sub: t('legendSub', { year }),
                   prev: t('legendPrev', { year: year - 1 }),
+                  plan: t('legendPlan'),
                 }}
                 formatValue={money}
                 highlightRange={range}
@@ -324,6 +340,16 @@ export default async function ReportsPage({
               <p className="text-xs text-muted">
                 {periodLabel ?? t('yearTotal')}:{' '}
                 <span className="font-semibold text-foreground tabular-nums">{money(periodRevenueTotal)}</span>
+                {hasPlan && (
+                  <>
+                    {' · '}
+                    {t('planned')}:{' '}
+                    <span className="tabular-nums">{money(periodPlanTotal)}</span>{' '}
+                    <span className={`font-medium tabular-nums ${planDelta(periodRevenueTotal, periodPlanTotal).tone}`}>
+                      {planDelta(periodRevenueTotal, periodPlanTotal).label}
+                    </span>
+                  </>
+                )}
               </p>
             </div>
             {visibleMonths.length === 0 ? (
@@ -366,6 +392,17 @@ export default async function ReportsPage({
                             <span className="tabular-nums">{money(m.subTotal)}</span>
                           </div>
                         </>
+                      )}
+                      {hasPlan && (
+                        <div className="mt-1.5 flex items-center justify-between border-t border-border pt-1 text-xs">
+                          <span className="text-muted">{t('planned')}</span>
+                          <span className="flex items-center gap-2 tabular-nums">
+                            <span className="text-muted">{money(plan!.months[m.month].total)}</span>
+                            <span className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}>
+                              {planDelta(m.total, plan!.months[m.month].total).label}
+                            </span>
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
