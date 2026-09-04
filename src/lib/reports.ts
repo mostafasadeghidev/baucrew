@@ -12,6 +12,8 @@ export type RevenueProject = {
   name: string
   customer: string
   price: number | null
+  /** True for a line read from the planning sheet — it has no project page. */
+  fromSheet?: boolean
 }
 
 export type MonthRevenue = {
@@ -27,6 +29,11 @@ export type YearRevenue = {
   year: number
   months: MonthRevenue[]
   yearTotal: number
+  /**
+   * True when the figures come from the imported planning sheet instead of
+   * from projects — the years the company ran before BauCrew existed.
+   */
+  fromSheet: boolean
 }
 
 /**
@@ -93,7 +100,74 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     year,
     months,
     yearTotal: months.reduce((sum, m) => sum + m.total, 0),
+    fromSheet: false,
   }
+}
+
+/**
+ * The same monthly picture, but built from the imported sheet: the years the
+ * company worked before BauCrew have no projects, so the sheet is the only
+ * record of them and stands in as that year's revenue.
+ */
+async function getYearRevenueFromSheet(year: number): Promise<YearRevenue> {
+  const rows = await db.planEntry.findMany({
+    where: { year, month: { not: null } },
+    orderBy: [{ month: 'asc' }, { name: 'asc' }],
+    select: { id: true, month: true, name: true, amount: true, isSub: true },
+  })
+
+  const months: MonthRevenue[] = Array.from({ length: 12 }, (_, month) => ({
+    month,
+    own: [],
+    sub: [],
+    ownTotal: 0,
+    subTotal: 0,
+    total: 0,
+  }))
+
+  for (const row of rows) {
+    const bucket = months[row.month! - 1]
+    if (!bucket) continue
+    const entry: RevenueProject = {
+      id: row.id,
+      number: '',
+      name: row.name,
+      customer: '',
+      price: Number(row.amount),
+      fromSheet: true,
+    }
+    if (row.isSub) {
+      bucket.sub.push(entry)
+      bucket.subTotal += entry.price ?? 0
+    } else {
+      bucket.own.push(entry)
+      bucket.ownTotal += entry.price ?? 0
+    }
+    bucket.total = bucket.ownTotal + bucket.subTotal
+  }
+
+  return {
+    year,
+    months,
+    yearTotal: months.reduce((sum, m) => sum + m.total, 0),
+    fromSheet: true,
+  }
+}
+
+/**
+ * A year's revenue, from projects where there are any. A year with no project
+ * at all but an imported plan is a year from before BauCrew: there the sheet
+ * is the record, so it stands in — which also makes the comparison with the
+ * previous year work at all. Adding a single project to such a year switches
+ * it back to the live figures on its own.
+ */
+export async function getYearRevenueOrHistory(year: number): Promise<YearRevenue> {
+  const live = await getYearRevenue(year)
+  if (live.yearTotal > 0 || live.months.some((m) => m.own.length + m.sub.length > 0)) {
+    return live
+  }
+  const planned = await db.planEntry.count({ where: { year, month: { not: null } } })
+  return planned > 0 ? getYearRevenueFromSheet(year) : live
 }
 
 export type YearPlan = {

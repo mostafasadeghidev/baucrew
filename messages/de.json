@@ -537,7 +537,7 @@
     "planGapsMore": "… und {count} weitere.",
     "planGapsLink": "Zum Planabgleich",
     "noMonthShort": "o. M.",
-    "planOnlyYear": "Für {year} sind in BauCrew keine Projekte erfasst — hier stehen nur die Planzahlen aus der Tabelle. Der Vergleich Plan/Ist beginnt mit dem Jahr, ab dem BauCrew im Einsatz ist."
+    "fromSheetYear": "Die Zahlen für {year} stammen aus der importierten Jahresplanung — aus dieser Zeit gibt es in BauCrew noch keine Projekte. Sie zählen für den Jahresvergleich mit, aber es gibt dazu keine Projektseiten, keine Auslastung und keine Kundenauswertung."
   },
   "sheet": {
     "title": "Arbeitsauftrag",

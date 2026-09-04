@@ -3,6 +3,30 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.28.0] — 2026-09-04
+
+### Changed — the years before BauCrew become the company's history
+The planning spreadsheet is not only a plan: for the years the company worked
+before this app existed, it is the only record of what was done each month.
+Those years now stand on their own figures instead of being held against
+projects that were never entered.
+
+- **A year with no project at all but an imported plan is read from the sheet:**
+  its month cards list the sites with their amounts, split into own crew and
+  SUB exactly as the sheet does, and the year total is the sheet's total.
+- **The year-on-year comparison finally works.** The grey previous-year bars in
+  the monthly chart and the "vs. last year" figure were empty for the first
+  year of use, because last year had no projects. They now carry the sheet's
+  history.
+- The source is named on the page, and such a year shows no plan/actual
+  difference and no gap list — there is nothing to compare it against.
+- Entering a single project for such a year switches it back to live figures
+  on its own; there is no setting to get wrong.
+
+Utilisation, customers, project efficiency and data quality stay project-based
+and remain empty for those years — inventing numbers there would be worse than
+leaving them blank.
+
 ## [1.27.1] — 2026-09-04
 
 ### Fixed

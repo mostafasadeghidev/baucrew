@@ -9,7 +9,7 @@ import {
   getOpenOffers,
   getPipeline,
   getProjectEfficiency,
-  getYearRevenue,
+  getYearRevenueOrHistory,
   getYearPlan,
   getPlanGaps,
   getYearUsage,
@@ -72,8 +72,8 @@ export default async function ReportsPage({
   const showFinancials = canViewFinancials(user)
 
   const [revenue, prevRevenue, plan, planGaps, pipeline, openOffers, efficiency, usage, statusCounts, customers, quality] = await Promise.all([
-    showFinancials ? getYearRevenue(year) : null,
-    showFinancials ? getYearRevenue(year - 1) : null,
+    showFinancials ? getYearRevenueOrHistory(year) : null,
+    showFinancials ? getYearRevenueOrHistory(year - 1) : null,
     showFinancials ? getYearPlan(year) : null,
     showFinancials ? getPlanGaps(year) : null,
     showFinancials ? getPipeline() : null,
@@ -134,10 +134,11 @@ export default async function ReportsPage({
     : t('vsPrevYear', { year: year - 1 })
 
   const hasPlan = plan?.hasPlan ?? false
-  // A year the company ran before BauCrew has a plan but no projects at all.
-  // Comparing against nothing would paint twelve alarming shortfalls that only
-  // mean "not recorded here", so the difference is left out for such a year.
-  const planComparable = hasPlan && (revenue?.yearTotal ?? 0) > 0
+  // A year the company ran before BauCrew stands on the sheet's own figures.
+  // Holding the sheet against itself would only ever show a difference of
+  // zero, so the comparison is left out and the source is named instead.
+  const fromSheet = revenue?.fromSheet ?? false
+  const planComparable = hasPlan && !fromSheet
   const visibleMonths = revenue
     ? revenue.months.filter(
         (m) =>
@@ -346,7 +347,7 @@ export default async function ReportsPage({
               <p className="text-xs text-muted">
                 {periodLabel ?? t('yearTotal')}:{' '}
                 <span className="font-semibold text-foreground tabular-nums">{money(periodRevenueTotal)}</span>
-                {hasPlan && (
+                {hasPlan && !fromSheet && (
                   <>
                     {' · '}
                     {t('planned')}:{' '}
@@ -363,9 +364,9 @@ export default async function ReportsPage({
                 )}
               </p>
             </div>
-            {hasPlan && !planComparable && (
+            {fromSheet && (
               <p className="rounded-md border border-border bg-subtle px-3 py-2 text-xs text-muted">
-                {t('planOnlyYear', { year })}
+                {t('fromSheetYear', { year })}
               </p>
             )}
             {/* Sites the sheet parks on the year without picking a month yet —
@@ -388,9 +389,13 @@ export default async function ReportsPage({
                     <div className="flex-1 px-3 py-1.5 text-[13px]">
                       {m.own.map((p) => (
                         <div key={p.id} className="flex items-center justify-between gap-2 py-0.5">
-                          <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
-                            {p.name}
-                          </Link>
+                          {p.fromSheet ? (
+                            <span className="truncate">{p.name}</span>
+                          ) : (
+                            <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
+                              {p.name}
+                            </Link>
+                          )}
                           <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
                         </div>
                       ))}
@@ -403,9 +408,13 @@ export default async function ReportsPage({
                           <div className="mt-1.5">
                             {m.sub.map((p) => (
                               <div key={p.id} className="flex items-center justify-between gap-2 py-0.5">
-                                <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
-                                  {p.name}
-                                </Link>
+                                {p.fromSheet ? (
+                                  <span className="truncate">{p.name}</span>
+                                ) : (
+                                  <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
+                                    {p.name}
+                                  </Link>
+                                )}
                                 <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
                               </div>
                             ))}
@@ -416,7 +425,7 @@ export default async function ReportsPage({
                           </div>
                         </>
                       )}
-                      {hasPlan && (
+                      {hasPlan && !fromSheet && (
                         <div className="mt-1.5 flex items-center justify-between border-t border-border pt-1 text-xs">
                           <span className="text-muted">{t('planned')}</span>
                           <span className="flex items-center gap-2 tabular-nums">
@@ -436,7 +445,7 @@ export default async function ReportsPage({
             )}
 
             {/* Promised in the sheet, but no project carries it yet. */}
-            {hasPlan && planGaps && planGaps.rows.length > 0 && (
+            {hasPlan && !fromSheet && planGaps && planGaps.rows.length > 0 && (
               <div className={`${card} p-4`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h3 className="text-sm font-semibold">{t('planGapsTitle')}</h3>

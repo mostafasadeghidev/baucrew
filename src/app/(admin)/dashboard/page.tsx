@@ -9,7 +9,7 @@ import { btn } from '@/components/ui/button'
 import { canViewFinancials, requireManagement } from '@/lib/authz'
 import { allowedLayout, parseLayout, type DashboardWidget } from '@/lib/dashboard-layout'
 import { formatCurrency } from '@/lib/format'
-import { getOpenOffers, getStockShortages, getYearRevenue, STALE_OFFER_DAYS } from '@/lib/reports'
+import { getOpenOffers, getStockShortages, getYearRevenueOrHistory, STALE_OFFER_DAYS } from '@/lib/reports'
 import { WidgetFrame } from './widget-frame'
 import { WidgetGrid } from './widget-grid'
 import { resetDashboardLayout } from './actions'
@@ -201,9 +201,9 @@ export default async function DashboardPage({
       : [],
     needs('stock') ? getStockShortages() : [],
     needs('offers') ? getOpenOffers() : null,
-    needs('revenueMonth') ? getYearRevenue(currentYear) : null,
+    needs('revenueMonth') ? getYearRevenueOrHistory(currentYear) : null,
     // January compares against December of the year before.
-    needs('revenueMonth') && monthIndex === 0 ? getYearRevenue(currentYear - 1) : null,
+    needs('revenueMonth') && monthIndex === 0 ? getYearRevenueOrHistory(currentYear - 1) : null,
   ])
 
   const thisMonthRevenue = revenueYear?.months[monthIndex]?.total ?? 0

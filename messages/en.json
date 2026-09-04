@@ -537,7 +537,7 @@
     "planGapsMore": "… and {count} more.",
     "planGapsLink": "Go to plan reconciliation",
     "noMonthShort": "n/m",
-    "planOnlyYear": "No projects are recorded in BauCrew for {year} — only the planned figures from the spreadsheet are shown. Plan against actual starts with the year BauCrew has been in use."
+    "fromSheetYear": "The figures for {year} come from the imported year planning — there are no projects in BauCrew from that time. They count towards the year-on-year comparison, but have no project pages, no utilisation and no customer breakdown."
   },
   "sheet": {
     "title": "Work order",

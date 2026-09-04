@@ -7,7 +7,7 @@ import {
   getCustomerReport,
   getOpenOffers,
   getProjectEfficiency,
-  getYearRevenue,
+  getYearRevenueOrHistory,
   getYearUsage,
 } from '@/lib/reports'
 import { getBranding } from '@/lib/branding'
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
   const range = parsePeriod(request.nextUrl.searchParams.get('period'))
   const [revenue, usage, efficiency, customers, openOffers] = await Promise.all([
-    getYearRevenue(year),
+    getYearRevenueOrHistory(year),
     getYearUsage(year, range),
     getProjectEfficiency(year, range),
     getCustomerReport(year, range),
