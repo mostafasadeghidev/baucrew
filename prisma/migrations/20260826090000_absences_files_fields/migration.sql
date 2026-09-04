@@ -24,7 +24,7 @@ ALTER TABLE "Document" ADD COLUMN "uploadedById" TEXT;
 ALTER TABLE "Document" ADD CONSTRAINT "Document_uploadedById_fkey" FOREIGN KEY ("uploadedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 CREATE UNIQUE INDEX "Document_path_key" ON "Document"("path");
 
--- Small fields from the meetings: priority and lead source on a project,
+-- Small additional fields: priority and lead source on a project,
 -- an instruction-video link on a catalog item (tool/device).
 ALTER TABLE "Project" ADD COLUMN "priority" TEXT;
 ALTER TABLE "Project" ADD COLUMN "leadSource" TEXT;

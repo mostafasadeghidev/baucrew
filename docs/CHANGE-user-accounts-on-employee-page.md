@@ -16,8 +16,8 @@ Datenmodell unverändert (weiterhin ein `User`-Modell, `Employee.userId`). Keine
 - `src/app/(admin)/employees/[id]/page.tsx` — Account-Section eingebunden, `requireManagement()` für Viewer-Rolle, Zeile „Benutzerkonto“ aus Kontaktdaten entfernt
 - `src/app/(admin)/employees/page.tsx` — Spalte „Konto“
 - `src/app/(admin)/settings/page.tsx` — Benutzertabelle → Systemkonten (Filter `!employee`) + Übersicht privilegierter Konten
-- `messages/{de,en,fa}.json` — Keys `employees.account*`, `settings.usersUnlinked*`, `settings.privileged*`, `settings.linkedEmployeeCol`, `settings.openEmployee`
-- `docs/BENUTZERHANDBUCH.md`, `docs/RAHNAMA-FA.md` — Abschnitte Mitarbeiter/Einstellungen
+- `messages/{de,en}.json` — Keys `employees.account*`, `settings.usersUnlinked*`, `settings.privileged*`, `settings.linkedEmployeeCol`, `settings.openEmployee`
+- `docs/BENUTZERHANDBUCH.md` — Abschnitte Mitarbeiter/Einstellungen
 
 Unverändert gelassen (bewusst): `settings/users/new` und `settings/users/[id]` inkl. Mitarbeiter-Picker —
 damit können Altkonten weiterhin nachträglich verknüpft werden.

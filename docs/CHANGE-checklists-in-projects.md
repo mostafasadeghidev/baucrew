@@ -42,7 +42,7 @@ stays on the project.
 | `src/app/(admin)/projects/templates/actions.ts` | `checklistIds` written to `TemplateChecklist` |
 | `src/app/(admin)/projects/templates/new/page.tsx`, `[id]/page.tsx` | load and prefill the checklists |
 | `messages/de.json`, `messages/en.json` | new keys under `checklists` |
-| `docs/BENUTZERHANDBUCH.md`, `docs/RAHNAMA-FA.md` | chapter 12 now covers checklists |
+| `docs/BENUTZERHANDBUCH.md` | chapter 12 now covers checklists |
 
 ## Rollback
 

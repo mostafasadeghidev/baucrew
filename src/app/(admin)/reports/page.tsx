@@ -95,7 +95,7 @@ export default async function ReportsPage({
     d == null ? '—' : d === 0 ? t('onTime') : `${d > 0 ? '+' : ''}${t('daysShort', { count: d })}`
   const money = (v: number | null | undefined) => formatCurrency(v, locale)
 
-  // Revenue per quarter — the "circular view" the customer asked for.
+  // Revenue per quarter, as a ring instead of another table.
   const quarters = (revenue?.months ?? []).reduce<Array<{ label: string; value: number; hint?: string }>>(
     (acc, m) => {
       const q = Math.floor(m.month / 3)

@@ -1,7 +1,7 @@
 # Änderung: Mehrere Fahrzeuge pro Einsatz (Multi-Vehicle Schedule Entries)
 
 **Datum:** 15.08.2026
-**Grund:** Der Inhaber möchte im Einsatzplanungs-Dialog mehrere Fahrzeuge
+**Grund:** Im Einsatzplanungs-Dialog sollen mehrere Fahrzeuge
 pro Einsatz auswählen können (Live-Suche + Mehrfachauswahl).
 **Vorher:** Ein Einsatz (`ScheduleEntry`) hatte genau ein optionales Fahrzeug
 (`vehicleId`). **Nachher:** Ein Einsatz hat 0…n Fahrzeuge über die

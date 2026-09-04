@@ -728,14 +728,6 @@
     "PAID": "Bezahlt",
     "CANCELLED": "Storniert"
   },
-  "placeholder": {
-    "scheduleHint": "Einsatzplanung folgt in Phase 5.",
-    "employeesHint": "Mitarbeiterverwaltung folgt in Phase 3.",
-    "vehiclesHint": "Fahrzeugverwaltung folgt in Phase 3.",
-    "warehouseHint": "Lager und Bereitstellung folgen in Phase 4 und 6.",
-    "reportsHint": "Berichte und Excel-Export folgen in Phase 8.",
-    "settingsHint": "Einstellungen folgen in einer späteren Phase."
-  },
   "templates": {
     "title": "Vorlagen",
     "newTemplate": "Neue Vorlage",

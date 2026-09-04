@@ -472,7 +472,7 @@ export default async function ProjectDetailPage({
           }))}
         />
 
-        {/* Schedule (read-only until Phase 5) */}
+        {/* Schedule (read-only here) */}
         <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('scheduleTitle')}</h2>

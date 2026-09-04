@@ -1,7 +1,7 @@
 /**
  * Quarterly donut (server component, plain SVG — no client JS). Four segments
- * around a ring with the total in the middle; the customer asked for a
- * "quarterly circular view" instead of another table.
+ * around a ring with the total in the middle — a compact alternative to yet
+ * another table.
  */
 
 export type DonutSlice = { label: string; value: number; hint?: string }

@@ -44,25 +44,8 @@ next-env.d.ts
 # prisma generated client (run `npx prisma generate`)
 /src/generated/
 
-# local-only company data — never commit
-/prisma/seed.company.ts
-/docs/screenshots/
-/docs/*.pdf
-
 # local tooling
 .claude/settings.local.json
-
-# local docker stack
-/docker-compose.local.yml
-
-# local-only test locales (see src/i18n/config.ts)
-/messages/fa.json
-
-# the repository stays German/English — the Persian manual is local-only
-/docs/RAHNAMA-FA.md
-
-# the roadmap and the customer's wish list never go into the repository
-/docs/BACKLOG.md
 
 # uploaded project files (local dev storage)
 /storage

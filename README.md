@@ -128,7 +128,7 @@ src/
 prisma/               schema, migrations, seed
 messages/             de.json, en.json
 tests/                unit + db tests
-docs/                 user manuals (DE / FA), change logs
+docs/                 user manual, change logs
 ```
 
 ## Security model
@@ -146,7 +146,7 @@ Fully dockerized, provider-agnostic — see [DEPLOYMENT.md](DEPLOYMENT.md)
 on first start, reverse-proxy example, backups). Fresh install:
 
 ```bash
-git clone https://github.com/mostafasadeghidev/baucrew.git && cd baucrew
+git clone <repository-url> baucrew && cd baucrew
 cp .env.example .env   # set POSTGRES_PASSWORD and SESSION_SECRET
 docker compose up -d --build
 ```

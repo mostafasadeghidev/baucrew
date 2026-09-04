@@ -33,7 +33,7 @@ export const BUILT_IN: Record<OptionList, OptionEntry[]> = {
   ],
 }
 
-/** Suggested extras the owner asked for — offered as "add" buttons in Settings. */
+/** Suggested extras — offered as "add" buttons in Settings. */
 export const SUGGESTED: Record<OptionList, OptionEntry[]> = {
   clientTypes: [{ value: 'OEFFENTLICH', labelDe: 'Öffentlich', labelEn: 'Public sector' }],
   buildingTypes: [

@@ -728,14 +728,6 @@
     "PAID": "Paid",
     "CANCELLED": "Cancelled"
   },
-  "placeholder": {
-    "scheduleHint": "Scheduling follows in Phase 5.",
-    "employeesHint": "Employee management follows in Phase 3.",
-    "vehiclesHint": "Vehicle management follows in Phase 3.",
-    "warehouseHint": "Warehouse and preparation follow in Phases 4 and 6.",
-    "reportsHint": "Reports and Excel export follow in Phase 8.",
-    "settingsHint": "Settings follow in a later phase."
-  },
   "templates": {
     "title": "Templates",
     "newTemplate": "New template",

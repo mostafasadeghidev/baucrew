@@ -120,8 +120,7 @@ leaving them blank.
   with inventory number, kind, storage place, notes and a link to a short
   instruction video. The list says for every device whether it is **in the
   store** (green) or **on a site / with a person** (red), and the search covers
-  name, number, kind and place: the "where is the small fan?" question the
-  customer described.
+  name, number, kind and place, so a device is found by any of them.
 - **Hand out and take back.** A device goes to a site or to an employee; while
   it is out nobody can hand it out a second time, and the history keeps who had
   it when. The project page carries a card **Geräte auf dieser Baustelle**, so
@@ -164,7 +163,7 @@ leaving them blank.
 
 ## [1.21.0] — 2026-08-26
 
-The groundwork that unblocks the yearly-Excel wish and the board automation.
+Groundwork for spreadsheet import and inbound automation.
 
 ### Added
 - **Drafts inbox** (`Projekte → Entwürfe`): everything arriving from outside
@@ -186,7 +185,7 @@ The groundwork that unblocks the yearly-Excel wish and the board automation.
 
 ## [1.20.0] — 2026-08-26
 
-### Added — time tracking (from the meeting notes; legally required in the trade)
+### Added — time tracking (legally required in the trade)
 - **Start/stop on the phone**: the worker's assignment card carries a
   **Zeit starten** button; while running it counts along (*Stopp · 2:15*) and
   stopping books the interval on the project. Starting on another site closes
@@ -202,8 +201,7 @@ The groundwork that unblocks the yearly-Excel wish and the board automation.
 
 ## [1.19.0] — 2026-08-26
 
-Groundwork from the meeting notes — three things the recordings asked for
-that never reached the item database.
+Groundwork for three things that never reached the item database.
 
 ### Added
 - **Absences** (holiday, sick, other) on the employee page. The planner warns
@@ -265,7 +263,7 @@ Details and rollback: `docs/CHANGE-checklists-in-projects.md`.
 
 ## [1.15.0] — 2026-08-23
 
-### Changed — the worker area is an app now, not a sheet (backlog M31)
+### Changed — the worker area is an app now, not a sheet
 - **Week strip**: the seven days of the week with a dot per assignment; tap a day, page whole weeks. The old single-day arrows are gone.
 - **Slim header**: company mark plus one button with the worker's name — language, theme and sign out moved into that menu. The link to the warehouse screen was removed from the worker area (it is a wall-screen page with no way back); the shared warehouse login now gets that link on its own card instead.
 - **Assignment card**: start time first, then project and customer; three big actions (navigation, call, work order); address, contact, vehicle and crew as icon rows.
@@ -431,7 +429,7 @@ Details and rollback: `docs/CHANGE-checklists-in-projects.md`.
 ### Added
 - **Assignments for several days at once:** the assignment dialog has "Von – Bis"; with an end date BauCrew creates one assignment per day (weekends skipped by default, toggle in the dialog, max. 31 days, live count on the button). Days on which the project already has an assignment are left untouched. Also available from the project page ("Einsatz planen").
 - **Settings page in tabs:** Allgemein (company, logo, weather, project-list tab) · Benutzerkonten · Arbeitsbereiche · Daten & Protokoll (backup, import, change log).
-- **Change log for the owner:** actions and areas in plain language ("Einsatz verschoben", "Projektstatus automatisch geändert" …), status/role/packing values translated, technical key as tooltip; two clear buttons ("Älter als 90 Tage löschen", "Protokoll leeren", both with confirmation, the clearing itself is logged).
+- **Change log in plain language:** actions and areas readable ("Einsatz verschoben", "Projektstatus automatisch geändert" …), status/role/packing values translated, technical key as tooltip; two clear buttons ("Älter als 90 Tage löschen", "Protokoll leeren", both with confirmation, the clearing itself is logged).
 - **Configurable combined tab** on the project list (Settings → Projektliste – Sammel-Tab): show/hide, custom name, included statuses, optionally only projects without any assignment. Default renamed to **"Zur Vorbereitung"** (Anfrage + Angebot + Beauftragt).
 
 ## [1.3.1] — 2026-08-17
@@ -468,7 +466,7 @@ Details and rollback: `docs/CHANGE-checklists-in-projects.md`.
 - Project list: new **Preparation** tab (Lead + Quoted + Ordered — nothing planned yet).
 
 ### Docs
-- German and Persian user manuals rewritten for beginners (18 chapters, 38 screenshots), covering every feature of 1.2.
+- User manual rewritten for beginners (18 chapters, 38 screenshots), covering every feature of 1.2.
 
 ## [1.1.0] — 2026-08-16
 
@@ -526,7 +524,7 @@ First release.
 ### Ops
 - Dockerfile + docker-compose (app + PostgreSQL), automatic `prisma migrate deploy` on start.
 - Vitest unit tests (conflicts, dates, pagination, authz, Trello import) and DB-backed report tests.
-- User manuals in German and Persian.
+- German user manual.
 
 ### Reports and analysis
 - **Period selector and analysis tabs:** period selector now offers whole year, quarter (Q1–Q4), half-year (H1/H2) or a single month; new tabs **Customers** (revenue share per customer with >30 % concentration warning, customers without a project for 12+ months), **Utilization in %** (assignment days ÷ working days of the period; <50 % / >90 % highlighted), **Data quality** (in-progress projects without upcoming assignments, completed projects without price, projects without city, items missing in several projects — each linked); **Print / PDF** button; Excel export gets a Customers sheet and follows the selected period.
@@ -542,30 +540,3 @@ First release.
 - **Delete user accounts** (Settings → system account page, and the employee's account section) with two guards: you cannot delete the account you are signed in with (sign out, sign in as another administrator, delete from there), and the last active administrator can never be deleted. Sessions are removed; audit entries are kept.
 - **Zero-touch first start in Docker:** the container bootstraps base data (system accounts, work categories, catalog) automatically when the database is empty (`scripts/bootstrap.mjs`, data in `prisma/seed-data.json`, shared with `npm run db:seed`).
 - Base seed / Docker bootstrap no longer create the redundant `manager` account — system accounts are `admin`, `buero`, `lager`.
-
-[1.15.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.15.0
-[1.14.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.14.0
-[1.13.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.13.0
-[1.12.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.12.0
-[1.11.4]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.4
-[1.11.3]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.3
-[1.11.2]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.2
-[1.11.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.1
-[1.11.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.11.0
-[1.10.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.1
-[1.10.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.10.0
-[1.9.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.9.0
-[1.8.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.8.0
-[1.7.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.7.0
-[1.6.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.6.0
-[1.5.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.5.0
-[1.4.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.4.1
-[1.4.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.4.0
-[1.3.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.3.1
-[1.3.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.3.0
-[1.2.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.2.1
-[1.2.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.2.0
-[1.1.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.1.0
-[1.0.2]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.0.2
-[1.0.1]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.0.1
-[1.0.0]: https://github.com/mostafasadeghidev/baucrew/releases/tag/v1.0.0

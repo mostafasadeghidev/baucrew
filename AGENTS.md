@@ -10,88 +10,63 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # BauCrew — project rules
 
-Internal field-service management app for a German painting/construction company.
-Full product requirements live in the owner's master prompt; phased roadmap in README.
-
-## The repository is public — what must never reach it
-
-The GitHub repository is the product, in German and English only. Two things
-must never be pushed, no matter how small or how convenient:
-
-1. **No Persian anywhere in the repository.** The owner needs Persian locally
-   for testing (`messages/fa.json`, the Persian manual, Persian notes) — those
-   files stay git-ignored on their machine. Nothing Persian goes into tracked
-   files, commit messages, release notes or issue text.
-2. **No real company data.** No customer, employee, project, vehicle or address
-   of the real company; no logos; no screenshots or PDFs made with real data;
-   no dumps, backups or `.env` values. Examples in code, tests and manuals use
-   invented names (`Muster …`, `Beispiel …`).
-3. **No roadmap and no customer wish list.** What the customer asked for, what
-   is planned and where their processes hurt stays out of the repository even
-   with every name removed. That list lives in Notion and in the git-ignored
-   `docs/BACKLOG.md`. The repository documents *the product* — code, the user
-   manual, technical change notes — never the plan behind it.
-
-Git-ignored and to be kept that way: `messages/fa.json`, `docs/RAHNAMA-FA.md`,
-`docs/BACKLOG.md`, `docs/*.pdf`, `docs/screenshots/`, `prisma/seed.company.ts`,
-`.env*`, `docker-compose.local.yml`.
-
-Before every push: `git status --porcelain` must be empty of surprises, and the
-diff must contain no Persian script and no real names. When in doubt, ask the
-owner instead of pushing.
+Field-service management for painting and construction companies: projects,
+customers, employees, vehicles, scheduling, warehouse, work orders, reports.
 
 ## Conventions
 
-- **Language**: Communicate with the owner in **Persian (Farsi)**. The app UI is
-  **German (default) + English** via next-intl (`messages/de.json`, `messages/en.json`).
-  Never hardcode UI strings. Use proper German business terminology.
-  Extra locales are local-only: `messages/fa.json` is git-ignored and enabled via
-  `NEXT_PUBLIC_EXTRA_LOCALES=fa` in the owner's `.env` (see `src/i18n/config.ts`);
-  never commit it. Every new key must exist in de/en (and fa locally).
-- **Auth**: custom session auth in `src/lib/auth.ts` (hashed tokens in `Session` table,
-  httpOnly cookie). `src/proxy.ts` only checks cookie presence; real authorization is
-  server-side via `src/lib/authz.ts` (`requireUser`, `requireManagement`, `requireAdmin`,
-  `canViewFinancials`). Financial data (project price, revenue) must never reach
-  EMPLOYEE users or managers without `canViewFinancials` — filter in queries/DTOs,
-  not only in the UI.
-- **DB**: Prisma 7 (`prisma-client` generator → `src/generated/prisma`, pg driver adapter,
-  config in `prisma.config.ts`). Client singleton: `src/lib/db.ts`. Dates for scheduling
-  are UTC-midnight `@db.Date` values.
-- **Areas**: `(admin)` route group = Admin/Manager UI (desktop). `/my` = employee UI
-  (large type, touch-friendly). Warehouse touchscreen UI will follow the same principle.
-- **Core principle**: enter data once — schedule, warehouse lists, project sheets and
-  reports must all derive from the central Project record. No duplicate data entry.
+- **Language**: the UI is **German (default) + English** via next-intl
+  (`messages/de.json`, `messages/en.json`). Never hardcode UI strings; use
+  proper German business terminology. Every new key must exist in both files.
+- **Auth**: custom session auth in `src/lib/auth.ts` (hashed tokens in the
+  `Session` table, httpOnly cookie). `src/proxy.ts` only checks cookie
+  presence; real authorization is server-side via `src/lib/authz.ts`
+  (`requireUser`, `requireManagement`, `requireAdmin`, `canViewFinancials`).
+  Financial data (project price, revenue) must never reach EMPLOYEE users or
+  managers without `canViewFinancials` — filter in queries and DTOs, not only
+  in the UI.
+- **DB**: Prisma 7 (`prisma-client` generator → `src/generated/prisma`, pg
+  driver adapter, config in `prisma.config.ts`). Client singleton:
+  `src/lib/db.ts`. Dates for scheduling are UTC-midnight `@db.Date` values.
+- **Areas**: `(admin)` route group = Admin/Manager UI (desktop). `/my` =
+  employee UI (large type, touch-friendly). The warehouse touchscreen UI
+  follows the same principle.
+- **Core principle**: enter data once — schedule, warehouse lists, project
+  sheets and reports all derive from the central Project record. No duplicate
+  data entry.
+
+## What never goes into the repository
+
+Real data of any kind: customers, employees, projects, vehicles, addresses,
+logos, screenshots or PDFs made from live data, database dumps, `.env` values.
+Examples in code, tests and manuals use invented names (`Muster …`,
+`Beispiel …`, `Musterstadt`). Keep local-only files out via
+`.git/info/exclude`, not via `.gitignore`.
 
 ## Change log for reversible decisions
 
-- Larger structural changes that the owner may want to revert are documented
-  in `docs/CHANGE-*.md` (what changed, every touched file, exact rollback
-  steps). Current: `docs/CHANGE-multi-vehicle-schedule.md` (one → many
-  vehicles per schedule entry), `docs/CHANGE-user-accounts-on-employee-page.md`
-  (employee user accounts managed on the employee page; Settings shows only
-  system accounts + privileged overview), `docs/CHANGE-project-multi-vehicle.md`
-  (one → many vehicles per project), `docs/CHANGE-template-assignment.md`
-  (optional manager/vehicles/crew on templates), `docs/CHANGE-configurable-types.md`
-  (client/building/item type enums → configurable lists), `docs/CHANGE-checklists-in-projects.md`
-  (checklists moved to the project area; projects and templates pick their lists).
-  Add a new file there for similar changes.
-
-## Backlog
-
-The customer's wish list lives in Notion ("Automation & Process Backlog"); the
-working overview is the **git-ignored** `docs/BACKLOG.md` on the owner's
-machine (done / ready to build / waiting on the customer / our own ideas). Keep
-the `Ref` ids in sync when something changes — and never commit that file.
+Larger structural changes that may need reverting are documented in
+`docs/CHANGE-*.md` (what changed, every touched file, exact rollback steps).
+Current: `docs/CHANGE-multi-vehicle-schedule.md` (one → many vehicles per
+schedule entry), `docs/CHANGE-user-accounts-on-employee-page.md` (employee user
+accounts managed on the employee page; Settings shows only system accounts plus
+a privileged overview), `docs/CHANGE-project-multi-vehicle.md` (one → many
+vehicles per project), `docs/CHANGE-template-assignment.md` (optional
+manager/vehicles/crew on templates), `docs/CHANGE-configurable-types.md`
+(client/building/item type enums → configurable lists),
+`docs/CHANGE-checklists-in-projects.md` (checklists moved to the project area;
+projects and templates pick their lists). Add a new file there for similar
+changes.
 
 ## Commands
 
 - Dev DB: `docker compose -f docker-compose.dev.yml up -d`
 - Migrate: `npm run db:migrate` · Seed: `npm run db:seed`
-- Tests: `npm test` (unit, Vitest, no DB) · `npm run test:db` (DB-backed, needs the dev DB).
-  Pure logic lives in `src/lib/*` without React/Next imports so it stays testable;
-  add a test whenever you touch conflicts, reports, authz, dates or importers.
-- Verify before claiming done: `npm run typecheck && npx eslint src prisma tests && npm test && npm run build`
+- Tests: `npm test` (unit, Vitest, no DB) · `npm run test:db` (DB-backed, needs
+  the dev DB). Pure logic lives in `src/lib/*` without React/Next imports so it
+  stays testable; add a test whenever you touch conflicts, reports, authz,
+  dates or importers.
+- Verify before claiming done:
+  `npm run typecheck && npx eslint src prisma tests && npm test && npm run build`
 - Demo logins: admin/admin1234, buero/buero1234, lager/lager1234
-- `prisma/seed.ts` = base seed only (accounts, categories, catalog). Real company data
-  lives only in the DB (and in the git-ignored local `prisma/seed.company.ts`).
-  Never commit company data, logos or screenshots with real names.
+- `prisma/seed.ts` is the base seed only (accounts, categories, catalog).
