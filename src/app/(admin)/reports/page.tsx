@@ -134,6 +134,10 @@ export default async function ReportsPage({
     : t('vsPrevYear', { year: year - 1 })
 
   const hasPlan = plan?.hasPlan ?? false
+  // A year the company ran before BauCrew has a plan but no projects at all.
+  // Comparing against nothing would paint twelve alarming shortfalls that only
+  // mean "not recorded here", so the difference is left out for such a year.
+  const planComparable = hasPlan && (revenue?.yearTotal ?? 0) > 0
   const visibleMonths = revenue
     ? revenue.months.filter(
         (m) =>
@@ -346,14 +350,24 @@ export default async function ReportsPage({
                   <>
                     {' · '}
                     {t('planned')}:{' '}
-                    <span className="tabular-nums">{money(periodPlanTotal)}</span>{' '}
-                    <span className={`font-medium tabular-nums ${planDelta(periodRevenueTotal, periodPlanTotal).tone}`}>
-                      {planDelta(periodRevenueTotal, periodPlanTotal).label}
-                    </span>
+                    <span className="tabular-nums">{money(periodPlanTotal)}</span>
+                    {planComparable && (
+                      <>
+                        {' '}
+                        <span className={`font-medium tabular-nums ${planDelta(periodRevenueTotal, periodPlanTotal).tone}`}>
+                          {planDelta(periodRevenueTotal, periodPlanTotal).label}
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </p>
             </div>
+            {hasPlan && !planComparable && (
+              <p className="rounded-md border border-border bg-subtle px-3 py-2 text-xs text-muted">
+                {t('planOnlyYear', { year })}
+              </p>
+            )}
             {/* Sites the sheet parks on the year without picking a month yet —
                 they belong to no month card, so they get their own line. */}
             {hasPlan && !range && plan!.open > 0 && (
@@ -407,9 +421,11 @@ export default async function ReportsPage({
                           <span className="text-muted">{t('planned')}</span>
                           <span className="flex items-center gap-2 tabular-nums">
                             <span className="text-muted">{money(plan!.months[m.month].total)}</span>
-                            <span className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}>
-                              {planDelta(m.total, plan!.months[m.month].total).label}
-                            </span>
+                            {planComparable && (
+                              <span className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}>
+                                {planDelta(m.total, plan!.months[m.month].total).label}
+                              </span>
+                            )}
                           </span>
                         </div>
                       )}

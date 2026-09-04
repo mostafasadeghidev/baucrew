@@ -536,7 +536,8 @@
     "planGapsSummary": "{count, plural, one {# site} other {# sites}} ·",
     "planGapsMore": "… and {count} more.",
     "planGapsLink": "Go to plan reconciliation",
-    "noMonthShort": "n/m"
+    "noMonthShort": "n/m",
+    "planOnlyYear": "No projects are recorded in BauCrew for {year} — only the planned figures from the spreadsheet are shown. Plan against actual starts with the year BauCrew has been in use."
   },
   "sheet": {
     "title": "Work order",

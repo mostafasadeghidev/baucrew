@@ -536,7 +536,8 @@
     "planGapsSummary": "{count, plural, one {# Baustelle} other {# Baustellen}} ·",
     "planGapsMore": "… und {count} weitere.",
     "planGapsLink": "Zum Planabgleich",
-    "noMonthShort": "o. M."
+    "noMonthShort": "o. M.",
+    "planOnlyYear": "Für {year} sind in BauCrew keine Projekte erfasst — hier stehen nur die Planzahlen aus der Tabelle. Der Vergleich Plan/Ist beginnt mit dem Jahr, ab dem BauCrew im Einsatz ist."
   },
   "sheet": {
     "title": "Arbeitsauftrag",

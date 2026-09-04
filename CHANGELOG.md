@@ -3,6 +3,16 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.27.1] — 2026-09-04
+
+### Fixed
+- **A year from before BauCrew no longer reads as a disaster.** Importing the
+  whole spreadsheet brings in years the company ran on paper, where a plan
+  exists but no project was ever recorded. Every month then showed the full
+  planned sum as a shortfall. Such a year now shows the planned figures alone,
+  with one line saying that no projects are recorded for it — the plan/actual
+  comparison starts with the year BauCrew has been in use.
+
 ## [1.27.0] — 2026-09-03
 
 ### Added — the planning sheet and the projects, tied together
