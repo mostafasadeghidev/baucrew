@@ -161,13 +161,6 @@ the build. Details in [DEPLOYMENT.md](DEPLOYMENT.md#alternative-vercel-managed-h
 - [Change logs](docs/) for reversible structural decisions
 - Contributor rules for AI agents and humans: [AGENTS.md](AGENTS.md)
 
-## Roadmap
-
-- Document/photo upload per project
-- Optional "weather-dependent" flag per work category (replaces the hardcoded outdoor list)
-- Employee check-in / site notes from the mobile area
-- Notifications (e-mail / push) for schedule changes
-
 ## License
 
 Proprietary — internal software. All rights reserved.

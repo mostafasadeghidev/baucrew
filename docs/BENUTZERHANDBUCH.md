@@ -170,7 +170,7 @@ Hier stehen alle Auftraggeber: Privatpersonen, Firmen, Hausverwaltungen. Die Lis
 
 1. **Neuer Kunde** oben rechts.
 2. **Name** ist Pflicht. Firma, Ansprechpartner, Telefon, E-Mail nach Bedarf.
-3. **Straße**, **PLZ**, **Ort**. Beim Feld **Ort** anfangen zu tippen („Nürnb“) — es erscheint eine Liste echter Orte mit PLZ und Bundesland. **Klicken Sie den richtigen Ort an.** Dann steht darunter grün „✓ Ort erkannt — Wetterdaten verfügbar“ und die PLZ wird ergänzt.
+3. **Straße**, **PLZ**, **Ort**. Beim Feld **Ort** die ersten Buchstaben des Orts tippen — es erscheint eine Liste echter Orte mit PLZ und Bundesland. **Klicken Sie den richtigen Ort an.** Dann steht darunter grün „✓ Ort erkannt — Wetterdaten verfügbar“ und die PLZ wird ergänzt.
 4. **Speichern**.
 
 ⚠ Tippen Sie den Ort einfach nur ein, ohne aus der Liste zu wählen, kann er nicht erkannt werden („⚠ Ort nicht gefunden“) — dann gibt es später keine Wetterwarnung für Projekte an dieser Adresse.

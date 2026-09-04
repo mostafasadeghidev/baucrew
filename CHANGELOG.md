@@ -111,7 +111,7 @@ leaving them blank.
 - **Green or red while planning.** The assignment dialog lists the project's
   needed devices with their state; a free one carries **Jetzt ausgeben** and is
   booked onto that site with one click, a busy one says where it is instead of
-  being assigned silently (customer request M18).
+  being assigned silently.
 
 ## [1.23.0] — 2026-08-27
 
@@ -128,8 +128,8 @@ leaving them blank.
   an interrupted site does not hide what is still standing there.
 - Availability is never stored — it is read from the open handout, and every
   device row carries `externalSystem` / `externalId` / `source` so a later sync
-  with the customer's equipment system fills these same tables instead of
-  replacing them (groundwork for M16–M19).
+  with an outside equipment system fills these same tables instead of
+  replacing them.
 
 ## [1.22.0] — 2026-08-26
 
@@ -253,12 +253,11 @@ Details and rollback: `docs/CHANGE-checklists-in-projects.md`.
 
 ## [1.16.0] — 2026-08-23
 
-Three more items from the customer backlog (meetings 1 + 2).
 
 ### Added
-- **The overview can be arranged per person** (customer request M26): the button **Ansicht anpassen** turns on a small bar over every card — move it up or down, switch between half and full width, hide it. **Fertig** leaves the mode, **Standard wiederherstellen** resets it. The arrangement is stored on the user account, so everybody keeps their own overview.
-- **Map of the day in the planner** (customer request M29): a fourth tab **Karte** next to Woche / Monat / Übersicht shows the sites of one day as numbered points, with the same list beside it (time, project, address, crew, vehicle, rain probability) and **← Heute →** to step day by day. Positions come from the project address; without exact coordinates the town centre is used and the entry is marked *ca. Ortsmitte*. Projects without a place are listed under the map. Map tiles come from OpenStreetMap — no account, no key.
-- **Quarterly ring in the reports** (customer request M27): beside the monthly chart, Q1–Q4 as a circle with the year total in the middle — the "less table, more picture" the customer asked for.
+- **The overview can be arranged per person**: the button **Ansicht anpassen** turns on a small bar over every card — move it up or down, switch between half and full width, hide it. **Fertig** leaves the mode, **Standard wiederherstellen** resets it. The arrangement is stored on the user account, so everybody keeps their own overview.
+- **Map of the day in the planner**: a fourth tab **Karte** next to Woche / Monat / Übersicht shows the sites of one day as numbered points, with the same list beside it (time, project, address, crew, vehicle, rain probability) and **← Heute →** to step day by day. Positions come from the project address; without exact coordinates the town centre is used and the entry is marked *ca. Ortsmitte*. Projects without a place are listed under the map. Map tiles come from OpenStreetMap — no account, no key.
+- **Quarterly ring in the reports**: beside the monthly chart, Q1–Q4 as a circle with the year total in the middle — less table, more picture.
 
 ### Fixed
 - Reports → Übersicht: the order book showed **Angebote offen** with the label *Geplant / offen* and squeezed its four stages into three columns (since 1.14.0, when the offers stage was added).
@@ -277,7 +276,7 @@ Three more items from the customer backlog (meetings 1 + 2).
 ## [1.14.0] — 2026-08-23
 
 ### Added
-- **Follow-on offers on a project** (customer request M24): extra work ordered later is booked with description, amount and date. It raises the order value on the project page ("50.000 € + 4.500 € = 54.500 €") and in every figure that uses it — revenue, order book, open offers, customer report, plan vs. actual. Only users with financial access can book one; every change is in the change log.
+- **Follow-on offers on a project**: extra work ordered later is booked with description, amount and date. It raises the order value on the project page ("50.000 € + 4.500 € = 54.500 €") and in every figure that uses it — revenue, order book, open offers, customer report, plan vs. actual. Only users with financial access can book one; every change is in the change log.
 - Work order: the **site checklists are printed** with the sheet (☒ done, ! problem with its note, who ticked and when).
 - Project list: a small badge shows how far the checklists of a project are ticked (⚠ when a problem was noted).
 - Excel export: new sheet **"Offene Angebote"** with number, project, customer, days waiting and net value.
@@ -285,12 +284,11 @@ Three more items from the customer backlog (meetings 1 + 2).
 
 ## [1.13.0] — 2026-08-23
 
-Three items from the customer backlog (meetings 1 + 2).
 
 ### Added
-- **Site checklists** (M22): reusable templates in Settings → Arbeitsbereiche ("Übernahme vom Vorgewerk" …), added to a project from a template or blank, ticked off on the phone: open → in order → problem. A problem takes a short note, and every tick stores **who** and **when**. Visible on the project page and in "Mein Bereich"; the crew may add a line on site.
-- **Packing list on the worker's phone** (item 30): the tools/materials in "Mein Bereich" are now big tap targets (Benötigt → Gepackt → Fehlt) instead of a read-only list. Employees may only tick projects they are on the crew of or scheduled for; the warehouse screen shows a **QR code per assignment** that opens exactly that day's list on the phone (through the login, which now returns to the scanned page).
-- **Open offers** (M23): the order book KPI splits into **Angebote offen** · Beauftragt · In Ausführung · Geplant, and a new report tab **Angebote** lists every offer waiting for confirmation — oldest first, with the days it has been waiting (flagged from 21 days) and the cumulated net volume.
+- **Site checklists**: reusable templates in Settings → Arbeitsbereiche ("Übernahme vom Vorgewerk" …), added to a project from a template or blank, ticked off on the phone: open → in order → problem. A problem takes a short note, and every tick stores **who** and **when**. Visible on the project page and in "Mein Bereich"; the crew may add a line on site.
+- **Packing list on the worker's phone**: the tools/materials in "Mein Bereich" are now big tap targets (Benötigt → Gepackt → Fehlt) instead of a read-only list. Employees may only tick projects they are on the crew of or scheduled for; the warehouse screen shows a **QR code per assignment** that opens exactly that day's list on the phone (through the login, which now returns to the scanned page).
+- **Open offers**: the order book KPI splits into **Angebote offen** · Beauftragt · In Ausführung · Geplant, and a new report tab **Angebote** lists every offer waiting for confirmation — oldest first, with the days it has been waiting (flagged from 21 days) and the cumulated net volume.
 
 ## [1.12.0] — 2026-08-19
 
