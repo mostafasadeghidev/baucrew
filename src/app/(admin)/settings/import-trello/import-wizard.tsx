@@ -41,10 +41,16 @@ export function ImportWizard() {
           <p className="text-lg font-semibold">✓ {t('doneTitle')}</p>
           <ul className="mt-2 space-y-1 text-sm">
             <li>{t('doneCreated', { count: effective.created })}</li>
+            {effective.updated > 0 && <li>{t('doneUpdated', { count: effective.updated })}</li>}
             <li>{t('doneCustomers', { count: effective.customersCreated })}</li>
-            <li>{t('doneSkipped', { count: effective.skipped })}</li>
+            {effective.skipped > 0 && <li>{t('doneSkipped', { count: effective.skipped })}</li>}
             <li>{t('doneIgnored', { count: effective.ignored })}</li>
           </ul>
+          {effective.flagged > 0 && (
+            <p className="mt-3 text-sm text-amber-700 dark:text-amber-400">
+              {t('doneFlagged', { count: effective.flagged })}
+            </p>
+          )}
         </div>
         <Link
           href="/projects"

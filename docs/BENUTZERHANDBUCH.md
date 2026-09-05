@@ -702,7 +702,11 @@ Die Reiter:
 - **Backup herunterladen (JSON):** alle Daten in einer Datei. Regelmäßig machen und sicher aufbewahren — die Datei enthält vertrauliche Daten.
 - ⚠ **Backup wiederherstellen** ersetzt **alle** aktuellen Daten durch die Datei und meldet alle ab. Vorher unbedingt ein frisches Backup herunterladen.
 
-**Import aus Trello** — einmalig bestehende Trello-Boards übernehmen: In Trello *Menü ⋯ → Print, export and share → Export as JSON*, Datei hier hochladen, je Liste einen Status wählen, **Import starten**.
+**Import aus Trello** — bestehende Trello-Boards übernehmen: In Trello *Menü ⋯ → Drucken, Exportieren und Teilen → Als JSON exportieren* (schneller: an die Board-Adresse `.json` anhängen), Datei hier hochladen, je Liste einen Status wählen, **Import starten**.
+
+Der Import darf **jederzeit wiederholt** werden. Steht am Ende eines Kartentitels eine Nummer in Klammern, gilt sie als Kennung der Baustelle: beim nächsten Import wird dasselbe Projekt **aktualisiert** statt doppelt angelegt, und ein Kartenwechsel in eine andere Liste ändert den Projektstatus mit. Am Ende steht, wie viele Projekte neu angelegt und wie viele aktualisiert wurden.
+
+Der Kunde wird aus dem Titel gelesen: normalerweise das erste Wort, bei „HV …“ oder „BV: …“ der Name dahinter, bei „Gemeinde …“ oder „Stadt …“ beides zusammen. Nennt ein Titel nur ein Gebäude („Kläranlage …“), steht dort der ganze Titel als Kunde und der Import weist am Ende darauf hin — diese Karten bitte nachsehen. Dateien an einer Karte werden mit Link in die Projektbeschreibung übernommen.
 
 **Jahresplanung importieren** — die eigene Monatsplanumsatz-Tabelle einlesen, damit in den Berichten
 neben dem tatsächlichen Umsatz auch der **Plan** steht.

@@ -767,9 +767,11 @@
     "doneTitle": "Import abgeschlossen",
     "doneCreated": "{count} Projekte angelegt",
     "doneCustomers": "{count} neue Kunden angelegt",
-    "doneSkipped": "{count} Karten übersprungen (Projekt existierte bereits)",
+    "doneSkipped": "{count, plural, one {# vorhandenes Projekt} other {# vorhandene Projekte}} mit dem Board verknüpft",
     "doneIgnored": "{count} Karten nicht importiert (Liste ausgeschlossen oder archiviert)",
-    "goToProjects": "Zu den Projekten"
+    "goToProjects": "Zu den Projekten",
+    "doneUpdated": "{count, plural, one {# Projekt} other {# Projekte}} aktualisiert (Status vom Board übernommen)",
+    "doneFlagged": "⚠ Bei {count, plural, one {# Karte} other {# Karten}} steht im Titel kein eindeutiger Kunde (z. B. „Kläranlage …“). Dort wurde der ganze Titel als Kunde eingetragen — bitte nachsehen."
   },
   "geo": {
     "found": "Ort erkannt — Wetterdaten verfügbar",

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { audit } from '@/lib/audit'
-import { parseTrelloExport, splitCardTitle, type TrelloBoard } from '@/lib/trello'
+import { parseTrelloExport, splitCardTitle, suggestStatus, type TrelloBoard } from '@/lib/trello'
 import { ProjectStatus } from '@/generated/prisma/enums'
 
 export type PreviewState =
@@ -13,32 +13,21 @@ export type PreviewState =
   | {
       step: 'done'
       created: number
+      updated: number
       skipped: number
       customersCreated: number
       ignored: number
+      /** Cards whose title gave no dependable customer. */
+      flagged: number
     }
 
 const STATUS_VALUES = Object.keys(ProjectStatus) as ProjectStatus[]
 
-/** Heuristic default status per Trello list name (German column names). */
-function suggestStatus(listName: string): string {
-  const n = listName.toLowerCase()
-  if (/(erledigt|fertig|abgeschlossen|done|complete)/.test(n)) return 'COMPLETED'
-  if (/(rechnung|abgerechnet|invoic)/.test(n)) return 'INVOICED'
-  if (/(bezahlt|paid)/.test(n)) return 'PAID'
-  if (/(läuft|laufend|in arbeit|progress|aktiv|baustelle)/.test(n)) return 'IN_PROGRESS'
-  if (/(geplant|termin|planned|planung)/.test(n)) return 'PLANNED'
-  if (/(angebot|quote|kalkul)/.test(n)) return 'QUOTED'
-  if (/(beauftragt|auftrag|approved|zusage)/.test(n)) return 'APPROVED'
-  if (/(anfrage|lead|neu|eingang|todo|to do|offen)/.test(n)) return 'LEAD'
-  if (/(storn|abgesagt|cancel|verloren)/.test(n)) return 'CANCELLED'
-  return 'LEAD'
-}
-
 export async function previewTrello(_prev: PreviewState, formData: FormData): Promise<PreviewState> {
   await requireAdmin()
   const file = formData.get('file')
-  if (!(file instanceof File) || file.size === 0 || file.size > 50 * 1024 * 1024) {
+  // Keep in step with serverActions.bodySizeLimit in next.config.ts.
+  if (!(file instanceof File) || file.size === 0 || file.size > 10 * 1024 * 1024) {
     return { step: 'upload', error: 'invalidFile' }
   }
   let json: unknown
@@ -88,9 +77,11 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
   const includeArchived = formData.get('includeArchived') === 'on'
 
   let created = 0
+  let updated = 0
   let skipped = 0
   let ignored = 0
   let customersCreated = 0
+  let flagged = 0
   const customerCache = new Map<string, string>()
 
   for (const card of board.cards) {
@@ -99,11 +90,56 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
       ignored++
       continue
     }
-    const { customer: customerName, project: projectName } = splitCardTitle(card.name)
+    const { customer: customerName, project: projectName, number, confident } = splitCardTitle(card.name)
+    if (!confident) flagged++
 
-    // Idempotent: skip when a project with the same name already exists.
-    const existing = await db.project.findFirst({ where: { name: projectName }, select: { id: true } })
+    // The job number in the title is what the office's other systems use, so it
+    // is the identity across imports. A card without one falls back to the
+    // Trello card id, which is just as stable.
+    const externalId = number ?? card.id
+
+    const listName = board.lists.find((l) => l.id === card.idList)?.name ?? ''
+    const attachmentLines = card.attachments.slice(0, 20).map((a) => `- ${a.name || 'Anhang'}: ${a.url}`)
+    const description = [
+      card.desc,
+      card.labels.length ? `Labels: ${card.labels.join(', ')}` : '',
+      attachmentLines.length ? `Anhänge in Trello:\n${attachmentLines.join('\n')}` : '',
+      `Trello: ${board.name} / ${listName}`,
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+
+    // A second import must move the project on, not double it.
+    const existing = await db.project.findFirst({
+      where: { externalSystem: 'trello', externalId },
+      select: { id: true },
+    })
     if (existing) {
+      await db.project.update({
+        where: { id: existing.id },
+        data: {
+          status,
+          name: projectName,
+          description,
+          externalUrl: card.shortUrl || undefined,
+          plannedEnd: card.due ? new Date(card.due) : undefined,
+        },
+      })
+      updated++
+      continue
+    }
+
+    // An earlier import stored no external id. Match those by name once and
+    // adopt them, so the board and the projects line up from now on.
+    const byName = await db.project.findFirst({
+      where: { name: projectName, externalId: null },
+      select: { id: true },
+    })
+    if (byName) {
+      await db.project.update({
+        where: { id: byName.id },
+        data: { status, externalSystem: 'trello', externalId, externalUrl: card.shortUrl || undefined },
+      })
       skipped++
       continue
     }
@@ -123,13 +159,6 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
       customerCache.set(customerName.toLowerCase(), customerId)
     }
 
-    const listName = board.lists.find((l) => l.id === card.idList)?.name ?? ''
-    const descriptionParts = [
-      card.desc,
-      card.labels.length ? `Labels: ${card.labels.join(', ')}` : '',
-      `Trello: ${board.name} / ${listName}`,
-    ].filter(Boolean)
-
     await db.project.create({
       data: {
         number: await nextProjectNumber(),
@@ -137,7 +166,10 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
         customerId,
         status,
         plannedEnd: card.due ? new Date(card.due) : undefined,
-        description: descriptionParts.join('\n\n'),
+        description,
+        externalSystem: 'trello',
+        externalId,
+        externalUrl: card.shortUrl || undefined,
       },
     })
     created++
@@ -148,9 +180,9 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
     action: 'import.trello',
     entity: 'System',
     entityId: 'trello',
-    newValue: `${board.name}: ${created} Projekte, ${customersCreated} Kunden`,
+    newValue: `${board.name}: ${created} neu, ${updated} aktualisiert, ${customersCreated} Kunden`,
   })
   revalidatePath('/projects')
   revalidatePath('/customers')
-  return { step: 'done', created, skipped, customersCreated, ignored }
+  return { step: 'done', created, updated, skipped, customersCreated, ignored, flagged }
 }

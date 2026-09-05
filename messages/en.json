@@ -767,9 +767,11 @@
     "doneTitle": "Import complete",
     "doneCreated": "{count} projects created",
     "doneCustomers": "{count} new customers created",
-    "doneSkipped": "{count} cards skipped (project already existed)",
+    "doneSkipped": "{count, plural, one {# existing project} other {# existing projects}} linked to the board",
     "doneIgnored": "{count} cards not imported (list excluded or archived)",
-    "goToProjects": "Go to projects"
+    "goToProjects": "Go to projects",
+    "doneUpdated": "{count, plural, one {# project} other {# projects}} updated (status taken from the board)",
+    "doneFlagged": "⚠ {count, plural, one {# card gives} other {# cards give}} no clear customer in the title (e.g. \"Kläranlage …\"). The whole title was used as the customer — please check."
   },
   "geo": {
     "found": "Place recognised — weather data available",

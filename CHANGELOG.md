@@ -3,6 +3,35 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.29.0] — 2026-09-05
+
+### Changed — the Trello import survives a second run
+- **The job number in a card title is now the project's identity.** Titles end
+  with the number the office's other systems use (`Musterhof Innenausbau
+  (4100001)`); it is read out, stored as the external id, and the card link is
+  kept as the source. Importing the same board again therefore **moves the
+  projects on instead of doubling them**: cards that changed list get the new
+  status, and the result says how many were created and how many updated.
+  Projects from an earlier import are adopted by name once, so the board and
+  the project list line up from then on.
+- **The customer is read properly.** The first word is still the customer for
+  the usual `Nachname Vorname Ort` title, but a qualifier (`HV Musterhof`,
+  `BV: Musterhof …`) is skipped to the name behind it, an institution keeps its
+  place (`Gemeinde Musterdorf`), and trailing punctuation no longer ends up in
+  the name. A title that names a building rather than a customer
+  (`Kläranlage …`) keeps its full title instead of filing unrelated jobs under
+  one invented customer, and the import reports how many such cards need a look.
+- **Attachments are no longer lost:** every file on a card is listed with its
+  link in the project description.
+- **"Baustellenbeginn" now means planned**, not in progress, and the
+  `Auftrag`/`Aufträge` umlaut no longer sends a whole column to the wrong status.
+
+### Fixed
+- **A real board could not be imported at all.** A Trello export of ~250 cards
+  is about 2.5 MB and the default 1 MB server-action body limit rejected it
+  before the importer saw the file. The limit is raised to 12 MB and the
+  wizard's own cap now matches it instead of promising 50 MB.
+
 ## [1.28.0] — 2026-09-04
 
 ### Changed — the years before BauCrew become the company's history
