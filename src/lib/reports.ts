@@ -7,12 +7,15 @@ import { sumMinutes } from './time-entries'
 import { planTotals, type PlanEntry } from './year-plan-excel'
 
 export type RevenueProject = {
+  /** Unique per row: a project may stand in a month with several sheet lines. */
+  key: string
+  /** The project's id — a sheet line without a project carries the line's id. */
   id: string
   number: string
   name: string
   customer: string
   price: number | null
-  /** True for a line read from the planning sheet — it has no project page. */
+  /** True for a line of the planning sheet that no project is tied to — it has no project page. */
   fromSheet?: boolean
 }
 
@@ -23,6 +26,13 @@ export type MonthRevenue = {
   ownTotal: number
   subTotal: number
   total: number
+  /**
+   * Projects that start in this month but stand nowhere in the sheet. Shown
+   * so nothing is hidden, not counted in `total`, so the month reads as the
+   * sheet does. Empty in a year without a sheet.
+   */
+  extra: RevenueProject[]
+  extraTotal: number
 }
 
 export type YearRevenue = {
@@ -30,31 +40,59 @@ export type YearRevenue = {
   months: MonthRevenue[]
   yearTotal: number
   /**
-   * Projects without a planned start. They belong to no month, so they are
-   * listed on their own instead of being filed under whatever month they
-   * happened to be entered in. Not counted in yearTotal.
+   * Projects without a planned start and without a sheet line. They belong
+   * to no month, so they are listed on their own instead of being filed
+   * under whatever month they happened to be entered in. Not counted in
+   * yearTotal.
    */
   undated: RevenueProject[]
   undatedTotal: number
   /**
-   * True when the figures come from the imported planning sheet instead of
-   * from projects — the years the company ran before BauCrew existed.
+   * True when the month figures are the lines of the imported planning
+   * sheet — the office's own record of the year, line by line and month by
+   * month. A line tied to a project links to it; a line without one is just
+   * the sheet's line. Projects the sheet does not know are listed as `extra`.
+   */
+  sheetLed: boolean
+  /**
+   * True when the year is the sheet alone: no line tied to a project, no
+   * project besides — the years the company ran before BauCrew existed.
    */
   fromSheet: boolean
 }
 
 /**
- * Rebuilds the "Monatsplanumsatz" sheet from live data: every non-cancelled
- * project is assigned to the month of its planned start, split into own-crew
- * work and SUB (subcontractor) work. A project without a planned start is not
- * guessed into a month — the day it was typed in says nothing about when the
- * work happens, and a bulk import would pile hundreds into one month. Such
- * projects are returned separately as "undated"; which year they show under
- * is the year they were entered, so they turn up somewhere until dated.
+ * The "Monatsplanumsatz" of a year. Where the planning sheet has been
+ * imported for the year, the sheet is the record: every line of it stands in
+ * its month with its amount, tied to its project where a person tied it.
+ * That is what the office reads as the year's turnover, and what the months
+ * must add up to. A project the sheet does not know is listed beside the
+ * month, uncounted, so it is seen and can be put into the sheet or tied to
+ * a line.
+ *
+ * A year without a sheet is built from projects: each is filed under the
+ * month of its planned start, own-crew work and SUB (subcontractor) work
+ * apart. A project without a planned start is not guessed into a month —
+ * the day it was typed in says nothing about when the work happens — but
+ * listed as "undated".
  */
 export async function getYearRevenue(year: number): Promise<YearRevenue> {
   const start = new Date(Date.UTC(year, 0, 1))
   const end = new Date(Date.UTC(year + 1, 0, 1))
+
+  // The sheet's lines for the year, each with the project it is tied to.
+  const lines = await db.planEntry.findMany({
+    where: { year, month: { not: null } },
+    orderBy: [{ month: 'asc' }, { name: 'asc' }],
+    select: {
+      id: true,
+      month: true,
+      name: true,
+      amount: true,
+      isSub: true,
+      project: { select: { id: true, number: true, name: true, customer: { select: { name: true } } } },
+    },
+  })
 
   const projects = await db.project.findMany({
     where: {
@@ -74,6 +112,8 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       createdAt: true,
       customer: { select: { name: true } },
       addOns: { select: { amount: true } },
+      // The years of the sheet lines tied to the project.
+      planEntries: { select: { year: true } },
     },
     orderBy: { number: 'asc' },
   })
@@ -85,11 +125,49 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     ownTotal: 0,
     subTotal: 0,
     total: 0,
+    extra: [],
+    extraTotal: 0,
   }))
   const undated: RevenueProject[] = []
+  const sheetLed = lines.length > 0
+
+  for (const line of lines) {
+    const bucket = months[line.month! - 1]
+    const entry: RevenueProject = line.project
+      ? {
+          key: line.id,
+          id: line.project.id,
+          number: line.project.number,
+          name: line.name,
+          customer: line.project.customer.name,
+          price: Number(line.amount),
+        }
+      : {
+          key: line.id,
+          id: line.id,
+          number: '',
+          name: line.name,
+          customer: '',
+          price: Number(line.amount),
+          fromSheet: true,
+        }
+    if (line.isSub) {
+      bucket.sub.push(entry)
+      bucket.subTotal += entry.price ?? 0
+    } else {
+      bucket.own.push(entry)
+      bucket.ownTotal += entry.price ?? 0
+    }
+    bucket.total = bucket.ownTotal + bucket.subTotal
+  }
 
   for (const p of projects) {
+    // In a sheet-led year a project with a line in this year is counted
+    // where its lines are. One whose lines lie in another year, or that has
+    // none, is listed beside the month it starts in, so it is not lost.
+    if (sheetLed && p.planEntries.some((l) => l.year === year)) continue
     const entry: RevenueProject = {
+      key: p.id,
       id: p.id,
       number: p.number,
       name: p.name,
@@ -101,6 +179,11 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       continue
     }
     const bucket = months[p.plannedStart.getUTCMonth()]
+    if (sheetLed) {
+      bucket.extra.push(entry)
+      bucket.extraTotal += entry.price ?? 0
+      continue
+    }
     if (p.isSub) {
       bucket.sub.push(entry)
       bucket.subTotal += entry.price ?? 0
@@ -111,83 +194,25 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     bucket.total = bucket.ownTotal + bucket.subTotal
   }
 
+  const nothingButSheet =
+    sheetLed &&
+    lines.every((l) => !l.project) &&
+    months.every((m) => m.extra.length === 0) &&
+    undated.length === 0
+
   return {
     year,
     months,
     yearTotal: months.reduce((sum, m) => sum + m.total, 0),
     undated,
     undatedTotal: undated.reduce((sum, p) => sum + (p.price ?? 0), 0),
-    fromSheet: false,
+    sheetLed,
+    fromSheet: nothingButSheet,
   }
 }
 
-/**
- * The same monthly picture, but built from the imported sheet: the years the
- * company worked before BauCrew have no projects, so the sheet is the only
- * record of them and stands in as that year's revenue.
- */
-async function getYearRevenueFromSheet(year: number): Promise<YearRevenue> {
-  const rows = await db.planEntry.findMany({
-    where: { year, month: { not: null } },
-    orderBy: [{ month: 'asc' }, { name: 'asc' }],
-    select: { id: true, month: true, name: true, amount: true, isSub: true },
-  })
-
-  const months: MonthRevenue[] = Array.from({ length: 12 }, (_, month) => ({
-    month,
-    own: [],
-    sub: [],
-    ownTotal: 0,
-    subTotal: 0,
-    total: 0,
-  }))
-
-  for (const row of rows) {
-    const bucket = months[row.month! - 1]
-    if (!bucket) continue
-    const entry: RevenueProject = {
-      id: row.id,
-      number: '',
-      name: row.name,
-      customer: '',
-      price: Number(row.amount),
-      fromSheet: true,
-    }
-    if (row.isSub) {
-      bucket.sub.push(entry)
-      bucket.subTotal += entry.price ?? 0
-    } else {
-      bucket.own.push(entry)
-      bucket.ownTotal += entry.price ?? 0
-    }
-    bucket.total = bucket.ownTotal + bucket.subTotal
-  }
-
-  return {
-    year,
-    months,
-    yearTotal: months.reduce((sum, m) => sum + m.total, 0),
-    undated: [],
-    undatedTotal: 0,
-    fromSheet: true,
-  }
-}
-
-/**
- * A year's revenue, from projects where there are any. A year with no project
- * at all but an imported plan is a year from before BauCrew: there the sheet
- * is the record, so it stands in — which also makes the comparison with the
- * previous year work at all. Adding a single project to such a year switches
- * it back to the live figures on its own.
- */
-export async function getYearRevenueOrHistory(year: number): Promise<YearRevenue> {
-  const live = await getYearRevenue(year)
-  const hasProjects =
-    live.undated.length > 0 || live.months.some((m) => m.own.length + m.sub.length > 0)
-  if (live.yearTotal > 0 || hasProjects) return live
-  const planned = await db.planEntry.count({ where: { year, month: { not: null } } })
-  return planned > 0 ? getYearRevenueFromSheet(year) : live
-}
+/** Kept for callers: a year's revenue is built the same way whether or not it has a sheet. */
+export const getYearRevenueOrHistory = getYearRevenue
 
 export type YearPlan = {
   year: number

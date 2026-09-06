@@ -33,6 +33,7 @@ import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
 import { DonutChart } from '@/components/donut-chart'
 import { formatMinutes } from '@/lib/time-entries'
+import { InfoHint } from '@/components/ui/info-hint'
 
 const TABS = ['overview', 'revenue', 'offers', 'projects', 'customers', 'utilization', 'quality'] as const
 type Tab = (typeof TABS)[number]
@@ -129,9 +130,10 @@ export default async function ReportsPage({
     : effectiveRange && effectiveRange.to < 11
       ? t('kpiYtd', { year, month: monthName(effectiveRange.to) })
       : t('kpiYtdFull', { year })
-  // Say so when last year's figure is the planning sheet, not projects —
-  // actual against plan is a different comparison and must read as one.
-  const prevIsSheet = prevRevenue?.fromSheet ?? false
+  // Say so when last year's figure is the planning sheet and this year's
+  // is not — the sheet against projects must read as that. When both
+  // years are the sheet, it is a plain comparison.
+  const prevIsSheet = (prevRevenue?.sheetLed ?? false) && !(revenue?.sheetLed ?? false)
   const compareLabel = periodLabel
     ? t(prevIsSheet ? 'vsPrevPeriodSheet' : 'vsPrevPeriod', { period: periodLabel, year: year - 1 })
     : t(prevIsSheet ? 'vsPrevYearSheet' : 'vsPrevYear', { year: year - 1 })
@@ -141,12 +143,15 @@ export default async function ReportsPage({
   // Holding the sheet against itself would only ever show a difference of
   // zero, so the comparison is left out and the source is named instead.
   const fromSheet = revenue?.fromSheet ?? false
-  const planComparable = hasPlan && !fromSheet
+  // With a sheet the months ARE the sheet, so there is no plan to hold them
+  // against; the comparison is for a year built from projects alone.
+  const sheetLed = revenue?.sheetLed ?? false
+  const planComparable = hasPlan && !fromSheet && !sheetLed && (plan?.yearTotal ?? 0) > 0
   const visibleMonths = revenue
     ? revenue.months.filter(
         (m) =>
           (!range || (m.month >= range.from && m.month <= range.to)) &&
-          (m.own.length > 0 || m.sub.length > 0 || (plan?.months[m.month].total ?? 0) > 0)
+          (m.own.length > 0 || m.sub.length > 0 || m.extra.length > 0 || (plan?.months[m.month].total ?? 0) > 0)
       )
     : []
   const periodRevenueTotal = revenue ? sumRange(revenue.months.map((m) => m.total), range) : 0
@@ -300,7 +305,7 @@ export default async function ReportsPage({
                   own: m.ownTotal,
                   sub: m.subTotal,
                   prev: prevRevenue ? prevRevenue.months[i].total : null,
-                  plan: hasPlan ? plan!.months[i].total : null,
+                  plan: planComparable ? plan!.months[i].total : null,
                 }))}
                 labels={shortMonths}
                 legend={{
@@ -350,7 +355,7 @@ export default async function ReportsPage({
               <p className="text-xs text-muted">
                 {periodLabel ?? t('yearTotal')}:{' '}
                 <span className="font-semibold text-foreground tabular-nums">{money(periodRevenueTotal)}</span>
-                {hasPlan && !fromSheet && (
+                {planComparable && (
                   <>
                     {' · '}
                     {t('planned')}:{' '}
@@ -367,10 +372,16 @@ export default async function ReportsPage({
                 )}
               </p>
             </div>
-            {fromSheet && (
+            {fromSheet ? (
               <p className="rounded-md border border-border bg-subtle px-3 py-2 text-xs text-muted">
                 {t('fromSheetYear', { year })}
               </p>
+            ) : (
+              sheetLed && (
+                <p className="rounded-md border border-border bg-subtle px-3 py-2 text-xs text-muted">
+                  {t('sheetLedYear', { year })}
+                </p>
+              )
             )}
             {/* Sites the sheet parks on the year without picking a month yet —
                 they belong to no month card, so they get their own line. */}
@@ -391,7 +402,7 @@ export default async function ReportsPage({
                     </div>
                     <div className="flex-1 px-3 py-1.5 text-[13px]">
                       {m.own.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between gap-2 py-0.5">
+                        <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
                           {p.fromSheet ? (
                             <span className="truncate">{p.name}</span>
                           ) : (
@@ -403,14 +414,17 @@ export default async function ReportsPage({
                         </div>
                       ))}
                       <div className="mt-1 flex items-center justify-between border-t border-border pt-1 font-medium">
-                        <span className="italic">{t('ownPeople')}</span>
+                        <span className="flex items-center gap-1.5 italic">
+                          {t('ownPeople')}
+                          <InfoHint text={t(sheetLed ? 'hintOwnPeopleSheet' : 'hintOwnPeople')} />
+                        </span>
                         <span className="tabular-nums">{money(m.ownTotal)}</span>
                       </div>
                       {m.sub.length > 0 && (
                         <>
                           <div className="mt-1.5">
                             {m.sub.map((p) => (
-                              <div key={p.id} className="flex items-center justify-between gap-2 py-0.5">
+                              <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
                                 {p.fromSheet ? (
                                   <span className="truncate">{p.name}</span>
                                 ) : (
@@ -423,22 +437,45 @@ export default async function ReportsPage({
                             ))}
                           </div>
                           <div className="mt-1 flex items-center justify-between border-t border-border pt-1 font-medium">
-                            <span className="italic">{t('sub')}</span>
+                            <span className="flex items-center gap-1.5 italic">
+                              {t('sub')}
+                              <InfoHint text={t(sheetLed ? 'hintSubSheet' : 'hintSub')} />
+                            </span>
                             <span className="tabular-nums">{money(m.subTotal)}</span>
                           </div>
                         </>
                       )}
-                      {hasPlan && !fromSheet && (
+                      {planComparable && (
                         <div className="mt-1.5 flex items-center justify-between border-t border-border pt-1 text-xs">
-                          <span className="text-muted">{t('planned')}</span>
+                          <span className="flex items-center gap-1.5 text-muted">
+                            {t('planned')}
+                            <InfoHint text={t('hintPlan')} />
+                          </span>
                           <span className="flex items-center gap-2 tabular-nums">
                             <span className="text-muted">{money(plan!.months[m.month].total)}</span>
-                            {planComparable && (
-                              <span className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}>
-                                {planDelta(m.total, plan!.months[m.month].total).label}
-                              </span>
-                            )}
+                            <span className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}>
+                              {planDelta(m.total, plan!.months[m.month].total).label}
+                            </span>
                           </span>
+                        </div>
+                      )}
+                      {m.extra.length > 0 && (
+                        <div className="mt-1.5 border-t border-dashed border-border pt-1 text-xs text-muted">
+                          <div className="flex items-center justify-between font-medium">
+                            <span className="flex items-center gap-1.5 italic">
+                              {t('extraTitle')}
+                              <InfoHint text={t('hintExtra')} />
+                            </span>
+                            <span className="tabular-nums">{money(m.extraTotal)}</span>
+                          </div>
+                          {m.extra.map((p) => (
+                            <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
+                              <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
+                                {p.name}
+                              </Link>
+                              <span className="shrink-0 tabular-nums">{money(p.price)}</span>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -459,7 +496,7 @@ export default async function ReportsPage({
                     </span>
                   </p>
                 </div>
-                <p className="mt-1 text-xs text-muted">{t('undatedHint')}</p>
+                <p className="mt-1 text-xs text-muted">{t(sheetLed ? 'undatedHintSheet' : 'undatedHint')}</p>
                 <ul className="mt-2 grid gap-x-6 gap-y-1 text-[13px] sm:grid-cols-2">
                   {revenue.undated.slice(0, 12).map((p) => (
                     <li key={p.id} className="flex items-center justify-between gap-2">

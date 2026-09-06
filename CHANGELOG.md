@@ -36,12 +36,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   assignment on a day the kept project already has stays behind and is
   reported.
 
+- **The sheet is the record.** For a year with an imported planning sheet
+  the revenue report now shows the sheet's lines, month by month and amount
+  for amount — the office's own turnover record — instead of projects filed
+  under their start month. A line tied to a project links to it; a line
+  without one is the sheet's line. Projects the sheet does not know stand
+  beside their month under *Nicht in der Tabelle*, listed but not counted,
+  so the months add up to the sheet. The Excel export does the same. A year
+  without a sheet is still built from projects. The year-over-year
+  comparison and the dashboard's *revenue this month* read the same
+  figures.
+- **The month cards explain themselves.** *Eigene Leute*, *SUB* and *Nicht
+  in der Tabelle* each carry a small ⓘ that says what the figure is; a
+  notice above the months names the source.
+
 ### Changed
-- Untying a project's last line takes back what the sheet gave it — start,
-  end and amount, where they still read exactly so — and drops the note, so
-  a year's links can be cleared and the matching started over without
-  figures left behind. The project picker on the plan page offers every
-  project, not only the ones without a line.
+- A figure the sheet gave a project grows when a further phase is tied to
+  it: an earlier start, a later end, the amounts added up. The note on the
+  project records each step, and a figure the office typed in is still
+  never touched. Untying a project's last line takes back exactly what the
+  notes say the sheet gave, and drops the notes, so a year's links can be
+  cleared and the matching started over without figures left behind. The
+  project picker on the plan page offers every project, not only the ones
+  without a line.
 - The plan page's figures are the year's alone; a row may show a job that
   runs beyond it.
 

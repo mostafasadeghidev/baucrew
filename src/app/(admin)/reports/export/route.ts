@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
   const bold = { bold: true }
   for (const m of revenue.months) {
-    if (m.own.length === 0 && m.sub.length === 0) continue
+    if (m.own.length === 0 && m.sub.length === 0 && m.extra.length === 0) continue
 
     const monthRow = sheet.addRow([`${MONTHS_DE[m.month]} ${year}`])
     monthRow.font = { bold: true, size: 13 }
@@ -94,6 +94,18 @@ export async function GET(request: NextRequest) {
     totalRow.font = bold
     totalRow.getCell(3).numFmt = EUR_FORMAT
     totalRow.border = { top: { style: 'thin' }, bottom: { style: 'double' } }
+
+    // Projects the sheet does not know: listed, not counted, as on the page.
+    if (m.extra.length > 0) {
+      for (const p of m.extra) {
+        const row = sheet.addRow([p.name, p.customer, p.price])
+        row.font = { italic: true }
+        row.getCell(3).numFmt = EUR_FORMAT
+      }
+      const extraRow = sheet.addRow(['Nicht in der Tabelle (nicht gezählt)', '', m.extraTotal])
+      extraRow.font = { italic: true }
+      extraRow.getCell(3).numFmt = EUR_FORMAT
+    }
 
     sheet.addRow([])
   }

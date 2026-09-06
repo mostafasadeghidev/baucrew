@@ -546,11 +546,20 @@
     "undatedTitle": "No date yet",
     "undatedSummary": "{count, plural, one {# project} other {# projects}} without a planned start ·",
     "undatedHint": "These projects have no planned start, so they belong to no month. They do not count towards the year total until a date is set.",
+    "undatedHintSheet": "These projects have no planned start and no line in the year plan. In a year with a year plan they count only once they are in the sheet or tied to a line in the plan match.",
     "undatedMore": "… and {count} more.",
     "undatedLink": "All of them under data quality",
     "qNoPlannedStart": "No planned start — counted in no month",
     "vsPrevYearSheet": "vs. plan {year}",
-    "vsPrevPeriodSheet": "vs. plan {period} {year}"
+    "vsPrevPeriodSheet": "vs. plan {period} {year}",
+    "hintOwnPeople": "Order values of the projects whose planned start falls in this month and that our own crew carries out. A project counts with its whole order value in the month it starts.",
+    "hintSub": "Order values of this month's projects carried out by a subcontractor.",
+    "hintPlan": "The year plan's (sheet's) sum for this month. Next to it, projects minus plan: green once the plan is reached, amber below it. The difference usually comes from plan lines without a project — the line below says where from.",
+    "sheetLedYear": "The monthly figures for {year} are the lines of the year plan — month by month, as the sheet keeps them. A line with a project links to it; a line without one is just the sheet's line. Projects the sheet does not know are listed per month under \"Not in the sheet\" and do not count towards the totals.",
+    "extraTitle": "Not in the sheet",
+    "hintOwnPeopleSheet": "Sum of this month's lines in the year plan (sheet), own crew — exactly as in the sheet. A line with a project links to it; one without a project exists only in the sheet.",
+    "hintSubSheet": "Sum of this month's SUB lines in the year plan — jobs carried out by a subcontractor.",
+    "hintExtra": "Projects with a planned start in this month that are not in the year plan. They do not count towards the month and year totals, so the figures match the sheet — add them to the sheet or tie them to a line in the plan match."
   },
   "sheet": {
     "title": "Work order",

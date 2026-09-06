@@ -106,6 +106,17 @@ describe('grouping lines into jobs', () => {
     expect(one).toMatchObject({ year: 2025, endYear: 2026, amount: 12, lineIds: ['a', 'b'] })
     expect(jobSpan(one).end.toISOString().slice(0, 10)).toBe('2026-03-31')
   })
+
+  it('ends a merge with the latest month of any job, not of the job that started last', () => {
+    const jobs = groupPlanJobs([
+      line({ id: 'a', name: 'Musterhof', year: 2026, month: 3 }),
+      line({ id: 'b', name: 'Musterhof', year: 2026, month: 10 }),
+      line({ id: 'c', name: 'Musterhof Beispielweg', year: 2026, month: 4 }),
+    ])
+    const one = mergeJobs(jobs)
+    expect(one.months).toEqual([3, 4, 10])
+    expect(jobSpan(one).end.toISOString().slice(0, 10)).toBe('2026-10-31')
+  })
 })
 
 describe('matching projects to jobs', () => {

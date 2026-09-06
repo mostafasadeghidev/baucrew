@@ -546,11 +546,20 @@
     "undatedTitle": "Ohne Termin",
     "undatedSummary": "{count, plural, one {# Projekt} other {# Projekte}} ohne Starttermin ·",
     "undatedHint": "Diese Projekte haben keinen geplanten Start und gehören deshalb zu keinem Monat. Sie zählen nicht in die Jahressumme, bis ein Termin eingetragen ist.",
+    "undatedHintSheet": "Diese Projekte haben keinen geplanten Start und keine Zeile in der Jahresplanung. In einem Jahr mit Jahresplanung zählen sie erst, wenn sie in der Tabelle stehen oder im Planabgleich einer Zeile zugeordnet sind.",
     "undatedMore": "… und {count} weitere.",
     "undatedLink": "Alle unter Datenqualität",
     "qNoPlannedStart": "Ohne geplanten Start — in keinem Monat gezählt",
     "vsPrevYearSheet": "vs. Planung {year}",
-    "vsPrevPeriodSheet": "vs. Planung {period} {year}"
+    "vsPrevPeriodSheet": "vs. Planung {period} {year}",
+    "hintOwnPeople": "Auftragswerte der Projekte, deren geplanter Start in diesem Monat liegt und die eigene Leute ausführen. Ein Projekt zählt mit seinem ganzen Auftragswert in dem Monat, in dem es beginnt.",
+    "hintSub": "Auftragswerte der Projekte dieses Monats, die ein Subunternehmer ausführt.",
+    "hintPlan": "Die Summe der Jahresplanung (Tabelle) für diesen Monat. Daneben Projekte minus Plan: grün, sobald der Plan erreicht ist, gelb darunter. Der Unterschied kommt meist von Planzeilen ohne Projekt — die Zeile darunter sagt, woher.",
+    "sheetLedYear": "Die Monatszahlen für {year} sind die Zeilen der Jahresplanung — Monat für Monat so, wie die Tabelle sie führt. Eine Zeile mit Projekt verlinkt dorthin, eine ohne Projekt steht nur in der Tabelle. Projekte, die in der Tabelle nicht stehen, sind je Monat unter „Nicht in der Tabelle“ aufgeführt und zählen nicht in die Summen.",
+    "extraTitle": "Nicht in der Tabelle",
+    "hintOwnPeopleSheet": "Summe der Zeilen der Jahresplanung (Tabelle) für diesen Monat, eigene Leute — genau wie in der Tabelle. Eine Zeile mit Projekt verlinkt dorthin; eine ohne Projekt steht nur in der Tabelle.",
+    "hintSubSheet": "Summe der SUB-Zeilen der Jahresplanung für diesen Monat — Aufträge, die ein Subunternehmer ausführt.",
+    "hintExtra": "Projekte mit geplantem Start in diesem Monat, die in der Jahresplanung nicht stehen. Sie zählen nicht in die Monats- und Jahressumme, damit die Zahlen der Tabelle entsprechen — in die Tabelle eintragen oder im Planabgleich einer Zeile zuordnen."
   },
   "sheet": {
     "title": "Arbeitsauftrag",

@@ -204,16 +204,21 @@ export function groupPlanJobs(lines: PlanLine[]): PlanJob[] {
   return [...jobs.values()]
 }
 
-/** Several jobs as one: the whole span, the whole amount, every line. */
+/**
+ * Several jobs as one: the whole span, the whole amount, every line. The
+ * months are put in order first — two jobs may overlap or interleave, and
+ * the last month of the whole must be the latest month of any of them.
+ */
 export function mergeJobs(jobs: PlanJob[]): PlanJob {
   const sorted = [...jobs].sort((a, b) => jobStart(a) - jobStart(b))
   const first = sorted[0]
-  const last = sorted.reduce((l, j) => (jobEnd(j) > jobEnd(l) ? j : l), first)
+  const all = [...new Set(sorted.flatMap(jobMonths))].sort((a, b) => a - b)
+  const yearOf = (index: number) => Math.floor((index - 1) / 12)
   return {
     key: first.key,
-    year: first.year,
-    endYear: last.endYear,
-    months: sorted.flatMap((j) => j.months),
+    year: yearOf(all[0]),
+    endYear: yearOf(all[all.length - 1]),
+    months: all.map((index) => ((index - 1) % 12) + 1),
     amount: sorted.reduce((s, j) => s + j.amount, 0),
     isSub: sorted.every((j) => j.isSub),
     lineIds: sorted.flatMap((j) => j.lineIds),

@@ -14,6 +14,7 @@ import {
   type PlanLine,
 } from '@/lib/plan-jobs'
 import { parsePlanLinks, serializePlanLinks, type PlanLinkRecord } from '@/lib/plan-links'
+import { isSheetDate, isSheetPrice, planNote, sheetFigures, withoutPlanNotes } from '@/lib/plan-notes'
 
 /** Statuses that mean the work is behind us. */
 const DONE = new Set(['COMPLETED', 'INVOICED', 'PAID'])
@@ -33,16 +34,13 @@ function paths(projectIds: string[] = []) {
 
 const fmtDate = (d: Date) => d.toISOString().slice(0, 10)
 
-/** The note applyJob leaves on a project, so takeBack can find and drop it. */
-const NOTE_START = 'Abgleich mit der Jahresplanung '
-const NOTE_END = ' aus der Tabelle übernommen.'
-
 /**
  * Ties a whole job (all its lines) to one project and hands the project what
  * the sheet knows and it does not: the months it spans and the planned
- * amount. Dates and price are only filled where the project has none, so a
- * value the office typed in is never overwritten. The description records
- * where the figures came from.
+ * amount. A value the office typed in is never touched; a value the sheet
+ * gave earlier (the note says so) grows with a further phase — an earlier
+ * start, a later end, the amounts added up. The description records what
+ * came from the sheet.
  */
 async function applyJob(job: PlanJob, projectId: string, stamp: string): Promise<void> {
   const project = await db.project.findUnique({
@@ -51,7 +49,8 @@ async function applyJob(job: PlanJob, projectId: string, stamp: string): Promise
   })
   if (!project) return
   const span = jobSpan(job)
-  const filled: string[] = []
+  const sheet = sheetFigures(project.description)
+  const taken: { start?: Date; end?: Date; price?: number } = {}
   const data: {
     plannedStart?: Date
     plannedEnd?: Date
@@ -59,21 +58,37 @@ async function applyJob(job: PlanJob, projectId: string, stamp: string): Promise
     isSub?: boolean
     description?: string
   } = {}
-  if (!project.plannedStart) {
+  // A date the office typed is kept, and the sheet's date must not cross it:
+  // an end before a typed start would leave the project unsaveable.
+  const typedStart = !isSheetDate(sheet.start, project.plannedStart) ? project.plannedStart : null
+  const typedEnd = !isSheetDate(sheet.end, project.plannedEnd) ? project.plannedEnd : null
+  if (
+    (!project.plannedStart || (isSheetDate(sheet.start, project.plannedStart) && span.start < project.plannedStart)) &&
+    (!typedEnd || span.start <= typedEnd)
+  ) {
     data.plannedStart = span.start
-    filled.push(`Start ${fmtDate(span.start)}`)
+    taken.start = span.start
   }
-  if (!project.plannedEnd) {
+  if (
+    (!project.plannedEnd || (isSheetDate(sheet.end, project.plannedEnd) && span.end > project.plannedEnd)) &&
+    (!typedStart || span.end >= typedStart)
+  ) {
     data.plannedEnd = span.end
-    filled.push(`Ende ${fmtDate(span.end)}`)
+    taken.end = span.end
   }
-  if (project.price == null && job.amount > 0) {
-    data.price = job.amount
-    filled.push(`Auftragswert ${job.amount.toLocaleString('de-DE')} €`)
+  if (job.amount > 0 && (project.price == null || isSheetPrice(sheet.price, Number(project.price)))) {
+    // A sheet amount is the sum of every line tied to the project, never a
+    // running total: tying, untying and tying again lands on the same figure.
+    const tied = await db.planEntry.aggregate({
+      where: { projectId, id: { notIn: job.lineIds } },
+      _sum: { amount: true },
+    })
+    data.price = Number(tied._sum.amount ?? 0) + job.amount
+    taken.price = data.price
   }
   data.isSub = job.isSub
-  if (filled.length) {
-    const note = `${NOTE_START}${stamp}: ${filled.join(', ')}${NOTE_END}`
+  if (Object.keys(taken).length) {
+    const note = planNote(stamp, taken)
     data.description = project.description ? `${project.description}\n\n${note}` : note
   }
 
@@ -84,42 +99,61 @@ async function applyJob(job: PlanJob, projectId: string, stamp: string): Promise
 }
 
 /**
- * The reverse of applyJob, for a project whose last lines are being untied:
- * whatever still reads exactly as the sheet gave it — start, end, amount —
- * goes back to empty, and the note goes with it. A value the office has
- * changed since is theirs and stays. This is what lets the links of a year
- * be cleared and the matching started over without leaving figures behind.
+ * The reverse of applyJob, after lines were untied from a project: whatever
+ * the notes say the sheet gave — start, end, amount — is worked out afresh
+ * from the lines the project still has, or goes back to empty when none are
+ * left; the old notes go, one fresh note says what stands now. A value the
+ * office typed in is theirs and stays. This is what lets the links of a
+ * year be cleared and the matching started over without figures left behind.
  */
-async function takeBack(projectId: string, lines: PlanLine[]): Promise<void> {
+async function takeBack(projectId: string, stamp: string): Promise<void> {
   const project = await db.project.findUnique({
     where: { id: projectId },
-    select: { plannedStart: true, plannedEnd: true, price: true, description: true },
+    select: {
+      plannedStart: true,
+      plannedEnd: true,
+      price: true,
+      description: true,
+      planEntries: {
+        where: { month: { not: null } },
+        select: { id: true, year: true, month: true, name: true, amount: true, isSub: true },
+      },
+    },
   })
-  const jobs = groupPlanJobs(lines)
-  if (!project || jobs.length === 0) return
-  const job = mergeJobs(jobs)
-  const span = jobSpan(job)
+  if (!project) return
+  const sheet = sheetFigures(project.description)
+  const jobs = groupPlanJobs(project.planEntries.map((l) => ({ ...l, amount: Number(l.amount) })))
+  const left = jobs.length ? mergeJobs(jobs) : null
+  const span = left ? jobSpan(left) : null
+  const taken: { start?: Date; end?: Date; price?: number } = {}
   const data: {
-    plannedStart?: null
-    plannedEnd?: null
-    price?: null
+    plannedStart?: Date | null
+    plannedEnd?: Date | null
+    price?: number | null
     description?: string | null
   } = {}
-  if (project.plannedStart && project.plannedStart.getTime() === span.start.getTime()) {
-    data.plannedStart = null
+  // The same crossing rule as applyJob: a sheet date never steps over a
+  // date the office typed; where it would, it goes empty instead.
+  const typedStart = !isSheetDate(sheet.start, project.plannedStart) ? project.plannedStart : null
+  const typedEnd = !isSheetDate(sheet.end, project.plannedEnd) ? project.plannedEnd : null
+  if (isSheetDate(sheet.start, project.plannedStart)) {
+    const fits = span && (!typedEnd || span.start <= typedEnd)
+    data.plannedStart = fits ? span!.start : null
+    if (fits) taken.start = span!.start
   }
-  if (project.plannedEnd && project.plannedEnd.getTime() === span.end.getTime()) {
-    data.plannedEnd = null
+  if (isSheetDate(sheet.end, project.plannedEnd)) {
+    const fits = span && (!typedStart || span.end >= typedStart)
+    data.plannedEnd = fits ? span!.end : null
+    if (fits) taken.end = span!.end
   }
-  if (project.price != null && Number(project.price) === job.amount) data.price = null
-  if (project.description?.includes(NOTE_START)) {
-    const kept = project.description
-      .split('\n\n')
-      .filter((p) => !(p.startsWith(NOTE_START) && p.endsWith(NOTE_END)))
-      .join('\n\n')
-    data.description = kept || null
+  if (project.price != null && isSheetPrice(sheet.price, Number(project.price))) {
+    data.price = left && left.amount > 0 ? left.amount : null
+    if (data.price != null) taken.price = data.price
   }
-  if (Object.keys(data).length) await db.project.update({ where: { id: projectId }, data })
+  const kept = withoutPlanNotes(project.description)
+  const note = Object.keys(taken).length ? planNote(stamp, taken) : null
+  data.description = note ? (kept ? `${kept}\n\n${note}` : note) : kept
+  await db.project.update({ where: { id: projectId }, data })
 }
 
 /**
@@ -264,14 +298,8 @@ export async function unlinkPlanJob(lineIds: string[]): Promise<{ error?: string
   })
   const projectIds = [...new Set(rows.map((r) => r.projectId!))]
   await db.planEntry.updateMany({ where: { id: { in: lineIds } }, data: { projectId: null } })
-  for (const projectId of projectIds) {
-    const left = await db.planEntry.count({ where: { projectId } })
-    if (left > 0) continue
-    await takeBack(
-      projectId,
-      rows.filter((r) => r.projectId === projectId).map((r) => ({ ...r, amount: Number(r.amount) }))
-    )
-  }
+  const stamp = fmtDate(new Date())
+  for (const projectId of projectIds) await takeBack(projectId, stamp)
   await audit({
     userId: user.id,
     action: 'unlink',
@@ -299,14 +327,8 @@ export async function clearPlanLinks(year: number): Promise<{ cleared: number }>
     data: { projectId: null },
   })
   const projectIds = [...new Set(linked.map((l) => l.projectId!))]
-  for (const projectId of projectIds) {
-    const left = await db.planEntry.count({ where: { projectId } })
-    if (left > 0) continue
-    await takeBack(
-      projectId,
-      linked.filter((l) => l.projectId === projectId).map((l) => ({ ...l, amount: Number(l.amount) }))
-    )
-  }
+  const stamp = fmtDate(new Date())
+  for (const projectId of projectIds) await takeBack(projectId, stamp)
   await audit({
     userId: user.id,
     action: 'unlink',
