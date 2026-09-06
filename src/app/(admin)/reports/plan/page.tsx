@@ -5,8 +5,18 @@ import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { orderValue } from '@/lib/reports'
 import { formatCurrency } from '@/lib/format'
-import { groupPlanJobs, matchProjectsToJobs, type JobProject, type PlanJob } from '@/lib/plan-jobs'
+import {
+  groupPlanJobs,
+  matchProjectsToJobs,
+  mergeJobs,
+  type JobProject,
+  type PlanJob,
+  type PlanLine,
+} from '@/lib/plan-jobs'
 import { PlanTable, type JobRow } from './plan-table'
+
+/** Statuses that mean the work is behind us. */
+const DONE = new Set(['COMPLETED', 'INVOICED', 'PAID'])
 
 export default async function PlanMatchPage({
   searchParams,
@@ -37,12 +47,20 @@ export default async function PlanMatchPage({
   const year = yearParam && /^\d{4}$/.test(yearParam) ? Number(yearParam) : currentYear
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
   const monthFmt = new Intl.DateTimeFormat(intl, { month: 'short', timeZone: 'UTC' })
-  const monthLabel = (m: number) => monthFmt.format(new Date(Date.UTC(year, m - 1, 1)))
+  const monthYearFmt = new Intl.DateTimeFormat(intl, {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+  const monthLabel = (y: number, m: number) => monthFmt.format(new Date(Date.UTC(y, m - 1, 1)))
+  const monthYear = (y: number, m: number) => monthYearFmt.format(new Date(Date.UTC(y, m - 1, 1)))
 
-  const [lines, otherFree, projects, years] = await Promise.all([
+  // Every year's lines: a job that runs over New Year is one job, and a site
+  // with a job in two years must be offered both, not quietly given this one.
+  const [allLines, projects, years] = await Promise.all([
     db.planEntry.findMany({
-      where: { year, month: { not: null } },
-      orderBy: [{ month: 'asc' }, { name: 'asc' }],
+      where: { month: { not: null } },
+      orderBy: [{ year: 'asc' }, { month: 'asc' }, { name: 'asc' }],
       select: {
         id: true,
         year: true,
@@ -61,63 +79,78 @@ export default async function PlanMatchPage({
         },
       },
     }),
-    // The other years' free lines take part in matching too: a site that has
-    // a job in two years must be offered both, not quietly given this one.
-    db.planEntry.findMany({
-      where: { year: { not: year }, projectId: null, month: { not: null } },
-      select: { id: true, year: true, month: true, name: true, amount: true, isSub: true },
-    }),
     db.project.findMany({
       where: { status: { not: 'CANCELLED' } },
       select: {
         id: true,
         number: true,
         name: true,
+        status: true,
         sourceCreatedAt: true,
         createdAt: true,
         customer: { select: { name: true } },
-        planEntries: { select: { id: true }, take: 1 },
+        planEntries: {
+          where: { month: { not: null } },
+          select: { id: true, year: true, month: true, name: true, amount: true, isSub: true },
+        },
       },
       orderBy: { number: 'desc' },
     }),
     db.planEntry.groupBy({ by: ['year'], orderBy: { year: 'desc' } }),
   ])
 
-  // Lines fold into jobs; a job is linked when its lines point at a project.
-  const free = groupPlanJobs(
-    lines.filter((l) => !l.project).map((l) => ({ ...l, amount: Number(l.amount) }))
-  )
-  const linkedByProject = new Map<string, { lines: typeof lines; job: PlanJob }>()
+  const lines = allLines.filter((l) => l.year === year)
+  const asLine = (l: {
+    id: string
+    year: number
+    month: number | null
+    name: string
+    amount: number | { toString(): string }
+    isSub: boolean
+  }): PlanLine => ({
+    id: l.id,
+    year: l.year,
+    month: l.month,
+    name: l.name,
+    amount: Number(l.amount),
+    isSub: l.isSub,
+  })
+
+  // Lines fold into jobs; this year's page shows the jobs that touch it.
+  const freeAll = groupPlanJobs(allLines.filter((l) => !l.project).map(asLine))
+  const free = freeAll.filter((j) => j.year <= year && year <= j.endYear)
+
+  // A linked project's lines, whatever year they sit in, shown as one job.
+  const linkedByProject = new Map<string, { lines: typeof allLines; job: PlanJob }>()
   for (const [pid, group] of Map.groupBy(
-    lines.filter((l) => l.project),
+    allLines.filter((l) => l.project),
     (l) => l.project!.id
   )) {
-    const [job] = groupPlanJobs(group.map((l) => ({ ...l, amount: Number(l.amount) })))
-    if (job) linkedByProject.set(pid, { lines: group, job })
+    if (!group.some((l) => l.year === year)) continue
+    const jobs = groupPlanJobs(group.map(asLine))
+    if (jobs.length) linkedByProject.set(pid, { lines: group, job: mergeJobs(jobs) })
   }
 
   // Which free projects could each free job belong to? Run the matcher once,
   // then read it backwards so every job row can offer its candidates.
-  const freeProjects: JobProject[] = projects
-    .filter((p) => p.planEntries.length === 0)
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      customer: p.customer.name,
-      sourceCreatedAt: p.sourceCreatedAt,
-      createdAt: p.createdAt,
-    }))
-  const allFree = [
-    ...free,
-    ...groupPlanJobs(otherFree.map((l) => ({ ...l, amount: Number(l.amount) }))),
-  ]
-  const matches = matchProjectsToJobs(freeProjects, allFree)
+  // Every project takes part: one tied to lines already claims nothing new,
+  // but it takes the phase next to what it has and keeps a namesake off it.
+  const matchable: JobProject[] = projects.map((p) => ({
+    id: p.id,
+    name: p.name,
+    customer: p.customer.name,
+    sourceCreatedAt: p.sourceCreatedAt,
+    createdAt: p.createdAt,
+    done: DONE.has(p.status),
+    linked: p.planEntries.length ? groupPlanJobs(p.planEntries.map(asLine)) : undefined,
+  }))
+  const matches = matchProjectsToJobs(matchable, freeAll)
   const jobId = (j: PlanJob) => `${j.year}|${j.key}`
   const suggestionsFor = new Map<string, Array<{ projectId: string; sure: boolean }>>()
   for (const m of matches) {
-    if (m.sure) suggestionsFor.set(jobId(m.sure), [{ projectId: m.projectId, sure: true }])
+    for (const s of m.sure) suggestionsFor.set(jobId(s), [{ projectId: m.projectId, sure: true }])
     for (const c of m.candidates) {
-      if (m.sure && jobId(c) === jobId(m.sure)) continue
+      if (m.sure.includes(c)) continue
       const list = suggestionsFor.get(jobId(c)) ?? []
       if (list.length < 3 && !list.some((x) => x.projectId === m.projectId)) {
         list.push({ projectId: m.projectId, sure: false })
@@ -127,17 +160,22 @@ export default async function PlanMatchPage({
   }
   const projectLabel = new Map(projects.map((p) => [p.id, `${p.number} — ${p.name}`]))
 
-  const span = (j: PlanJob) =>
-    j.months.length === 1
-      ? monthLabel(j.months[0])
-      : `${monthLabel(j.months[0])}–${monthLabel(j.months[j.months.length - 1])}`
+  // "Mär", "Mär–Mai", or "Nov 2025–Feb 2026" when the job runs over New Year.
+  const span = (j: PlanJob) => {
+    const first = j.months[0]
+    const last = j.months[j.months.length - 1]
+    if (j.year !== j.endYear) return `${monthYear(j.year, first)}–${monthYear(j.endYear, last)}`
+    return first === last ? monthLabel(j.year, first) : `${monthLabel(j.year, first)}–${monthLabel(j.year, last)}`
+  }
+  // Where the job sits in this year's list: at the top when it came over from last year.
+  const firstMonthIn = (j: PlanJob) => (j.year < year ? 1 : j.months[0])
 
   const rows: JobRow[] = [
     ...free.map((j) => ({
       key: jobId(j),
       lineIds: j.lineIds,
       span: span(j),
-      firstMonth: j.months[0],
+      firstMonth: firstMonthIn(j),
       name: j.names.join(' / '),
       amount: j.amount,
       isSub: j.isSub,
@@ -153,7 +191,7 @@ export default async function PlanMatchPage({
       key: `linked|${pid}`,
       lineIds: group.map((l) => l.id),
       span: span(job),
-      firstMonth: job.months[0],
+      firstMonth: firstMonthIn(job),
       name: job.names.join(' / '),
       amount: job.amount,
       isSub: job.isSub,
@@ -168,9 +206,10 @@ export default async function PlanMatchPage({
     })),
   ].sort((a, b) => a.firstMonth - b.firstMonth || a.name.localeCompare(b.name))
 
-  const plannedTotal = rows.reduce((s, r) => s + r.amount, 0)
+  // The figures are this year's alone; a row may show a job that runs beyond it.
+  const plannedTotal = lines.reduce((s, l) => s + Number(l.amount), 0)
   const openRows = rows.filter((r) => !r.linked)
-  const openTotal = openRows.reduce((s, r) => s + r.amount, 0)
+  const openTotal = lines.filter((l) => !l.project).reduce((s, l) => s + Number(l.amount), 0)
   const sureCount = openRows.filter((r) => r.suggestions.some((s) => s.sure)).length
   const money = (v: number) => formatCurrency(v, locale)
   const yearOptions = years.map((y) => ({ value: String(y.year), label: String(y.year) }))
@@ -213,9 +252,8 @@ export default async function PlanMatchPage({
       <PlanTable
         year={year}
         rows={rows}
-        projects={projects
-          .filter((p) => p.planEntries.length === 0)
-          .map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+        // Any project may take another line: a job done in phases has several.
+        projects={projects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
         sureCount={sureCount}
         linkedCount={rows.length - openRows.length}
       />

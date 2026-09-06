@@ -13,6 +13,7 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { deleteProject, setProjectStatus } from '../actions'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
 import { PlanEntryButton } from './plan-entry-button'
+import { MergeButton } from './merge-button'
 import { ChecklistSection } from './checklist-section'
 import { FilesCard } from './files-card'
 import { btn } from '@/components/ui/button'
@@ -89,7 +90,7 @@ export default async function ProjectDetailPage({
   })
   if (!project) notFound()
 
-  const [allEmployees, allVehicles, checklistTemplates] = await Promise.all([
+  const [allEmployees, allVehicles, checklistTemplates, otherProjects] = await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
     db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     db.checklistTemplate.findMany({
@@ -97,6 +98,14 @@ export default async function ProjectDetailPage({
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true },
     }),
+    // What a duplicate could be folded into this one — admins only.
+    user.role === 'ADMIN'
+      ? db.project.findMany({
+          where: { id: { not: project.id }, status: { not: 'CANCELLED' } },
+          orderBy: { number: 'desc' },
+          select: { id: true, number: true, name: true },
+        })
+      : Promise.resolve([]),
   ])
   const assignedItemIds = new Set(project.items.map((i) => i.catalogItemId))
   const catalogOptions = (
@@ -180,11 +189,17 @@ export default async function ProjectDetailPage({
             {tc('edit')}
           </Link>
           {user.role === 'ADMIN' && (
-            <DeleteButton
-              action={deleteProject.bind(null, project.id)}
-              label={tc('delete')}
-              confirmMessage={t('deleteConfirm')}
-            />
+            <>
+              <MergeButton
+                projectId={project.id}
+                projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+              />
+              <DeleteButton
+                action={deleteProject.bind(null, project.id)}
+                label={tc('delete')}
+                confirmMessage={t('deleteConfirm')}
+              />
+            </>
           )}
         </div>
       </div>

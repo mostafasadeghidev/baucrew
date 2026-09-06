@@ -241,6 +241,11 @@
     "scheduleTitle": "Planned assignments",
     "noScheduleEntries": "No assignments planned yet.",
     "deleteConfirm": "Really delete this project? All related assignments and lists will be removed as well.",
+    "merge": "Merge",
+    "mergeHint": "Fold a project that was entered twice into this one: assignments, team, vehicles, material, lists, files, notes, times and plan lines move here, gaps in the master data are filled from the other, and the other project is deleted.",
+    "mergePick": "Pick the duplicate …",
+    "mergeConfirm": "Fold \"{project}\" into this project and delete it afterwards?",
+    "mergeDone": "Merged.{conflicts, plural, =0 {} one { # assignment on the same day existed here already and was left out.} other { # assignments on the same day existed here already and were left out.}}",
     "notSet": "—",
     "nameRequired": "Please enter a project name.",
     "customerRequired": "Please select a customer.",
@@ -1124,6 +1129,10 @@
     "kpiOpenJobs": "{count, plural, one {# site} other {# sites}} open",
     "reconcile": "Apply {count, plural, one {# sure match} other {# sure matches}}",
     "reconcileDone": "{applied, plural, one {# project} other {# projects}} given start, end and order value from the sheet · {choices} need a decision · {unmatched} without a match this year.",
-    "monthsCount": "{count} months"
+    "monthsCount": "{count} months",
+    "exportLinks": "Export links",
+    "importLinks": "Import links",
+    "importDone": "{applied, plural, one {# line} other {# lines}} linked · {alreadyLinked} were linked already · {missingProject} without a matching project · {missingLine} without a matching line.",
+    "importInvalid": "This is not a links file from the plan match."
   }
 }

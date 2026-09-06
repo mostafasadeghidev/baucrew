@@ -600,3 +600,126 @@ export async function removeProjectAddOn(projectId: string, addOnId: string): Pr
   revalidatePath('/reports')
   return {}
 }
+
+// ── Two records, one project ─────────────────────────────────
+
+export type MergeResult = {
+  error?: 'notFound' | 'same' | 'saveFailed'
+  /** Assignments left behind: the kept project already had one on that day. */
+  conflicts?: number
+}
+
+/**
+ * Folds one project into another. Everything that hangs on the dropped
+ * project moves to the kept one; the kept one takes over what it lacks —
+ * the board card it came from above all, so the next import updates it
+ * instead of creating the duplicate again — and the dropped one is deleted.
+ * A project has one assignment per day, so an assignment on a day the kept
+ * project already has stays behind and is reported.
+ */
+export async function mergeProjects(keepId: string, dropId: string): Promise<MergeResult> {
+  const user = await requireAdmin()
+  if (keepId === dropId) return { error: 'same' }
+  const [keep, drop] = await Promise.all([
+    db.project.findUnique({ where: { id: keepId } }),
+    db.project.findUnique({ where: { id: dropId } }),
+  ])
+  if (!keep || !drop) return { error: 'notFound' }
+
+  const [cats, team, vehicles, devices, items, days] = await Promise.all([
+    db.projectWorkCategory.findMany({ where: { projectId: keepId }, select: { workCategoryId: true } }),
+    db.projectEmployee.findMany({ where: { projectId: keepId }, select: { employeeId: true } }),
+    db.projectVehicle.findMany({ where: { projectId: keepId }, select: { vehicleId: true } }),
+    db.projectDevice.findMany({ where: { projectId: keepId }, select: { deviceId: true } }),
+    db.projectItem.findMany({ where: { projectId: keepId }, select: { catalogItemId: true } }),
+    db.scheduleEntry.findMany({ where: { projectId: keepId }, select: { date: true } }),
+  ])
+  const keepDays = days.map((d) => d.date)
+  const conflicts = await db.scheduleEntry.count({ where: { projectId: dropId, date: { in: keepDays } } })
+
+  const from = `${drop.number} ${drop.name}`
+  const joined = (mine: string | null, theirs: string | null) =>
+    theirs ? `${mine ? `${mine}\n\n` : ''}--- ${from} ---\n${theirs}` : mine
+
+  try {
+    await db.$transaction([
+      db.projectWorkCategory.updateMany({
+        where: { projectId: dropId, workCategoryId: { notIn: cats.map((c) => c.workCategoryId) } },
+        data: { projectId: keepId },
+      }),
+      db.projectEmployee.updateMany({
+        where: { projectId: dropId, employeeId: { notIn: team.map((t) => t.employeeId) } },
+        data: { projectId: keepId },
+      }),
+      db.projectVehicle.updateMany({
+        where: { projectId: dropId, vehicleId: { notIn: vehicles.map((v) => v.vehicleId) } },
+        data: { projectId: keepId },
+      }),
+      db.projectDevice.updateMany({
+        where: { projectId: dropId, deviceId: { notIn: devices.map((d) => d.deviceId) } },
+        data: { projectId: keepId },
+      }),
+      db.projectItem.updateMany({
+        where: { projectId: dropId, catalogItemId: { notIn: items.map((i) => i.catalogItemId) } },
+        data: { projectId: keepId },
+      }),
+      db.scheduleEntry.updateMany({
+        where: { projectId: dropId, date: { notIn: keepDays } },
+        data: { projectId: keepId },
+      }),
+      db.projectAddOn.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.note.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.document.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.projectChecklist.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.timeEntry.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.deviceAssignment.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.planEntry.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.project.update({
+        where: { id: keepId },
+        data: {
+          externalSystem: keep.externalSystem ?? drop.externalSystem,
+          externalId: keep.externalId ?? drop.externalId,
+          externalUrl: keep.externalUrl ?? drop.externalUrl,
+          sourceCreatedAt: keep.sourceCreatedAt ?? drop.sourceCreatedAt,
+          clientType: keep.clientType ?? drop.clientType,
+          buildingType: keep.buildingType ?? drop.buildingType,
+          priority: keep.priority ?? drop.priority,
+          leadSource: keep.leadSource ?? drop.leadSource,
+          street: keep.street ?? drop.street,
+          city: keep.city ?? drop.city,
+          postalCode: keep.postalCode ?? drop.postalCode,
+          latitude: keep.latitude ?? drop.latitude,
+          longitude: keep.longitude ?? drop.longitude,
+          phone: keep.phone ?? drop.phone,
+          contact: keep.contact ?? drop.contact,
+          price: keep.price ?? drop.price,
+          isSub: keep.isSub || drop.isSub,
+          plannedStart: keep.plannedStart ?? drop.plannedStart,
+          plannedEnd: keep.plannedEnd ?? drop.plannedEnd,
+          actualStart: keep.actualStart ?? drop.actualStart,
+          actualEnd: keep.actualEnd ?? drop.actualEnd,
+          managerId: keep.managerId ?? drop.managerId,
+          description: joined(keep.description, drop.description),
+          internalNotes: joined(keep.internalNotes, drop.internalNotes),
+        },
+      }),
+      db.project.delete({ where: { id: dropId } }),
+    ])
+  } catch (e) {
+    console.error('merge failed', e)
+    return { error: 'saveFailed' }
+  }
+
+  await audit({
+    userId: user.id,
+    action: 'project.merge',
+    entity: 'Project',
+    entityId: keepId,
+    oldValue: from,
+    newValue: `${keep.number} ${keep.name}`,
+  })
+  for (const path of ['/projects', `/projects/${keepId}`, '/schedule', '/reports', '/reports/plan']) {
+    revalidatePath(path)
+  }
+  return { conflicts }
+}

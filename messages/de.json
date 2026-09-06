@@ -241,6 +241,11 @@
     "scheduleTitle": "Geplante Einsätze",
     "noScheduleEntries": "Noch keine Einsätze geplant.",
     "deleteConfirm": "Dieses Projekt wirklich löschen? Alle zugehörigen Einsätze und Listen werden mit entfernt.",
+    "merge": "Zusammenführen",
+    "mergeHint": "Ein doppelt angelegtes Projekt in dieses aufnehmen: Einsätze, Team, Fahrzeuge, Material, Listen, Dateien, Notizen, Zeiten und Planzeilen wandern hierher, Lücken in den Stammdaten werden aus dem anderen gefüllt, und das andere Projekt wird gelöscht.",
+    "mergePick": "Doppeltes Projekt wählen …",
+    "mergeConfirm": "„{project}“ in dieses Projekt aufnehmen und danach löschen?",
+    "mergeDone": "Zusammengeführt.{conflicts, plural, =0 {} one { # Einsatz am selben Tag gab es hier schon und blieb außen vor.} other { # Einsätze am selben Tag gab es hier schon und blieben außen vor.}}",
     "notSet": "—",
     "nameRequired": "Bitte einen Projektnamen angeben.",
     "customerRequired": "Bitte einen Kunden auswählen.",
@@ -1124,6 +1129,10 @@
     "kpiOpenJobs": "{count, plural, one {# Baustelle} other {# Baustellen}} offen",
     "reconcile": "{count, plural, one {# sichere Zuordnung} other {# sichere Zuordnungen}} übernehmen",
     "reconcileDone": "{applied, plural, one {# Projekt} other {# Projekte}} mit Termin und Auftragswert aus der Tabelle versorgt · {choices} brauchen eine Entscheidung · {unmatched} ohne Treffer in diesem Jahr.",
-    "monthsCount": "{count} Monate"
+    "monthsCount": "{count} Monate",
+    "exportLinks": "Zuordnungen exportieren",
+    "importLinks": "Zuordnungen importieren",
+    "importDone": "{applied, plural, one {# Zeile} other {# Zeilen}} verknüpft · {alreadyLinked} waren schon verknüpft · {missingProject} ohne passendes Projekt · {missingLine} ohne passende Zeile.",
+    "importInvalid": "Das ist keine Zuordnungsdatei aus dem Planabgleich."
   }
 }

@@ -1,13 +1,22 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { formatCurrency } from '@/lib/format'
 import { btn } from '@/components/ui/button'
-import { clearPlanLinks, linkPlanJob, reconcilePlan, unlinkPlanJob, type ReconcileResult } from './actions'
+import {
+  clearPlanLinks,
+  exportPlanLinks,
+  importPlanLinks,
+  linkPlanJob,
+  reconcilePlan,
+  unlinkPlanJob,
+  type LinkImportResult,
+  type ReconcileResult,
+} from './actions'
 
 export type JobRow = {
   key: string
@@ -47,6 +56,33 @@ export function PlanTable({
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState(false)
   const [result, setResult] = useState<ReconcileResult | null>(null)
+  const [imported, setImported] = useState<LinkImportResult | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  // The links as a file: decided once, carried to the next installation.
+  function exportLinks() {
+    setError(false)
+    startTransition(async () => {
+      const text = await exportPlanLinks()
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `planabgleich-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    })
+  }
+
+  function importLinks(file: File) {
+    setError(false)
+    setResult(null)
+    setImported(null)
+    startTransition(async () => {
+      const res = await importPlanLinks(await file.text())
+      setImported(res)
+      router.refresh()
+    })
+  }
 
   function link(row: JobRow, projectId: string) {
     setError(false)
@@ -102,6 +138,30 @@ export function PlanTable({
             {t('clearAll', { count: linkedCount })}
           </button>
         )}
+        {linkedCount > 0 && (
+          <button type="button" onClick={exportLinks} disabled={pending} className={btn.outline}>
+            {t('exportLinks')}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={pending}
+          className={btn.outline}
+        >
+          {t('importLinks')}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) importLinks(file)
+            e.target.value = ''
+          }}
+        />
         {pending && <span className="text-sm text-muted">{tc('loading')}</span>}
       </div>
 
@@ -110,6 +170,21 @@ export function PlanTable({
           {t('reconcileDone', result)}
         </p>
       )}
+      {imported &&
+        (imported.invalid ? (
+          <p role="alert" className="text-sm text-danger">
+            {t('importInvalid')}
+          </p>
+        ) : (
+          <p className="rounded-md border border-emerald-600/40 bg-emerald-500/10 px-3 py-2 text-sm">
+            {t('importDone', {
+              applied: imported.applied,
+              alreadyLinked: imported.alreadyLinked,
+              missingProject: imported.missingProject,
+              missingLine: imported.missingLine,
+            })}
+          </p>
+        ))}
       {error && (
         <p role="alert" className="text-sm text-danger">
           {tc('saveFailed')}

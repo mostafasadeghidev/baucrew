@@ -3,6 +3,48 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.31.0] — 2026-09-06
+
+### Added — the plan match finishes what a person started
+- **Jobs over New Year are one job.** A site still going in November or
+  December and picking up in January or February is one row with one span
+  (*Nov 2025–Feb 2026*) and one sum, not two halves in two years.
+- **Phases go together.** A customer whose jobs no other project could be,
+  a few months apart and named with nothing but the project's own words
+  (*Innenputz* in November, *Maler* and *Fassade* in spring), has one project
+  doing them in phases — that project takes them all. Not for a council or a
+  school, whose "jobs" are different buildings; not for two people who share
+  a surname. A project already tied to lines takes the phase next to what it
+  has, and keeps a namesake from taking it.
+- **Sure means sure, decided better.** Dates rule out what they can: a job
+  that was over months before its card existed, and a job still ahead for
+  work that is finished. Ties are broken by wording (*Restarbeiten* goes to
+  the card that says so); once a job is surely taken, another project may be
+  left with one, and gets it. A job named with a project's whole name is that
+  project's. A name that is nothing but a first name is read as the surname
+  it is; a street without its ending (*Muster* for *Musterstraße*) as the
+  street.
+- **Links as a file.** *Zuordnungen exportieren* writes every link to a
+  file; *importieren* applies it on another installation — a line is found
+  by year, month, wording and amount, a project by the board card it came
+  from or by its number and name. Decisions made once are not made twice.
+- **Zusammenführen** on the project page (admins): a project entered twice
+  is folded into the one kept — assignments, team, vehicles, material,
+  lists, files, notes, times and plan lines move over, gaps in the master
+  data are filled from the other, the board card's identity comes along so
+  the next import updates the kept project, and the other is deleted. An
+  assignment on a day the kept project already has stays behind and is
+  reported.
+
+### Changed
+- Untying a project's last line takes back what the sheet gave it — start,
+  end and amount, where they still read exactly so — and drops the note, so
+  a year's links can be cleared and the matching started over without
+  figures left behind. The project picker on the plan page offers every
+  project, not only the ones without a line.
+- The plan page's figures are the year's alone; a row may show a job that
+  runs beyond it.
+
 ## [1.30.0] — 2026-09-06
 
 ### Added — the planning sheet and the board, stitched together
@@ -21,7 +63,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   projects both claim goes to neither; and a project can only match a job of
   its own year or the next (the card's creation year — the importer now keeps
   it as `sourceCreatedAt`). The office's habit of shortening a town to its
-  first letter and ending (*Hbach*) is understood.
+  first letter and ending (*Mbach*) is understood.
 - **The rest is offered, never applied:** every open job lists the projects it
   could belong to, ✓ for the one the matcher would pick, ? for the others.
 - **Datenqualität checks for a missing planned start** — the one gap behind

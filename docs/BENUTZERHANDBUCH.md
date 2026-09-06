@@ -664,9 +664,30 @@ Die Reiter:
   Vorschlag. Sicher heißt streng: Wörter wie *Fassade*, *Innenputz*, Vornamen oder *Gemeinde*
   zählen nie; zwei Personen mit gleichem Nachnamen sind zwei Personen; eine Baustelle, die zu
   zwei Projekten passt, bekommt keines; und ein Projekt passt nur zu einer Baustelle seines
-  eigenen Jahres oder des folgenden. Abgekürzte Orte („Hbach“) werden erkannt.
+  eigenen Jahres oder des folgenden. Abgekürzte Orte („Mbach“) werden erkannt.
+  Eine Baustelle, die im November oder Dezember noch läuft und im Januar oder Februar
+  weitergeht, ist **eine** Zeile über den Jahreswechsel (*Nov. 2025–Feb. 2026*). Hat ein
+  Kunde mehrere Baustellen kurz hintereinander, die nur mit den Wörtern des Projekts benannt
+  sind (*Innenputz* im November, *Maler* und *Fassade* im Frühjahr), und kommt kein anderes
+  Projekt dafür in Frage, gelten sie als **Phasen** desselben Projekts und werden zusammen
+  übernommen — nicht bei Gemeinden und Schulen (das sind verschiedene Gebäude) und nicht bei
+  zwei Personen gleichen Nachnamens. Ein Projekt, das schon Zeilen hat, nimmt die Phase
+  direkt daneben dazu.
   Auf der Projektseite erscheint danach die Zeile **Planumsatz** mit der Abweichung. Ein
-  erneuter Import der Tabelle **behält die Verknüpfungen**.
+  erneuter Import der Tabelle **behält die Verknüpfungen**. **Lösen** nimmt dem Projekt
+  zurück, was die Tabelle ihm gegeben hatte, sofern es noch unverändert ist.
+  **Zuordnungen exportieren** schreibt alle Verknüpfungen in eine Datei; **importieren**
+  wendet sie auf einer anderen Installation an (Testserver → Produktion): eine Zeile wird
+  über Jahr, Monat, Wortlaut und Betrag gefunden, ein Projekt über die Karte, aus der es
+  kam, sonst über Nummer und Name. Schon verknüpfte Zeilen bleiben, wie sie sind.
+
+- **Zusammenführen** (Projektseite, nur Admin): Ein doppelt angelegtes Projekt — etwa von
+  Hand erfasst und später noch einmal aus dem Board importiert — wird in das geöffnete
+  aufgenommen: Einsätze, Team, Fahrzeuge, Material, Listen, Dateien, Notizen, Zeiten und
+  Planzeilen wandern hierher, Lücken in den Stammdaten werden aus dem anderen gefüllt, die
+  Kennung der Board-Karte kommt mit (der nächste Import aktualisiert dann das behaltene
+  Projekt), und das andere wird gelöscht. Ein Einsatz an einem Tag, den das behaltene Projekt
+  schon hat, bleibt außen vor und wird gemeldet.
 
 - **Projekte:** *Abgeschlossene Projekte — Plan vs. Ist* — geplante Arbeitstage gegen tatsächliche Einsatztage, Personentage und **€ pro Personentag** (Auftragswert ÷ Personentage — zeigt ohne jede Kostenerfassung, welche Projekte sich lohnen). *Verzug (Ende)* nur, wenn „Ende (tatsächlich)“ eingetragen ist.
 
