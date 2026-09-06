@@ -167,24 +167,27 @@ model WorkCategory {
 }
 
 model Project {
-  id             String        @id @default(cuid())
+  id              String        @id @default(cuid())
   // Human-readable sequential number, e.g. "2026-0048"
-  number         String        @unique
-  name           String
-  customerId     String
-  customer       Customer      @relation(fields: [customerId], references: [id])
-  status         ProjectStatus @default(LEAD)
+  number          String        @unique
+  name            String
+  customerId      String
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  status          ProjectStatus @default(LEAD)
   // Configurable in Settings (AppSetting `clientTypes` / `buildingTypes`)
-  clientType     String?
-  buildingType   String?
+  clientType      String?
+  buildingType    String?
   /// empty = normal, HIGH | LOW
-  priority       String?
+  priority        String?
   /// Where the request came from — configurable list in Settings.
-  leadSource     String?
+  leadSource      String?
   /// Link back to the source record (board card, import row …).
-  externalSystem String?
-  externalId     String?
-  externalUrl    String?
+  externalSystem  String?
+  externalId      String?
+  externalUrl     String?
+  /// When the record came into being in the source system — a board card's
+  /// creation time, for instance. Not the import time (that is createdAt).
+  sourceCreatedAt DateTime?
 
   // Site address (may differ from customer address)
   street     String?

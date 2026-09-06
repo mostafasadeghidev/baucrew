@@ -644,21 +644,29 @@ Buchungen **nachgetragen**, damit man sie von den gestoppten unterscheiden kann.
 Die Reiter:
 
 - **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in vier Stufen (*Angebote offen* · *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*), das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr) und daneben der **Quartalsring**: Q1 bis Q4 als Kreis mit der Jahressumme in der Mitte — ein Blick genügt, um zu sehen, welches Quartal trägt. Ist eine **Jahresplanung** eingelesen, liegt im Monatsdiagramm über jedem Monat zusätzlich eine **gestrichelte Linie** auf Höhe des Planumsatzes.
-- **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt). Ist eine **Jahresplanung** eingelesen (Kapitel 15), steht unter jeder Monatskarte zusätzlich der **Plan** und die Abweichung — grün, sobald der Plan erreicht ist, sonst gelb. Oben rechts dasselbe für den ganzen Zeitraum. Baustellen, die in der Tabelle noch auf keinen Monat gelegt sind (Spalte *Baustellen für <Jahr>*), stehen als eigene Zeile unter der Überschrift — sie gehören zu keiner Monatskarte. Für ein Jahr, aus dem in BauCrew noch keine Projekte erfasst sind, gilt die Tabelle als **Rückblick**: die Monatskarten listen dann die Baustellen und Beträge aus der Tabelle, getrennt nach eigenen Leuten und SUB, und diese Summen zählen für den **Vorjahresvergleich** mit. Ein Hinweis nennt die Quelle. Sobald für so ein Jahr ein Projekt angelegt wird, zeigt es wieder die echten Zahlen — es gibt dafür nichts einzustellen. Auslastung, Kunden und Datenqualität bleiben für solche Jahre leer, weil es dazu keine erfassten Daten gibt.
+- **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt).
+  Projekte **ohne geplanten Start** gehören zu keinem Monat: sie stehen in einer eigenen Karte
+  *Ohne Termin* mit ihrer Summe und zählen erst in die Monate und die Jahressumme, wenn ein
+  Termin eingetragen ist — unter *Datenqualität* sind sie alle aufgeführt. Ist eine **Jahresplanung** eingelesen (Kapitel 15), steht unter jeder Monatskarte zusätzlich der **Plan** und die Abweichung — grün, sobald der Plan erreicht ist, sonst gelb. Oben rechts dasselbe für den ganzen Zeitraum. Baustellen, die in der Tabelle noch auf keinen Monat gelegt sind (Spalte *Baustellen für <Jahr>*), stehen als eigene Zeile unter der Überschrift — sie gehören zu keiner Monatskarte. Für ein Jahr, aus dem in BauCrew noch keine Projekte erfasst sind, gilt die Tabelle als **Rückblick**: die Monatskarten listen dann die Baustellen und Beträge aus der Tabelle, getrennt nach eigenen Leuten und SUB, und diese Summen zählen für den **Vorjahresvergleich** mit. Ein Hinweis nennt die Quelle. Sobald für so ein Jahr ein Projekt angelegt wird, zeigt es wieder die echten Zahlen — es gibt dafür nichts einzustellen. Auslastung, Kunden und Datenqualität bleiben für solche Jahre leer, weil es dazu keine erfassten Daten gibt.
 
 ![Berichte — Plan vs. Ist](screenshots/26-berichte-projekte.png)
 
 - **Planabgleich** (unter *Umsatz*, wenn eine Jahresplanung eingelesen ist): Die Karte
   *Geplant, aber noch kein Projekt* listet die geplanten Baustellen, zu denen es noch kein
-  Projekt gibt, mit Summe. **Zum Planabgleich** öffnet die eigene Seite: dort steht jede
-  Zeile des Jahres mit Monat, Betrag und einem Feld, um das passende Projekt zu wählen.
-  Wo die Zuordnung eindeutig ist, steht darunter ein **Vorschlag** zum Anklicken;
-  **Alle Vorschläge übernehmen** erledigt sie auf einmal. Ein Vorschlag kommt nur, wenn er
-  eindeutig ist — Wörter wie *Fassade* oder *Innenausbau* allein reichen nie, und wenn zwei
-  Projekte gleich gut passen, schlägt BauCrew lieber nichts vor. Ein Projekt wird nie zweimal
-  vergeben. Verknüpfte Zeilen zeigen Plan und Auftragswert nebeneinander; auf der Projektseite
-  erscheint dann die Zeile **Planumsatz** mit der Abweichung. Ein erneuter Import der Tabelle
-  **behält die Verknüpfungen**.
+  Projekt gibt, mit Summe. **Zum Planabgleich** öffnet die eigene Seite. Dort ist jede
+  **Baustelle** des Jahres eine Zeile — läuft sie in der Tabelle über mehrere Monate, sind
+  das die Monate und die Summe dieser Zeilen — mit einem Feld, um das passende Projekt zu
+  wählen. Eine Verknüpfung gibt dem Projekt **Start, Ende und Auftragswert** aus der Tabelle,
+  sofern es sie noch nicht hat (Eingetragenes wird nie überschrieben).
+  **Sichere Zuordnungen übernehmen** erledigt alle eindeutigen Fälle auf einmal und sagt, wie
+  viele übernommen wurden, wie viele eine Entscheidung brauchen und wie viele nirgends passen.
+  Unter jeder offenen Baustelle stehen die Projekte, die in Frage kommen: ✓ ist sicher, ? ein
+  Vorschlag. Sicher heißt streng: Wörter wie *Fassade*, *Innenputz*, Vornamen oder *Gemeinde*
+  zählen nie; zwei Personen mit gleichem Nachnamen sind zwei Personen; eine Baustelle, die zu
+  zwei Projekten passt, bekommt keines; und ein Projekt passt nur zu einer Baustelle seines
+  eigenen Jahres oder des folgenden. Abgekürzte Orte („Hbach“) werden erkannt.
+  Auf der Projektseite erscheint danach die Zeile **Planumsatz** mit der Abweichung. Ein
+  erneuter Import der Tabelle **behält die Verknüpfungen**.
 
 - **Projekte:** *Abgeschlossene Projekte — Plan vs. Ist* — geplante Arbeitstage gegen tatsächliche Einsatztage, Personentage und **€ pro Personentag** (Auftragswert ÷ Personentage — zeigt ohne jede Kostenerfassung, welche Projekte sich lohnen). *Verzug (Ende)* nur, wenn „Ende (tatsächlich)“ eingetragen ist.
 

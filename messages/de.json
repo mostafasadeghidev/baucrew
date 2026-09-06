@@ -537,7 +537,15 @@
     "planGapsMore": "… und {count} weitere.",
     "planGapsLink": "Zum Planabgleich",
     "noMonthShort": "o. M.",
-    "fromSheetYear": "Die Zahlen für {year} stammen aus der importierten Jahresplanung — aus dieser Zeit gibt es in BauCrew noch keine Projekte. Sie zählen für den Jahresvergleich mit, aber es gibt dazu keine Projektseiten, keine Auslastung und keine Kundenauswertung."
+    "fromSheetYear": "Die Zahlen für {year} stammen aus der importierten Jahresplanung — aus dieser Zeit gibt es in BauCrew noch keine Projekte. Sie zählen für den Jahresvergleich mit, aber es gibt dazu keine Projektseiten, keine Auslastung und keine Kundenauswertung.",
+    "undatedTitle": "Ohne Termin",
+    "undatedSummary": "{count, plural, one {# Projekt} other {# Projekte}} ohne Starttermin ·",
+    "undatedHint": "Diese Projekte haben keinen geplanten Start und gehören deshalb zu keinem Monat. Sie zählen nicht in die Jahressumme, bis ein Termin eingetragen ist.",
+    "undatedMore": "… und {count} weitere.",
+    "undatedLink": "Alle unter Datenqualität",
+    "qNoPlannedStart": "Ohne geplanten Start — in keinem Monat gezählt",
+    "vsPrevYearSheet": "vs. Planung {year}",
+    "vsPrevPeriodSheet": "vs. Planung {period} {year}"
   },
   "sheet": {
     "title": "Arbeitsauftrag",
@@ -1090,7 +1098,7 @@
   },
   "planMatch": {
     "title": "Planabgleich",
-    "hint": "Welche Baustelle aus der Jahresplanung ist welches Projekt? Verknüpfte Zeilen zeigen Plan und Auftragswert nebeneinander.",
+    "hint": "Jede Baustelle der Jahresplanung zu ihrem Projekt. Eine Zuordnung gibt dem Projekt Start, Ende und Auftragswert aus der Tabelle, sofern es sie noch nicht hat. ✓ ist sicher, ? ist ein Vorschlag.",
     "yearLabel": "Jahr",
     "noMonth": "ohne Monat",
     "kpiPlanned": "Geplanter Umsatz",
@@ -1110,6 +1118,12 @@
     "applyAll": "{count, plural, one {# Vorschlag} other {# Vorschläge}} übernehmen",
     "clearAll": "{count, plural, one {# Verknüpfung} other {# Verknüpfungen}} lösen",
     "unlink": "lösen",
-    "none": "Für dieses Jahr ist keine Planung gespeichert."
+    "none": "Für dieses Jahr ist keine Planung gespeichert.",
+    "kpiJobs": "{count, plural, one {# Baustelle} other {# Baustellen}} aus {lines, plural, one {# Zeile} other {# Zeilen}}",
+    "kpiOfJobs": "von {count, plural, one {# Baustelle} other {# Baustellen}}",
+    "kpiOpenJobs": "{count, plural, one {# Baustelle} other {# Baustellen}} offen",
+    "reconcile": "{count, plural, one {# sichere Zuordnung} other {# sichere Zuordnungen}} übernehmen",
+    "reconcileDone": "{applied, plural, one {# Projekt} other {# Projekte}} mit Termin und Auftragswert aus der Tabelle versorgt · {choices} brauchen eine Entscheidung · {unmatched} ohne Treffer in diesem Jahr.",
+    "monthsCount": "{count} Monate"
   }
 }

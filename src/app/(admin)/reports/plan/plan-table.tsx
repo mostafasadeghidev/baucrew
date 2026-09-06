@@ -7,31 +7,35 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { formatCurrency } from '@/lib/format'
 import { btn } from '@/components/ui/button'
-import { applyPlanSuggestions, clearPlanLinks, linkPlanEntry } from './actions'
+import { clearPlanLinks, linkPlanJob, reconcilePlan, unlinkPlanJob, type ReconcileResult } from './actions'
 
-export type PlanRow = {
-  id: string
-  monthLabel: string
+export type JobRow = {
+  key: string
+  /** The sheet lines this job is made of. */
+  lineIds: string[]
+  /** "Mär" or "Mär–Mai". */
+  span: string
+  firstMonth: number
   name: string
   amount: number
   isSub: boolean
-  /** The project it is tied to, if any. */
+  months: number
   linked: { id: string; number: string; name: string; orderValue: number | null } | null
-  /** What the matcher would pick, while the line is still free. */
-  suggestion: { projectId: string; label: string; score: number } | null
+  /** Projects this job could belong to; `sure` when the matcher would apply it. */
+  suggestions: Array<{ projectId: string; label: string; sure: boolean }>
 }
 
 export function PlanTable({
   year,
   rows,
   projects,
-  suggestionCount,
+  sureCount,
   linkedCount,
 }: {
   year: number
-  rows: PlanRow[]
+  rows: JobRow[]
   projects: ComboboxOption[]
-  suggestionCount: number
+  sureCount: number
   linkedCount: number
 }) {
   const t = useTranslations('planMatch')
@@ -40,30 +44,45 @@ export function PlanTable({
   const router = useRouter()
   const money = (v: number | null) => formatCurrency(v, locale)
   const [pending, startTransition] = useTransition()
-  const [busyId, setBusyId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState(false)
+  const [result, setResult] = useState<ReconcileResult | null>(null)
 
-  function link(entryId: string, projectId: string) {
-    setError(null)
-    setBusyId(entryId)
+  function link(row: JobRow, projectId: string) {
+    setError(false)
+    setBusy(row.key)
     startTransition(async () => {
-      const res = await linkPlanEntry(entryId, projectId)
-      setBusyId(null)
-      if (res.error) setError(res.error)
+      const res = await linkPlanJob(row.lineIds, projectId)
+      setBusy(null)
+      if (res.error) setError(true)
       else router.refresh()
     })
   }
 
-  function applyAll() {
-    setError(null)
+  function unlink(row: JobRow) {
+    setError(false)
+    setBusy(row.key)
     startTransition(async () => {
-      await applyPlanSuggestions(year)
+      const res = await unlinkPlanJob(row.lineIds)
+      setBusy(null)
+      if (res.error) setError(true)
+      else router.refresh()
+    })
+  }
+
+  function reconcile() {
+    setError(false)
+    setResult(null)
+    startTransition(async () => {
+      const res = await reconcilePlan()
+      setResult(res)
       router.refresh()
     })
   }
 
   function clearAll() {
-    setError(null)
+    setError(false)
+    setResult(null)
     startTransition(async () => {
       await clearPlanLinks(year)
       router.refresh()
@@ -73,9 +92,9 @@ export function PlanTable({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        {suggestionCount > 0 && (
-          <button type="button" onClick={applyAll} disabled={pending} className={btn.primary}>
-            {t('applyAll', { count: suggestionCount })}
+        {sureCount > 0 && (
+          <button type="button" onClick={reconcile} disabled={pending} className={btn.primary}>
+            {t('reconcile', { count: sureCount })}
           </button>
         )}
         {linkedCount > 0 && (
@@ -86,6 +105,11 @@ export function PlanTable({
         {pending && <span className="text-sm text-muted">{tc('loading')}</span>}
       </div>
 
+      {result && (
+        <p className="rounded-md border border-emerald-600/40 bg-emerald-500/10 px-3 py-2 text-sm">
+          {t('reconcileDone', result)}
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-sm text-danger">
           {tc('saveFailed')}
@@ -112,8 +136,13 @@ export function PlanTable({
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} className={busyId === row.id ? 'opacity-60' : undefined}>
-                  <td className="whitespace-nowrap px-3 py-2 text-muted">{row.monthLabel}</td>
+                <tr key={row.key} className={busy === row.key ? 'opacity-60' : undefined}>
+                  <td className="whitespace-nowrap px-3 py-2 text-muted">
+                    {row.span}
+                    {row.months > 1 && (
+                      <span className="ml-1 text-[11px]">({t('monthsCount', { count: row.months })})</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2">
                     {row.name}
                     {row.isSub && (
@@ -125,18 +154,15 @@ export function PlanTable({
                   <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-muted">
                     {money(row.amount)}
                   </td>
-                  <td className="min-w-[260px] px-3 py-2">
+                  <td className="min-w-[280px] px-3 py-2">
                     {row.linked ? (
                       <span className="flex flex-wrap items-center gap-2">
-                        <Link
-                          href={`/projects/${row.linked.id}`}
-                          className="text-accent hover:underline"
-                        >
+                        <Link href={`/projects/${row.linked.id}`} className="text-accent hover:underline">
                           {row.linked.number} — {row.linked.name}
                         </Link>
                         <button
                           type="button"
-                          onClick={() => link(row.id, '')}
+                          onClick={() => unlink(row)}
                           disabled={pending}
                           className="text-xs text-muted hover:text-danger hover:underline"
                         >
@@ -146,23 +172,27 @@ export function PlanTable({
                     ) : (
                       <div className="space-y-1">
                         <Combobox
-                          name={`project-${row.id}`}
+                          name={`project-${row.key}`}
                           options={projects}
                           defaultValue=""
-                          onSelect={(id) => id && link(row.id, id)}
+                          onSelect={(id) => id && link(row, id)}
                           placeholder={t('pickProject')}
                           noResultsLabel={t('noResults')}
                         />
-                        {row.suggestion && (
+                        {row.suggestions.map((s) => (
                           <button
+                            key={s.projectId}
                             type="button"
-                            onClick={() => link(row.id, row.suggestion!.projectId)}
+                            onClick={() => link(row, s.projectId)}
                             disabled={pending}
-                            className="text-xs text-accent hover:underline"
+                            className={`block text-left text-xs hover:underline ${
+                              s.sure ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'text-accent'
+                            }`}
                           >
-                            {t('takeSuggestion', { project: row.suggestion.label })}
+                            {s.sure ? '✓ ' : '? '}
+                            {s.label}
                           </button>
-                        )}
+                        ))}
                       </div>
                     )}
                   </td>

@@ -129,9 +129,12 @@ export default async function ReportsPage({
     : effectiveRange && effectiveRange.to < 11
       ? t('kpiYtd', { year, month: monthName(effectiveRange.to) })
       : t('kpiYtdFull', { year })
+  // Say so when last year's figure is the planning sheet, not projects —
+  // actual against plan is a different comparison and must read as one.
+  const prevIsSheet = prevRevenue?.fromSheet ?? false
   const compareLabel = periodLabel
-    ? t('vsPrevPeriod', { period: periodLabel, year: year - 1 })
-    : t('vsPrevYear', { year: year - 1 })
+    ? t(prevIsSheet ? 'vsPrevPeriodSheet' : 'vsPrevPeriod', { period: periodLabel, year: year - 1 })
+    : t(prevIsSheet ? 'vsPrevYearSheet' : 'vsPrevYear', { year: year - 1 })
 
   const hasPlan = plan?.hasPlan ?? false
   // A year the company ran before BauCrew stands on the sheet's own figures.
@@ -441,6 +444,43 @@ export default async function ReportsPage({
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Projects that belong to no month yet — shown, never guessed into one. */}
+            {!fromSheet && revenue.undated.length > 0 && (
+              <div className={`${card} border-amber-500/40 p-4`}>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="text-sm font-semibold">{t('undatedTitle')}</h3>
+                  <p className="text-xs text-muted">
+                    {t('undatedSummary', { count: revenue.undated.length })}{' '}
+                    <span className="font-semibold text-foreground tabular-nums">
+                      {money(revenue.undatedTotal)}
+                    </span>
+                  </p>
+                </div>
+                <p className="mt-1 text-xs text-muted">{t('undatedHint')}</p>
+                <ul className="mt-2 grid gap-x-6 gap-y-1 text-[13px] sm:grid-cols-2">
+                  {revenue.undated.slice(0, 12).map((p) => (
+                    <li key={p.id} className="flex items-center justify-between gap-2">
+                      <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
+                        {p.number} — {p.name}
+                      </Link>
+                      <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {revenue.undated.length > 12 && (
+                  <p className="mt-1 text-xs text-muted">
+                    {t('undatedMore', { count: revenue.undated.length - 12 })}
+                  </p>
+                )}
+                <Link
+                  href="/reports?tab=quality"
+                  className="mt-3 inline-block text-sm text-accent hover:underline"
+                >
+                  {t('undatedLink')} →
+                </Link>
               </div>
             )}
 
@@ -797,7 +837,9 @@ export default async function ReportsPage({
                 <section key={q.key} className={`overflow-hidden ${card}`}>
                   <div className="flex items-center justify-between border-b border-border px-3 py-2">
                     <h3 className="text-[13px] font-medium">
-                      {q.key === 'inProgressNoSchedule'
+                      {q.key === 'noPlannedStart'
+                        ? t('qNoPlannedStart')
+                        : q.key === 'inProgressNoSchedule'
                         ? t('qInProgressNoSchedule')
                         : q.key === 'finishedNoPrice'
                           ? t('qFinishedNoPrice')

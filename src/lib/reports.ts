@@ -30,6 +30,13 @@ export type YearRevenue = {
   months: MonthRevenue[]
   yearTotal: number
   /**
+   * Projects without a planned start. They belong to no month, so they are
+   * listed on their own instead of being filed under whatever month they
+   * happened to be entered in. Not counted in yearTotal.
+   */
+  undated: RevenueProject[]
+  undatedTotal: number
+  /**
    * True when the figures come from the imported planning sheet instead of
    * from projects — the years the company ran before BauCrew existed.
    */
@@ -38,8 +45,12 @@ export type YearRevenue = {
 
 /**
  * Rebuilds the "Monatsplanumsatz" sheet from live data: every non-cancelled
- * project is assigned to the month of its planned start (falling back to its
- * creation date), split into own-crew work and SUB (subcontractor) work.
+ * project is assigned to the month of its planned start, split into own-crew
+ * work and SUB (subcontractor) work. A project without a planned start is not
+ * guessed into a month — the day it was typed in says nothing about when the
+ * work happens, and a bulk import would pile hundreds into one month. Such
+ * projects are returned separately as "undated"; which year they show under
+ * is the year they were entered, so they turn up somewhere until dated.
  */
 export async function getYearRevenue(year: number): Promise<YearRevenue> {
   const start = new Date(Date.UTC(year, 0, 1))
@@ -75,10 +86,9 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     subTotal: 0,
     total: 0,
   }))
+  const undated: RevenueProject[] = []
 
   for (const p of projects) {
-    const anchor = p.plannedStart ?? p.createdAt
-    const bucket = months[anchor.getUTCMonth()]
     const entry: RevenueProject = {
       id: p.id,
       number: p.number,
@@ -86,6 +96,11 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       customer: p.customer.name,
       price: orderValue(p.price, p.addOns),
     }
+    if (!p.plannedStart) {
+      undated.push(entry)
+      continue
+    }
+    const bucket = months[p.plannedStart.getUTCMonth()]
     if (p.isSub) {
       bucket.sub.push(entry)
       bucket.subTotal += entry.price ?? 0
@@ -100,6 +115,8 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     year,
     months,
     yearTotal: months.reduce((sum, m) => sum + m.total, 0),
+    undated,
+    undatedTotal: undated.reduce((sum, p) => sum + (p.price ?? 0), 0),
     fromSheet: false,
   }
 }
@@ -150,6 +167,8 @@ async function getYearRevenueFromSheet(year: number): Promise<YearRevenue> {
     year,
     months,
     yearTotal: months.reduce((sum, m) => sum + m.total, 0),
+    undated: [],
+    undatedTotal: 0,
     fromSheet: true,
   }
 }
@@ -163,9 +182,9 @@ async function getYearRevenueFromSheet(year: number): Promise<YearRevenue> {
  */
 export async function getYearRevenueOrHistory(year: number): Promise<YearRevenue> {
   const live = await getYearRevenue(year)
-  if (live.yearTotal > 0 || live.months.some((m) => m.own.length + m.sub.length > 0)) {
-    return live
-  }
+  const hasProjects =
+    live.undated.length > 0 || live.months.some((m) => m.own.length + m.sub.length > 0)
+  if (live.yearTotal > 0 || hasProjects) return live
   const planned = await db.planEntry.count({ where: { year, month: { not: null } } })
   return planned > 0 ? getYearRevenueFromSheet(year) : live
 }
@@ -605,6 +624,7 @@ export async function getStockShortages(): Promise<StockShortage[]> {
 
 export type QualityIssue = {
   key:
+    | 'noPlannedStart'
     | 'inProgressNoSchedule'
     | 'finishedNoPrice'
     | 'noCity'
@@ -620,7 +640,13 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
   const today = new Date()
   const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
   const in14 = new Date(todayUtc.getTime() + 14 * 86_400_000)
-  const [inProgressNoSchedule, finishedNoPrice, noCity, missing, cityCandidates, stockShort] = await Promise.all([
+  const [noPlannedStart, inProgressNoSchedule, finishedNoPrice, noCity, missing, cityCandidates, stockShort] = await Promise.all([
+    // Without a planned start a project belongs to no month in any report.
+    db.project.findMany({
+      where: { status: { not: 'CANCELLED' }, plannedStart: null },
+      select: { id: true, number: true, name: true },
+      orderBy: { number: 'asc' },
+    }),
     db.project.findMany({
       where: { status: 'IN_PROGRESS', scheduleEntries: { none: { date: { gte: todayUtc, lte: in14 }, cancelledAt: null } } },
       select: { id: true, number: true, name: true },
@@ -680,6 +706,7 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
   const proj = (rows: Array<{ id: string; number: string; name: string }>) =>
     rows.map((r) => ({ id: r.id, label: `${r.number} — ${r.name}` }))
   return [
+    { key: 'noPlannedStart', count: noPlannedStart.length, items: proj(noPlannedStart) },
     { key: 'inProgressNoSchedule', count: inProgressNoSchedule.length, items: proj(inProgressNoSchedule) },
     { key: 'finishedNoPrice', count: finishedNoPrice.length, items: proj(finishedNoPrice) },
     { key: 'noCity', count: noCity.length, items: proj(noCity) },

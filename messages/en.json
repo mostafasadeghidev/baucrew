@@ -537,7 +537,15 @@
     "planGapsMore": "… and {count} more.",
     "planGapsLink": "Go to plan reconciliation",
     "noMonthShort": "n/m",
-    "fromSheetYear": "The figures for {year} come from the imported year planning — there are no projects in BauCrew from that time. They count towards the year-on-year comparison, but have no project pages, no utilisation and no customer breakdown."
+    "fromSheetYear": "The figures for {year} come from the imported year planning — there are no projects in BauCrew from that time. They count towards the year-on-year comparison, but have no project pages, no utilisation and no customer breakdown.",
+    "undatedTitle": "No date yet",
+    "undatedSummary": "{count, plural, one {# project} other {# projects}} without a planned start ·",
+    "undatedHint": "These projects have no planned start, so they belong to no month. They do not count towards the year total until a date is set.",
+    "undatedMore": "… and {count} more.",
+    "undatedLink": "All of them under data quality",
+    "qNoPlannedStart": "No planned start — counted in no month",
+    "vsPrevYearSheet": "vs. plan {year}",
+    "vsPrevPeriodSheet": "vs. plan {period} {year}"
   },
   "sheet": {
     "title": "Work order",
@@ -1090,7 +1098,7 @@
   },
   "planMatch": {
     "title": "Plan reconciliation",
-    "hint": "Which site from the year planning is which project? Linked lines show the plan and the order value side by side.",
+    "hint": "Every site of the year plan to its project. A link gives the project its start, end and order value from the sheet, unless it has them already. ✓ is sure, ? is a suggestion.",
     "yearLabel": "Year",
     "noMonth": "without a month",
     "kpiPlanned": "Planned revenue",
@@ -1110,6 +1118,12 @@
     "applyAll": "Apply {count, plural, one {# suggestion} other {# suggestions}}",
     "clearAll": "Undo {count, plural, one {# link} other {# links}}",
     "unlink": "unlink",
-    "none": "No planning is stored for this year."
+    "none": "No planning is stored for this year.",
+    "kpiJobs": "{count, plural, one {# site} other {# sites}} from {lines, plural, one {# line} other {# lines}}",
+    "kpiOfJobs": "of {count, plural, one {# site} other {# sites}}",
+    "kpiOpenJobs": "{count, plural, one {# site} other {# sites}} open",
+    "reconcile": "Apply {count, plural, one {# sure match} other {# sure matches}}",
+    "reconcileDone": "{applied, plural, one {# project} other {# projects}} given start, end and order value from the sheet · {choices} need a decision · {unmatched} without a match this year.",
+    "monthsCount": "{count} months"
   }
 }

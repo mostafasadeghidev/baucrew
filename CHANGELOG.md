@@ -3,6 +3,39 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.30.0] — 2026-09-06
+
+### Added — the planning sheet and the board, stitched together
+- **Berichte → Planabgleich works on jobs, not lines.** The sheet's lines are
+  folded into jobs first (same site, same year, the months it spans, the
+  amounts added up), so a job that runs from March to May is one row with one
+  sum, and linking it hands the project its **start, end and order value** in
+  one go — only where the project has none, so nothing typed in by the office
+  is overwritten. The description records what came from the sheet.
+- **Automatic reconciliation.** One button ties every job to its project
+  wherever the match is sure, and reports how many were applied, how many
+  need a decision and how many fit nothing. "Sure" is strict on purpose:
+  work words (*Fassade*, *Innenputz*), first names and words like *Gemeinde*
+  never carry a match; two names that both have two identifying words must
+  share two; a single shared word must be the customer's own name; a job two
+  projects both claim goes to neither; and a project can only match a job of
+  its own year or the next (the card's creation year — the importer now keeps
+  it as `sourceCreatedAt`). The office's habit of shortening a town to its
+  first letter and ending (*Hbach*) is understood.
+- **The rest is offered, never applied:** every open job lists the projects it
+  could belong to, ✓ for the one the matcher would pick, ? for the others.
+- **Datenqualität checks for a missing planned start** — the one gap behind
+  every wrong month figure, which no tab reported until now.
+
+### Changed
+- **A project without a planned start belongs to no month.** The revenue tab
+  used to file it under the month it was typed in, which after a board import
+  piled two hundred projects into one month. Such projects are now listed on
+  their own under *Ohne Termin* with their sum, and count in no month and no
+  year total until a date is set.
+- The comparison with the previous year says so when that year comes from
+  the sheet rather than from projects.
+
 ## [1.29.0] — 2026-09-05
 
 ### Changed — the Trello import survives a second run

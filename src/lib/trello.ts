@@ -66,6 +66,17 @@ export function parseTrelloExport(json: unknown): TrelloBoard | null {
 }
 
 /**
+ * When a card came into being. Trello ids start with the creation time in
+ * seconds, hex-encoded — the one date every card carries, even when nobody
+ * filled in a due date. Null for an id that does not have that shape.
+ */
+export function cardCreatedAt(id: string): Date | null {
+  if (!/^[0-9a-f]{24}$/i.test(id)) return null
+  const seconds = parseInt(id.slice(0, 8), 16)
+  return Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000) : null
+}
+
+/**
  * The job number the office keeps in brackets at the end of a card title
  * ("Musterhof Innenausbau (4100001)"). It is the number their other systems
  * use, so it is what makes a second import update a project instead of

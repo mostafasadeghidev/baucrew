@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { audit } from '@/lib/audit'
-import { parseTrelloExport, splitCardTitle, suggestStatus, type TrelloBoard } from '@/lib/trello'
+import { cardCreatedAt, parseTrelloExport, splitCardTitle, suggestStatus, type TrelloBoard } from '@/lib/trello'
 import { ProjectStatus } from '@/generated/prisma/enums'
 
 export type PreviewState =
@@ -97,6 +97,9 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
     // is the identity across imports. A card without one falls back to the
     // Trello card id, which is just as stable.
     const externalId = number ?? card.id
+    // The card's own creation time: the year a job belongs to, which the
+    // reconciliation with the planning sheet relies on.
+    const sourceCreatedAt = cardCreatedAt(card.id) ?? undefined
 
     const listName = board.lists.find((l) => l.id === card.idList)?.name ?? ''
     const attachmentLines = card.attachments.slice(0, 20).map((a) => `- ${a.name || 'Anhang'}: ${a.url}`)
@@ -122,6 +125,7 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
           name: projectName,
           description,
           externalUrl: card.shortUrl || undefined,
+          sourceCreatedAt,
           plannedEnd: card.due ? new Date(card.due) : undefined,
         },
       })
@@ -138,7 +142,13 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
     if (byName) {
       await db.project.update({
         where: { id: byName.id },
-        data: { status, externalSystem: 'trello', externalId, externalUrl: card.shortUrl || undefined },
+        data: {
+          status,
+          externalSystem: 'trello',
+          externalId,
+          externalUrl: card.shortUrl || undefined,
+          sourceCreatedAt,
+        },
       })
       skipped++
       continue
@@ -170,6 +180,7 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
         externalSystem: 'trello',
         externalId,
         externalUrl: card.shortUrl || undefined,
+        sourceCreatedAt,
       },
     })
     created++
