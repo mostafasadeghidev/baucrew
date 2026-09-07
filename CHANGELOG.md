@@ -49,6 +49,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 - **The month cards explain themselves.** *Eigene Leute*, *SUB* and *Nicht
   in der Tabelle* each carry a small ⓘ that says what the figure is; a
   notice above the months names the source.
+- **Month cards line up.** Cards beside each other share their rows: the
+  *Eigene Leute* line, the *SUB* line and *Nicht in der Tabelle* sit at the
+  same height in every card of a row, however long the lists above them
+  are, so months can be read across. A month without SUB work shows the
+  SUB line as a dash.
 
 ### Changed
 - A figure the sheet gave a project grows when a further phase is tied to

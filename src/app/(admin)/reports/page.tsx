@@ -394,13 +394,16 @@ export default async function ReportsPage({
               <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {/* Cards in one row share their rows (subgrid): the "Eigene Leute"
+                    line, the SUB line and the rest sit at the same height in every
+                    card beside each other, however long the lists above them are. */}
                 {visibleMonths.map((m) => (
-                  <div key={m.month} className={`flex flex-col ${card}`}>
+                  <div key={m.month} className={`grid grid-rows-subgrid row-span-6 ${card}`}>
                     <div className="flex items-center justify-between border-b border-border px-3 py-2">
                       <h3 className="text-sm font-semibold">{monthName(m.month)}</h3>
                       <span className="text-sm font-semibold tabular-nums">{money(m.total)}</span>
                     </div>
-                    <div className="flex-1 px-3 py-1.5 text-[13px]">
+                    <div className="px-3 pt-1.5 text-[13px]">
                       {m.own.map((p) => (
                         <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
                           {p.fromSheet ? (
@@ -413,40 +416,42 @@ export default async function ReportsPage({
                           <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
                         </div>
                       ))}
-                      <div className="mt-1 flex items-center justify-between border-t border-border pt-1 font-medium">
-                        <span className="flex items-center gap-1.5 italic">
-                          {t('ownPeople')}
-                          <InfoHint text={t(sheetLed ? 'hintOwnPeopleSheet' : 'hintOwnPeople')} />
-                        </span>
-                        <span className="tabular-nums">{money(m.ownTotal)}</span>
-                      </div>
-                      {m.sub.length > 0 && (
-                        <>
-                          <div className="mt-1.5">
-                            {m.sub.map((p) => (
-                              <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
-                                {p.fromSheet ? (
-                                  <span className="truncate">{p.name}</span>
-                                ) : (
-                                  <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
-                                    {p.name}
-                                  </Link>
-                                )}
-                                <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="mt-1 flex items-center justify-between border-t border-border pt-1 font-medium">
-                            <span className="flex items-center gap-1.5 italic">
-                              {t('sub')}
-                              <InfoHint text={t(sheetLed ? 'hintSubSheet' : 'hintSub')} />
-                            </span>
-                            <span className="tabular-nums">{money(m.subTotal)}</span>
-                          </div>
-                        </>
-                      )}
+                    </div>
+                    <div className="mx-3 mt-1 flex items-center justify-between self-end border-t border-border py-1 text-[13px] font-medium">
+                      <span className="flex items-center gap-1.5 italic">
+                        {t('ownPeople')}
+                        <InfoHint text={t(sheetLed ? 'hintOwnPeopleSheet' : 'hintOwnPeople')} />
+                      </span>
+                      <span className="tabular-nums">{money(m.ownTotal)}</span>
+                    </div>
+                    <div className={`px-3 text-[13px] ${m.sub.length > 0 ? 'pt-1' : ''}`}>
+                      {m.sub.map((p) => (
+                        <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
+                          {p.fromSheet ? (
+                            <span className="truncate">{p.name}</span>
+                          ) : (
+                            <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
+                              {p.name}
+                            </Link>
+                          )}
+                          <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div
+                      className={`mx-3 mt-1 flex items-center justify-between self-end border-t border-border py-1 text-[13px] font-medium ${
+                        m.sub.length === 0 ? 'text-muted' : ''
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5 italic">
+                        {t('sub')}
+                        <InfoHint text={t(sheetLed ? 'hintSubSheet' : 'hintSub')} />
+                      </span>
+                      <span className="tabular-nums">{m.sub.length > 0 ? money(m.subTotal) : '—'}</span>
+                    </div>
+                    <div className="px-3 pb-1.5 text-[13px] empty:p-0">
                       {planComparable && (
-                        <div className="mt-1.5 flex items-center justify-between border-t border-border pt-1 text-xs">
+                        <div className="mt-1 flex items-center justify-between border-t border-border pt-1 text-xs">
                           <span className="flex items-center gap-1.5 text-muted">
                             {t('planned')}
                             <InfoHint text={t('hintPlan')} />
@@ -460,7 +465,7 @@ export default async function ReportsPage({
                         </div>
                       )}
                       {m.extra.length > 0 && (
-                        <div className="mt-1.5 border-t border-dashed border-border pt-1 text-xs text-muted">
+                        <div className="mt-1 border-t border-dashed border-border pt-1 text-xs text-muted">
                           <div className="flex items-center justify-between font-medium">
                             <span className="flex items-center gap-1.5 italic">
                               {t('extraTitle')}
