@@ -17,6 +17,7 @@ import {
 import {
   parsePeriod,
   percentChange,
+  splitPlanGaps,
   sumRange,
   utilizationLevel,
   workingDaysInPeriod,
@@ -164,11 +165,15 @@ export default async function ReportsPage({
     const percent = planned > 0 ? Math.round((diff / planned) * 100) : null
     return { diff, tone, percent, label: `${diff >= 0 ? '+' : '−'}${money(Math.abs(diff))}` }
   }
+  // Plan lines without a project: the ones still ahead are work to do, the
+  // ones behind are a record of what was planned back then.
+  const gaps = planGaps ? splitPlanGaps(planGaps.rows, year, now) : null
+  const gapsAheadTotal = gaps ? gaps.upcoming.reduce((sum, g) => sum + g.amount, 0) : 0
   const statusOrder = Object.keys(ProjectStatus) as ProjectStatus[]
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
   const yearOptions = Array.from({ length: 6 }, (_, i) => String(currentYear + 1 - i))
   const workingDays = workingDaysInPeriod(year, range, now)
-  const qualityCount = quality.reduce((a, q) => a + q.count, 0)
+  const qualityCount = quality.issues.reduce((sum, q) => sum + q.count, 0)
   const topCustomer = customers?.top[0]
   const exportHref = `/reports/export?year=${year}${periodParam ? `&period=${encodeURIComponent(periodParam)}` : ''}`
 
@@ -490,19 +495,26 @@ export default async function ReportsPage({
             )}
 
             {/* Projects that belong to no month yet — shown, never guessed into one. */}
-            {!fromSheet && revenue.undated.length > 0 && (
-              <div className={`${card} border-amber-500/40 p-4`}>
+            {!fromSheet && (revenue.undated.length > 0 || revenue.undatedHistorical > 0) && (
+              <div
+                className={`${card} p-4 ${revenue.undated.length > 0 ? 'border-amber-500/40' : ''}`}
+              >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h3 className="text-sm font-semibold">{t('undatedTitle')}</h3>
-                  <p className="text-xs text-muted">
-                    {t('undatedSummary', { count: revenue.undated.length })}{' '}
-                    <span className="font-semibold text-foreground tabular-nums">
-                      {money(revenue.undatedTotal)}
-                    </span>
-                  </p>
+                  {revenue.undated.length > 0 && (
+                    <p className="text-xs text-muted">
+                      {t('undatedSummary', { count: revenue.undated.length })}{' '}
+                      <span className="font-semibold text-foreground tabular-nums">
+                        {money(revenue.undatedTotal)}
+                      </span>
+                    </p>
+                  )}
                 </div>
-                <p className="mt-1 text-xs text-muted">{t(sheetLed ? 'undatedHintSheet' : 'undatedHint')}</p>
-                <ul className="mt-2 grid gap-x-6 gap-y-1 text-[13px] sm:grid-cols-2">
+                <p className="mt-1 text-xs text-muted">
+                  {revenue.undated.length > 0 && `${t(sheetLed ? 'undatedHintSheet' : 'undatedHint')} `}
+                  {revenue.undatedHistorical > 0 && t('undatedHistorical', { count: revenue.undatedHistorical })}
+                </p>
+                <ul className="mt-2 grid gap-x-6 gap-y-1 text-[13px] empty:hidden sm:grid-cols-2">
                   {revenue.undated.slice(0, 12).map((p) => (
                     <li key={p.id} className="flex items-center justify-between gap-2">
                       <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
@@ -517,29 +529,33 @@ export default async function ReportsPage({
                     {t('undatedMore', { count: revenue.undated.length - 12 })}
                   </p>
                 )}
-                <Link
-                  href="/reports?tab=quality"
-                  className="mt-3 inline-block text-sm text-accent hover:underline"
-                >
-                  {t('undatedLink')} →
-                </Link>
+                {revenue.undated.length > 0 && (
+                  <Link
+                    href="/reports?tab=quality"
+                    className="mt-3 inline-block text-sm text-accent hover:underline"
+                  >
+                    {t('undatedLink')} →
+                  </Link>
+                )}
               </div>
             )}
 
-            {/* Promised in the sheet, but no project carries it yet. */}
-            {hasPlan && !fromSheet && planGaps && planGaps.rows.length > 0 && (
+            {/* Promised in the sheet, but no project carries it yet. Only the
+                months still ahead are work; earlier ones are a record. */}
+            {hasPlan && !fromSheet && gaps && gaps.upcoming.length > 0 && (
               <div className={`${card} p-4`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h3 className="text-sm font-semibold">{t('planGapsTitle')}</h3>
                   <p className="text-xs text-muted">
-                    {t('planGapsSummary', { count: planGaps.rows.length })}{' '}
+                    {t('planGapsSummary', { count: gaps.upcoming.length })}{' '}
                     <span className="font-semibold text-amber-700 tabular-nums dark:text-amber-400">
-                      {money(planGaps.total)}
+                      {money(gapsAheadTotal)}
                     </span>
                   </p>
                 </div>
+                <p className="mt-1 text-xs text-muted">{t('planGapsAheadHint')}</p>
                 <ul className="mt-2 grid gap-x-6 gap-y-1 text-[13px] sm:grid-cols-2">
-                  {planGaps.rows.slice(0, 12).map((gap) => (
+                  {gaps.upcoming.slice(0, 12).map((gap) => (
                     <li key={gap.id} className="flex items-center justify-between gap-2">
                       <span className="truncate">
                         <span className="text-muted">
@@ -551,9 +567,9 @@ export default async function ReportsPage({
                     </li>
                   ))}
                 </ul>
-                {planGaps.rows.length > 12 && (
+                {gaps.upcoming.length > 12 && (
                   <p className="mt-1 text-xs text-muted">
-                    {t('planGapsMore', { count: planGaps.rows.length - 12 })}
+                    {t('planGapsMore', { count: gaps.upcoming.length - 12 })}
                   </p>
                 )}
                 <Link
@@ -563,6 +579,16 @@ export default async function ReportsPage({
                   {t('planGapsLink')} →
                 </Link>
               </div>
+            )}
+
+            {/* Nothing ahead any more: the rest is an archive, one quiet line. */}
+            {hasPlan && !fromSheet && gaps && gaps.upcoming.length === 0 && gaps.past.length > 0 && (
+              <p className="text-xs text-muted">
+                {t('planGapsPast', { count: gaps.past.length })}{' '}
+                <Link href={`/reports/plan?year=${year}`} className="text-accent hover:underline">
+                  {t('planGapsLink')} →
+                </Link>
+              </p>
             )}
           </section>
         ))}
@@ -869,13 +895,16 @@ export default async function ReportsPage({
         <section className="space-y-3">
           <div>
             <h2 className="text-sm font-semibold">{t('qualityTitle')}</h2>
-            <p className="mt-0.5 text-[11px] text-muted">{t('qualityHint')}</p>
+            <p className="mt-0.5 text-[11px] text-muted">
+              {t('qualityHint')}
+              {quality.historical > 0 && ` ${t('qualityHistorical', { count: quality.historical })}`}
+            </p>
           </div>
           {qualityCount === 0 ? (
             <p className={`${card} p-6 text-sm ${up}`}>✓ {t('qualityAllGood')}</p>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {quality.map((q) => (
+              {quality.issues.map((q) => (
                 <section key={q.key} className={`overflow-hidden ${card}`}>
                   <div className="flex items-center justify-between border-b border-border px-3 py-2">
                     <h3 className="text-[13px] font-medium">

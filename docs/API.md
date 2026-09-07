@@ -62,7 +62,9 @@ curl -X POST -H "Authorization: Bearer bc_…" -H "Content-Type: application/jso
 ```
 
 A project the sheet-led revenue report knows only from the year plan has no
-project page; the report's rows carry `projectId: null` for those.
+project page; the report's rows carry `projectId: null` for those. Its
+`undated` list leaves out finished work from before the old-data cutoff in
+Settings and reports how many that was in `undatedHistorical`.
 
 ## MCP
 

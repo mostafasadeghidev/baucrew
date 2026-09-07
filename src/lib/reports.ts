@@ -5,6 +5,8 @@ import { geocodeCity } from './geocode'
 import { stockShortage } from './stock'
 import { sumMinutes } from './time-entries'
 import { planTotals, type PlanEntry } from './year-plan-excel'
+import { isHistorical, type HistoryProject } from './history'
+import { getHistoryCutoff } from './history-db'
 
 export type RevenueProject = {
   /** Unique per row: a project may stand in a month with several sheet lines. */
@@ -47,6 +49,12 @@ export type YearRevenue = {
    */
   undated: RevenueProject[]
   undatedTotal: number
+  /**
+   * Undated projects left out of `undated` because they are old data —
+   * finished before the day named in Settings. Counted, never silently
+   * dropped: the card says how many there are.
+   */
+  undatedHistorical: number
   /**
    * True when the month figures are the lines of the imported planning
    * sheet — the office's own record of the year, line by line and month by
@@ -108,7 +116,12 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       name: true,
       price: true,
       isSub: true,
+      status: true,
       plannedStart: true,
+      plannedEnd: true,
+      actualStart: true,
+      actualEnd: true,
+      sourceCreatedAt: true,
       createdAt: true,
       customer: { select: { name: true } },
       addOns: { select: { amount: true } },
@@ -129,6 +142,11 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     extraTotal: 0,
   }))
   const undated: RevenueProject[] = []
+  // Old data: work finished before the day the office named in Settings. It
+  // is nobody's job to date it any more, so it is set aside from the undated
+  // list — and counted, so the card can say how much was set aside.
+  const cutoff = await getHistoryCutoff()
+  let undatedHistorical = 0
   const sheetLed = lines.length > 0
 
   for (const line of lines) {
@@ -175,7 +193,8 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       price: orderValue(p.price, p.addOns),
     }
     if (!p.plannedStart) {
-      undated.push(entry)
+      if (isHistorical(p, cutoff)) undatedHistorical++
+      else undated.push(entry)
       continue
     }
     const bucket = months[p.plannedStart.getUTCMonth()]
@@ -198,7 +217,9 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     sheetLed &&
     lines.every((l) => !l.project) &&
     months.every((m) => m.extra.length === 0) &&
-    undated.length === 0
+    undated.length === 0 &&
+    // The cutoff must not turn a live year into a "sheet only" one.
+    undatedHistorical === 0
 
   return {
     year,
@@ -206,6 +227,7 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     yearTotal: months.reduce((sum, m) => sum + m.total, 0),
     undated,
     undatedTotal: undated.reduce((sum, p) => sum + (p.price ?? 0), 0),
+    undatedHistorical,
     sheetLed,
     fromSheet: nothingButSheet,
   }
@@ -647,6 +669,16 @@ export async function getStockShortages(): Promise<StockShortage[]> {
 
 // ── Data quality: things that make the numbers wrong ─────────────
 
+/** The fields `isHistorical` reads, for a Prisma select. */
+const historySelect = {
+  status: true,
+  plannedStart: true,
+  plannedEnd: true,
+  actualStart: true,
+  actualEnd: true,
+  sourceCreatedAt: true,
+} as const
+
 export type QualityIssue = {
   key:
     | 'noPlannedStart'
@@ -661,7 +693,17 @@ export type QualityIssue = {
   items: Array<{ id: string; label: string }>
 }
 
-export async function getDataQuality(): Promise<QualityIssue[]> {
+export type DataQuality = {
+  issues: QualityIssue[]
+  /**
+   * Finished projects from before the cutoff in Settings that are therefore
+   * not asked about. Named on the page, so nothing looks swept away.
+   */
+  historical: number
+}
+
+export async function getDataQuality(): Promise<DataQuality> {
+  const cutoff = await getHistoryCutoff()
   const today = new Date()
   const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
   const in14 = new Date(todayUtc.getTime() + 14 * 86_400_000)
@@ -669,7 +711,7 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
     // Without a planned start a project belongs to no month in any report.
     db.project.findMany({
       where: { status: { not: 'CANCELLED' }, plannedStart: null },
-      select: { id: true, number: true, name: true },
+      select: { ...historySelect, id: true, number: true, name: true },
       orderBy: { number: 'asc' },
     }),
     db.project.findMany({
@@ -679,7 +721,7 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
     }),
     db.project.findMany({
       where: { status: { in: ['COMPLETED', 'INVOICED', 'PAID'] }, price: null, addOns: { none: {} } },
-      select: { id: true, number: true, name: true },
+      select: { ...historySelect, id: true, number: true, name: true },
       orderBy: { number: 'asc' },
     }),
     db.project.findMany({
@@ -730,10 +772,23 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
   const countFor = new Map(missing.map((m) => [m.catalogItemId, m._count._all]))
   const proj = (rows: Array<{ id: string; number: string; name: string }>) =>
     rows.map((r) => ({ id: r.id, label: `${r.number} — ${r.name}` }))
-  return [
-    { key: 'noPlannedStart', count: noPlannedStart.length, items: proj(noPlannedStart) },
+
+  // Old data is set aside, not asked about; the same project may fail both
+  // checks, so it is counted once.
+  const historicalIds = new Set<string>()
+  const current = <T extends { id: string } & HistoryProject>(rows: T[]): T[] =>
+    rows.filter((r) => {
+      if (!isHistorical(r, cutoff)) return true
+      historicalIds.add(r.id)
+      return false
+    })
+  const openNoPlannedStart = current(noPlannedStart)
+  const openFinishedNoPrice = current(finishedNoPrice)
+
+  const issues: QualityIssue[] = [
+    { key: 'noPlannedStart', count: openNoPlannedStart.length, items: proj(openNoPlannedStart) },
     { key: 'inProgressNoSchedule', count: inProgressNoSchedule.length, items: proj(inProgressNoSchedule) },
-    { key: 'finishedNoPrice', count: finishedNoPrice.length, items: proj(finishedNoPrice) },
+    { key: 'finishedNoPrice', count: openFinishedNoPrice.length, items: proj(openFinishedNoPrice) },
     { key: 'noCity', count: noCity.length, items: proj(noCity) },
     {
       key: 'cityNotFound',
@@ -759,4 +814,5 @@ export async function getDataQuality(): Promise<QualityIssue[]> {
       })),
     },
   ]
+  return { issues, historical: historicalIds.size }
 }

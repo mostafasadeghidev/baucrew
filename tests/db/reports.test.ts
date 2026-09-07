@@ -1,7 +1,7 @@
 // DB-backed: runs against the dev database (npm run test:db).
 // Verifies the Monatsplanumsatz split and usage counting on real data shapes.
 import 'dotenv/config'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '@/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 
@@ -141,5 +141,66 @@ describe('getYearRevenue with a planning sheet', () => {
     expect(feb.extraTotal).toBe(700)
     expect(r.yearTotal).toBe(1800)
     expect(r.undated).toEqual([])
+  })
+})
+
+describe('old data set aside', () => {
+  const year = 2034
+  const ids: string[] = []
+  let cust = ''
+
+  beforeAll(async () => {
+    // A run that broke off earlier must not block this one.
+    await prisma.project.deleteMany({ where: { number: { startsWith: `${year}-` } } })
+    await prisma.customer.deleteMany({ where: { name: `${TAG} Kunde 2034`, projects: { none: {} } } })
+    const c = await prisma.customer.create({ data: { name: `${TAG} Kunde 2034` } })
+    cust = c.id
+    const mk = (n: string, status: 'COMPLETED' | 'PLANNED', actualEnd: Date | null) =>
+      prisma.project.create({
+        data: {
+          number: `${year}-${n}`,
+          name: `${TAG} ${n}`,
+          customerId: cust,
+          status,
+          actualEnd,
+          // No planned start: these are the "undated" ones.
+          createdAt: new Date(Date.UTC(year, 5, 1)),
+        },
+      })
+    const made = await Promise.all([
+      mk('9201', 'COMPLETED', new Date(Date.UTC(year, 0, 31))), // finished, before the cutoff
+      mk('9202', 'COMPLETED', new Date(Date.UTC(year, 11, 31))), // finished, after the cutoff
+      mk('9203', 'PLANNED', null), // open: never history
+    ])
+    ids.push(...made.map((p) => p.id))
+  })
+
+  afterAll(async () => {
+    await prisma.appSetting.deleteMany({ where: { key: 'historyCutoff' } })
+    await prisma.project.deleteMany({ where: { id: { in: ids } } })
+    await prisma.customer.delete({ where: { id: cust } })
+  })
+
+  it('lists every undated project while no cutoff is set', async () => {
+    const { getYearRevenue } = await import('@/lib/reports')
+    const r = await getYearRevenue(year)
+    expect(r.undated).toHaveLength(3)
+    expect(r.undatedHistorical).toBe(0)
+  })
+
+  it('leaves out what was finished before the cutoff, and says how many', async () => {
+    await prisma.appSetting.upsert({
+      where: { key: 'historyCutoff' },
+      update: { value: `${year}-07-01` },
+      create: { key: 'historyCutoff', value: `${year}-07-01` },
+    })
+    // getHistoryCutoff is cached per request; a fresh module gives a fresh cache.
+    vi.resetModules()
+    const { getYearRevenue } = await import('@/lib/reports')
+    const r = await getYearRevenue(year)
+    expect(r.undated.map((p) => p.number).sort()).toEqual([`${year}-9202`, `${year}-9203`])
+    expect(r.undatedHistorical).toBe(1)
+    // The year's own figures are untouched by the cutoff.
+    expect(r.yearTotal).toBe(0)
   })
 })

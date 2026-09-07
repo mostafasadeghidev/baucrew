@@ -135,3 +135,27 @@ export function utilizationLevel(pct: number | null): 'low' | 'high' | 'normal' 
   if (pct > 90) return 'high'
   return 'normal'
 }
+
+export type PlanGapRow = { month: number | null }
+
+/**
+ * Splits the plan lines that have no project into the ones still ahead and
+ * the ones behind. A line for a month that is over is a record of what was
+ * planned back then, not a job for anybody; a line for this month or a later
+ * one is work that still has to become a project. A line the sheet parked on
+ * the year without a month counts as ahead while the year is not over.
+ */
+export function splitPlanGaps<T extends PlanGapRow>(
+  rows: T[],
+  year: number,
+  today: Date
+): { upcoming: T[]; past: T[] } {
+  const thisYear = today.getUTCFullYear()
+  const thisMonth = today.getUTCMonth() + 1
+  const ahead = (row: T) => {
+    if (year > thisYear) return true
+    if (year < thisYear) return false
+    return row.month === null || row.month >= thisMonth
+  }
+  return { upcoming: rows.filter(ahead), past: rows.filter((r) => !ahead(r)) }
+}

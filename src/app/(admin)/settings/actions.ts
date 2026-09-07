@@ -10,6 +10,8 @@ import { requireAdmin } from '@/lib/authz'
 import { hashPassword } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 import { isBackupFile, restoreFromBackup } from '@/lib/backup'
+import { parseHistoryCutoff } from '@/lib/history'
+import { HISTORY_CUTOFF_KEY } from '@/lib/history-db'
 import { Role } from '@/generated/prisma/enums'
 import type { SaveState } from '@/components/saved-form'
 import { deleteUserBlockReason } from '@/lib/user-guards'
@@ -383,6 +385,37 @@ export async function updateRainThreshold(formData: FormData): Promise<SaveState
 }
 
 // ── Project list: "Zur Vorbereitung" tab ─────────────────────
+
+/**
+ * The day the old data ends. Work finished before it is history: still
+ * there, still counted where the figures come from the sheet, but nobody is
+ * asked to give it a date or an order value any more. Empty = ask about
+ * everything, as before.
+ */
+export async function updateHistoryCutoff(formData: FormData): Promise<SaveState> {
+  const admin = await requireAdmin()
+  const raw = String(formData.get('historyCutoff') ?? '').trim()
+  if (raw && parseHistoryCutoff(raw) === null) return { error: 'saveFailed' }
+  if (raw) {
+    await db.appSetting.upsert({
+      where: { key: HISTORY_CUTOFF_KEY },
+      update: { value: raw },
+      create: { key: HISTORY_CUTOFF_KEY, value: raw },
+    })
+  } else {
+    await db.appSetting.deleteMany({ where: { key: HISTORY_CUTOFF_KEY } })
+  }
+  await audit({
+    userId: admin.id,
+    action: 'settings.historyCutoff',
+    entity: 'AppSetting',
+    entityId: HISTORY_CUTOFF_KEY,
+    newValue: raw || null,
+  })
+  revalidatePath('/reports')
+  revalidatePath('/settings')
+  return { savedAt: Date.now() }
+}
 
 export async function updatePrepTab(formData: FormData): Promise<SaveState> {
   const admin = await requireAdmin()

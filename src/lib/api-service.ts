@@ -483,6 +483,9 @@ export async function revenueByMonth(user: CurrentUser, year: number) {
       notInSheet: m.extra.map((p) => ({ projectId: p.id, name: p.name, amount: p.price })),
     })),
     undated: r.undated.map((p) => ({ projectId: p.id, name: p.name, amount: p.price })),
+    // Finished work from before the cutoff in Settings is not listed as
+    // undated; a caller that wants it all knows how much was left out.
+    undatedHistorical: r.undatedHistorical,
   }
 }
 

@@ -4,6 +4,7 @@ import {
   computeEfficiency,
   daysDiff,
   percentChange,
+  splitPlanGaps,
   sumThroughMonth,
 } from '@/lib/reports-calc'
 
@@ -108,5 +109,28 @@ describe('period helpers', () => {
     expect(utilizationLevel(70)).toBe('normal')
     expect(utilizationLevel(95)).toBe('high')
     expect(utilizationLevel(null)).toBeNull()
+  })
+})
+
+describe('plan lines without a project', () => {
+  const rows = [{ month: 1 }, { month: 8 }, { month: 9 }, { month: 12 }, { month: null }]
+  const today = new Date(Date.UTC(2026, 8, 7)) // September 2026
+
+  it('separates what is still ahead from what is behind', () => {
+    const { upcoming, past } = splitPlanGaps(rows, 2026, today)
+    expect(upcoming.map((r) => r.month)).toEqual([9, 12, null])
+    expect(past.map((r) => r.month)).toEqual([1, 8])
+  })
+
+  it('leaves a past year entirely behind', () => {
+    const { upcoming, past } = splitPlanGaps(rows, 2025, today)
+    expect(upcoming).toEqual([])
+    expect(past).toHaveLength(rows.length)
+  })
+
+  it('has a coming year entirely ahead', () => {
+    const { upcoming, past } = splitPlanGaps(rows, 2027, today)
+    expect(upcoming).toHaveLength(rows.length)
+    expect(past).toEqual([])
   })
 })

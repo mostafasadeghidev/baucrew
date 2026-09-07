@@ -14,6 +14,7 @@ import {
   updateLeadSources,
   updatePrepTab,
   updateRainThreshold,
+  updateHistoryCutoff,
 } from "./actions";
 import { getRainThreshold } from "@/lib/weather";
 import { getPrepTabConfig } from "@/lib/prep-tab-db";
@@ -26,6 +27,8 @@ import { Card } from "@/components/ui/card";
 import { btn } from "@/components/ui/button";
 import { OptionListManager } from "./option-list-manager";
 import { getOptionLists } from "@/lib/option-lists-db";
+import { getHistoryCutoff } from "@/lib/history-db";
+import { formatHistoryCutoff } from "@/lib/history";
 import { BUILT_IN, SUGGESTED } from "@/lib/option-lists";
 
 const inputClass =
@@ -64,11 +67,13 @@ export default async function SettingsPage({
     getBranding(),
   ]);
 
-  const [rainThreshold, prepTab, lists] = await Promise.all([
+  const [rainThreshold, prepTab, lists, cutoff] = await Promise.all([
     getRainThreshold(),
     getPrepTabConfig(),
     getOptionLists(),
+    getHistoryCutoff(),
   ]);
+  const historyCutoff = formatHistoryCutoff(cutoff);
   const systemUsers = users.filter((u) => !u.employee);
   const privileged = users.filter(
     (u) => u.role === "ADMIN" || u.canViewFinancials,
@@ -403,6 +408,30 @@ export default async function SettingsPage({
             <Link href="/settings/import-plan" className={btn.outline}>
               {tImportPlan("settingsLink")}
             </Link>
+          </Card>
+
+          {/* Where the old data ends */}
+          <Card title={t("historyTitle")} description={t("historyHint")}>
+            <SavedForm
+              action={updateHistoryCutoff}
+              className="flex max-w-2xl flex-wrap items-center gap-2"
+              errorLabel={() => t("historyInvalid")}
+            >
+              <label htmlFor="historyCutoff" className="text-sm">
+                {t("historyLabel")}
+              </label>
+              <input
+                type="date"
+                id="historyCutoff"
+                name="historyCutoff"
+                defaultValue={historyCutoff}
+                className={`${inputClass} max-w-44`}
+              />
+              <button type="submit" className={btn.primarySm}>
+                {tc("save")}
+              </button>
+              <p className="basis-full text-xs text-muted">{t("historyEmptyHint")}</p>
+            </SavedForm>
           </Card>
 
           {/* API keys: programs and AI assistants */}

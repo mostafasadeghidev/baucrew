@@ -3,6 +3,24 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.33.0] — 2026-09-07
+
+### Added — where the old data ends
+- **Einstellungen → Daten → Altdaten.** The office names the day from which
+  BauCrew is kept. Work finished before it is old data: still there, still
+  counted wherever the figures come from the planning sheet, but no longer
+  chased. *Datenqualität* stops asking such projects for a start date or an
+  order value, and the *Ohne Termin* card leaves them out — both say how
+  many they set aside, so nothing looks swept away. Left empty, everything
+  is asked about exactly as before.
+
+### Changed
+- **"Geplant, aber noch kein Projekt" is a task list again.** It shows the
+  sheet's sites for this month and the ones ahead — work that still has to
+  become a project. Once nothing is ahead, one quiet line says how many
+  lines from earlier months have no project and links to the plan match,
+  which is where that record belongs.
+
 ## [1.32.0] — 2026-09-07
 
 ### Added — a door for programs and assistants

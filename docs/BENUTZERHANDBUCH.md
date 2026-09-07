@@ -652,8 +652,10 @@ Die Reiter:
 ![Berichte — Plan vs. Ist](screenshots/26-berichte-projekte.png)
 
 - **Planabgleich** (unter *Umsatz*, wenn eine Jahresplanung eingelesen ist): Die Karte
-  *Geplant, aber noch kein Projekt* listet die geplanten Baustellen, zu denen es noch kein
-  Projekt gibt, mit Summe. **Zum Planabgleich** öffnet die eigene Seite. Dort ist jede
+  *Geplant, aber noch kein Projekt* listet die geplanten Baustellen **dieses und der
+  kommenden Monate**, zu denen es noch kein Projekt gibt, mit Summe — das ist die Arbeit,
+  die noch ein Projekt braucht. Frühere Monate sind Vergangenheit; steht nichts mehr an,
+  bleibt nur eine kleine Zeile mit ihrer Anzahl und dem Weg zum Planabgleich. **Zum Planabgleich** öffnet die eigene Seite. Dort ist jede
   **Baustelle** des Jahres eine Zeile — läuft sie in der Tabelle über mehrere Monate, sind
   das die Monate und die Summe dieser Zeilen — mit einem Feld, um das passende Projekt zu
   wählen. Eine Verknüpfung gibt dem Projekt **Start, Ende und Auftragswert** aus der Tabelle,
@@ -726,6 +728,8 @@ Die Reiter:
 **Konten mit erweiterten Rechten** — Übersicht aller Konten, die Administrator sind oder Finanzdaten sehen. So wissen Sie immer, wer Preise sehen kann.
 
 **Firmenname und Logo** — Name erscheint überall (Menü, Anmeldung, Arbeitsauftrag). Logo hochladen (PNG/JPG/WebP, max. 1 MB). „✓ Gespeichert“ bestätigt.
+
+**Altdaten** — Beim Start bringt eine Firma Jahre erledigter Arbeit mit: importierte Karten, Aufträge, die längst abgerechnet sind. Unter *Daten → Altdaten* tragen Sie den Tag ein, ab dem BauCrew geführt wird. Alles, was davor **abgeschlossen** wurde, gilt als Altbestand: es bleibt vollständig sichtbar, zählt in den Berichten weiter (bei eingelesener Jahresplanung stehen die Zahlen ohnehin in der Tabelle), wird unter *Datenqualität* und in der Karte *Ohne Termin* aber nicht mehr angemahnt — beide sagen dazu, wie viele Projekte das betrifft. Laufende Arbeit wird immer angemahnt, egal wie alt. Bleibt das Feld leer, ändert sich nichts.
 
 **Datensicherung**
 - **Backup herunterladen (JSON):** alle Daten in einer Datei. Regelmäßig machen und sicher aufbewahren — die Datei enthält vertrauliche Daten.
