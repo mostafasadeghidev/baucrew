@@ -843,6 +843,6 @@ BauCrew läuft mit Docker (App + Datenbank) auf Ihrem eigenen Server oder VPS �
 
 - **Installation:** Repository klonen, `.env` aus `.env.example` mit `POSTGRES_PASSWORD` und `SESSION_SECRET` füllen, `docker compose up -d --build`. Beim ersten Start entstehen Datenbank, Tabellen und die Konten `admin` / `buero` / `lager` automatisch.
 - **Update:** `git pull && docker compose up -d --build` — Daten bleiben erhalten, Änderungen an der Datenbank laufen automatisch. Vorher ein Backup ziehen.
-- **Sicherung:** täglich `pg_dump` per Cron oder regelmäßig *Einstellungen → Backup herunterladen*; Kopien außerhalb des Servers aufbewahren.
+- **Sicherung:** täglich `pg_dump` per Cron oder regelmäßig *Einstellungen → Backup herunterladen*; Kopien außerhalb des Servers aufbewahren. Das Backup aus den Einstellungen enthält jede Tabelle und die hochgeladenen Dateien; *Backup wiederherstellen* auf einer anderen Installation ersetzt dort alles damit — so zieht BauCrew vom Testserver auf den echten um.
 - **HTTPS:** einen Reverse-Proxy (z. B. Caddy) vor Port 3000 setzen.
 - **Sprachen:** Deutsch und Englisch sind enthalten.

@@ -25,6 +25,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   in the library now, so the dialog, the API and the assistant do exactly
   the same thing.
 
+### Fixed
+- **The backup is whole again.** Since the year plan, checklists, add-ons,
+  devices, time entries, absences, drafts and API keys arrived, the backup
+  from the settings had carried only the older tables, and a restore
+  silently lost the rest. It now holds every table (a test holds the list
+  against the schema) and the documents' files, and a restore replaces
+  everything with it — which is how an installation moves from a test
+  server to the real one.
+
 ## [1.31.0] — 2026-09-06
 
 ### Added — the plan match finishes what a person started

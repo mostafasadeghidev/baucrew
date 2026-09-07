@@ -9,6 +9,7 @@ import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { hashPassword } from '@/lib/auth'
 import { audit } from '@/lib/audit'
+import { isBackupFile, restoreFromBackup } from '@/lib/backup'
 import { Role } from '@/generated/prisma/enums'
 import type { SaveState } from '@/components/saved-form'
 import { deleteUserBlockReason } from '@/lib/user-guards'
@@ -243,35 +244,11 @@ export async function resetLogo(): Promise<void> {
 
 export type RestoreState = { error?: 'restoreInvalid' | 'saveFailed' }
 
-const BACKUP_TABLES = [
-  'users',
-  'employees',
-  'customers',
-  'vehicles',
-  'workCategories',
-  'catalogItems',
-  'projects',
-  'projectWorkCategories',
-  'projectEmployees',
-  'projectVehicles',
-  'projectItems',
-  'projectTemplates',
-  'templateVehicles',
-  'templateEmployees',
-  'templateItems',
-  'scheduleEntries',
-  'scheduleEntryEmployees',
-  'scheduleEntryVehicles',
-  'notes',
-  'documents',
-  'appSettings',
-  'auditLogs',
-] as const
-
 /**
- * Replaces ALL data with the contents of a backup file created by
- * /settings/backup. Runs in one transaction; all sessions are invalidated,
- * so every user (including the admin) has to sign in again afterwards.
+ * Replaces ALL data — every table and the documents' files — with the
+ * contents of a backup file made by /settings/backup. Runs in one
+ * transaction; all sessions are invalidated, so every user (including the
+ * admin) has to sign in again afterwards.
  */
 export async function restoreBackup(
   _prev: RestoreState,
@@ -279,70 +256,20 @@ export async function restoreBackup(
 ): Promise<RestoreState> {
   await requireAdmin()
   const file = formData.get('backup')
-  if (!(file instanceof File) || file.size === 0 || file.size > 100 * 1024 * 1024) {
+  if (!(file instanceof File) || file.size === 0 || file.size > 1024 * 1024 * 1024) {
     return { error: 'restoreInvalid' }
   }
 
-  let parsed: { format?: string; version?: number; exportedAt?: string; tables?: Record<string, unknown> }
+  let parsed: unknown
   try {
     parsed = JSON.parse(await file.text())
   } catch {
     return { error: 'restoreInvalid' }
   }
-  if (parsed?.format !== 'baucrew-backup' || parsed.version !== 1 || !parsed.tables) {
-    return { error: 'restoreInvalid' }
-  }
-  const tables = parsed.tables as Record<string, unknown[]>
-  if (BACKUP_TABLES.some((key) => !Array.isArray(tables[key]))) {
-    return { error: 'restoreInvalid' }
-  }
+  if (!isBackupFile(parsed)) return { error: 'restoreInvalid' }
 
   try {
-    await db.$transaction([
-      // wipe (children first)
-      db.auditLog.deleteMany(),
-      db.note.deleteMany(),
-      db.document.deleteMany(),
-      db.scheduleEntry.deleteMany(),
-      db.projectVehicle.deleteMany(),
-      db.projectItem.deleteMany(),
-      db.templateItem.deleteMany(),
-      db.templateVehicle.deleteMany(),
-      db.templateEmployee.deleteMany(),
-      db.projectTemplate.deleteMany(),
-      db.project.deleteMany(),
-      db.catalogItem.deleteMany(),
-      db.vehicle.deleteMany(),
-      db.customer.deleteMany(),
-      db.employee.deleteMany(),
-      db.session.deleteMany(),
-      db.user.deleteMany(),
-      db.workCategory.deleteMany(),
-      db.appSetting.deleteMany(),
-      // reinsert (parents first)
-      db.user.createMany({ data: tables.users as never[] }),
-      db.workCategory.createMany({ data: tables.workCategories as never[] }),
-      db.customer.createMany({ data: tables.customers as never[] }),
-      db.employee.createMany({ data: tables.employees as never[] }),
-      db.vehicle.createMany({ data: tables.vehicles as never[] }),
-      db.catalogItem.createMany({ data: tables.catalogItems as never[] }),
-      db.projectTemplate.createMany({ data: tables.projectTemplates as never[] }),
-      db.templateVehicle.createMany({ data: (tables.templateVehicles ?? []) as never[] }),
-      db.templateEmployee.createMany({ data: (tables.templateEmployees ?? []) as never[] }),
-      db.templateItem.createMany({ data: tables.templateItems as never[] }),
-      db.project.createMany({ data: tables.projects as never[] }),
-      db.projectWorkCategory.createMany({ data: tables.projectWorkCategories as never[] }),
-      db.projectEmployee.createMany({ data: tables.projectEmployees as never[] }),
-      db.projectVehicle.createMany({ data: (tables.projectVehicles ?? []) as never[] }),
-      db.projectItem.createMany({ data: tables.projectItems as never[] }),
-      db.scheduleEntry.createMany({ data: tables.scheduleEntries as never[] }),
-      db.scheduleEntryEmployee.createMany({ data: tables.scheduleEntryEmployees as never[] }),
-      db.scheduleEntryVehicle.createMany({ data: tables.scheduleEntryVehicles as never[] }),
-      db.note.createMany({ data: tables.notes as never[] }),
-      db.document.createMany({ data: tables.documents as never[] }),
-      db.appSetting.createMany({ data: tables.appSettings as never[] }),
-      db.auditLog.createMany({ data: tables.auditLogs as never[] }),
-    ])
+    await restoreFromBackup(parsed)
   } catch (e) {
     console.error('restore failed', e)
     return { error: 'saveFailed' }
