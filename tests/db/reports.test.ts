@@ -9,6 +9,14 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 })
 
+// The data-quality report looks up towns at a public geocoding service.
+// Nothing here asserts anything about that, and a test must not depend on
+// the internet — so it answers "not found" straight away.
+vi.mock('@/lib/geocode', () => ({
+  geocodeCity: async () => null,
+  searchPlaces: async () => [],
+}))
+
 const TAG = 'vitest-reports'
 let customerId = ''
 const projectIds: string[] = []
@@ -145,15 +153,24 @@ describe('getYearRevenue with a planning sheet', () => {
 })
 
 describe('old data set aside', () => {
-  const year = 2034
+  // A year of its own: a test must never reach into another test's rows.
+  const year = 2041
+  const NUMBERS = [`${year}-9201`, `${year}-9202`, `${year}-9203`]
   const ids: string[] = []
   let cust = ''
+  /** What the installation had set before the test touched it. */
+  let previousCutoff: string | null = null
 
   beforeAll(async () => {
     // A run that broke off earlier must not block this one.
-    await prisma.project.deleteMany({ where: { number: { startsWith: `${year}-` } } })
-    await prisma.customer.deleteMany({ where: { name: `${TAG} Kunde 2034`, projects: { none: {} } } })
-    const c = await prisma.customer.create({ data: { name: `${TAG} Kunde 2034` } })
+    previousCutoff =
+      (await prisma.appSetting.findUnique({ where: { key: 'historyCutoff' } }))?.value ?? null
+    // The first test says "while no cutoff is set" — so make that true, and
+    // make sure a value left behind by a run that broke off cannot linger.
+    await prisma.appSetting.deleteMany({ where: { key: 'historyCutoff' } })
+    await prisma.project.deleteMany({ where: { number: { in: NUMBERS } } })
+    await prisma.customer.deleteMany({ where: { name: `${TAG} Kunde ${year}`, projects: { none: {} } } })
+    const c = await prisma.customer.create({ data: { name: `${TAG} Kunde ${year}` } })
     cust = c.id
     const mk = (n: string, status: 'COMPLETED' | 'PLANNED', actualEnd: Date | null) =>
       prisma.project.create({
@@ -176,9 +193,18 @@ describe('old data set aside', () => {
   })
 
   afterAll(async () => {
-    await prisma.appSetting.deleteMany({ where: { key: 'historyCutoff' } })
-    await prisma.project.deleteMany({ where: { id: { in: ids } } })
-    await prisma.customer.delete({ where: { id: cust } })
+    // Put the installation's own setting back — a test must leave no mark.
+    if (previousCutoff === null) {
+      await prisma.appSetting.deleteMany({ where: { key: 'historyCutoff' } })
+    } else {
+      await prisma.appSetting.upsert({
+        where: { key: 'historyCutoff' },
+        update: { value: previousCutoff },
+        create: { key: 'historyCutoff', value: previousCutoff },
+      })
+    }
+    await prisma.project.deleteMany({ where: { number: { in: NUMBERS } } })
+    await prisma.customer.deleteMany({ where: { id: cust } })
   })
 
   it('lists every undated project while no cutoff is set', async () => {
@@ -202,5 +228,54 @@ describe('old data set aside', () => {
     expect(r.undatedHistorical).toBe(1)
     // The year's own figures are untouched by the cutoff.
     expect(r.yearTotal).toBe(0)
+  })
+})
+
+describe('what the data-quality report asks for', () => {
+  // A year of its own: a test must never reach into another test's rows.
+  const year = 2042
+  const NUMBERS = ['9301', '9302', '9303', '9304', '9305', '9306'].map((n) => `${year}-${n}`)
+  let cust = ''
+
+  beforeAll(async () => {
+    await prisma.project.deleteMany({ where: { number: { in: NUMBERS } } })
+    await prisma.customer.deleteMany({ where: { name: `${TAG} Kunde ${year}`, projects: { none: {} } } })
+    const c = await prisma.customer.create({ data: { name: `${TAG} Kunde ${year}` } })
+    cust = c.id
+    const mk = (n: string, status: 'APPROVED' | 'PLANNED' | 'IN_PROGRESS' | 'LEAD', city: string | null = 'Musterstadt') =>
+      prisma.project.create({
+        data: { number: `${year}-${n}`, name: `${TAG} ${n}`, customerId: cust, status, city },
+      })
+    await Promise.all([
+      mk('9301', 'APPROVED'),
+      mk('9302', 'LEAD'),
+      mk('9303', 'PLANNED'),
+      mk('9304', 'IN_PROGRESS'),
+      mk('9305', 'APPROVED', null),
+      mk('9306', 'PLANNED', null),
+    ])
+  })
+
+  afterAll(async () => {
+    await prisma.project.deleteMany({ where: { number: { in: NUMBERS } } })
+    await prisma.customer.deleteMany({ where: { id: cust } })
+  })
+
+  it('asks for a date where work is planned or under way, not for an offer nobody has scheduled', async () => {
+    const { getDataQuality } = await import('@/lib/reports')
+    const { issues } = await getDataQuality()
+    const listed = new Set(issues.find((i) => i.key === 'noPlannedStart')!.items.map((i) => i.label.split(' — ')[0]))
+    expect(listed.has(`${year}-9303`)).toBe(true)
+    expect(listed.has(`${year}-9304`)).toBe(true)
+    expect(listed.has(`${year}-9301`)).toBe(false)
+    expect(listed.has(`${year}-9302`)).toBe(false)
+  })
+
+  it('asks for a town where there are days to warn about, not for an offer', async () => {
+    const { getDataQuality } = await import('@/lib/reports')
+    const { issues } = await getDataQuality()
+    const listed = new Set(issues.find((i) => i.key === 'noCity')!.items.map((i) => i.label.split(' — ')[0]))
+    expect(listed.has(`${year}-9306`)).toBe(true)
+    expect(listed.has(`${year}-9305`)).toBe(false)
   })
 })

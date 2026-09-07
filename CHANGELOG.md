@@ -15,6 +15,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   is asked about exactly as before.
 
 ### Changed
+- **Data quality asks only what somebody can answer.** A start date is asked
+  of work that is planned, under way or done — an accepted offer nobody has
+  scheduled yet has no date to give, and it is still listed on the revenue
+  tab under *Ohne Termin*. The town is asked for the same work, since only
+  scheduled days get a weather warning. Both lists can now be finished.
 - **"Geplant, aber noch kein Projekt" is a task list again.** It shows the
   sheet's sites for this month and the ones ahead — work that still has to
   become a project. Once nothing is ahead, one quiet line says how many

@@ -729,6 +729,8 @@ Die Reiter:
 
 **Firmenname und Logo** — Name erscheint überall (Menü, Anmeldung, Arbeitsauftrag). Logo hochladen (PNG/JPG/WebP, max. 1 MB). „✓ Gespeichert“ bestätigt.
 
+**Datenqualität** fragt nur nach dem, was jemand beantworten kann: einen **Termin** zu Projekten, die geplant, in Arbeit oder abgeschlossen sind (ein angenommenes Angebot, das noch niemand eingeplant hat, hat noch keinen Termin — es steht weiterhin im Umsatz unter *Ohne Termin*, das dort also mehr Projekte listet als die Datenqualität), und eine **Stadt** zu geplanten und laufenden Projekten, denn nur eingeplante Tage bekommen eine Wetterwarnung.
+
 **Altdaten** — Beim Start bringt eine Firma Jahre erledigter Arbeit mit: importierte Karten, Aufträge, die längst abgerechnet sind. Unter *Daten → Altdaten* tragen Sie den Tag ein, ab dem BauCrew geführt wird. Alles, was davor **abgeschlossen** wurde, gilt als Altbestand: es bleibt vollständig sichtbar, zählt in den Berichten weiter (bei eingelesener Jahresplanung stehen die Zahlen ohnehin in der Tabelle), wird unter *Datenqualität* und in der Karte *Ohne Termin* aber nicht mehr angemahnt — beide sagen dazu, wie viele Projekte das betrifft. Laufende Arbeit wird immer angemahnt, egal wie alt. Bleibt das Feld leer, ändert sich nichts.
 
 **Datensicherung**

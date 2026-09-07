@@ -709,8 +709,12 @@ export async function getDataQuality(): Promise<DataQuality> {
   const in14 = new Date(todayUtc.getTime() + 14 * 86_400_000)
   const [noPlannedStart, inProgressNoSchedule, finishedNoPrice, noCity, missing, cityCandidates, stockShort] = await Promise.all([
     // Without a planned start a project belongs to no month in any report.
+    // Only asked of work that is planned, under way or done: an accepted
+    // offer that nobody has scheduled yet has no date to give, and saying so
+    // every day would make this list impossible to finish. Such projects are
+    // still listed on the revenue tab under "Ohne Termin".
     db.project.findMany({
-      where: { status: { not: 'CANCELLED' }, plannedStart: null },
+      where: { status: { in: ['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'INVOICED', 'PAID'] }, plannedStart: null },
       select: { ...historySelect, id: true, number: true, name: true },
       orderBy: { number: 'asc' },
     }),
@@ -724,9 +728,12 @@ export async function getDataQuality(): Promise<DataQuality> {
       select: { ...historySelect, id: true, number: true, name: true },
       orderBy: { number: 'asc' },
     }),
+    // The town is what the weather warning needs, and only work that is
+    // planned or under way has days to warn about — an accepted offer gets
+    // its town when it is scheduled.
     db.project.findMany({
       where: {
-        status: { notIn: ['COMPLETED', 'INVOICED', 'PAID', 'CANCELLED'] },
+        status: { in: ['PLANNED', 'IN_PROGRESS'] },
         OR: [{ city: null }, { city: '' }],
       },
       select: { id: true, number: true, name: true },
