@@ -415,7 +415,7 @@ export default async function SettingsPage({
             <SavedForm
               action={updateHistoryCutoff}
               className="flex max-w-2xl flex-wrap items-center gap-2"
-              errorLabel={() => t("historyInvalid")}
+              errorText={t("historyInvalid")}
             >
               <label htmlFor="historyCutoff" className="text-sm">
                 {t("historyLabel")}
@@ -425,7 +425,9 @@ export default async function SettingsPage({
                 id="historyCutoff"
                 name="historyCutoff"
                 defaultValue={historyCutoff}
-                className={`${inputClass} max-w-44`}
+                // A date field beside its button: a fixed width, and it must
+                // not shrink — `inputClass` alone would collapse it in the row.
+                className={`${inputClass.replace("w-full", "w-44")} shrink-0`}
               />
               <button type="submit" className={btn.primarySm}>
                 {tc("save")}

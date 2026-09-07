@@ -17,6 +17,7 @@ export function SavedForm({
   children,
   resetOnSave = false,
   errorLabel,
+  errorText,
 }: {
   action: (formData: FormData) => Promise<SaveState>
   /** Lets buttons outside the form submit it via `form={id}`. */
@@ -24,8 +25,13 @@ export function SavedForm({
   className?: string
   children: ReactNode
   resetOnSave?: boolean
-  /** Maps an `error` code from the action to a translated message. */
+  /**
+   * Maps an `error` code from the action to a translated message. Only from
+   * a client component — a function cannot cross into one from the server.
+   */
   errorLabel?: (code: string) => string
+  /** One message for every error, for a form on a server-rendered page. */
+  errorText?: string
 }) {
   const [state, formAction, pending] = useActionState<SaveState, FormData>(
     async (_prev, formData) => action(formData),
@@ -41,9 +47,9 @@ export function SavedForm({
     >
       {children}
       <SavedToast trigger={state.savedAt} />
-      {state.error && errorLabel && (
+      {state.error && (errorLabel || errorText) && (
         <p role="alert" className="text-sm text-danger">
-          {errorLabel(state.error)}
+          {errorLabel ? errorLabel(state.error) : errorText}
         </p>
       )}
     </form>
