@@ -9,6 +9,7 @@ import { audit } from '@/lib/audit'
 import { planChecklistChanges } from '@/lib/project-checklists'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
 import { ProjectStatus } from '@/generated/prisma/enums'
+import { nextProjectNumber } from '@/lib/project-numbers'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -134,18 +135,6 @@ function formErrorKey(
   if (issues.some((i) => i.path[0] === 'customerId')) return 'customerRequired'
   if (issues.some((i) => i.message === 'dateOrder')) return 'dateOrder'
   return 'saveFailed'
-}
-
-async function nextProjectNumber(): Promise<string> {
-  const year = new Date().getUTCFullYear()
-  const prefix = `${year}-`
-  const last = await db.project.findFirst({
-    where: { number: { startsWith: prefix } },
-    orderBy: { number: 'desc' },
-    select: { number: true },
-  })
-  const lastSeq = last ? Number(last.number.slice(prefix.length)) : 0
-  return `${prefix}${String(lastSeq + 1).padStart(4, '0')}`
 }
 
 /** Copies checklist templates onto a project (each project gets its own copy). */

@@ -404,6 +404,13 @@ export default async function SettingsPage({
               {tImportPlan("settingsLink")}
             </Link>
           </Card>
+
+          {/* API keys: programs and AI assistants */}
+          <Card title={t("apiKeysTitle")} description={t("apiKeysHint")}>
+            <Link href="/settings/api-keys" className={btn.outline}>
+              {t("apiKeysLink")}
+            </Link>
+          </Card>
         </div>
       )}
 

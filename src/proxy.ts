@@ -5,9 +5,13 @@ import { NextResponse, type NextRequest } from 'next/server'
 // server layouts via requireUser()/requireManagement().
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  // /api/inbound carries its own bearer-key auth (no cookie ever).
+  // The API and the MCP endpoint carry their own bearer-key auth (no cookie ever).
   const isPublic =
-    pathname === '/login' || pathname === '/logo' || pathname.startsWith('/api/inbound/')
+    pathname === '/login' ||
+    pathname === '/logo' ||
+    pathname.startsWith('/api/inbound/') ||
+    pathname.startsWith('/api/v1/') ||
+    pathname === '/api/mcp'
   const hasSessionCookie = Boolean(request.cookies.get('session')?.value)
 
   if (!isPublic && !hasSessionCookie) {

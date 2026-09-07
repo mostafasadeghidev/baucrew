@@ -32,6 +32,7 @@ model User {
 
   employee          Employee?
   sessions          Session[]
+  apiKeys           ApiKey[]
   auditLogs         AuditLog[]
   notes             Note[]
   uploadedDocuments Document[]         @relation("DocumentUploader")
@@ -54,6 +55,24 @@ model Session {
 // ─────────────────────────────────────────────
 // People
 // ─────────────────────────────────────────────
+
+/// A key for a program outside the app — an automation, an AI assistant via
+/// MCP — that acts as one user of the app: same role, same financial access.
+/// Only the hash is kept; the key itself is shown once, when it is made.
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  /// The key's first characters, so a person can tell keys apart in a list.
+  prefix     String
+  tokenHash  String    @unique
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
 
 model Employee {
   id        String   @id @default(cuid())

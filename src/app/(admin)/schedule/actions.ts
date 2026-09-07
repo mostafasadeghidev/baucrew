@@ -1,76 +1,17 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { getProjectDevices } from '../devices/actions'
-import { promoteToPlanned, actualDatesForStatus } from '@/lib/project-lifecycle'
+import { actualDatesForStatus } from '@/lib/project-lifecycle'
 import { expandDateRange } from '@/lib/schedule-range'
 import { assignmentBlock } from '@/lib/schedule-block'
+import { entrySchema, entryErrorKey, type EntryInput, type EntryResult } from '@/lib/schedule-entry'
+import { createEntries } from '@/lib/schedule-service'
 
-export type EntryResult = {
-  error?: 'duplicateEntry' | 'projectRequired' | 'saveFailed' | 'invalidRange' | 'rangeTooLong' | 'noWorkingDays'
-  /** Number of entries created (range mode). */
-  created?: number
-  /** Number of days taken out of the plan (shortened range). */
-  removed?: number
-  /** Number of days that already existed and were brought in line. */
-  updated?: number
-}
-
-const timeField = z
-  .string()
-  .trim()
-  .transform((v, ctx) => {
-    if (!v) return null
-    if (!/^\d{1,2}:\d{2}$/.test(v)) {
-      ctx.addIssue({ code: 'custom' })
-      return z.NEVER
-    }
-    return v
-  })
-
-const entrySchema = z.object({
-  projectId: z.string().min(1),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  endDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional()
-    .or(z.literal(''))
-    .transform((v) => (v ? v : null)),
-  saturday: z.boolean().optional().default(false),
-  sunday: z.boolean().optional().default(false),
-  applyToExisting: z.boolean().optional().default(true),
-  vehicleIds: z.array(z.string().min(1)).max(20),
-  employeeIds: z.array(z.string().min(1)).max(50),
-  startTime: timeField,
-  endTime: timeField,
-  note: z
-    .string()
-    .trim()
-    .max(1000)
-    .transform((v) => (v ? v : null)),
-})
-
-export type EntryInput = {
-  projectId: string
-  date: string
-  /** Create mode only: last day of a "from – to" range (one entry per day). */
-  endDate?: string
-  /** Range mode: plan Saturdays / Sundays inside the range (default off). */
-  saturday?: boolean
-  sunday?: boolean
-  /** Edit mode: bring days of the range that already exist in line with this entry. */
-  applyToExisting?: boolean
-  vehicleIds: string[]
-  employeeIds: string[]
-  startTime: string
-  endTime: string
-  note: string
-}
+export type { EntryInput, EntryResult }
 
 function isUniqueConflict(e: unknown): boolean {
   return typeof e === 'object' && e !== null && 'code' in e && (e as { code?: string }).code === 'P2002'
@@ -85,128 +26,12 @@ function revalidateBoard(projectId?: string) {
 export async function createScheduleEntry(input: EntryInput): Promise<EntryResult> {
   const user = await requireManagement()
   const parsed = entrySchema.safeParse(input)
-  if (!parsed.success) {
-    return {
-      error: parsed.error.issues.some((i) => i.path[0] === 'projectId')
-        ? 'projectRequired'
-        : 'saveFailed',
-    }
-  }
-  const d = parsed.data
-  const range = expandDateRange(d.date, d.endDate, { saturday: d.saturday, sunday: d.sunday })
-  if (range.error) return { error: range.error }
-  const isRange = range.dates.length > 1
-  let created = 0
-  try {
-    if (!isRange) {
-      // A cancelled day for the same project blocks the unique key — reuse it.
-      const cancelled = await db.scheduleEntry.findFirst({
-        where: { projectId: d.projectId, date: new Date(`${d.date}T00:00:00.000Z`), cancelledAt: { not: null } },
-        select: { id: true },
-      })
-      const data = {
-        projectId: d.projectId,
-        date: new Date(`${d.date}T00:00:00.000Z`),
-        startTime: d.startTime,
-        endTime: d.endTime,
-        note: d.note,
-        cancelledAt: null,
-      }
-      const entry = cancelled
-        ? await db.scheduleEntry.update({
-            where: { id: cancelled.id },
-            data: {
-              ...data,
-              employees: { deleteMany: {}, create: d.employeeIds.map((id) => ({ employeeId: id })) },
-              vehicles: { deleteMany: {}, create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
-            },
-            include: { project: { select: { number: true } } },
-          })
-        : await db.scheduleEntry.create({
-            data: {
-              ...data,
-              employees: { create: d.employeeIds.map((id) => ({ employeeId: id })) },
-              vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
-            },
-            include: { project: { select: { number: true } } },
-          })
-      created = 1
-      await audit({
-        userId: user.id,
-        action: 'schedule.create',
-        entity: 'ScheduleEntry',
-        entityId: entry.id,
-        newValue: `${entry.project.number} @ ${d.date}`,
-      })
-    } else {
-      // Range: one entry per day; days that already have an entry for this
-      // project are left untouched (unique projectId+date).
-      const existing = await db.scheduleEntry.findMany({
-        where: {
-          projectId: d.projectId,
-          date: { in: range.dates.map((x) => new Date(`${x}T00:00:00.000Z`)) },
-        },
-        select: { id: true, date: true, cancelledAt: true },
-      })
-      const active = new Set(
-        existing.filter((e) => e.cancelledAt === null).map((e) => e.date.toISOString().slice(0, 10))
-      )
-      const revivable = new Map(
-        existing
-          .filter((e) => e.cancelledAt !== null)
-          .map((e) => [e.date.toISOString().slice(0, 10), e.id] as const)
-      )
-      const todo = range.dates.filter((x) => !active.has(x))
-      if (todo.length === 0) return { error: 'duplicateEntry' }
-      const project = await db.project.findUnique({ where: { id: d.projectId }, select: { number: true } })
-      const ids = await db.$transaction(
-        todo.map((x) => {
-          const base = {
-            startTime: d.startTime,
-            endTime: d.endTime,
-            note: d.note,
-            cancelledAt: null,
-          }
-          const revive = revivable.get(x)
-          return revive
-            ? db.scheduleEntry.update({
-                where: { id: revive },
-                data: {
-                  ...base,
-                  employees: { deleteMany: {}, create: d.employeeIds.map((id) => ({ employeeId: id })) },
-                  vehicles: { deleteMany: {}, create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
-                },
-                select: { id: true },
-              })
-            : db.scheduleEntry.create({
-                data: {
-                  ...base,
-                  projectId: d.projectId,
-                  date: new Date(`${x}T00:00:00.000Z`),
-                  employees: { create: d.employeeIds.map((id) => ({ employeeId: id })) },
-                  vehicles: { create: d.vehicleIds.map((id) => ({ vehicleId: id })) },
-                },
-                select: { id: true },
-              })
-        })
-      )
-      created = ids.length
-      await audit({
-        userId: user.id,
-        action: 'schedule.createRange',
-        entity: 'ScheduleEntry',
-        entityId: ids[0].id,
-        newValue: `${project?.number ?? d.projectId} @ ${todo[0]} – ${todo[todo.length - 1]} (${todo.length})`,
-      })
-    }
-  } catch (e) {
-    return { error: isUniqueConflict(e) ? 'duplicateEntry' : 'saveFailed' }
-  }
-  // First planning step: preparation statuses become "Geplant" automatically.
-  await promoteToPlanned(d.projectId, user.id)
-  revalidateBoard(d.projectId)
+  if (!parsed.success) return { error: entryErrorKey(parsed.error.issues) }
+  const result = await createEntries(user.id, parsed.data)
+  if (result.error) return result
+  revalidateBoard(parsed.data.projectId)
   revalidatePath('/projects')
-  return { created }
+  return result
 }
 
 /**

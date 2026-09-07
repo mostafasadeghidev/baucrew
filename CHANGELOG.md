@@ -3,6 +3,28 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.32.0] — 2026-09-07
+
+### Added — a door for programs and assistants
+- **API keys** (Einstellungen → Daten → Schnittstelle). An administrator
+  makes a key for one office account; the key acts as that user — same
+  role, same financial access — is shown once, and can be revoked. Every
+  write through it lands in the change log.
+- **JSON API** under `/api/v1`: projects (list, one, create, status),
+  customers (list, create), employees, vehicles, the schedule (list, plan
+  a day or a range), revenue by month and the plan gaps (financial access).
+  Price fields are absent for a user who may not see them. `docs/API.md`
+  describes every route.
+- **MCP** at `/api/mcp`: the same functions as tools for an AI assistant
+  (Claude Code, Claude Desktop via mcp-remote, any client that speaks
+  Streamable HTTP). The server introduces the app, its date and money
+  conventions and the rule to confirm before writing.
+
+### Changed
+- Putting a project on the board and drawing the next project number live
+  in the library now, so the dialog, the API and the assistant do exactly
+  the same thing.
+
 ## [1.31.0] — 2026-09-06
 
 ### Added — the plan match finishes what a person started

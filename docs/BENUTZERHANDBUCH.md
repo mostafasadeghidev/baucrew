@@ -767,15 +767,16 @@ Unter **Arbeitsbereiche** legen Sie außerdem die Auswahllisten selbst fest: **A
 
 ---
 
-### Schnittstelle für Automationen
+### Schnittstelle für Automationen und KI-Assistenten (API und MCP)
 
-`POST /api/inbound/drafts` nimmt Projekte von außen an (JSON: `name`, optional
-`customerName`, `street`, `postalCode`, `city`, `price`, `plannedStart`,
-`plannedEnd`, `description`, `externalSystem`, `externalId`, `externalUrl`).
-Gesichert über `Authorization: Bearer <INBOUND_API_KEY>` — der Schlüssel steht
-in der `.env`; ohne ihn ist die Schnittstelle abgeschaltet. Alles landet als
-Entwurf, nie direkt als Projekt; dieselbe `externalSystem`+`externalId`
-aktualisiert ihren Entwurf.
+Unter *Daten → Schnittstelle* legt der Administrator **Schlüssel** an. Ein Schlüssel handelt als ein Bürokonto (Administrator oder Manager): dieselbe Rolle, derselbe Blick auf Finanzdaten — wer die Preise nicht sehen darf, bekommt sie auch über die Schnittstelle nicht. Der Schlüssel wird genau einmal angezeigt (kopieren und sicher ablegen); in der Liste ist er nur noch am Anfang zu erkennen, und **Sperren** macht ihn sofort wirkungslos. Alles, was ein Programm über einen Schlüssel ändert, steht im Änderungsprotokoll unter dem Konto des Schlüssels.
+
+Damit können zwei Arten von Programmen mit BauCrew arbeiten:
+
+- **Programme** (Automationen, Tabellen, andere Software) über die **API**: Projekte lesen, anlegen und den Status ändern, Kunden, Mitarbeiter und Fahrzeuge nachschlagen, die Einsatzplanung lesen und Einsätze eintragen, Umsatz nach Monat und Planabgleich lesen. Alle Wege stehen in `docs/API.md`.
+- **KI-Assistenten** wie Claude über **MCP**: derselbe Umfang als Werkzeuge. Der Assistent kann dann Fragen wie „Wer ist nächste Woche wo?“ beantworten oder auf Zuruf ein Projekt anlegen und einplanen — er sagt vorher, was er tun wird. Die Seite zeigt die fertigen Befehle für Claude Code und die Einstellung für Claude Desktop; nur `<KEY>` ist durch den Schlüssel zu ersetzen.
+
+Die ältere Adresse `/api/inbound/drafts` für Automationen, die Projekte nur als Entwurf in den Eingang legen, bleibt unverändert (Schlüssel `INBOUND_API_KEY` in der Umgebung).
 
 ## 16. Was tun, wenn …? — Hilfe bei Problemen
 
