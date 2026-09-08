@@ -473,6 +473,9 @@
   "reports": {
     "title": "Berichte",
     "revenueTitle": "Monatsplanumsatz",
+    "monthOrder": "Reihenfolge",
+    "monthOrderAsc": "Monate aufsteigend",
+    "monthOrderDesc": "Monate absteigend",
     "year": "Jahr",
     "ownPeople": "Eigene Leute",
     "sub": "SUB",

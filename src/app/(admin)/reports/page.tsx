@@ -55,10 +55,10 @@ const warn = 'text-amber-700 dark:text-amber-400'
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; period?: string; tab?: string }>
+  searchParams: Promise<{ year?: string; period?: string; tab?: string; order?: string }>
 }) {
   const user = await requireManagement()
-  const { year: yearParam, period: periodParam, tab: tabParam } = await searchParams
+  const { year: yearParam, period: periodParam, tab: tabParam, order: orderParam } = await searchParams
   const [t, tProjects, locale] = await Promise.all([
     getTranslations('reports'),
     getTranslations('projects'),
@@ -147,6 +147,12 @@ export default async function ReportsPage({
   // With a sheet the months ARE the sheet, so there is no plan to hold them
   // against; the comparison is for a year built from projects alone.
   const sheetLed = revenue?.sheetLed ?? false
+  /** Where a year's figures come from, shown as the ⓘ beside the revenue heading. */
+  const sheetNote = fromSheet
+    ? t('fromSheetYear', { year })
+    : sheetLed
+      ? t('sheetLedYear', { year })
+      : null
   const planComparable = hasPlan && !fromSheet && !sheetLed && (plan?.yearTotal ?? 0) > 0
   const visibleMonths = revenue
     ? revenue.months.filter(
@@ -155,6 +161,11 @@ export default async function ReportsPage({
           (m.own.length > 0 || m.sub.length > 0 || m.extra.length > 0 || (plan?.months[m.month].total ?? 0) > 0)
       )
     : []
+  // Newest month first is what somebody looking for "what is running now"
+  // wants; the sums, the chart and the quarter ring keep reading the months in
+  // their calendar order, so this is a copy and nothing else moves.
+  const monthsDescending = orderParam === 'desc'
+  const orderedMonths = monthsDescending ? [...visibleMonths].reverse() : visibleMonths
   const periodRevenueTotal = revenue ? sumRange(revenue.months.map((m) => m.total), range) : 0
   // The planned figures from the office's own year sheet, same period.
   const periodPlanTotal = plan ? sumRange(plan.months.map((m) => m.total), range) : 0
@@ -201,14 +212,18 @@ export default async function ReportsPage({
 
   return (
     <div className="space-y-4">
+      {/* Neither the sidebar nor the top bar is printed, so the sheet carries
+          its own title. On screen the sidebar already says "Berichte", which
+          is why the heading below steps out of sight from md upwards. */}
+      <p className="hidden text-lg font-semibold tracking-tight print:block">
+        {t('title')}
+        <span className="ml-2 text-base font-normal text-muted">
+          {periodLabel ? `${periodLabel} ${year}` : year}
+        </span>
+      </p>
       {/* Header + period controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('title')}
-          <span className="ml-2 hidden text-base font-normal text-muted print:inline">
-            {periodLabel ? `${periodLabel} ${year}` : year}
-          </span>
-        </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 md:justify-end">
+        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           {/* Year and period belong together, so they sit in one small bar. */}
           <div className="flex items-center gap-1.5 rounded-lg border border-border bg-subtle px-2 py-1">
@@ -356,8 +371,14 @@ export default async function ReportsPage({
           <p className={`${card} p-6 text-sm text-muted`}>{t('noAccess')}</p>
         ) : (
           <section className="space-y-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-sm font-semibold">{t('revenueTitle')}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold">
+                {t('revenueTitle')}
+                {/* Where the year's figures come from. It used to be a grey box
+                    across the top of the tab; it is the same sentence, now only
+                    read by whoever asks for it. */}
+                {sheetNote && <InfoHint text={sheetNote} className="ml-1.5" wide />}
+              </h2>
               <p className="text-xs text-muted">
                 {periodLabel ?? t('yearTotal')}:{' '}
                 <span className="font-semibold text-foreground tabular-nums">{money(periodRevenueTotal)}</span>
@@ -377,18 +398,17 @@ export default async function ReportsPage({
                   </>
                 )}
               </p>
+              <LiveSelect
+                param="order"
+                ariaLabel={t('monthOrder')}
+                className="min-w-44 print:hidden"
+                compact
+                options={[
+                  { value: '', label: t('monthOrderAsc') },
+                  { value: 'desc', label: t('monthOrderDesc') },
+                ]}
+              />
             </div>
-            {fromSheet ? (
-              <p className="rounded-md border border-border bg-subtle px-3 py-2 text-xs text-muted">
-                {t('fromSheetYear', { year })}
-              </p>
-            ) : (
-              sheetLed && (
-                <p className="rounded-md border border-border bg-subtle px-3 py-2 text-xs text-muted">
-                  {t('sheetLedYear', { year })}
-                </p>
-              )
-            )}
             {/* Sites the sheet parks on the year without picking a month yet —
                 they belong to no month card, so they get their own line. */}
             {hasPlan && !range && plan!.open > 0 && (
@@ -396,14 +416,14 @@ export default async function ReportsPage({
                 {t('planWithoutMonth', { amount: money(plan!.open) })}
               </p>
             )}
-            {visibleMonths.length === 0 ? (
+            {orderedMonths.length === 0 ? (
               <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {/* Cards in one row share their rows (subgrid): the "Eigene Leute"
                     line, the SUB line and the rest sit at the same height in every
                     card beside each other, however long the lists above them are. */}
-                {visibleMonths.map((m) => (
+                {orderedMonths.map((m) => (
                   <div key={m.month} className={`grid grid-rows-subgrid row-span-6 ${card}`}>
                     <div className="flex items-center justify-between border-b border-border px-3 py-2">
                       <h3 className="text-sm font-semibold">{monthName(m.month)}</h3>

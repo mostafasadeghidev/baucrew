@@ -473,6 +473,9 @@
   "reports": {
     "title": "Reports",
     "revenueTitle": "Monthly planned revenue",
+    "monthOrder": "Order",
+    "monthOrderAsc": "Months ascending",
+    "monthOrderDesc": "Months descending",
     "year": "Year",
     "ownPeople": "Own crew",
     "sub": "SUB",

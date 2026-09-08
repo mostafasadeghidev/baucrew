@@ -6,7 +6,16 @@
  * whatever the CSS says — and is shown when the wrapper is hovered or the
  * details is open.
  */
-export function InfoHint({ text, className = '' }: { text: string; className?: string }) {
+export function InfoHint({
+  text,
+  className = '',
+  wide = false,
+}: {
+  text: string
+  className?: string
+  /** For a paragraph rather than a sentence: a wider bubble. */
+  wide?: boolean
+}) {
   return (
     <span className={`group relative inline-flex align-middle ${className}`}>
       <details className="inline-flex">
@@ -19,7 +28,7 @@ export function InfoHint({ text, className = '' }: { text: string; className?: s
       </details>
       <span
         role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-20 mt-1.5 hidden w-64 rounded-md border border-border bg-surface p-2.5 text-left text-xs font-normal not-italic leading-snug text-foreground shadow-md group-hover:block group-has-[[open]]:block"
+        className={`pointer-events-none absolute left-0 top-full z-20 mt-1.5 hidden ${wide ? 'w-96 max-w-[80vw]' : 'w-64'} rounded-md border border-border bg-surface p-2.5 text-left text-xs font-normal not-italic leading-snug text-foreground shadow-md group-hover:block group-has-[[open]]:block`}
       >
         {text}
       </span>
