@@ -42,8 +42,8 @@ export default async function CustomersPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 md:justify-end">
+        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
         <Link
           href="/customers/new"
           className={btn.primary}

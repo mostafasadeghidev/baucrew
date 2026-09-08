@@ -63,8 +63,8 @@ export default async function EmployeesPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 md:justify-end">
+        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
         <Link
           href="/employees/new"
           className={btn.primary}

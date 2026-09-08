@@ -445,8 +445,8 @@ async function OverviewView({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 md:justify-end">
+        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
             <Link href={`/schedule?week=${weeks[0].mondayIso}`} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">

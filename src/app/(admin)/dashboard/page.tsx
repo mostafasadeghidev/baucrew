@@ -678,8 +678,8 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 md:justify-end">
+        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
         <div className="flex flex-wrap items-baseline gap-3">
           <p className="text-sm text-muted">
             {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
