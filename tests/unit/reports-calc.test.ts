@@ -4,6 +4,7 @@ import {
   computeEfficiency,
   cumulativeMonths,
   daysDiff,
+  parseCompareYears,
   percentChange,
   splitPlanGaps,
   sumThroughMonth,
@@ -218,5 +219,37 @@ describe('cumulativeMonths', () => {
       [null, null],
       [null, null],
     ])
+  })
+})
+
+describe('parseCompareYears', () => {
+  const allowed = [2027, 2026, 2025, 2024, 2023, 2022]
+
+  it('defaults to the year before when nothing was chosen', () => {
+    expect(parseCompareYears(undefined, 2026, allowed)).toEqual([2025])
+  })
+
+  it('tells "no comparison" apart from "not chosen yet"', () => {
+    expect(parseCompareYears('', 2026, allowed)).toEqual([])
+    expect(parseCompareYears('   ', 2026, allowed)).toEqual([])
+  })
+
+  it('reads a list, newest first, without repeats', () => {
+    expect(parseCompareYears('2023,2025,2023,2024', 2026, allowed)).toEqual([2025, 2024, 2023])
+  })
+
+  it('drops the year itself, unknown years and rubbish', () => {
+    expect(parseCompareYears('2026,2019,abc,2025', 2026, allowed)).toEqual([2025])
+  })
+
+  it('caps the list so the months stay readable', () => {
+    expect(parseCompareYears('2025,2024,2023,2022,2027', 2026, allowed)).toEqual([
+      2027, 2025, 2024, 2023,
+    ])
+    expect(parseCompareYears('2025,2024', 2026, allowed, 1)).toEqual([2025])
+  })
+
+  it('offers no comparison when the year before is not on the list', () => {
+    expect(parseCompareYears(undefined, 2022, allowed)).toEqual([])
   })
 })

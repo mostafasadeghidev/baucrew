@@ -19,6 +19,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   starts at the first month of the chosen period, so a quarter compares
   against that same quarter.
 
+### Added — as many years in the monthly chart as fit
+- The **Monatsumsatz** card compares against the year before as it always did,
+  and now says so with a chip that can be taken away and a **+ Jahr** picker
+  that adds another. Up to four years stand beside the one on screen, each a
+  plainer bar than the year in front of it; the tooltip and the legend name
+  every one. The choice rides in the address like the year and the period, so
+  a comparison survives a reload and can be sent to somebody as a link, and an
+  empty choice — the year entirely on its own — is a choice the app keeps.
+  Their months come from the aggregate the year comparison already loads, so a
+  fourth year costs no query.
+
 ### Added — several years side by side
 - **Umsatz je Jahr** under the Übersicht tab: one bar per year, own crew and
   SUB apart, newest first, with the change against the year below it. Every

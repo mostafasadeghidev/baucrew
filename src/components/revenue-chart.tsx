@@ -1,9 +1,14 @@
 'use client'
 
 /**
- * Monthly revenue bar chart (SVG). Current year as a stacked bar (own + SUB),
- * previous year as a grey bar beside it, and — when a year plan has been
- * imported — the planned figure as a dashed marker across the month.
+ * Monthly revenue bar chart (SVG). The year on screen stands as a stacked bar
+ * (own + SUB); every year it is compared against gets a plain bar beside it,
+ * fainter the further back it lies. When a year plan has been imported, the
+ * planned figure crosses the month as a dashed marker.
+ *
+ * One comparison year is the ordinary case and looks exactly as it always
+ * did; four is the most the twelve months can hold before the bars stop being
+ * tellable apart, which is why the caller caps the list.
  *
  * Bars are rounded at the very top only: a stack reads as one column, and the
  * seam between "own" and "SUB" stays a straight line instead of two clipped
@@ -21,10 +26,31 @@ import { formatCurrency } from '@/lib/format'
 export type RevenueChartMonth = {
   own: number
   sub: number
-  prev: number | null
   /** Planned revenue for the month; null when nothing was imported. */
   plan?: number | null
 }
+
+export type RevenueChartCompare = {
+  year: number
+  /** What the legend calls it, e.g. "2025 gesamt". */
+  label: string
+  /** Twelve monthly totals. */
+  months: number[]
+}
+
+/** The further back the year, the fainter its bar. Four is the cap. */
+const COMPARE_FILL = [
+  'fill-neutral-400/70',
+  'fill-neutral-400/50',
+  'fill-neutral-400/35',
+  'fill-neutral-400/22',
+]
+const COMPARE_SWATCH = [
+  'bg-neutral-400/70',
+  'bg-neutral-400/50',
+  'bg-neutral-400/35',
+  'bg-neutral-400/22',
+]
 
 function niceStep(max: number): number {
   if (max <= 0) return 1
@@ -43,25 +69,28 @@ function fmtShort(v: number): string {
 
 /**
  * A bar with two rounded top corners and a flat foot. The radius shrinks with
- * a short bar so a 2px sliver does not turn into a lens.
+ * a short or narrow bar so a sliver does not turn into a lens.
  */
 function topBar(x: number, y: number, w: number, h: number, r = 4): string {
   const rr = Math.max(0, Math.min(r, w / 2, h))
   return `M${x} ${y + h}V${y + rr}A${rr} ${rr} 0 0 1 ${x + rr} ${y}H${x + w - rr}A${rr} ${rr} 0 0 1 ${x + w} ${y + rr}V${y + h}Z`
 }
 
-const tipRow = 'flex items-center gap-2 whitespace-nowrap'
+type TipRow = { label: string; value: string; swatch: string | null; dashed?: boolean }
 
 export function RevenueChart({
   months,
+  compare,
   labels,
   legend,
   locale,
   highlightRange,
 }: {
   months: RevenueChartMonth[] // 12 entries
+  /** Years laid beside the one on screen, newest first. May be empty. */
+  compare: RevenueChartCompare[]
   labels: string[] // 12 short month names
-  legend: { own: string; sub: string; prev: string; plan?: string; total: string }
+  legend: { own: string; sub: string; plan?: string; total: string }
   /** Locale for the money format — a server page cannot hand over a function. */
   locale: string
   /** 0-11 inclusive range: dim all months outside it. */
@@ -79,29 +108,46 @@ export function RevenueChart({
   const plotH = H - padT - padB
 
   const money = (v: number) => formatCurrency(v, locale)
+  const series = compare.slice(0, COMPARE_FILL.length)
 
-  const maxVal = Math.max(1, ...months.map((m) => Math.max(m.own + m.sub, m.prev ?? 0, m.plan ?? 0)))
+  const maxVal = Math.max(
+    1,
+    ...months.map((m, i) =>
+      Math.max(m.own + m.sub, m.plan ?? 0, ...series.map((s) => s.months[i] ?? 0))
+    )
+  )
   const step = niceStep(maxVal)
   const yMax = Math.ceil(maxVal / step) * step
   const y = (v: number) => padT + plotH - (v / yMax) * plotH
 
   const slot = plotW / 12
-  const barW = Math.min(18, slot * 0.26)
   const gap = 3
+  // One bar for the year on screen and one per comparison year, together no
+  // wider than four fifths of the month — with a single comparison this is
+  // the pair of 18px bars the card has always drawn.
+  const bars = 1 + series.length
+  const groupW = Math.min(slot * 0.8, bars * 18 + (bars - 1) * gap)
+  const barW = (groupW - gap * (bars - 1)) / bars
+  const groupX = (i: number) => padL + slot * i + (slot - groupW) / 2
+
   const ticks = Array.from({ length: Math.round(yMax / step) + 1 }, (_, i) => i * step)
   const hasPlan = months.some((m) => (m.plan ?? 0) > 0)
 
-  /** Every figure of one month, in the order they are stacked. */
-  const rowsOf = (m: RevenueChartMonth) => {
-    const rows: Array<{ label: string; value: string; mark: 'own' | 'sub' | 'prev' | 'plan' | 'none' }> = []
-    if (m.sub > 0) rows.push({ label: legend.sub, value: money(m.sub), mark: 'sub' })
-    if (m.own > 0) rows.push({ label: legend.own, value: money(m.own), mark: 'own' })
+  /** Every figure of one month, in the order they are drawn. */
+  const rowsOf = (i: number): TipRow[] => {
+    const m = months[i]
+    const rows: TipRow[] = []
+    if (m.sub > 0) rows.push({ label: legend.sub, value: money(m.sub), swatch: 'bg-accent/40' })
+    if (m.own > 0) rows.push({ label: legend.own, value: money(m.own), swatch: 'bg-accent' })
     if (m.own > 0 && m.sub > 0)
-      rows.push({ label: legend.total, value: money(m.own + m.sub), mark: 'none' })
+      rows.push({ label: legend.total, value: money(m.own + m.sub), swatch: null })
     if (m.plan != null && m.plan > 0 && legend.plan)
-      rows.push({ label: legend.plan, value: money(m.plan), mark: 'plan' })
-    if (m.prev != null && m.prev > 0) rows.push({ label: legend.prev, value: money(m.prev), mark: 'prev' })
-    if (rows.length === 0) rows.push({ label: legend.total, value: money(0), mark: 'none' })
+      rows.push({ label: legend.plan, value: money(m.plan), swatch: null, dashed: true })
+    series.forEach((s, n) => {
+      const value = s.months[i] ?? 0
+      if (value > 0) rows.push({ label: s.label, value: money(value), swatch: COMPARE_SWATCH[n] })
+    })
+    if (rows.length === 0) rows.push({ label: legend.total, value: money(0), swatch: null })
     return rows
   }
 
@@ -114,7 +160,7 @@ export function RevenueChart({
     const toLeft = active >= 6
     const edge = `${((toLeft ? W - cx : cx) / W) * 100}%`
     return {
-      rows: rowsOf(months[active]),
+      rows: rowsOf(active),
       label: labels[active],
       style: toLeft ? { right: edge, marginRight: 8 } : { left: edge, marginLeft: 8 },
     }
@@ -122,16 +168,18 @@ export function RevenueChart({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-4 text-[11px] text-muted">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-[3px] bg-accent" /> {legend.own}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-[3px] bg-accent/40" /> {legend.sub}
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-[3px] bg-neutral-400/70" /> {legend.prev}
-        </span>
+        {series.map((s, n) => (
+          <span key={s.year} className="inline-flex items-center gap-1.5">
+            <span className={`inline-block h-2 w-2 rounded-[3px] ${COMPARE_SWATCH[n]}`} /> {s.label}
+          </span>
+        ))}
         {hasPlan && legend.plan && (
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-0 w-3 border-t-2 border-dashed border-foreground/60" />{' '}
@@ -145,7 +193,7 @@ export function RevenueChart({
           viewBox={`0 0 ${W} ${H}`}
           className="h-auto w-full touch-manipulation"
           role="img"
-          aria-label={`${legend.own} / ${legend.sub} / ${legend.prev}`}
+          aria-label={[legend.own, legend.sub, ...series.map((s) => s.label)].join(' / ')}
         >
           {ticks.map((t) => (
             <g key={t}>
@@ -165,9 +213,7 @@ export function RevenueChart({
           ))}
 
           {months.map((m, i) => {
-            const cx = padL + slot * i + slot / 2
-            const curX = cx - barW - gap / 2
-            const prevX = cx + gap / 2
+            const x0 = groupX(i)
             const cur = m.own + m.sub
             const dim = highlightRange != null && (i < highlightRange.from || i > highlightRange.to)
             return (
@@ -183,21 +229,30 @@ export function RevenueChart({
                   />
                 )}
                 {m.sub > 0 && (
-                  <path
-                    d={topBar(curX, y(cur), barW, y(m.own) - y(cur))}
-                    className="fill-accent/40"
-                  />
+                  <path d={topBar(x0, y(cur), barW, y(m.own) - y(cur))} className="fill-accent/40" />
                 )}
                 {m.own > 0 &&
                   (m.sub > 0 ? (
-                    <rect x={curX} y={y(m.own)} width={barW} height={y(0) - y(m.own)} className="fill-accent" />
+                    <rect x={x0} y={y(m.own)} width={barW} height={y(0) - y(m.own)} className="fill-accent" />
                   ) : (
-                    <path d={topBar(curX, y(m.own), barW, y(0) - y(m.own))} className="fill-accent" />
+                    <path d={topBar(x0, y(m.own), barW, y(0) - y(m.own))} className="fill-accent" />
                   ))}
+                {series.map((s, n) => {
+                  const value = s.months[i] ?? 0
+                  if (value <= 0) return null
+                  const x = x0 + (n + 1) * (barW + gap)
+                  return (
+                    <path
+                      key={s.year}
+                      d={topBar(x, y(value), barW, y(0) - y(value))}
+                      className={COMPARE_FILL[n]}
+                    />
+                  )
+                })}
                 {m.plan != null && m.plan > 0 && (
                   <line
-                    x1={curX - gap}
-                    x2={prevX + barW + gap}
+                    x1={x0 - gap}
+                    x2={x0 + groupW + gap}
                     y1={y(m.plan)}
                     y2={y(m.plan)}
                     className="stroke-foreground/60"
@@ -206,14 +261,8 @@ export function RevenueChart({
                     strokeLinecap="round"
                   />
                 )}
-                {m.prev != null && m.prev > 0 && (
-                  <path
-                    d={topBar(prevX, y(m.prev), barW, y(0) - y(m.prev))}
-                    className="fill-neutral-400/70"
-                  />
-                )}
                 <text
-                  x={cx}
+                  x={padL + slot * i + slot / 2}
                   y={H - padB + 16}
                   textAnchor="middle"
                   className={active === i ? 'fill-foreground' : 'fill-muted'}
@@ -229,7 +278,7 @@ export function RevenueChart({
 
           {/* One catch area per month, on top of everything: the whole column
               answers, not an 18px bar. */}
-          {months.map((m, i) => (
+          {months.map((_, i) => (
             <rect
               key={`hit-${i}`}
               x={padL + slot * i}
@@ -239,7 +288,7 @@ export function RevenueChart({
               fill="transparent"
               tabIndex={0}
               role="button"
-              aria-label={`${labels[i]}: ${rowsOf(m)
+              aria-label={`${labels[i]}: ${rowsOf(i)
                 .map((r) => `${r.label} ${r.value}`)
                 .join(', ')}`}
               className="cursor-default outline-none focus-visible:fill-foreground/[0.06]"
@@ -260,19 +309,13 @@ export function RevenueChart({
             <p className="mb-1 font-semibold">{tip.label}</p>
             <dl className="space-y-0.5">
               {tip.rows.map((r) => (
-                <div key={r.label} className={tipRow}>
+                <div key={r.label} className="flex items-center gap-2 whitespace-nowrap">
                   <span
                     aria-hidden
                     className={
-                      r.mark === 'own'
-                        ? 'inline-block h-2 w-2 shrink-0 rounded-[3px] bg-accent'
-                        : r.mark === 'sub'
-                          ? 'inline-block h-2 w-2 shrink-0 rounded-[3px] bg-accent/40'
-                          : r.mark === 'prev'
-                            ? 'inline-block h-2 w-2 shrink-0 rounded-[3px] bg-neutral-400/70'
-                            : r.mark === 'plan'
-                              ? 'inline-block h-0 w-2 shrink-0 border-t-2 border-dashed border-foreground/60'
-                              : 'inline-block h-2 w-2 shrink-0'
+                      r.dashed
+                        ? 'inline-block h-0 w-2 shrink-0 border-t-2 border-dashed border-foreground/60'
+                        : `inline-block h-2 w-2 shrink-0 rounded-[3px] ${r.swatch ?? ''}`
                     }
                   />
                   <dt className="text-muted">{r.label}</dt>

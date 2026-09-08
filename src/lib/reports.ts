@@ -241,6 +241,8 @@ export type YearTotal = {
   own: number
   sub: number
   total: number
+  /** The twelve monthly totals, so a chart can lay years over each other. */
+  months: number[]
   /** True when the figures are the imported planning sheet's own lines. */
   sheetLed: boolean
 }
@@ -258,6 +260,7 @@ export async function getYearTotals(years: number[]): Promise<YearTotal[]> {
     own: r.months.reduce((sum, m) => sum + m.ownTotal, 0),
     sub: r.months.reduce((sum, m) => sum + m.subTotal, 0),
     total: r.yearTotal,
+    months: r.months.map((m) => m.total),
     sheetLed: r.sheetLed,
   }))
 }

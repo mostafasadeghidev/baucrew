@@ -263,3 +263,35 @@ export function cumulativeMonths(
   }
   return rows
 }
+
+/**
+ * The years the monthly chart lays beside the one on screen, read from the
+ * `compare` URL parameter.
+ *
+ * Absent means the year before — what the card has always shown. An empty
+ * value means the office took that one away and wants the year on its own,
+ * which is why "nothing chosen" and "not chosen yet" cannot be the same. Only
+ * years the year picker offers are accepted, the year itself is never its own
+ * comparison, and the list is capped: past five bars a month a reader stops
+ * telling them apart.
+ */
+export function parseCompareYears(
+  value: string | undefined,
+  year: number,
+  allowed: number[],
+  max = 4
+): number[] {
+  const pick = (years: number[]) =>
+    [...new Set(years)]
+      .filter((y) => y !== year && allowed.includes(y))
+      .sort((a, b) => b - a)
+      .slice(0, max)
+  if (value === undefined) return pick([year - 1])
+  if (value.trim() === '') return []
+  return pick(
+    value
+      .split(',')
+      .map((part) => Number(part.trim()))
+      .filter((n) => Number.isInteger(n))
+  )
+}

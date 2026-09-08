@@ -19,6 +19,7 @@ import {
   parsePeriod,
   percentChange,
   cumulativeMonths,
+  parseCompareYears,
   splitPlanGaps,
   sumRange,
   topSites,
@@ -37,6 +38,7 @@ import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
 import { DonutChart } from '@/components/donut-chart'
 import { YearBars } from '@/components/year-bars'
+import { YearComparePicker } from '@/components/year-compare-picker'
 import { formatMinutes } from '@/lib/time-entries'
 import { InfoHint } from '@/components/ui/info-hint'
 
@@ -59,10 +61,10 @@ const warn = 'text-amber-700 dark:text-amber-400'
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; period?: string; tab?: string; order?: string; view?: string }>
+  searchParams: Promise<{ year?: string; period?: string; tab?: string; order?: string; view?: string; compare?: string }>
 }) {
   const user = await requireManagement()
-  const { year: yearParam, period: periodParam, tab: tabParam, order: orderParam, view: viewParam } = await searchParams
+  const { year: yearParam, period: periodParam, tab: tabParam, order: orderParam, view: viewParam, compare: compareParam } = await searchParams
   const [t, tProjects, locale] = await Promise.all([
     getTranslations('reports'),
     getTranslations('projects'),
@@ -206,6 +208,23 @@ export default async function ReportsPage({
   const statusOrder = Object.keys(ProjectStatus) as ProjectStatus[]
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
   const yearOptions = comparisonYears.map(String)
+  // The years the monthly chart is compared against. Absent means the year
+  // before — the card as it has always looked. Their months come out of the
+  // aggregate the year comparison below already loads, so choosing a fourth
+  // year costs no query.
+  const MAX_COMPARE = 4
+  const compareYears = parseCompareYears(compareParam, year, comparisonYears, MAX_COMPARE)
+  const compareSeries = compareYears
+    .map((y) => {
+      const row = (yearTotals ?? []).find((r) => r.year === y)
+      return row ? { year: y, label: t('legendPrev', { year: y }), months: row.months } : null
+    })
+    .filter((row) => row !== null)
+  /** The default comparison keeps the title it always had. */
+  const chartTitle =
+    compareYears.length === 1 && compareYears[0] === year - 1
+      ? t('chartTitle', { year, prev: year - 1 })
+      : t('chartTitleYear', { year })
   // A year with nothing in it is a blank line, not information — it goes,
   // unless it is the year on screen. The change is against the year below.
   const yearBars = (yearTotals ?? [])
@@ -353,19 +372,29 @@ export default async function ReportsPage({
 
             <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
             <div className={`${card} p-4`}>
-              <h2 className="mb-2 text-sm font-semibold">{t('chartTitle', { year, prev: year - 1 })}</h2>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">{chartTitle}</h2>
+                <YearComparePicker
+                  options={comparisonYears.filter((y) => y !== year)}
+                  selected={compareYears}
+                  max={MAX_COMPARE}
+                  addLabel={t('compareAdd')}
+                  removeLabels={Object.fromEntries(
+                    comparisonYears.map((y) => [y, t('compareRemove', { year: y })])
+                  )}
+                />
+              </div>
               <RevenueChart
                 months={revenue.months.map((m, i) => ({
                   own: m.ownTotal,
                   sub: m.subTotal,
-                  prev: prevRevenue ? prevRevenue.months[i].total : null,
                   plan: planComparable ? plan!.months[i].total : null,
                 }))}
+                compare={compareSeries}
                 labels={shortMonths}
                 legend={{
                   own: t('legendOwn', { year }),
                   sub: t('legendSub', { year }),
-                  prev: t('legendPrev', { year: year - 1 }),
                   plan: t('legendPlan'),
                   total: t('chartTotal'),
                 }}
