@@ -236,6 +236,32 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
 /** Kept for callers: a year's revenue is built the same way whether or not it has a sheet. */
 export const getYearRevenueOrHistory = getYearRevenue
 
+export type YearTotal = {
+  year: number
+  own: number
+  sub: number
+  total: number
+  /** True when the figures are the imported planning sheet's own lines. */
+  sheetLed: boolean
+}
+
+/**
+ * One line per year for the year comparison. Built from the very loader the
+ * month cards read, so the comparison and the months can never say two
+ * different things about the same year — a sheet-led year counts its sheet
+ * lines here exactly as it does there.
+ */
+export async function getYearTotals(years: number[]): Promise<YearTotal[]> {
+  const revenues = await Promise.all(years.map((y) => getYearRevenue(y)))
+  return revenues.map((r) => ({
+    year: r.year,
+    own: r.months.reduce((sum, m) => sum + m.ownTotal, 0),
+    sub: r.months.reduce((sum, m) => sum + m.subTotal, 0),
+    total: r.yearTotal,
+    sheetLed: r.sheetLed,
+  }))
+}
+
 export type YearPlan = {
   year: number
   /** Index 0-11, same shape as `MonthRevenue`, so both line up in the UI. */

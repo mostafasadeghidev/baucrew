@@ -3,6 +3,46 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.35.0] — 2026-09-08
+
+### Added — the revenue tab holds three views
+- **Monate** is the tab as it was: one card per month. Beside the period total
+  it now has an order, so an office that wants the running month first can
+  turn the year around. Only the display turns — every sum, the chart, the
+  quarter ring and the Excel export keep reading the months in calendar order.
+- **Top-Baustellen** folds the month lines of one project into the job the
+  office actually talks about, largest first, with its share of the period. A
+  site only the planning sheet knows is folded by name and has no page to
+  open; a line without an amount counts as zero rather than disappearing.
+- **Kumuliert** adds the year up month by month beside the same months of the
+  year before — whether the year is running ahead, and since when. Counting
+  starts at the first month of the chosen period, so a quarter compares
+  against that same quarter.
+
+### Added — several years side by side
+- **Umsatz je Jahr** under the Übersicht tab: one bar per year, own crew and
+  SUB apart, newest first, with the change against the year below it. Every
+  row is a link that makes that year the selected one. A year with nothing in
+  it is left out. The figures come from the loader the month cards read, so
+  the comparison and the months can never disagree about a year.
+
+### Changed
+- **The back gesture leaves the page, not the tab.** A tab and a page number
+  are two views of one page, so both replace the history entry instead of
+  adding one — clicking through the seven report tabs used to leave seven
+  stops behind, and a two-finger swipe undid them one at a time. The app's own
+  "← Zurück" pill steps back now instead of pushing the remembered page
+  forwards.
+- **A page stops repeating the menu it is under.** From md upwards the heading
+  that said "Projekte" beside a sidebar already saying Projekte steps out of
+  sight; below md it stays, since there the sidebar is folded away. It remains
+  in the document for screen readers, and the printed report carries a title
+  of its own. Einstellungen keeps its visible heading — it is reached from the
+  user menu, not the sidebar.
+- **The Umsatz tab explains itself only when asked.** The grey paragraph
+  across the top moved into the ⓘ beside the heading; the months start at the
+  top of the page now.
+
 ## [1.34.0] — 2026-09-08
 
 ### Changed — the revenue chart answers where the cursor is

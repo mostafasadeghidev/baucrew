@@ -10,6 +10,7 @@ import {
   getPipeline,
   getProjectEfficiency,
   getYearRevenueOrHistory,
+  getYearTotals,
   getYearPlan,
   getPlanGaps,
   getYearUsage,
@@ -17,8 +18,10 @@ import {
 import {
   parsePeriod,
   percentChange,
+  cumulativeMonths,
   splitPlanGaps,
   sumRange,
+  topSites,
   utilizationLevel,
   workingDaysInPeriod,
   type MonthRange,
@@ -33,6 +36,7 @@ import { PrintButton } from '@/components/print-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
 import { DonutChart } from '@/components/donut-chart'
+import { YearBars } from '@/components/year-bars'
 import { formatMinutes } from '@/lib/time-entries'
 import { InfoHint } from '@/components/ui/info-hint'
 
@@ -55,10 +59,10 @@ const warn = 'text-amber-700 dark:text-amber-400'
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; period?: string; tab?: string; order?: string }>
+  searchParams: Promise<{ year?: string; period?: string; tab?: string; order?: string; view?: string }>
 }) {
   const user = await requireManagement()
-  const { year: yearParam, period: periodParam, tab: tabParam, order: orderParam } = await searchParams
+  const { year: yearParam, period: periodParam, tab: tabParam, order: orderParam, view: viewParam } = await searchParams
   const [t, tProjects, locale] = await Promise.all([
     getTranslations('reports'),
     getTranslations('projects'),
@@ -71,11 +75,15 @@ export default async function ReportsPage({
   const year = yearParam && /^\d{4}$/.test(yearParam) ? Number(yearParam) : currentYear
   const range: MonthRange | null = parsePeriod(periodParam)
   const tab: Tab = (TABS as readonly string[]).includes(tabParam ?? '') ? (tabParam as Tab) : 'overview'
+  // The years the comparison spans — the same six the year picker offers, so
+  // every year in the chart can be opened from it.
+  const comparisonYears = Array.from({ length: 6 }, (_, i) => currentYear + 1 - i)
   const showFinancials = canViewFinancials(user)
 
-  const [revenue, prevRevenue, plan, planGaps, pipeline, openOffers, efficiency, usage, statusCounts, customers, quality] = await Promise.all([
+  const [revenue, prevRevenue, yearTotals, plan, planGaps, pipeline, openOffers, efficiency, usage, statusCounts, customers, quality] = await Promise.all([
     showFinancials ? getYearRevenueOrHistory(year) : null,
     showFinancials ? getYearRevenueOrHistory(year - 1) : null,
+    showFinancials ? getYearTotals(comparisonYears) : null,
     showFinancials ? getYearPlan(year) : null,
     showFinancials ? getPlanGaps(year) : null,
     showFinancials ? getPipeline() : null,
@@ -164,6 +172,21 @@ export default async function ReportsPage({
   // Newest month first is what somebody looking for "what is running now"
   // wants; the sums, the chart and the quarter ring keep reading the months in
   // their calendar order, so this is a copy and nothing else moves.
+  // The revenue tab holds three views of one year. "Monate" is the year as the
+  // office plans it; the other two answer what the month cards cannot — which
+  // sites carry the year, and whether it is running ahead of the last one.
+  const revenueView: '' | 'sites' | 'cumulative' =
+    viewParam === 'sites' || viewParam === 'cumulative' ? viewParam : ''
+  const topSiteRows = revenue ? topSites(revenue.months, range) : []
+  const TOP_SITES = 30
+  const topSitesRest = topSiteRows.slice(TOP_SITES).reduce((sum, site) => sum + site.total, 0)
+  const cumulativeRows = revenue
+    ? cumulativeMonths(
+        revenue.months.map((m) => ({ month: m.month, total: m.total })),
+        prevRevenue ? prevRevenue.months.map((m) => ({ month: m.month, total: m.total })) : null,
+        range
+      )
+    : []
   const monthsDescending = orderParam === 'desc'
   const orderedMonths = monthsDescending ? [...visibleMonths].reverse() : visibleMonths
   const periodRevenueTotal = revenue ? sumRange(revenue.months.map((m) => m.total), range) : 0
@@ -182,7 +205,18 @@ export default async function ReportsPage({
   const gapsAheadTotal = gaps ? gaps.upcoming.reduce((sum, g) => sum + g.amount, 0) : 0
   const statusOrder = Object.keys(ProjectStatus) as ProjectStatus[]
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
-  const yearOptions = Array.from({ length: 6 }, (_, i) => String(currentYear + 1 - i))
+  const yearOptions = comparisonYears.map(String)
+  // A year with nothing in it is a blank line, not information — it goes,
+  // unless it is the year on screen. The change is against the year below.
+  const yearBars = (yearTotals ?? [])
+    .filter((r) => r.total > 0 || r.year === year)
+    .map((r, i, list) => ({
+      year: r.year,
+      own: r.own,
+      sub: r.sub,
+      total: r.total,
+      change: percentChange(r.total, list[i + 1]?.total),
+    }))
   const workingDays = workingDaysInPeriod(year, range, now)
   const qualityCount = quality.issues.reduce((sum, q) => sum + q.count, 0)
   const topCustomer = customers?.top[0]
@@ -351,6 +385,19 @@ export default async function ReportsPage({
               </div>
             </div>
 
+            {yearBars.length > 1 && (
+              <div className={`${card} p-4`}>
+                <h2 className="mb-3 text-sm font-semibold">{t('yearComparison')}</h2>
+                <YearBars
+                  rows={yearBars}
+                  selected={year}
+                  hrefFor={(y) => `/reports?year=${y}${periodParam ? `&period=${encodeURIComponent(periodParam)}` : ''}`}
+                  formatValue={money}
+                  legend={{ own: t('ownPeople'), sub: t('sub') }}
+                />
+              </div>
+            )}
+
             {qualityCount > 0 && (
               <Link
                 href={`/reports?tab=quality&year=${year}${periodParam ? `&period=${periodParam}` : ''}`}
@@ -398,6 +445,7 @@ export default async function ReportsPage({
                   </>
                 )}
               </p>
+              {revenueView === '' && (
               <LiveSelect
                 param="order"
                 ariaLabel={t('monthOrder')}
@@ -408,15 +456,27 @@ export default async function ReportsPage({
                   { value: 'desc', label: t('monthOrderDesc') },
                 ]}
               />
+              )}
+            </div>
+            <div className="print:hidden">
+              <ParamTabs
+                param="view"
+                ariaLabel={t('revenueTitle')}
+                tabs={[
+                  { value: '', label: t('viewMonths') },
+                  { value: 'sites', label: t('viewSites'), count: topSiteRows.length },
+                  { value: 'cumulative', label: t('viewCumulative') },
+                ]}
+              />
             </div>
             {/* Sites the sheet parks on the year without picking a month yet —
                 they belong to no month card, so they get their own line. */}
-            {hasPlan && !range && plan!.open > 0 && (
+            {revenueView === '' && hasPlan && !range && plan!.open > 0 && (
               <p className="text-xs text-muted">
                 {t('planWithoutMonth', { amount: money(plan!.open) })}
               </p>
             )}
-            {orderedMonths.length === 0 ? (
+            {revenueView === '' && (orderedMonths.length === 0 ? (
               <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -513,10 +573,113 @@ export default async function ReportsPage({
                   </div>
                 ))}
               </div>
-            )}
+            ))}
+
+            {/* The year's biggest sites: the month lines of one project folded
+                into the job the office actually talks about. */}
+            {revenueView === 'sites' &&
+              (topSiteRows.length === 0 ? (
+                <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
+              ) : (
+                <div className={`overflow-hidden ${card}`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-border bg-subtle">
+                        <tr>
+                          <th className={`${th} w-10`} />
+                          <th className={th}>{t('colProject')}</th>
+                          <th className={th}>{t('colCustomer')}</th>
+                          <th className={thR}>{t('colRevenue')}</th>
+                          <th className={thR}>{t('colShare')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {topSiteRows.slice(0, TOP_SITES).map((site, i) => (
+                          <tr key={site.key} className="hover:bg-surface-hover">
+                            <td className={`${tdR} text-muted`}>{i + 1}</td>
+                            <td className={td}>
+                              {site.id ? (
+                                <Link href={`/projects/${site.id}`} className="text-accent hover:underline">
+                                  {site.name}
+                                </Link>
+                              ) : (
+                                site.name
+                              )}
+                              {site.lines > 1 && (
+                                <span className="ml-2 text-xs text-muted">
+                                  {t('sitesMonths', { count: site.lines })}
+                                </span>
+                              )}
+                            </td>
+                            <td className={`${td} text-muted`}>{site.customer || '—'}</td>
+                            <td className={tdR}>{money(site.total)}</td>
+                            <td className={`${tdR} text-muted`}>
+                              {periodRevenueTotal > 0
+                                ? `${Math.round((site.total / periodRevenueTotal) * 100)} %`
+                                : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {topSiteRows.length > TOP_SITES && (
+                    <p className="border-t border-border px-3 py-2 text-xs text-muted">
+                      {t('sitesMore', {
+                        count: topSiteRows.length - TOP_SITES,
+                        amount: money(topSitesRest),
+                      })}
+                    </p>
+                  )}
+                </div>
+              ))}
+
+            {/* The year adding up, month by month, beside the same months of the
+                year before — "are we ahead, and since when". */}
+            {revenueView === 'cumulative' &&
+              (cumulativeRows.length === 0 ? (
+                <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
+              ) : (
+                <div className={`overflow-hidden ${card}`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-border bg-subtle">
+                        <tr>
+                          <th className={th}>{t('colMonth')}</th>
+                          <th className={thR}>{t('colRevenue')}</th>
+                          <th className={thR}>{t('colCumulative')}</th>
+                          <th className={thR}>{t('colPrevCumulative', { year: year - 1 })}</th>
+                          <th className={thR}>{t('colDelta')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {cumulativeRows.map((row) => (
+                          <tr key={row.month}>
+                            <td className={td}>{monthName(row.month)}</td>
+                            <td className={`${tdR} text-muted`}>{money(row.total)}</td>
+                            <td className={`${tdR} font-semibold`}>{money(row.running)}</td>
+                            <td className={`${tdR} text-muted`}>
+                              {row.prevRunning == null ? '—' : money(row.prevRunning)}
+                            </td>
+                            <td
+                              className={`${tdR} font-medium ${
+                                row.delta == null ? 'text-muted' : row.delta >= 0 ? up : down
+                              }`}
+                            >
+                              {row.delta == null
+                                ? '—'
+                                : `${row.delta >= 0 ? '+' : '−'}${money(Math.abs(row.delta))}`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
 
             {/* Projects that belong to no month yet — shown, never guessed into one. */}
-            {!fromSheet && (revenue.undated.length > 0 || revenue.undatedHistorical > 0) && (
+            {revenueView === '' && !fromSheet && (revenue.undated.length > 0 || revenue.undatedHistorical > 0) && (
               <div
                 className={`${card} p-4 ${revenue.undated.length > 0 ? 'border-amber-500/40' : ''}`}
               >
@@ -563,7 +726,7 @@ export default async function ReportsPage({
 
             {/* Promised in the sheet, but no project carries it yet. Only the
                 months still ahead are work; earlier ones are a record. */}
-            {hasPlan && !fromSheet && gaps && gaps.upcoming.length > 0 && (
+            {revenueView === '' && hasPlan && !fromSheet && gaps && gaps.upcoming.length > 0 && (
               <div className={`${card} p-4`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h3 className="text-sm font-semibold">{t('planGapsTitle')}</h3>
@@ -603,7 +766,12 @@ export default async function ReportsPage({
             )}
 
             {/* Nothing ahead any more: the rest is an archive, one quiet line. */}
-            {hasPlan && !fromSheet && gaps && gaps.upcoming.length === 0 && gaps.past.length > 0 && (
+            {revenueView === '' &&
+              hasPlan &&
+              !fromSheet &&
+              gaps &&
+              gaps.upcoming.length === 0 &&
+              gaps.past.length > 0 && (
               <p className="text-xs text-muted">
                 {t('planGapsPast', { count: gaps.past.length })}{' '}
                 <Link href={`/reports/plan?year=${year}`} className="text-accent hover:underline">

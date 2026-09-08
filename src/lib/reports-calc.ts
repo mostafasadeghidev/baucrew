@@ -159,3 +159,107 @@ export function splitPlanGaps<T extends PlanGapRow>(
   }
   return { upcoming: rows.filter(ahead), past: rows.filter((r) => !ahead(r)) }
 }
+
+/** One name standing in a month of the revenue tab. */
+export type SiteRow = {
+  /** The project's id; for a sheet line with no project, the line's own id. */
+  id: string
+  number: string
+  name: string
+  customer: string
+  price: number | null
+  /** True for a line of the planning sheet that no project is tied to. */
+  fromSheet?: boolean
+}
+
+export type SiteMonth = { month: number; own: SiteRow[]; sub: SiteRow[] }
+
+export type TopSite = {
+  key: string
+  /** The project to open, or null when only the sheet knows this site. */
+  id: string | null
+  number: string
+  name: string
+  customer: string
+  total: number
+  /** How many month lines add up to that total. */
+  lines: number
+}
+
+/**
+ * The biggest sites of a period: every line of every month folded onto the
+ * project it belongs to, largest first. A project spread over four months
+ * reads as one job worth the sum of its four lines, which is how the office
+ * talks about it.
+ *
+ * A sheet line with no project has no id to fold on — two lines of the same
+ * name are the same site, so the name is the key. Lines with no amount count
+ * as zero rather than being dropped: the site was worked on.
+ */
+export function topSites(months: SiteMonth[], range: MonthRange | null): TopSite[] {
+  const byKey = new Map<string, TopSite>()
+  for (const month of months) {
+    if (range && (month.month < range.from || month.month > range.to)) continue
+    for (const row of [...month.own, ...month.sub]) {
+      const key = row.fromSheet ? `sheet:${row.name.trim().toLowerCase()}` : `project:${row.id}`
+      const found = byKey.get(key)
+      if (found) {
+        found.total += row.price ?? 0
+        found.lines += 1
+        continue
+      }
+      byKey.set(key, {
+        key,
+        id: row.fromSheet ? null : row.id,
+        number: row.number,
+        name: row.name,
+        customer: row.customer,
+        total: row.price ?? 0,
+        lines: 1,
+      })
+    }
+  }
+  return [...byKey.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+}
+
+export type CumulativeRow = {
+  month: number
+  total: number
+  /** The period's revenue up to and including this month. */
+  running: number
+  /** The same for the year before, or null when that year is unknown. */
+  prevRunning: number | null
+  /** running − prevRunning; null when there is nothing to compare against. */
+  delta: number | null
+}
+
+/**
+ * The period month by month with its running total beside the same months of
+ * the year before — the answer to "are we ahead of last year, and since
+ * when". Counting starts at the first month of the period, not of the year,
+ * so a quarter compares against that same quarter.
+ */
+export function cumulativeMonths(
+  months: Array<{ month: number; total: number }>,
+  previous: Array<{ month: number; total: number }> | null,
+  range: MonthRange | null
+): CumulativeRow[] {
+  const inRange = (m: number) => !range || (m >= range.from && m <= range.to)
+  let running = 0
+  let prevRunning = 0
+  const rows: CumulativeRow[] = []
+  for (const m of months) {
+    if (!inRange(m.month)) continue
+    running += m.total
+    const before = previous?.find((p) => p.month === m.month)
+    if (previous) prevRunning += before?.total ?? 0
+    rows.push({
+      month: m.month,
+      total: m.total,
+      running,
+      prevRunning: previous ? prevRunning : null,
+      delta: previous ? running - prevRunning : null,
+    })
+  }
+  return rows
+}

@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   businessDaysBetween,
   computeEfficiency,
+  cumulativeMonths,
   daysDiff,
   percentChange,
   splitPlanGaps,
   sumThroughMonth,
+  topSites,
 } from '@/lib/reports-calc'
 
 const d = (s: string) => new Date(`${s}T00:00:00.000Z`)
@@ -132,5 +134,89 @@ describe('plan lines without a project', () => {
     const { upcoming, past } = splitPlanGaps(rows, 2027, today)
     expect(upcoming).toHaveLength(rows.length)
     expect(past).toEqual([])
+  })
+})
+
+const site = (id: string, name: string, price: number | null, fromSheet = false) => ({
+  id,
+  number: fromSheet ? '' : `2041-${id}`,
+  name,
+  customer: fromSheet ? '' : 'Muster GmbH',
+  price,
+  ...(fromSheet ? { fromSheet: true } : {}),
+})
+
+describe('topSites', () => {
+  const months = [
+    { month: 0, own: [site('a', 'Musterhof', 30_000), site('b', 'Beispielweg 3', 5_000)], sub: [] },
+    { month: 1, own: [site('a', 'Musterhof', 20_000)], sub: [site('c', 'Musterstraße 7', 8_000)] },
+    { month: 2, own: [], sub: [] },
+  ]
+
+  it('folds a project spread over months into one line, biggest first', () => {
+    const rows = topSites(months as never, null)
+    expect(rows.map((r) => [r.name, r.total, r.lines])).toEqual([
+      ['Musterhof', 50_000, 2],
+      ['Musterstraße 7', 8_000, 1],
+      ['Beispielweg 3', 5_000, 1],
+    ])
+    expect(rows[0].id).toBe('a')
+  })
+
+  it('honours the period', () => {
+    expect(topSites(months as never, { from: 1, to: 2 }).map((r) => [r.name, r.total])).toEqual([
+      ['Musterhof', 20_000],
+      ['Musterstraße 7', 8_000],
+    ])
+  })
+
+  it('folds sheet-only lines by name, and gives them no project to open', () => {
+    const rows = topSites(
+      [
+        { month: 0, own: [site('l1', ' Musterbau ', 10_000, true)], sub: [] },
+        { month: 1, own: [site('l2', 'musterbau', 4_000, true)], sub: [] },
+      ] as never,
+      null
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0].total).toBe(14_000)
+    expect(rows[0].id).toBeNull()
+  })
+
+  it('keeps a line without an amount instead of dropping it', () => {
+    const rows = topSites([{ month: 0, own: [site('x', 'Ohne Wert', null)], sub: [] }] as never, null)
+    expect(rows).toEqual([
+      expect.objectContaining({ name: 'Ohne Wert', total: 0, lines: 1 }),
+    ])
+  })
+})
+
+describe('cumulativeMonths', () => {
+  const months = Array.from({ length: 12 }, (_, month) => ({ month, total: (month + 1) * 1_000 }))
+  const previous = Array.from({ length: 12 }, (_, month) => ({ month, total: 500 }))
+
+  it('adds up as the year goes and compares with the year before', () => {
+    const rows = cumulativeMonths(months, previous, null)
+    expect(rows).toHaveLength(12)
+    expect(rows[0]).toEqual({ month: 0, total: 1_000, running: 1_000, prevRunning: 500, delta: 500 })
+    expect(rows[11].running).toBe(78_000)
+    expect(rows[11].prevRunning).toBe(6_000)
+    expect(rows[11].delta).toBe(72_000)
+  })
+
+  it('starts counting at the first month of the period, not of the year', () => {
+    const rows = cumulativeMonths(months, previous, { from: 3, to: 5 })
+    expect(rows.map((r) => r.month)).toEqual([3, 4, 5])
+    expect(rows[0].running).toBe(4_000)
+    expect(rows[2].running).toBe(15_000)
+    expect(rows[2].prevRunning).toBe(1_500)
+  })
+
+  it('leaves the comparison empty when the year before is unknown', () => {
+    const rows = cumulativeMonths(months, null, { from: 0, to: 1 })
+    expect(rows.map((r) => [r.prevRunning, r.delta])).toEqual([
+      [null, null],
+      [null, null],
+    ])
   })
 })
