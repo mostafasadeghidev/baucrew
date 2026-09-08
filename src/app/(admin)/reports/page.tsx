@@ -318,8 +318,9 @@ export default async function ReportsPage({
                   sub: t('legendSub', { year }),
                   prev: t('legendPrev', { year: year - 1 }),
                   plan: t('legendPlan'),
+                  total: t('chartTotal'),
                 }}
-                formatValue={money}
+                locale={locale}
                 highlightRange={range}
               />
             </div>

@@ -498,6 +498,7 @@
     "kpiPlanned": "Planned / open",
     "projectsCount": "{count} projects",
     "chartTitle": "Monthly revenue {year} compared to {prev}",
+    "chartTotal": "Total",
     "legendOwn": "{year} own crew",
     "legendSub": "{year} SUB",
     "legendPrev": "{year} total",

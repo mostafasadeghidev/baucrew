@@ -3,6 +3,19 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.34.0] — 2026-09-08
+
+### Changed — the revenue chart answers where the cursor is
+- **Monatsumsatz chart (Berichte → Übersicht).** Pointing at a month now
+  shows every figure of that month at once — SUB, own crew, the total, the
+  planned figure and the previous year — in a card of the app's own, and it
+  appears at once instead of after the browser tooltip's second of silence.
+  The whole column is the target, not an eighteen-pixel bar, and it answers
+  a tap and a keyboard as well as a mouse, which the old one never did.
+- Bars are rounded at the top only. A stacked column reads as one bar, the
+  seam between own crew and SUB is a straight line rather than two clipped
+  corners, and every bar sits flat on the axis.
+
 ## [1.33.0] — 2026-09-07
 
 ### Added — where the old data ends

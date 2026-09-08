@@ -498,6 +498,7 @@
     "kpiPlanned": "Geplant / offen",
     "projectsCount": "{count} Projekte",
     "chartTitle": "Monatsumsatz {year} im Vergleich zu {prev}",
+    "chartTotal": "Gesamt",
     "legendOwn": "{year} eigene Leute",
     "legendSub": "{year} SUB",
     "legendPrev": "{year} gesamt",
