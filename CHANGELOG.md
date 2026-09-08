@@ -27,8 +27,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   every one. The choice rides in the address like the year and the period, so
   a comparison survives a reload and can be sent to somebody as a link, and an
   empty choice — the year entirely on its own — is a choice the app keeps.
-  Their months come from the aggregate the year comparison already loads, so a
-  fourth year costs no query.
+  Every year is split the way the year on screen is — solid foot for own crew,
+  pale head for SUB — so the two tones are learnt once from the coloured bar
+  and read again in each grey one. Their months come from the aggregate the
+  year comparison already loads, so a fourth year costs no query.
 
 ### Added — several years side by side
 - **Umsatz je Jahr** under the Übersicht tab: one bar per year, own crew and

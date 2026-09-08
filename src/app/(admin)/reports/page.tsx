@@ -217,7 +217,14 @@ export default async function ReportsPage({
   const compareSeries = compareYears
     .map((y) => {
       const row = (yearTotals ?? []).find((r) => r.year === y)
-      return row ? { year: y, label: t('legendPrev', { year: y }), months: row.months } : null
+      return row
+        ? {
+            year: y,
+            label: String(y),
+            subLabel: t('legendSub', { year: y }),
+            months: row.months.map((m) => ({ own: m.own, sub: m.sub })),
+          }
+        : null
     })
     .filter((row) => row !== null)
   /** The default comparison keeps the title it always had. */
