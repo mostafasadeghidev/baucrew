@@ -19,7 +19,12 @@ function pageItems(page: number, totalPages: number): Array<number | 'gap'> {
   return items
 }
 
-/** Query-param based pager that preserves active search/filter params. */
+/**
+ * Query-param based pager that preserves active search/filter params.
+ * Page changes replace the history entry — paging through a list is looking
+ * around one page, so the back gesture should leave the list, not undo the
+ * paging one step at a time.
+ */
 export function Pagination({ page, total, pageSize = PAGE_SIZE }: { page: number; total: number; pageSize?: number }) {
   const tc = useTranslations('common')
   const pathname = usePathname()
@@ -43,6 +48,7 @@ export function Pagination({ page, total, pageSize = PAGE_SIZE }: { page: number
     <nav className="flex items-center justify-center gap-1" aria-label={tc('pagination')}>
       <Link
         href={hrefFor(page - 1)}
+        replace
         aria-disabled={page <= 1}
         tabIndex={page <= 1 ? -1 : undefined}
         className={navClass}
@@ -60,6 +66,7 @@ export function Pagination({ page, total, pageSize = PAGE_SIZE }: { page: number
           <Link
             key={item}
             href={hrefFor(item)}
+            replace
             aria-current={item === page ? 'page' : undefined}
             className={`inline-flex h-9 min-w-9 items-center justify-center rounded-md px-2.5 text-sm font-medium tabular-nums transition-colors ${
               item === page
@@ -74,6 +81,7 @@ export function Pagination({ page, total, pageSize = PAGE_SIZE }: { page: number
 
       <Link
         href={hrefFor(page + 1)}
+        replace
         aria-disabled={page >= totalPages}
         tabIndex={page >= totalPages ? -1 : undefined}
         className={navClass}

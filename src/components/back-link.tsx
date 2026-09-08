@@ -13,8 +13,13 @@ export const backLinkClass =
 /**
  * Smart back link: if the user arrived from another page of the app (tracked
  * by <NavHistory/>) that is not the fallback list, the pill reads "← Zurück" and
- * goes back there. Otherwise it links to `href` with `label` (the list the
+ * steps back to it. Otherwise it links to `href` with `label` (the list the
  * record belongs to). Server render always shows the fallback.
+ *
+ * It pops the history rather than pushing the remembered page: pushing would
+ * grow the stack forwards, so the browser's own back gesture — a two-finger
+ * swipe on a laptop — would immediately undo the pill and land the user back
+ * where they just left.
  */
 export function BackLink({ href, label }: { href: string; label: string }) {
   const tc = useTranslations('common')
@@ -31,7 +36,7 @@ export function BackLink({ href, label }: { href: string; label: string }) {
 
   if (smart) {
     return (
-      <button type="button" onClick={() => router.push(from)} className={backLinkClass} title={from}>
+      <button type="button" onClick={() => router.back()} className={backLinkClass} title={from}>
         <span aria-hidden className="text-base leading-none">
           ←
         </span>

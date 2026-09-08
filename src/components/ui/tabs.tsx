@@ -36,6 +36,10 @@ export function TabLink({
   return (
     <Link
       href={href}
+      // A tab is another view of the same page, not a place of its own: it
+      // replaces the entry so the browser's back gesture leaves the page
+      // instead of walking back through every tab that was looked at.
+      replace
       role="tab"
       aria-selected={active}
       aria-current={active ? 'page' : undefined}
