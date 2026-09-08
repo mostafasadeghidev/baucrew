@@ -1,8 +1,10 @@
 'use client'
 
 /**
- * Picks the years the monthly chart is compared against. One chip per chosen
- * year with an × to take it away, and a small select to add another.
+ * Picks the years the monthly chart is compared against: one button, and
+ * behind it a list of years each with a tick. Nothing is written beside the
+ * button — the chart's own legend already says which years are in it, and a
+ * second list of the same years next to the heading only says it twice.
  *
  * The choice lives in the URL like the year and the period do, so a comparison
  * survives a reload and can be sent to somebody as a link. An empty list is
@@ -11,81 +13,106 @@
  */
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useTransition } from 'react'
-import { X } from 'lucide-react'
-import { Select } from './ui/select'
+import { useState, useTransition } from 'react'
+import { Check, ChevronDown } from 'lucide-react'
+import { Menu, menuItemClass } from './ui/menu'
+import { btn } from './ui/button'
 
 export function YearComparePicker({
   options,
   selected,
   param = 'compare',
   max = 4,
-  addLabel,
-  removeLabels,
+  label,
+  maxHint,
 }: {
-  /** Every year that may be added, the year on screen excluded. */
+  /** Every year that may be chosen, the year on screen excluded. */
   options: number[]
-  /** The years chosen, newest first. */
+  /** The years chosen. */
   selected: number[]
   param?: string
   max?: number
-  addLabel: string
-  /**
-   * The "take this year away" label per year, ready-made — a server page
-   * cannot hand a client component a function to build them with.
-   */
-  removeLabels: Record<string, string>
+  /** The button's own words, e.g. "Vergleichsjahre". */
+  label: string
+  /** Shown under the list once the cap is reached. */
+  maxHint: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
 
+  // What the page last said, and what has been ticked since. Two ticks in a
+  // row are quicker than a round trip, and reading the answer out of the props
+  // both times would write the second tick over the first.
+  const given = selected.join(',')
+  const [seen, setSeen] = useState(given)
+  const [picked, setPicked] = useState(selected)
+  if (seen !== given) {
+    setSeen(given)
+    setPicked(selected)
+  }
+
   const write = (years: number[]) => {
+    setPicked(years)
     const params = new URLSearchParams(searchParams)
     // Always explicit, empty included — see the note at the top.
     params.set(param, [...years].sort((a, b) => b - a).join(','))
-    startTransition(() =>
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-    )
+    startTransition(() => router.replace(`${pathname}?${params.toString()}`, { scroll: false }))
   }
 
-  const free = options.filter((y) => !selected.includes(y))
+  const full = picked.length >= max
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 print:hidden">
-      {selected.map((year) => (
-        <span
-          key={year}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-subtle py-1 pl-2 pr-1 text-xs tabular-nums"
-        >
-          {year}
-          <button
-            type="button"
-            aria-label={removeLabels[year]}
-            onClick={() => write(selected.filter((y) => y !== year))}
-            className="rounded-sm p-0.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
-          >
-            <X className="h-3 w-3" aria-hidden />
-          </button>
-        </span>
-      ))}
-      {free.length > 0 && selected.length < max && (
-        <Select
-          className="w-28"
-          compact
-          aria-label={addLabel}
-          value=""
-          onChange={(e) => e.target.value && write([...selected, Number(e.target.value)])}
-        >
-          <option value="">{addLabel}</option>
-          {free.map((year) => (
-            <option key={year} value={year}>
+    <Menu
+      side="bottom"
+      align="end"
+      label={label}
+      className={`${btn.outlineSm} gap-1.5 text-xs print:hidden`}
+      trigger={
+        <>
+          {label}
+          {picked.length > 0 && (
+            <span className="rounded-full bg-accent/10 px-1.5 text-xs tabular-nums text-accent">
+              {picked.length}
+            </span>
+          )}
+          <ChevronDown className="h-3.5 w-3.5 text-muted" aria-hidden />
+        </>
+      }
+    >
+      {options.map((year) => {
+        const on = picked.includes(year)
+        const blocked = !on && full
+        return (
+          // Ticking a year keeps the list open — the next one is usually one
+          // click away, and the Menu closes itself on any click it hears.
+          <div key={year} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              aria-checked={on}
+              aria-disabled={blocked}
+              onClick={() => {
+                if (blocked) return
+                write(on ? picked.filter((y) => y !== year) : [...picked, year])
+              }}
+              className={`${menuItemClass} tabular-nums ${blocked ? 'cursor-not-allowed opacity-40' : ''}`}
+            >
+              <Check
+                aria-hidden
+                className={`h-3.5 w-3.5 shrink-0 text-accent ${on ? '' : 'invisible'}`}
+              />
               {year}
-            </option>
-          ))}
-        </Select>
+            </button>
+          </div>
+        )
+      })}
+      {full && (
+        <div onClick={(e) => e.stopPropagation()} className="px-2 pb-1 pt-1.5 text-[11px] text-muted">
+          {maxHint}
+        </div>
       )}
-    </div>
+    </Menu>
   )
 }

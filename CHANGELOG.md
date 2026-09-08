@@ -20,17 +20,46 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   against that same quarter.
 
 ### Added — as many years in the monthly chart as fit
-- The **Monatsumsatz** card compares against the year before as it always did,
-  and now says so with a chip that can be taken away and a **+ Jahr** picker
-  that adds another. Up to four years stand beside the one on screen, each a
-  plainer bar than the year in front of it; the tooltip and the legend name
-  every one. The choice rides in the address like the year and the period, so
-  a comparison survives a reload and can be sent to somebody as a link, and an
-  empty choice — the year entirely on its own — is a choice the app keeps.
-  Every year is split the way the year on screen is — solid foot for own crew,
-  pale head for SUB — so the two tones are learnt once from the coloured bar
-  and read again in each grey one. Their months come from the aggregate the
-  year comparison already loads, so a fourth year costs no query.
+- The **Monatsumsatz** card compares against the year before as it always did.
+  **Vergleichsjahre** beside the heading opens a list of years, each with a
+  tick: up to four stand beside the one on screen. Every year is split the way
+  the year on screen is — solid foot for own crew, pale head for SUB — and
+  every one has a colour of its own rather than a fainter grey, because four
+  greys stop telling each other apart on a dark screen.
+- Inside a month the bars run newest year to oldest with the year on screen in
+  its place, so a year picked *after* it stands to its left instead of behind
+  it. The legend runs in the same order.
+- What the bubble says depends on how much is in the chart: with one compared
+  year the whole month answers, as it always did; from two on a bar answers
+  for itself and the strip carrying the month name gives every year at once,
+  one line each, separated by a dashed rule. The bubble always goes to the far
+  side of the month in hand, so it never covers what it is describing.
+- Beside each compared year the bubble says how far the year on screen stands
+  above or below it in that month — the same reading the KPI card gives for
+  the whole period.
+- The choice rides in the address like the year and the period, so a
+  comparison survives a reload and can be sent as a link, and an empty choice —
+  the year entirely on its own — is a choice the app keeps. The months come
+  from the aggregate the year comparison already loads, so a fourth year costs
+  no query.
+
+### Fixed
+- A chart is twelve tab stops again, not sixty: the strip under each month
+  takes the keyboard and reads out every year in it, and the focused month is
+  now outlined instead of merely tinted. A mouse crossing the chart no longer
+  wipes out what the keyboard put up.
+- The bars answer for themselves. The catch column of each bar is cut from the
+  bar's own place rather than from an even split of the month, so the outermost
+  bar of a month can no longer report its neighbour's year, and taking a year
+  away while the pointer rests on the last bar falls back to the whole month
+  instead of throwing.
+- A gridline at 2 500 € is labelled 2,5 T€ rather than 3 T€.
+- The pale SUB head of a compared bar is visible on a white card again — it had
+  been the colour of the gridlines.
+- The Vergleichsjahre button is left off the printed report, and ticking a
+  second year before the first has landed no longer drops the first.
+- A menu opened from the keyboard puts the keyboard inside it, and Escape hands
+  the focus back to the button that opened it.
 
 ### Added — several years side by side
 - **Umsatz je Jahr** under the Übersicht tab: one bar per year, own crew and

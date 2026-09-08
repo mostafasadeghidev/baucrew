@@ -221,6 +221,7 @@ export default async function ReportsPage({
         ? {
             year: y,
             label: String(y),
+            ownLabel: t('legendOwn', { year: y }),
             subLabel: t('legendSub', { year: y }),
             months: row.months.map((m) => ({ own: m.own, sub: m.sub })),
           }
@@ -385,13 +386,12 @@ export default async function ReportsPage({
                   options={comparisonYears.filter((y) => y !== year)}
                   selected={compareYears}
                   max={MAX_COMPARE}
-                  addLabel={t('compareAdd')}
-                  removeLabels={Object.fromEntries(
-                    comparisonYears.map((y) => [y, t('compareRemove', { year: y })])
-                  )}
+                  label={t('compareYears')}
+                  maxHint={t('compareMax', { count: MAX_COMPARE })}
                 />
               </div>
               <RevenueChart
+                year={year}
                 months={revenue.months.map((m, i) => ({
                   own: m.ownTotal,
                   sub: m.subTotal,
@@ -404,6 +404,7 @@ export default async function ReportsPage({
                   sub: t('legendSub', { year }),
                   plan: t('legendPlan'),
                   total: t('chartTotal'),
+                  wholeMonth: t('chartWholeMonth'),
                 }}
                 locale={locale}
                 highlightRange={range}

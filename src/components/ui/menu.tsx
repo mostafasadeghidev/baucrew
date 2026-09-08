@@ -42,7 +42,17 @@ export function Menu({
       )
     }
     place()
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    // Opened from the keyboard, the panel has to be where the keyboard goes
+    // next — it is portalled to the end of the document, so Tab alone would
+    // walk the rest of the page first.
+    panelRef.current
+      ?.querySelector<HTMLElement>('[role^="menuitem"], button, a[href], input, select, textarea')
+      ?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      anchorRef.current?.focus()
+    }
     const onClick = (e: MouseEvent) => {
       const t = e.target as Node
       if (!anchorRef.current?.contains(t) && !panelRef.current?.contains(t)) setOpen(false)
