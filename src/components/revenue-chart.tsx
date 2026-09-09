@@ -13,9 +13,10 @@
  * to muddy each other; areas suit the usual pair.
  *
  * Rounded reads as a trend and straight reads as the twelve figures it is
- * made of. Rounding cannot invent a peak between two months — the corners are
- * eased, the points are where the months are — but a reader who wants to see
- * exactly where a month sits is better served by the straight one.
+ * made of. The rounding is a monotone spline (see `@/lib/chart-path`): it can
+ * neither lift a curve above the highest month it runs between nor push it
+ * below the lowest, so no stretch of it ever claims a figure the year has
+ * not got.
  *
  * A curve breaks where a month has nothing rather than diving to the floor —
  * a year that is only booked to September has no revenue afterwards, it does
@@ -56,6 +57,7 @@
 
 import { Fragment, useId, useState } from 'react'
 import { formatCurrency } from '@/lib/format'
+import { linePath, monthRuns } from '@/lib/chart-path'
 
 /**
  * Bars; one line per year, rounded through the months or straight from one to
@@ -160,48 +162,6 @@ function fmtShort(v: number): string {
 function topBar(x: number, y: number, w: number, h: number, r = 4): string {
   const rr = Math.max(0, Math.min(r, w / 2, h))
   return `M${x} ${y + h}V${y + rr}A${rr} ${rr} 0 0 1 ${x + rr} ${y}H${x + w - rr}A${rr} ${rr} 0 0 1 ${x + w} ${y + rr}V${y + h}Z`
-}
-
-/**
- * The stroke through the given points: straight from one to the next, or with
- * the corners eased (a Catmull-Rom spline written as cubic beziers, which
- * passes through every point and invents no peak between two of them).
- *
- * A single point is drawn as a hairline so a month standing alone still shows.
- */
-function stroke(points: Array<[number, number]>, rounded: boolean): string {
-  if (points.length === 1) return `M${points[0][0]} ${points[0][1]}h0.01`
-  if (!rounded) return `M${points.map(([x, yy]) => `${x} ${yy}`).join('L')}`
-  let d = `M${points[0][0]} ${points[0][1]}`
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i - 1] ?? points[i]
-    const b = points[i]
-    const c = points[i + 1]
-    const e = points[i + 2] ?? points[i + 1]
-    d += `C${b[0] + (c[0] - a[0]) / 6} ${b[1] + (c[1] - a[1]) / 6} ${c[0] - (e[0] - b[0]) / 6} ${
-      c[1] - (e[1] - b[1]) / 6
-    } ${c[0]} ${c[1]}`
-  }
-  return d
-}
-
-/**
- * The months of one year as runs of consecutive months that have something in
- * them. A curve is broken between runs: a year booked only to September has no
- * revenue after it, which is not the same as earning nothing.
- */
-function runs(values: number[]): number[][] {
-  const out: number[][] = []
-  let run: number[] = []
-  values.forEach((v, i) => {
-    if (v > 0) run.push(i)
-    else if (run.length) {
-      out.push(run)
-      run = []
-    }
-  })
-  if (run.length) out.push(run)
-  return out
 }
 
 type TipEntry = {
@@ -393,8 +353,12 @@ export function RevenueChart({
     // Nothing to divide by, or nothing to compare: no number rather than a
     // hundred per cent that would only mean "the other one was empty".
     const change = total > 0 && mine > 0 ? Math.round(((mine - total) / total) * 100) : null
-    const both: [string, string] = [SWATCH_OWN[n], SWATCH_SUB[n]]
-    const totalEntry: TipEntry = { label: s.label, value: money(total), swatch: both, change }
+    // The same mark the legend gives it: split where the bars are split, plain
+    // where the picture is a single stroke.
+    const mark: string | [string, string] = curved
+      ? SWATCH_OWN[n]
+      : [SWATCH_OWN[n], SWATCH_SUB[n]]
+    const totalEntry: TipEntry = { label: s.label, value: money(total), swatch: mark, change }
     if (!split || sub === 0) return [totalEntry]
     return [
       { label: s.subLabel, value: money(sub), swatch: SWATCH_SUB[n] },
@@ -454,6 +418,59 @@ export function RevenueChart({
     onFocus: focusable ? () => setFocused(spot) : undefined,
     onBlur: focusable ? () => setFocused(null) : undefined,
   })
+
+  /**
+   * One stroke per year, oldest first so the newest lies on top. A run of
+   * months with nothing in them breaks the stroke rather than dragging it down
+   * to the floor. Rendered twice when a period is chosen — once faint over the
+   * whole year, once again clipped to the period — so the months outside it
+   * step back exactly as the bars do.
+   */
+  const curveLayer = !curved
+    ? null
+    : [...lanes].reverse().map((lane) => {
+        const values = months.map((_, i) => ownOf(lane, i) + subOf(lane, i))
+        const lineClass = lane.compare === -1 ? 'stroke-accent' : COMPARE_STROKE[lane.compare]
+        return (
+          <g key={lane.year} className="pointer-events-none">
+            {monthRuns(values).map((run) => {
+              const points = run.map(
+                (i) => [padL + slot * i + slot / 2, y(values[i])] as [number, number]
+              )
+              const line = linePath(points, mode !== 'linear')
+              const first = points[0]
+              const last = points[points.length - 1]
+              return (
+                <g key={run[0]}>
+                  {mode === 'area' && run.length > 1 && (
+                    <path
+                      d={`${line}L${last[0]} ${y(0)}L${first[0]} ${y(0)}Z`}
+                      fill={`url(#${gradientId}-${lane.year})`}
+                    />
+                  )}
+                  <path
+                    d={line}
+                    fill="none"
+                    className={lineClass}
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              )
+            })}
+            {active != null && values[active.month] > 0 && (
+              <circle
+                cx={padL + slot * active.month + slot / 2}
+                cy={y(values[active.month])}
+                r={3}
+                className={`${lineClass} fill-surface`}
+                strokeWidth={2}
+              />
+            )}
+          </g>
+        )
+      })
 
   // Where the bubble hangs: right against the lit band of the month in hand,
   // on whichever side has the room — so the bars being read stay uncovered and
@@ -521,7 +538,10 @@ export function RevenueChart({
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full touch-manipulation"
         role="img"
-        aria-label={[legend.own, legend.sub, ...series.map((s) => s.label)].join(' / ')}
+        aria-label={[
+          ...(curved ? [String(year)] : [legend.own, legend.sub]),
+          ...series.map((s) => s.label),
+        ].join(' / ')}
       >
         {ticks.map((t) => (
           <g key={t}>
@@ -606,14 +626,11 @@ export function RevenueChart({
           )
         })}
 
-        {/* One curve per year, oldest first so the newest lies on top. A run
-            of months with nothing in them breaks the curve rather than
-            dragging it down to the floor. */}
-        {curved && (
+        {curveLayer && (
           <>
-            {mode === 'area' && (
-              <defs>
-                {lanes.map((lane) => (
+            <defs>
+              {mode === 'area' &&
+                lanes.map((lane) => (
                   <linearGradient
                     key={lane.year}
                     id={`${gradientId}-${lane.year}`}
@@ -636,51 +653,21 @@ export function RevenueChart({
                     />
                   </linearGradient>
                 ))}
-              </defs>
+              {highlightRange && (
+                <clipPath id={`${gradientId}-period`}>
+                  <rect
+                    x={padL + slot * highlightRange.from}
+                    y={0}
+                    width={slot * (highlightRange.to - highlightRange.from + 1)}
+                    height={H}
+                  />
+                </clipPath>
+              )}
+            </defs>
+            <g opacity={highlightRange ? 0.35 : 1}>{curveLayer}</g>
+            {highlightRange && (
+              <g clipPath={`url(#${gradientId}-period)`}>{curveLayer}</g>
             )}
-            {[...lanes].reverse().map((lane) => {
-              const values = months.map((_, i) => ownOf(lane, i) + subOf(lane, i))
-              const lineClass = lane.compare === -1 ? 'stroke-accent' : COMPARE_STROKE[lane.compare]
-              return (
-                <g key={lane.year} className="pointer-events-none">
-                  {runs(values).map((run) => {
-                    const points = run.map(
-                      (i) => [padL + slot * i + slot / 2, y(values[i])] as [number, number]
-                    )
-                    const line = stroke(points, mode !== 'linear')
-                    const first = points[0]
-                    const last = points[points.length - 1]
-                    return (
-                      <g key={run[0]}>
-                        {mode === 'area' && run.length > 1 && (
-                          <path
-                            d={`${line}L${last[0]} ${y(0)}L${first[0]} ${y(0)}Z`}
-                            fill={`url(#${gradientId}-${lane.year})`}
-                          />
-                        )}
-                        <path
-                          d={line}
-                          fill="none"
-                          className={lineClass}
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </g>
-                    )
-                  })}
-                  {active != null && values[active.month] > 0 && (
-                    <circle
-                      cx={padL + slot * active.month + slot / 2}
-                      cy={y(values[active.month])}
-                      r={3}
-                      className={`${lineClass} fill-surface`}
-                      strokeWidth={2}
-                    />
-                  )}
-                </g>
-              )
-            })}
           </>
         )}
 

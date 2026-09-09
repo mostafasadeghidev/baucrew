@@ -63,7 +63,9 @@ export function ChartModePicker({
     <Menu
       side="bottom"
       align="end"
-      label={label}
+      // The shape in hand belongs in the button's name, or a screen reader
+      // hears "Darstellung" whichever one is drawn.
+      label={`${label}: ${current.label}`}
       className={`${btn.outlineSm} gap-1.5 text-xs print:hidden`}
       trigger={
         <>

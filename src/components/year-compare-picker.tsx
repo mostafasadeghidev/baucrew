@@ -67,7 +67,9 @@ export function YearComparePicker({
     <Menu
       side="bottom"
       align="end"
-      label={label}
+      // How many are ticked belongs in the button's name: the badge that says
+      // so is text a screen reader never reaches past the label.
+      label={picked.length > 0 ? `${label}: ${picked.length}` : label}
       className={`${btn.outlineSm} gap-1.5 text-xs print:hidden`}
       trigger={
         <>

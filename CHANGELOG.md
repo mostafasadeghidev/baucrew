@@ -31,7 +31,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   the years it compares sit side by side above the chart and wrap as one.
 - A curve breaks where a run of months has nothing in it rather than diving to
   the floor: a year booked only to September earns nothing afterwards, it does
-  not earn zero. Pointing at a month sets a dot on every curve.
+  not earn zero. Pointing at a month sets a dot on every curve, and choosing a
+  period steps the months outside it back exactly as it does with bars.
+- The rounding is a monotone spline: between two months it stays between their
+  two figures, so no stretch of it claims a figure the year has not got. The
+  ordinary spline it replaced overshot by up to an eighth of a rise — above the
+  topmost gridline, where the chart's own frame cut the peak off flat — and
+  dipped below the axis into revenue nobody billed. The geometry lives in
+  `src/lib/chart-path.ts` with tests that sample the drawn curve and hold it
+  inside the data.
 
 ### Added — as many years in the monthly chart as fit
 - The **Monatsumsatz** card compares against the year before as it always did.
