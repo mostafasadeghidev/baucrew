@@ -19,13 +19,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   starts at the first month of the chosen period, so a quarter compares
   against that same quarter.
 
-### Added — the monthly chart in three shapes
-- **Darstellung** beside the heading draws the same figures as **Balken** (as
-  ever), as a **Linie** — one curve a year — or as a **Fläche**, the curve with
-  its ground shaded under it. A curve has room for one figure a month, so in
+### Added — the monthly chart in four shapes
+- The picker beside the heading, each shape with the picture of itself next to
+  its name, draws the same figures as **Balken** (as ever), as a **Kurve** —
+  one rounded stroke a year — as a **Linie**, straight from month to month, or
+  as a **Fläche**, the rounded stroke with its ground shaded under it. Rounded
+  reads as a trend, straight reads as the twelve figures it is made of. A curve has room for one figure a month, so in
   those two the split between own crew and SUB leaves the picture and the
   bubble gives each year's total instead. Lines carry four or five years where
-  areas begin to muddy each other; an area suits the usual pair.
+  areas begin to muddy each other; an area suits the usual pair. The shape and
+  the years it compares sit side by side above the chart and wrap as one.
 - A curve breaks where a run of months has nothing in it rather than diving to
   the floor: a year booked only to September earns nothing afterwards, it does
   not earn zero. Pointing at a month sets a dot on every curve.

@@ -5,11 +5,17 @@
  *
  * As BARS — the default — every year stands as a stacked bar, solid foot for
  * own crew and pale head for SUB, the year on screen in the accent colour and
- * each compared year in one of its own. As a LINE or as an AREA under one,
- * each year is a single curve: a line has room for one figure a month, so the
+ * each compared year in one of its own. As a LINE — rounded through the months
+ * or straight from one to the next — or as an AREA under a rounded one, each
+ * year is a single stroke: a stroke has room for one figure a month, so the
  * split between own crew and SUB is not in the picture and the bubble gives
  * the year's total instead. Lines carry four or five years where areas start
  * to muddy each other; areas suit the usual pair.
+ *
+ * Rounded reads as a trend and straight reads as the twelve figures it is
+ * made of. Rounding cannot invent a peak between two months — the corners are
+ * eased, the points are where the months are — but a reader who wants to see
+ * exactly where a month sits is better served by the straight one.
  *
  * A curve breaks where a month has nothing rather than diving to the floor —
  * a year that is only booked to September has no revenue afterwards, it does
@@ -51,8 +57,11 @@
 import { Fragment, useId, useState } from 'react'
 import { formatCurrency } from '@/lib/format'
 
-/** Bars, one curve per year, or a curve with the ground shaded under it. */
-export type RevenueChartMode = 'bars' | 'line' | 'area'
+/**
+ * Bars; one line per year, rounded through the months or straight from one to
+ * the next; or the rounded one with the ground shaded under it.
+ */
+export type RevenueChartMode = 'bars' | 'line' | 'linear' | 'area'
 
 export type RevenueChartMonth = {
   own: number
@@ -154,12 +163,15 @@ function topBar(x: number, y: number, w: number, h: number, r = 4): string {
 }
 
 /**
- * A smooth curve through the given points (a Catmull-Rom spline written as
- * cubic beziers). Straight segments would zig-zag over twelve months; this
- * rounds the corners without inventing peaks between them.
+ * The stroke through the given points: straight from one to the next, or with
+ * the corners eased (a Catmull-Rom spline written as cubic beziers, which
+ * passes through every point and invents no peak between two of them).
+ *
+ * A single point is drawn as a hairline so a month standing alone still shows.
  */
-function curve(points: Array<[number, number]>): string {
+function stroke(points: Array<[number, number]>, rounded: boolean): string {
   if (points.length === 1) return `M${points[0][0]} ${points[0][1]}h0.01`
+  if (!rounded) return `M${points.map(([x, yy]) => `${x} ${yy}`).join('L')}`
   let d = `M${points[0][0]} ${points[0][1]}`
   for (let i = 0; i < points.length - 1; i++) {
     const a = points[i - 1] ?? points[i]
@@ -628,14 +640,14 @@ export function RevenueChart({
             )}
             {[...lanes].reverse().map((lane) => {
               const values = months.map((_, i) => ownOf(lane, i) + subOf(lane, i))
-              const stroke = lane.compare === -1 ? 'stroke-accent' : COMPARE_STROKE[lane.compare]
+              const lineClass = lane.compare === -1 ? 'stroke-accent' : COMPARE_STROKE[lane.compare]
               return (
                 <g key={lane.year} className="pointer-events-none">
                   {runs(values).map((run) => {
                     const points = run.map(
                       (i) => [padL + slot * i + slot / 2, y(values[i])] as [number, number]
                     )
-                    const line = curve(points)
+                    const line = stroke(points, mode !== 'linear')
                     const first = points[0]
                     const last = points[points.length - 1]
                     return (
@@ -649,7 +661,7 @@ export function RevenueChart({
                         <path
                           d={line}
                           fill="none"
-                          className={stroke}
+                          className={lineClass}
                           strokeWidth={2}
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -662,7 +674,7 @@ export function RevenueChart({
                       cx={padL + slot * active.month + slot / 2}
                       cy={y(values[active.month])}
                       r={3}
-                      className={`${stroke} fill-surface`}
+                      className={`${lineClass} fill-surface`}
                       strokeWidth={2}
                     />
                   )}

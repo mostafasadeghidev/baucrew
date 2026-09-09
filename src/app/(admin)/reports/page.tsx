@@ -39,6 +39,7 @@ import { btn } from '@/components/ui/button'
 import { DonutChart } from '@/components/donut-chart'
 import { YearBars } from '@/components/year-bars'
 import { YearComparePicker } from '@/components/year-compare-picker'
+import { ChartModePicker } from '@/components/chart-mode-picker'
 import { formatMinutes } from '@/lib/time-entries'
 import { InfoHint } from '@/components/ui/info-hint'
 
@@ -214,8 +215,8 @@ export default async function ReportsPage({
   // year costs no query.
   const MAX_COMPARE = 5
   /** Bars unless the office asks for a curve. */
-  const chartMode: 'bars' | 'line' | 'area' =
-    chartParam === 'line' || chartParam === 'area' ? chartParam : 'bars'
+  const chartMode: 'bars' | 'line' | 'linear' | 'area' =
+    chartParam === 'line' || chartParam === 'linear' || chartParam === 'area' ? chartParam : 'bars'
   const compareYears = parseCompareYears(compareParam, year, comparisonYears, MAX_COMPARE)
   const compareSeries = compareYears
     .map((y) => {
@@ -390,24 +391,27 @@ export default async function ReportsPage({
                     <InfoHint text={t('chartCompareHint', { year })} className="ml-1.5" wide />
                   )}
                 </h2>
-                <LiveSelect
-                  param="chart"
-                  ariaLabel={t('chartMode')}
-                  className="min-w-32 print:hidden"
-                  compact
-                  options={[
-                    { value: '', label: t('chartModeBars') },
-                    { value: 'line', label: t('chartModeLine') },
-                    { value: 'area', label: t('chartModeArea') },
-                  ]}
-                />
-                <YearComparePicker
-                  options={comparisonYears.filter((y) => y !== year)}
-                  selected={compareYears}
-                  max={MAX_COMPARE}
-                  label={t('compareYears')}
-                  maxHint={t('compareMax', { count: MAX_COMPARE })}
-                />
+                {/* The two pickers belong together: they wrap as one, so the
+                    shape never ends up on a line of its own. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <ChartModePicker
+                    value={chartMode === 'bars' ? '' : chartMode}
+                    label={t('chartMode')}
+                    options={[
+                      { value: '', label: t('chartModeBars') },
+                      { value: 'line', label: t('chartModeLine') },
+                      { value: 'linear', label: t('chartModeLinear') },
+                      { value: 'area', label: t('chartModeArea') },
+                    ]}
+                  />
+                  <YearComparePicker
+                    options={comparisonYears.filter((y) => y !== year)}
+                    selected={compareYears}
+                    max={MAX_COMPARE}
+                    label={t('compareYears')}
+                    maxHint={t('compareMax', { count: MAX_COMPARE })}
+                  />
+                </div>
               </div>
               <RevenueChart
                 year={year}
