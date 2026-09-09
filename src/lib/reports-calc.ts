@@ -272,14 +272,14 @@ export function cumulativeMonths(
  * value means the office took that one away and wants the year on its own,
  * which is why "nothing chosen" and "not chosen yet" cannot be the same. Only
  * years the year picker offers are accepted, the year itself is never its own
- * comparison, and the list is capped: past five bars a month a reader stops
- * telling them apart.
+ * comparison, and the list is capped at as many as the picker offers — past
+ * six bars a month a reader stops telling them apart.
  */
 export function parseCompareYears(
   value: string | undefined,
   year: number,
   allowed: number[],
-  max = 4
+  max = 5
 ): number[] {
   const pick = (years: number[]) =>
     [...new Set(years)]

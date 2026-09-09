@@ -243,8 +243,12 @@ describe('parseCompareYears', () => {
   })
 
   it('caps the list so the months stay readable', () => {
+    // Every year the picker offers fits; a sixth would not.
     expect(parseCompareYears('2025,2024,2023,2022,2027', 2026, allowed)).toEqual([
-      2027, 2025, 2024, 2023,
+      2027, 2025, 2024, 2023, 2022,
+    ])
+    expect(parseCompareYears('2025,2024,2023,2022,2027,2021', 2026, [...allowed, 2021])).toEqual([
+      2027, 2025, 2024, 2023, 2022,
     ])
     expect(parseCompareYears('2025,2024', 2026, allowed, 1)).toEqual([2025])
   })

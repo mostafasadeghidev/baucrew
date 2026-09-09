@@ -212,7 +212,7 @@ export default async function ReportsPage({
   // before — the card as it has always looked. Their months come out of the
   // aggregate the year comparison below already loads, so choosing a fourth
   // year costs no query.
-  const MAX_COMPARE = 4
+  const MAX_COMPARE = 5
   const compareYears = parseCompareYears(compareParam, year, comparisonYears, MAX_COMPARE)
   const compareSeries = compareYears
     .map((y) => {

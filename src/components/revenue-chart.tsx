@@ -60,13 +60,15 @@ export type RevenueChartCompare = {
  * One colour per compared year, own crew solid and SUB at the same fraction
  * the accent colour uses, so the split reads the same in every bar. The
  * colours go to the compared years newest first, which leaves the grey on the
- * year before in every ordinary case. Four years is the cap — past that the
- * months cannot hold the bars.
+ * year before in every ordinary case. Five is the cap — as many as the year
+ * picker offers, and as many as a month can hold before the bars stop being
+ * tellable apart.
  */
 const COMPARE_OWN = [
   'fill-neutral-500/80',
   'fill-sky-500/85',
   'fill-amber-500/85',
+  'fill-rose-500/85',
   'fill-teal-500/85',
 ]
 // Weighty enough to be seen on a white card: a fill this pale over white is
@@ -75,10 +77,23 @@ const COMPARE_SUB = [
   'fill-neutral-500/42',
   'fill-sky-500/45',
   'fill-amber-500/45',
+  'fill-rose-500/45',
   'fill-teal-500/45',
 ]
-const SWATCH_OWN = ['bg-neutral-500/80', 'bg-sky-500/85', 'bg-amber-500/85', 'bg-teal-500/85']
-const SWATCH_SUB = ['bg-neutral-500/42', 'bg-sky-500/45', 'bg-amber-500/45', 'bg-teal-500/45']
+const SWATCH_OWN = [
+  'bg-neutral-500/80',
+  'bg-sky-500/85',
+  'bg-amber-500/85',
+  'bg-rose-500/85',
+  'bg-teal-500/85',
+]
+const SWATCH_SUB = [
+  'bg-neutral-500/42',
+  'bg-sky-500/45',
+  'bg-amber-500/45',
+  'bg-rose-500/45',
+  'bg-teal-500/45',
+]
 
 function niceStep(max: number): number {
   if (max <= 0) return 1

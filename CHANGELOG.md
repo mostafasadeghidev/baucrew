@@ -22,7 +22,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 ### Added — as many years in the monthly chart as fit
 - The **Monatsumsatz** card compares against the year before as it always did.
   **Vergleichsjahre** beside the heading opens a list of years, each with a
-  tick: up to four stand beside the one on screen. Every year is split the way
+  tick: up to five stand beside the one on screen — every year the picker
+  offers. Every year is split the way
   the year on screen is — solid foot for own crew, pale head for SUB — and
   every one has a colour of its own rather than a fainter grey, because four
   greys stop telling each other apart on a dark screen.
