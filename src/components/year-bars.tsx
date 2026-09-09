@@ -30,7 +30,12 @@ export function YearBars({
   selected: number
   hrefFor: (year: number) => string
   formatValue: (value: number) => string
-  legend: { own: string; sub: string }
+  /**
+   * `change` names what the last column measures — here every year against the
+   * one below it. The monthly chart measures against the year on screen
+   * instead, and the two arrows look alike, so both have to say which they are.
+   */
+  legend: { own: string; sub: string; change: string }
 }) {
   if (rows.length === 0) return null
   const max = Math.max(1, ...rows.map((r) => r.total))
@@ -45,6 +50,9 @@ export function YearBars({
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-[3px] bg-accent/40" /> {legend.sub}
         </span>
+      </div>
+      <div className="hidden justify-end pr-2 text-[11px] text-muted sm:flex">
+        <span className="w-14 text-right">{legend.change}</span>
       </div>
       <ul className="space-y-0.5">
         {rows.map((r) => (

@@ -182,6 +182,12 @@ export function RevenueChart({
     total: string
     /** Said under a single year's figures, once the bars answer one at a time. */
     wholeMonth: string
+    /**
+     * What the percentages are measured against, e.g. "vs. 2026". The card
+     * under the chart measures each year against the one before it instead, so
+     * neither arrow may go without saying which it is.
+     */
+    changeAgainst: string
   }
   /** Locale for the money format — a server page cannot hand over a function. */
   locale: string
@@ -526,7 +532,14 @@ export function RevenueChart({
           className="pointer-events-none absolute top-0 z-20 rounded-md border border-border bg-surface px-2.5 py-2 text-xs shadow-md"
           style={tip.style}
         >
-          <p className="mb-1 font-semibold">{tip.label}</p>
+          <div className="mb-1 flex items-baseline gap-4">
+            <p className="font-semibold">{tip.label}</p>
+            {tip.showsChange && (
+              <span className="ml-auto text-[11px] font-normal text-muted">
+                {legend.changeAgainst}
+              </span>
+            )}
+          </div>
           <dl className="space-y-0.5">
             {tip.groups.map((group, gi) => (
               <div key={group.key} className="contents">

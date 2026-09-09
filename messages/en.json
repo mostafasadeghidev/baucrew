@@ -514,6 +514,8 @@
     "compareMax": "At most {count} years",
     "chartTitleYear": "Monthly revenue {year}",
     "chartTotal": "Total",
+    "changeVsPrev": "vs. previous year",
+    "chartCompareHint": "Every percentage in the chart compares with {year}, the selected year — not with each year’s own previous year. The card “Revenue per year” below does the opposite: there each year stands against the year before it.",
     "chartWholeMonth": "For every year: point at the month name",
     "legendOwn": "{year} own crew",
     "legendSub": "{year} SUB",

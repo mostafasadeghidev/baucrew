@@ -381,7 +381,12 @@ export default async function ReportsPage({
             <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
             <div className={`${card} p-4`}>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold">{chartTitle}</h2>
+                <h2 className="text-sm font-semibold">
+                  {chartTitle}
+                  {compareYears.length > 0 && (
+                    <InfoHint text={t('chartCompareHint', { year })} className="ml-1.5" wide />
+                  )}
+                </h2>
                 <YearComparePicker
                   options={comparisonYears.filter((y) => y !== year)}
                   selected={compareYears}
@@ -405,6 +410,7 @@ export default async function ReportsPage({
                   plan: t('legendPlan'),
                   total: t('chartTotal'),
                   wholeMonth: t('chartWholeMonth'),
+                  changeAgainst: t('vsPrevYear', { year }),
                 }}
                 locale={locale}
                 highlightRange={range}
@@ -430,7 +436,7 @@ export default async function ReportsPage({
                   selected={year}
                   hrefFor={(y) => `/reports?year=${y}${periodParam ? `&period=${encodeURIComponent(periodParam)}` : ''}`}
                   formatValue={money}
-                  legend={{ own: t('ownPeople'), sub: t('sub') }}
+                  legend={{ own: t('ownPeople'), sub: t('sub'), change: t('changeVsPrev') }}
                 />
               </div>
             )}

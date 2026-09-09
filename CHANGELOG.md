@@ -36,8 +36,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   one line each, separated by a dashed rule. The bubble always goes to the far
   side of the month in hand, so it never covers what it is describing.
 - Beside each compared year the bubble says how far the year on screen stands
-  above or below it in that month — the same reading the KPI card gives for
-  the whole period.
+  above or below it in that month, under a head naming what that is measured
+  against — **vs. 2026**. The card *Umsatz je Jahr* under the chart measures
+  the other way round, every year against the one before it, and now says so
+  too: **ggü. Vorjahr**. Two arrows that look alike had meant two different
+  things without either saying which. The ⓘ on the chart's heading spells the
+  difference out.
 - The choice rides in the address like the year and the period, so a
   comparison survives a reload and can be sent as a link, and an empty choice —
   the year entirely on its own — is a choice the app keeps. The months come
