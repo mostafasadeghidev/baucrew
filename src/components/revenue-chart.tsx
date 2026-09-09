@@ -1,10 +1,22 @@
 'use client'
 
 /**
- * Monthly revenue bar chart (SVG). Every year stands as a stacked bar — solid
- * foot for own crew, pale head for SUB — the year on screen in the accent
- * colour and each compared year in one of its own. When a year plan has been
- * imported, the planned figure crosses the month as a dashed marker.
+ * Monthly revenue chart (SVG), drawn one of three ways.
+ *
+ * As BARS — the default — every year stands as a stacked bar, solid foot for
+ * own crew and pale head for SUB, the year on screen in the accent colour and
+ * each compared year in one of its own. As a LINE or as an AREA under one,
+ * each year is a single curve: a line has room for one figure a month, so the
+ * split between own crew and SUB is not in the picture and the bubble gives
+ * the year's total instead. Lines carry four or five years where areas start
+ * to muddy each other; areas suit the usual pair.
+ *
+ * A curve breaks where a month has nothing rather than diving to the floor —
+ * a year that is only booked to September has no revenue afterwards, it does
+ * not earn zero.
+ *
+ * When a year plan has been imported, the planned figure crosses the month as
+ * a dashed marker.
  *
  * Inside a month the bars run newest to oldest with the year on screen among
  * them in its place: pick 2027 beside 2026 and it stands to the left of it,
@@ -20,8 +32,10 @@
  * and it sits against the right edge, at October against the left — so it
  * never covers the column it is describing or its neighbours.
  *
- * How much it says depends on how much is in the chart. With one compared year
- * the whole month answers at once. From two on, a bar answers for itself —
+ * How much it says depends on how much is in the chart. Only bars can be
+ * pointed at one at a time — a curve has no column of its own — so a line or
+ * an area always answers for the whole month. With one compared year the whole
+ * month answers at once. From two on, a bar answers for itself —
  * point at it and only that year is shown — and the strip carrying the month
  * name under the axis gives every year together, one line each, separated by a
  * dashed rule.
@@ -34,8 +48,11 @@
  * second, cannot be styled and never appears on a touchscreen.
  */
 
-import { Fragment, useState } from 'react'
+import { Fragment, useId, useState } from 'react'
 import { formatCurrency } from '@/lib/format'
+
+/** Bars, one curve per year, or a curve with the ground shaded under it. */
+export type RevenueChartMode = 'bars' | 'line' | 'area'
 
 export type RevenueChartMonth = {
   own: number
@@ -80,6 +97,21 @@ const COMPARE_SUB = [
   'fill-rose-500/45',
   'fill-teal-500/45',
 ]
+/** The same colours as a stroke, and as `currentColor` for a gradient stop. */
+const COMPARE_STROKE = [
+  'stroke-neutral-500',
+  'stroke-sky-500',
+  'stroke-amber-500',
+  'stroke-rose-500',
+  'stroke-teal-500',
+]
+const COMPARE_TEXT = [
+  'text-neutral-500',
+  'text-sky-500',
+  'text-amber-500',
+  'text-rose-500',
+  'text-teal-500',
+]
 const SWATCH_OWN = [
   'bg-neutral-500/80',
   'bg-sky-500/85',
@@ -119,6 +151,45 @@ function fmtShort(v: number): string {
 function topBar(x: number, y: number, w: number, h: number, r = 4): string {
   const rr = Math.max(0, Math.min(r, w / 2, h))
   return `M${x} ${y + h}V${y + rr}A${rr} ${rr} 0 0 1 ${x + rr} ${y}H${x + w - rr}A${rr} ${rr} 0 0 1 ${x + w} ${y + rr}V${y + h}Z`
+}
+
+/**
+ * A smooth curve through the given points (a Catmull-Rom spline written as
+ * cubic beziers). Straight segments would zig-zag over twelve months; this
+ * rounds the corners without inventing peaks between them.
+ */
+function curve(points: Array<[number, number]>): string {
+  if (points.length === 1) return `M${points[0][0]} ${points[0][1]}h0.01`
+  let d = `M${points[0][0]} ${points[0][1]}`
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i - 1] ?? points[i]
+    const b = points[i]
+    const c = points[i + 1]
+    const e = points[i + 2] ?? points[i + 1]
+    d += `C${b[0] + (c[0] - a[0]) / 6} ${b[1] + (c[1] - a[1]) / 6} ${c[0] - (e[0] - b[0]) / 6} ${
+      c[1] - (e[1] - b[1]) / 6
+    } ${c[0]} ${c[1]}`
+  }
+  return d
+}
+
+/**
+ * The months of one year as runs of consecutive months that have something in
+ * them. A curve is broken between runs: a year booked only to September has no
+ * revenue after it, which is not the same as earning nothing.
+ */
+function runs(values: number[]): number[][] {
+  const out: number[][] = []
+  let run: number[] = []
+  values.forEach((v, i) => {
+    if (v > 0) run.push(i)
+    else if (run.length) {
+      out.push(run)
+      run = []
+    }
+  })
+  if (run.length) out.push(run)
+  return out
 }
 
 type TipEntry = {
@@ -164,6 +235,7 @@ export function RevenueChart({
   year,
   months,
   compare,
+  mode = 'bars',
   labels,
   legend,
   locale,
@@ -174,6 +246,7 @@ export function RevenueChart({
   months: RevenueChartMonth[] // 12 entries
   /** Years laid beside it, newest first. May be empty. */
   compare: RevenueChartCompare[]
+  mode?: RevenueChartMode
   labels: string[] // 12 short month names
   legend: {
     own: string
@@ -211,8 +284,13 @@ export function RevenueChart({
 
   const money = (v: number) => formatCurrency(v, locale)
   const series = compare.slice(0, COMPARE_OWN.length)
-  /** From two compared years on, a bar answers for itself. */
-  const detailed = series.length >= 2
+  /**
+   * From two compared years on, a bar answers for itself. A curve cannot: it
+   * has no column, so a line or an area always answers for the whole month.
+   */
+  const detailed = mode === 'bars' && series.length >= 2
+  const curved = mode !== 'bars'
+  const gradientId = useId()
 
   // Newest year on the left, the year on screen among them where it belongs.
   const lanes: Lane[] = [
@@ -282,6 +360,17 @@ export function RevenueChart({
     return entries
   }
 
+  /** The year on screen in month `i` as one figure, for a line or an area. */
+  const primaryTotal = (i: number): TipEntry[] => {
+    const m = months[i]
+    const entries: TipEntry[] = [
+      { label: String(year), value: money(m.own + m.sub), swatch: 'bg-accent' },
+    ]
+    if (m.plan != null && m.plan > 0 && legend.plan)
+      entries.push({ label: legend.plan, value: money(m.plan), swatch: null, dashed: true })
+    return entries
+  }
+
   /** One compared year in month `i`, split when there is a split to show. */
   const compareEntries = (n: number, i: number, split: boolean): TipEntry[] => {
     const s = series[n]
@@ -303,7 +392,11 @@ export function RevenueChart({
   }
 
   const laneEntries = (lane: Lane, i: number, split: boolean) =>
-    lane.compare === -1 ? primaryEntries(i) : compareEntries(lane.compare, i, split)
+    lane.compare === -1
+      ? curved
+        ? primaryTotal(i)
+        : primaryEntries(i)
+      : compareEntries(lane.compare, i, split && !curved)
 
   /**
    * What the strip reads out. A bar gives its own year alone; the month gives
@@ -376,17 +469,29 @@ export function RevenueChart({
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
         {lanes.map((lane) =>
           lane.compare === -1 ? (
-            <Fragment key={lane.year}>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-[3px] bg-accent" /> {legend.own}
+            curved ? (
+              <span key={lane.year} className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-[3px] bg-accent" /> {year}
               </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-[3px] bg-accent/40" /> {legend.sub}
-              </span>
-            </Fragment>
+            ) : (
+              <Fragment key={lane.year}>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-2 rounded-[3px] bg-accent" /> {legend.own}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-2 rounded-[3px] bg-accent/40" /> {legend.sub}
+                </span>
+              </Fragment>
+            )
           ) : (
             <span key={lane.year} className="inline-flex items-center gap-1.5">
-              <Swatch swatch={[SWATCH_OWN[lane.compare], SWATCH_SUB[lane.compare]]} />{' '}
+              <Swatch
+                swatch={
+                  curved
+                    ? SWATCH_OWN[lane.compare]
+                    : [SWATCH_OWN[lane.compare], SWATCH_SUB[lane.compare]]
+                }
+              />{' '}
               {series[lane.compare].label}
             </span>
           )
@@ -439,7 +544,8 @@ export function RevenueChart({
                   className="fill-foreground/[0.06]"
                 />
               )}
-              {lanes.map((lane, j) => {
+              {!curved &&
+                lanes.map((lane, j) => {
                 const own = ownOf(lane, i)
                 const sub = subOf(lane, i)
                 if (own + sub <= 0) return null
@@ -487,6 +593,84 @@ export function RevenueChart({
             </g>
           )
         })}
+
+        {/* One curve per year, oldest first so the newest lies on top. A run
+            of months with nothing in them breaks the curve rather than
+            dragging it down to the floor. */}
+        {curved && (
+          <>
+            {mode === 'area' && (
+              <defs>
+                {lanes.map((lane) => (
+                  <linearGradient
+                    key={lane.year}
+                    id={`${gradientId}-${lane.year}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      className={lane.compare === -1 ? 'text-accent' : COMPARE_TEXT[lane.compare]}
+                      stopColor="currentColor"
+                      stopOpacity={0.5}
+                    />
+                    <stop
+                      offset="100%"
+                      className={lane.compare === -1 ? 'text-accent' : COMPARE_TEXT[lane.compare]}
+                      stopColor="currentColor"
+                      stopOpacity={0.02}
+                    />
+                  </linearGradient>
+                ))}
+              </defs>
+            )}
+            {[...lanes].reverse().map((lane) => {
+              const values = months.map((_, i) => ownOf(lane, i) + subOf(lane, i))
+              const stroke = lane.compare === -1 ? 'stroke-accent' : COMPARE_STROKE[lane.compare]
+              return (
+                <g key={lane.year} className="pointer-events-none">
+                  {runs(values).map((run) => {
+                    const points = run.map(
+                      (i) => [padL + slot * i + slot / 2, y(values[i])] as [number, number]
+                    )
+                    const line = curve(points)
+                    const first = points[0]
+                    const last = points[points.length - 1]
+                    return (
+                      <g key={run[0]}>
+                        {mode === 'area' && run.length > 1 && (
+                          <path
+                            d={`${line}L${last[0]} ${y(0)}L${first[0]} ${y(0)}Z`}
+                            fill={`url(#${gradientId}-${lane.year})`}
+                          />
+                        )}
+                        <path
+                          d={line}
+                          fill="none"
+                          className={stroke}
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </g>
+                    )
+                  })}
+                  {active != null && values[active.month] > 0 && (
+                    <circle
+                      cx={padL + slot * active.month + slot / 2}
+                      cy={y(values[active.month])}
+                      r={3}
+                      className={`${stroke} fill-surface`}
+                      strokeWidth={2}
+                    />
+                  )}
+                </g>
+              )
+            })}
+          </>
+        )}
 
         <line x1={padL} x2={W - padR} y1={y(0)} y2={y(0)} className="stroke-border" strokeWidth={1} />
 

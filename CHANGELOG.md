@@ -19,6 +19,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   starts at the first month of the chosen period, so a quarter compares
   against that same quarter.
 
+### Added — the monthly chart in three shapes
+- **Darstellung** beside the heading draws the same figures as **Balken** (as
+  ever), as a **Linie** — one curve a year — or as a **Fläche**, the curve with
+  its ground shaded under it. A curve has room for one figure a month, so in
+  those two the split between own crew and SUB leaves the picture and the
+  bubble gives each year's total instead. Lines carry four or five years where
+  areas begin to muddy each other; an area suits the usual pair.
+- A curve breaks where a run of months has nothing in it rather than diving to
+  the floor: a year booked only to September earns nothing afterwards, it does
+  not earn zero. Pointing at a month sets a dot on every curve.
+
 ### Added — as many years in the monthly chart as fit
 - The **Monatsumsatz** card compares against the year before as it always did.
   **Vergleichsjahre** beside the heading opens a list of years, each with a

@@ -61,10 +61,10 @@ const warn = 'text-amber-700 dark:text-amber-400'
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; period?: string; tab?: string; order?: string; view?: string; compare?: string }>
+  searchParams: Promise<{ year?: string; period?: string; tab?: string; order?: string; view?: string; compare?: string; chart?: string }>
 }) {
   const user = await requireManagement()
-  const { year: yearParam, period: periodParam, tab: tabParam, order: orderParam, view: viewParam, compare: compareParam } = await searchParams
+  const { year: yearParam, period: periodParam, tab: tabParam, order: orderParam, view: viewParam, compare: compareParam, chart: chartParam } = await searchParams
   const [t, tProjects, locale] = await Promise.all([
     getTranslations('reports'),
     getTranslations('projects'),
@@ -213,6 +213,9 @@ export default async function ReportsPage({
   // aggregate the year comparison below already loads, so choosing a fourth
   // year costs no query.
   const MAX_COMPARE = 5
+  /** Bars unless the office asks for a curve. */
+  const chartMode: 'bars' | 'line' | 'area' =
+    chartParam === 'line' || chartParam === 'area' ? chartParam : 'bars'
   const compareYears = parseCompareYears(compareParam, year, comparisonYears, MAX_COMPARE)
   const compareSeries = compareYears
     .map((y) => {
@@ -387,6 +390,17 @@ export default async function ReportsPage({
                     <InfoHint text={t('chartCompareHint', { year })} className="ml-1.5" wide />
                   )}
                 </h2>
+                <LiveSelect
+                  param="chart"
+                  ariaLabel={t('chartMode')}
+                  className="min-w-32 print:hidden"
+                  compact
+                  options={[
+                    { value: '', label: t('chartModeBars') },
+                    { value: 'line', label: t('chartModeLine') },
+                    { value: 'area', label: t('chartModeArea') },
+                  ]}
+                />
                 <YearComparePicker
                   options={comparisonYears.filter((y) => y !== year)}
                   selected={compareYears}
@@ -403,6 +417,7 @@ export default async function ReportsPage({
                   plan: planComparable ? plan!.months[i].total : null,
                 }))}
                 compare={compareSeries}
+                mode={chartMode}
                 labels={shortMonths}
                 legend={{
                   own: t('legendOwn', { year }),
