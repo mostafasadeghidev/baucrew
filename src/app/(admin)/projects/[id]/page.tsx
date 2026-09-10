@@ -1,7 +1,6 @@
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
 import { NoteText } from '@/components/ui/note-text'
-import { pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
@@ -335,14 +334,15 @@ export default async function ProjectDetailPage({
   return (
     <div className="space-y-6">
       <StickyHead>
-      <div className={`items-start ${pageToolbar}`}>
-        <div>
-          <BackLink href="/projects" label={t('title')} />
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-lg font-semibold tracking-tight">
+        <PageBar
+          back={{ href: '/projects', label: t('title') }}
+          title={
+            <>
               <span className="mr-2 text-muted">{project.number}</span>
               {project.name}
-            </h1>
+            </>
+          }
+          meta={
             <QuickStatus
               value={project.status}
               ariaLabel={t('status')}
@@ -353,41 +353,42 @@ export default async function ProjectDetailPage({
               }))}
               onChange={setProjectStatus.bind(null, project.id)}
             />
-          </div>
-          <p className="mt-1 text-sm text-muted">
-            <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
-              {project.customer.name}
-            </Link>
-            {address && <> · {address}</>}
-          </p>
-        </div>
-        <ProjectBarActions
-          label={tc('edit')}
-          saveLabel={tc('save')}
-          cancelLabel={tc('cancel')}
-        >
-          {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
-            <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
-          )}
-          <Link href={`/projects/${project.id}/sheet`} className={btn.outlineSm}>
-            {tSheet('title')}
-          </Link>
-          {user.role === 'ADMIN' && (
-            <>
-              <MergeButton
-                projectId={project.id}
-                projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
-              />
-              <DeleteButton
-                action={deleteProject.bind(null, project.id)}
-                label={tc('delete')}
-                confirmMessage={t('deleteConfirm')}
-              />
-            </>
-          )}
-        </ProjectBarActions>
-      </div>
+          }
+          actions={
+            <ProjectBarActions
+              label={tc('edit')}
+              saveLabel={tc('save')}
+              cancelLabel={tc('cancel')}
+            >
+              {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
+                <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
+              )}
+              <Link href={`/projects/${project.id}/sheet`} className={btn.outlineSm}>
+                {tSheet('title')}
+              </Link>
+              {user.role === 'ADMIN' && (
+                <>
+                  <MergeButton
+                    projectId={project.id}
+                    projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+                  />
+                  <DeleteButton
+                    action={deleteProject.bind(null, project.id)}
+                    label={tc('delete')}
+                    confirmMessage={t('deleteConfirm')}
+                  />
+                </>
+              )}
+            </ProjectBarActions>
+          }
+        />
       </StickyHead>
+      <PageHint>
+        <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
+          {project.customer.name}
+        </Link>
+        {address && <> · {address}</>}
+      </PageHint>
 
       <ProjectForm
         action={updateProject.bind(null, project.id)}

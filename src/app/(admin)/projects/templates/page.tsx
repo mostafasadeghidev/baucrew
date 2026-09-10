@@ -1,10 +1,9 @@
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { btn } from '@/components/ui/button'
-import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PagePanel, StickyHead } from '@/components/ui/page-panel'
 
 export default async function TemplatesPage() {
   await requireManagement()
@@ -26,18 +25,18 @@ export default async function TemplatesPage() {
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <BackLink href="/projects" label={tProjects('title')} />
-            <h1 className={`mt-1 ${pageTitle}`}>{t('title')}</h1>
-          </div>
-          <Link
-            href="/projects/templates/new"
-            className={btn.primary}
-          >
-            {t('newTemplate')}
-          </Link>
-        </div>
+        <PageBar
+          back={{ href: '/projects', label: tProjects('title') }}
+          title={t('title')}
+          actions={
+            <Link
+              href="/projects/templates/new"
+              className={btn.primary}
+            >
+              {t('newTemplate')}
+            </Link>
+          }
+        />
       </StickyHead>
 
       <PagePanel>

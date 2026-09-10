@@ -1,9 +1,8 @@
 import { getTranslations } from 'next-intl/server'
-import { BackLink } from '@/components/back-link'
 import { requireManagement } from '@/lib/authz'
 import { ChecklistForm } from '../checklist-form'
 import { createChecklist } from '../actions'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function NewChecklistPage() {
   await requireManagement()
@@ -12,12 +11,10 @@ export default async function NewChecklistPage() {
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <BackLink href="/projects/checklists" label={t('templatesTitle')} />
-            <h1 className={`mt-1 ${pageTitle}`}>{t('templateAdd')}</h1>
-          </div>
-        </div>
+        <PageBar
+          back={{ href: '/projects/checklists', label: t('templatesTitle') }}
+          title={t('templateAdd')}
+        />
       </StickyHead>
       <ChecklistForm
         action={createChecklist}

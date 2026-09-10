@@ -4,11 +4,10 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
 import { formatDate } from '@/lib/format'
-import { BackLink } from '@/components/back-link'
 import { VehicleStatusBadge } from '@/components/vehicle-status-badge'
 import type { VehicleStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 
 const card = 'overflow-hidden rounded-lg border border-border bg-surface shadow-sm'
 
@@ -110,48 +109,50 @@ export default async function TodayOverviewPage({
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={`items-start ${pageToolbar}`}>
-          <div className="space-y-2">
-            <BackLink href="/dashboard" label={tNav('dashboard')} />
-            <h1 className={pageTitle}>
+        <PageBar
+          back={{ href: '/dashboard', label: tNav('dashboard') }}
+          title={
+            <>
               {t('todayOverviewTitle')}{' '}
               <span className="text-base font-normal text-muted">
                 {isToday ? `${t('todayWord')} · ` : ''}
                 {dayLabel}
               </span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-1">
-            <Link
-              href={`/dashboard/today?date=${iso(addDays(day, -1))}`}
-              className={btn.outlineSm}
-              aria-label={tS('prevWeek')}
-            >
-              ←
-            </Link>
-            <Link
-              href="/dashboard/today"
-              className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
-                isToday ? 'border-accent bg-accent/10 text-accent' : 'border-border hover:bg-surface-hover'
-              }`}
-            >
-              {t('todayWord')}
-            </Link>
-            <Link
-              href={`/dashboard/today?date=${iso(addDays(day, 1))}`}
-              className={btn.outlineSm}
-              aria-label={tS('nextWeek')}
-            >
-              →
-            </Link>
-            <Link
-              href="/today"
-              className={`${btn.outlineSm} ml-2`}
-            >
-              {t('openWarehouse')}
-            </Link>
-          </div>
-        </div>
+            </>
+          }
+          actions={
+            <div className="flex items-center gap-1">
+              <Link
+                href={`/dashboard/today?date=${iso(addDays(day, -1))}`}
+                className={btn.outlineSm}
+                aria-label={tS('prevWeek')}
+              >
+                ←
+              </Link>
+              <Link
+                href="/dashboard/today"
+                className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+                  isToday ? 'border-accent bg-accent/10 text-accent' : 'border-border hover:bg-surface-hover'
+                }`}
+              >
+                {t('todayWord')}
+              </Link>
+              <Link
+                href={`/dashboard/today?date=${iso(addDays(day, 1))}`}
+                className={btn.outlineSm}
+                aria-label={tS('nextWeek')}
+              >
+                →
+              </Link>
+              <Link
+                href="/today"
+                className={`${btn.outlineSm} ml-2`}
+              >
+                {t('openWarehouse')}
+              </Link>
+            </div>
+          }
+        />
       </StickyHead>
 
       <div className="grid gap-4 lg:grid-cols-2">

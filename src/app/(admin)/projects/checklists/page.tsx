@@ -1,10 +1,9 @@
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
-import { BackLink } from '@/components/back-link'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { btn } from '@/components/ui/button'
-import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
 
 export default async function ChecklistsPage() {
   await requireManagement()
@@ -22,17 +21,17 @@ export default async function ChecklistsPage() {
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <BackLink href="/projects" label={tProjects('title')} />
-            <h1 className={`mt-1 ${pageTitle}`}>{t('templatesTitle')}</h1>
-            <p className="mt-1 text-sm text-muted">{t('templatesHint')}</p>
-          </div>
-          <Link href="/projects/checklists/new" className={btn.primary}>
-            {t('templateAdd')}
-          </Link>
-        </div>
+        <PageBar
+          back={{ href: '/projects', label: tProjects('title') }}
+          title={t('templatesTitle')}
+          actions={
+            <Link href="/projects/checklists/new" className={btn.primary}>
+              {t('templateAdd')}
+            </Link>
+          }
+        />
       </StickyHead>
+      <PageHint>{t('templatesHint')}</PageHint>
 
       <PagePanel>
         <div className="overflow-x-auto">

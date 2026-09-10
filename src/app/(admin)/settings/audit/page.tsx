@@ -2,10 +2,9 @@ import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
-import { BackLink } from '@/components/back-link'
 import { DeleteButton } from '@/components/delete-button'
 import { LiveSearchInput, LiveSelect } from '@/components/live-search'
-import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
 import { Pagination } from '@/components/pagination'
 import { parsePage } from '@/lib/pagination'
 import type { Prisma } from '@/generated/prisma/client'
@@ -124,25 +123,23 @@ export default async function AuditLogPage({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <BackLink href="/settings?tab=data" label={tNav('settings')} />
-        <StickyHead>
-          <div className={pageToolbar}>
-            <div>
-              <h1 className={pageTitle}>{t('title')}</h1>
-              <p className="text-sm text-muted">{t('hint')}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
+      <StickyHead>
+        <PageBar
+          back={{ href: '/settings?tab=data', label: tNav('settings') }}
+          title={t('title')}
+          actions={
+            <>
               <DeleteButton
                 action={clearAuditLog.bind(null, 90)}
                 label={t('clearOld', { days: 90 })}
                 confirmMessage={t('clearOldConfirm', { days: 90 })}
               />
               <DeleteButton action={clearAuditLog.bind(null, null)} label={t('clearAll')} confirmMessage={t('clearAllConfirm')} />
-            </div>
-          </div>
-        </StickyHead>
-      </div>
+            </>
+          }
+        />
+      </StickyHead>
+      <PageHint>{t('hint')}</PageHint>
 
       <PagePanel>
         <div className="border-b border-border p-4">

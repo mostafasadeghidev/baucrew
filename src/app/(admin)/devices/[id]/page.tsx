@@ -2,14 +2,13 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { PlayCircle } from 'lucide-react'
-import { BackLink } from '@/components/back-link'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { daysOut, deviceState } from '@/lib/devices'
 import { DeviceForm } from '../device-form'
 import { HandoutPanel } from '../handout-panel'
 import { deleteDevice, updateDevice } from '../actions'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function DeviceDetailPage({
   params,
@@ -68,25 +67,23 @@ export default async function DeviceDetailPage({
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <BackLink href="/devices" label={t('title')} />
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <h1 className={pageTitle}>{device.name}</h1>
-              {device.videoUrl && (
-                <a
-                  href={device.videoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1 text-sm text-accent hover:underline"
-                >
-                  <PlayCircle className="h-4 w-4" aria-hidden />
-                  {t('video')}
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
+        <PageBar
+          back={{ href: '/devices', label: t('title') }}
+          title={device.name}
+          meta={
+            device.videoUrl && (
+              <a
+                href={device.videoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-sm text-accent hover:underline"
+              >
+                <PlayCircle className="h-4 w-4" aria-hidden />
+                {t('video')}
+              </a>
+            )
+          }
+        />
       </StickyHead>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">

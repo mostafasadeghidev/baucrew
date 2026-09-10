@@ -3,9 +3,8 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { createTemplate } from '../actions'
 import { TemplateForm } from '../template-form'
-import { BackLink } from '@/components/back-link'
 import { TemplateItemsSection } from '../../new/template-items-section'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function NewTemplatePage() {
   await requireManagement()
@@ -40,12 +39,10 @@ export default async function NewTemplatePage() {
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <BackLink href="/projects/templates" label={t('title')} />
-            <h1 className={pageTitle}>{t('createTitle')}</h1>
-          </div>
-        </div>
+        <PageBar
+          back={{ href: '/projects/templates', label: t('title') }}
+          title={t('createTitle')}
+        />
       </StickyHead>
       <TemplateForm
         action={createTemplate}

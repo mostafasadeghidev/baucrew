@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
@@ -54,26 +53,26 @@ export default async function CustomerDetailPage({
   return (
     <div className="space-y-6">
       <StickyHead>
-        <div className={`items-start ${pageToolbar}`}>
-          <div>
-            <BackLink href="/customers" label={t('title')} />
-            <h1 className={`mt-1 ${pageTitle}`}>{customer.name}</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/customers/${customer.id}/edit`}
-              className={btn.outlineSm}
-            >
-              {tc('edit')}
-            </Link>
-            <DeleteButton
-              action={deleteCustomer.bind(null, customer.id)}
-              label={tc('delete')}
-              confirmMessage={t('deleteConfirm')}
-              errorLabels={{ cannotDeleteHasProjects: t('cannotDeleteHasProjects') }}
-            />
-          </div>
-        </div>
+        <PageBar
+          back={{ href: '/customers', label: t('title') }}
+          title={customer.name}
+          actions={
+            <>
+              <Link
+                href={`/customers/${customer.id}/edit`}
+                className={btn.outlineSm}
+              >
+                {tc('edit')}
+              </Link>
+              <DeleteButton
+                action={deleteCustomer.bind(null, customer.id)}
+                label={tc('delete')}
+                confirmMessage={t('deleteConfirm')}
+                errorLabels={{ cannotDeleteHasProjects: t('cannotDeleteHasProjects') }}
+              />
+            </>
+          }
+        />
       </StickyHead>
 
       <div className="grid gap-6 lg:grid-cols-2">

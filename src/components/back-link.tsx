@@ -21,7 +21,22 @@ export const backLinkClass =
  * swipe on a laptop — would immediately undo the pill and land the user back
  * where they just left.
  */
-export function BackLink({ href, label }: { href: string; label: string }) {
+export function BackLink({
+  href,
+  label,
+  inline = false,
+}: {
+  href: string
+  label: string
+  /**
+   * Beside the page's title in its bar, rather than on a line of its own above
+   * it. Stacked, the pill made every sub-page's bar a third taller than the
+   * bar of the list it came from, so the top of the page jumped on every click
+   * between the two. Inline, it loses only the space it used to keep below it.
+   */
+  inline?: boolean
+}) {
+  const className = inline ? backLinkClass.replace('mb-2 ', 'shrink-0 ') : backLinkClass
   const tc = useTranslations('common')
   const router = useRouter()
   const pathname = usePathname()
@@ -36,7 +51,7 @@ export function BackLink({ href, label }: { href: string; label: string }) {
 
   if (smart) {
     return (
-      <button type="button" onClick={() => router.back()} className={backLinkClass} title={from}>
+      <button type="button" onClick={() => router.back()} className={className} title={from}>
         <span aria-hidden className="text-base leading-none">
           ←
         </span>
@@ -45,7 +60,7 @@ export function BackLink({ href, label }: { href: string; label: string }) {
     )
   }
   return (
-    <Link href={href} className={backLinkClass}>
+    <Link href={href} className={className}>
       <span aria-hidden className="text-base leading-none">
         ←
       </span>

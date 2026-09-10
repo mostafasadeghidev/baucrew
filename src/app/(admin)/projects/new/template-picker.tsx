@@ -5,7 +5,15 @@ import { useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 
-/** Selecting a template reloads the form server-side with prefilled values. */
+/**
+ * Selecting a template reloads the form server-side with prefilled values.
+ *
+ * It stands in the page's bar, beside cancel and save: its name and its field
+ * on one line, the height of the buttons next to it. It used to be a tinted
+ * card with the name stacked over the field, which made the new-project bar
+ * nearly twice the height of the bar on every other page — and the bar is
+ * pinned to the top of the window, so that height was lost for the whole form.
+ */
 export function TemplatePicker({
   templates,
   current,
@@ -18,9 +26,12 @@ export function TemplatePicker({
   const [pending, startTransition] = useTransition()
 
   return (
-    <div className="max-w-md rounded-lg border border-accent/40 bg-accent/5 p-4">
-      <label className="block text-sm font-medium">{t('fromTemplate')}</label>
-      <div className={pending ? 'opacity-60' : ''}>
+    <div className="flex items-center gap-2">
+      <label className="whitespace-nowrap text-sm text-muted">{t('fromTemplate')}</label>
+      {/* The field keeps the top margin it carries for a label stacked above
+          it; here the label stands beside it, and those four pixels were all
+          that made this bar taller than every other. */}
+      <div className={`w-56 [&_input]:mt-0 ${pending ? 'opacity-60' : ''}`}>
         <Combobox
           key={current}
           name="_templatePicker"

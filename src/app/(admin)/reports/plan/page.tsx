@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { BackLink } from '@/components/back-link'
 import { LiveSelect } from '@/components/live-search'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
 import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { orderValue } from '@/lib/reports'
@@ -217,20 +217,18 @@ export default async function PlanMatchPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <BackLink href="/reports?tab=revenue" label={tNav('reports')} />
-        <StickyHead>
-          <div className={pageToolbar}>
-            <div>
-              <h1 className={pageTitle}>{t('title')}</h1>
-              <p className="mt-1 text-sm text-muted">{t('hint')}</p>
-            </div>
-            {yearOptions.length > 0 && (
+      <StickyHead>
+        <PageBar
+          back={{ href: '/reports?tab=revenue', label: tNav('reports') }}
+          title={t('title')}
+          actions={
+            yearOptions.length > 0 && (
               <LiveSelect param="year" options={yearOptions} ariaLabel={t('yearLabel')} />
-            )}
-          </div>
-        </StickyHead>
-      </div>
+            )
+          }
+        />
+      </StickyHead>
+      <PageHint>{t('hint')}</PageHint>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">

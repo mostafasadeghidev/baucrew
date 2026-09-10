@@ -1,11 +1,10 @@
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-import { BackLink } from '@/components/back-link'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { ChecklistForm } from '../checklist-form'
 import { deleteChecklist, updateChecklist } from '../actions'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function EditChecklistPage({
   params,
@@ -25,12 +24,10 @@ export default async function EditChecklistPage({
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <BackLink href="/projects/checklists" label={t('templatesTitle')} />
-            <h1 className={`mt-1 ${pageTitle}`}>{list.name}</h1>
-          </div>
-        </div>
+        <PageBar
+          back={{ href: '/projects/checklists', label: t('templatesTitle') }}
+          title={list.name}
+        />
       </StickyHead>
       <ChecklistForm
         action={updateChecklist.bind(null, list.id)}

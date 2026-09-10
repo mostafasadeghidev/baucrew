@@ -1,9 +1,8 @@
 import { getTranslations } from 'next-intl/server'
-import { BackLink } from '@/components/back-link'
 import { requireManagement } from '@/lib/authz'
 import { ImportWizard } from './import-wizard'
 import { getImportProfiles } from './actions'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
 
 export default async function ImportPage() {
   await requireManagement()
@@ -13,14 +12,9 @@ export default async function ImportPage() {
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <BackLink href="/settings?tab=data" label={tNav('settings')} />
-            <h1 className={`mt-1 ${pageTitle}`}>{t('title')}</h1>
-            <p className="mt-1 text-sm text-muted">{t('hint')}</p>
-          </div>
-        </div>
+        <PageBar back={{ href: '/settings?tab=data', label: tNav('settings') }} title={t('title')} />
       </StickyHead>
+      <PageHint>{t('hint')}</PageHint>
       <ImportWizard profiles={profiles} />
     </div>
   )

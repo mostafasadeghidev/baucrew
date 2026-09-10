@@ -1,14 +1,13 @@
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { ExternalLink } from 'lucide-react'
-import { BackLink } from '@/components/back-link'
 import { DeleteButton } from '@/components/delete-button'
 import { db } from '@/lib/db'
 import { canViewFinancials, requireManagement } from '@/lib/authz'
 import { formatCurrency } from '@/lib/format'
 import { btn } from '@/components/ui/button'
 import { dismissDraft } from './actions'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
 
 /** The inbox: everything that arrived from outside, waiting to become a project. */
 export default async function DraftsPage() {
@@ -34,17 +33,17 @@ export default async function DraftsPage() {
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={`items-end ${pageToolbar}`}>
-          <div>
-            <BackLink href="/projects" label={tProjects('title')} />
-            <h1 className={`mt-1 ${pageTitle}`}>{t('title')}</h1>
-            <p className="mt-1 text-sm text-muted">{t('hint')}</p>
-          </div>
-          <Link href="/settings/import-excel" className={btn.outline}>
-            {t('toImport')}
-          </Link>
-        </div>
+        <PageBar
+          back={{ href: '/projects', label: tProjects('title') }}
+          title={t('title')}
+          actions={
+            <Link href="/settings/import-excel" className={btn.outline}>
+              {t('toImport')}
+            </Link>
+          }
+        />
       </StickyHead>
+      <PageHint>{t('hint')}</PageHint>
 
       {drafts.length === 0 ? (
         <p className="rounded-lg border border-border bg-surface px-4 py-10 text-center text-sm text-muted">

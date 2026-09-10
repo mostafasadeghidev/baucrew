@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
@@ -59,11 +58,11 @@ export default async function VehicleDetailPage({
   return (
     <div className="space-y-6">
       <StickyHead>
-        <div className={`items-start ${pageToolbar}`}>
-          <div>
-            <BackLink href="/vehicles" label={t('title')} />
-            <div className="mt-1 flex items-center gap-3">
-              <h1 className={pageTitle}>{vehicle.name}</h1>
+        <PageBar
+          back={{ href: '/vehicles', label: t('title') }}
+          title={vehicle.name}
+          meta={
+            <>
               <QuickStatus
                 value={vehicle.status}
                 ariaLabel={t('status')}
@@ -79,23 +78,25 @@ export default async function VehicleDetailPage({
                   {tc('inactive')}
                 </span>
               )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/vehicles/${vehicle.id}/edit`}
-              className={btn.outlineSm}
-            >
-              {tc('edit')}
-            </Link>
-            <DeleteButton
-              action={deleteVehicle.bind(null, vehicle.id)}
-              label={tc('delete')}
-              confirmMessage={t('deleteConfirm')}
-              errorLabels={{ cannotDeleteInUse: t('cannotDeleteInUse') }}
-            />
-          </div>
-        </div>
+            </>
+          }
+          actions={
+            <>
+              <Link
+                href={`/vehicles/${vehicle.id}/edit`}
+                className={btn.outlineSm}
+              >
+                {tc('edit')}
+              </Link>
+              <DeleteButton
+                action={deleteVehicle.bind(null, vehicle.id)}
+                label={tc('delete')}
+                confirmMessage={t('deleteConfirm')}
+                errorLabels={{ cannotDeleteInUse: t('cannotDeleteInUse') }}
+              />
+            </>
+          }
+        />
       </StickyHead>
 
       <div className="grid gap-6 lg:grid-cols-2">

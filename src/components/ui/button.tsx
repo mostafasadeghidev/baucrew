@@ -17,9 +17,15 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 const base =
   'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,border-color,transform] duration-100 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60 disabled:active:scale-100'
 
+/**
+ * The primary buttons carry a border too, the colour of nothing. Every other
+ * variant has a one-pixel border and these did not, so a primary button stood
+ * two pixels shorter than the outline button beside it — "Neues Projekt" next
+ * to "Vorlagen", "Speichern" next to "Abbrechen", in every page's bar.
+ */
 export const btn = {
-  primary: `${base} bg-accent px-4 py-2 text-accent-foreground shadow-sm hover:bg-accent-hover`,
-  primarySm: `${base} bg-accent px-3 py-1.5 text-accent-foreground shadow-sm hover:bg-accent-hover`,
+  primary: `${base} border border-transparent bg-accent px-4 py-2 text-accent-foreground shadow-sm hover:bg-accent-hover`,
+  primarySm: `${base} border border-transparent bg-accent px-3 py-1.5 text-accent-foreground shadow-sm hover:bg-accent-hover`,
   outline: `${base} border border-border bg-surface px-4 py-2 shadow-sm hover:bg-surface-hover`,
   outlineSm: `${base} border border-border bg-surface px-3 py-1.5 shadow-sm hover:bg-surface-hover`,
   /** Smaller again: rows of controls that sit above content, not in it. */

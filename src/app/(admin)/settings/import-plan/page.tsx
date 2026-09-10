@@ -1,5 +1,4 @@
 import { getLocale, getTranslations } from 'next-intl/server'
-import { BackLink } from '@/components/back-link'
 import { DeleteButton } from '@/components/delete-button'
 import { requireAdmin } from '@/lib/authz'
 import { getPlanYears } from '@/lib/reports'
@@ -7,7 +6,7 @@ import { formatCurrency } from '@/lib/format'
 import { db } from '@/lib/db'
 import { ImportWizard } from './import-wizard'
 import { clearPlanYear } from './actions'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
 
 export default async function ImportPlanPage() {
   await requireAdmin()
@@ -30,14 +29,9 @@ export default async function ImportPlanPage() {
   return (
     <div className="space-y-6">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <BackLink href="/settings?tab=data" label={tNav('settings')} />
-            <h1 className={`mt-1 ${pageTitle}`}>{t('title')}</h1>
-            <p className="mt-1 text-sm text-muted">{t('hint')}</p>
-          </div>
-        </div>
+        <PageBar back={{ href: '/settings?tab=data', label: tNav('settings') }} title={t('title')} />
       </StickyHead>
+      <PageHint>{t('hint')}</PageHint>
 
       {years.length > 0 && (
         <section className="max-w-3xl overflow-hidden rounded-lg border border-border bg-surface shadow-sm">

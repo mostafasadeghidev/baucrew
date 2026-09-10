@@ -5,7 +5,7 @@ import { getOptionList } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { db } from '@/lib/db'
 import { LiveSearchInput, LiveSelect } from '@/components/live-search'
-import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { listCategories } from './actions'
@@ -70,21 +70,19 @@ export default async function WarehousePage({
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <h1 className={pageTitle}>{t('title')}</h1>
-            <p className="text-sm text-muted">{t('catalogTitle')}</p>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageBar
+          title={t('title')}
+          actions={
             <Link
               href="/warehouse/new"
               className={btn.primary}
             >
               {t('newItem')}
             </Link>
-          </div>
-        </div>
+          }
+        />
       </StickyHead>
+      <PageHint>{t('catalogTitle')}</PageHint>
 
       <PagePanel>
         <div className="border-b border-border p-4">

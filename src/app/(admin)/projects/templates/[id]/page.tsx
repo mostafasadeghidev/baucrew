@@ -6,8 +6,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { deleteTemplate, updateTemplate } from '../actions'
 import { TemplateForm } from '../template-form'
 import { TemplateItemsEditor, type TemplateItemRow } from './template-items'
-import { BackLink } from '@/components/back-link'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function EditTemplatePage({
   params,
@@ -72,19 +71,21 @@ export default async function EditTemplatePage({
   return (
     <div className="space-y-6">
       <StickyHead>
-        <div className={`items-start ${pageToolbar}`}>
-          <div>
-            <BackLink href="/projects/templates" label={t('title')} />
-            <h1 className={pageTitle}>
+        <PageBar
+          back={{ href: '/projects/templates', label: t('title') }}
+          title={
+            <>
               {t('editTitle')} — {template.name}
-            </h1>
-          </div>
-          <DeleteButton
-            action={deleteTemplate.bind(null, template.id)}
-            label={tc('delete')}
-            confirmMessage={t('deleteConfirm')}
-          />
-        </div>
+            </>
+          }
+          actions={
+            <DeleteButton
+              action={deleteTemplate.bind(null, template.id)}
+              label={tc('delete')}
+              confirmMessage={t('deleteConfirm')}
+            />
+          }
+        />
       </StickyHead>
 
       <TemplateForm

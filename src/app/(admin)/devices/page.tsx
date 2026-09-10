@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { btn } from '@/components/ui/button'
 import { LiveSearchInput } from '@/components/live-search'
-import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
 import { deviceState } from '@/lib/devices'
 
 export default async function DevicesPage({
@@ -49,18 +49,16 @@ export default async function DevicesPage({
   return (
     <div className="space-y-4">
       <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <h1 className={pageTitle}>{t('title')}</h1>
-            <p className="mt-1 text-sm text-muted">
-              {t('summary', { free, total: devices.length })}
-            </p>
-          </div>
-          <Link href="/devices/new" className={btn.primary}>
-            {t('newDevice')}
-          </Link>
-        </div>
+        <PageBar
+          title={t('title')}
+          actions={
+            <Link href="/devices/new" className={btn.primary}>
+              {t('newDevice')}
+            </Link>
+          }
+        />
       </StickyHead>
+      <PageHint>{t('summary', { free, total: devices.length })}</PageHint>
 
       <PagePanel>
         <div className="border-b border-border p-4">

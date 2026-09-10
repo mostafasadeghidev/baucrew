@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react'
+import { BackLink } from '../back-link'
+
 /**
  * The sheet a page's body sits on.
  *
@@ -47,10 +50,65 @@ export function PagePanel({
  * but it does need to say what it is.
  */
 export const pageToolbar =
-  'flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm print:rounded-none print:border-0 print:px-0 print:shadow-none'
+  'flex min-h-16 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm print:min-h-0 print:rounded-none print:border-0 print:px-0 print:shadow-none'
 
 /** The page's name inside that bar. */
 export const pageTitle = 'text-lg font-semibold tracking-tight'
+
+/**
+ * A page's bar, drawn the same way on every page: sixty-four pixels, the
+ * height of the Projekte bar, whatever the page.
+ *
+ * It was drawn by hand on each page and had drifted to eleven different
+ * heights between 64 and 160 pixels, for two reasons that repeated everywhere.
+ * A sub-page stacked its back link on a line above its title, and a page with
+ * something to explain stacked the explanation on a line below it. Click from
+ * a list into one of its records and the top of the page jumped a third of
+ * the way down; open a settings page with a long hint and the bar was taller
+ * than a phone's width.
+ *
+ * So the back link stands inline, before the title, and the title truncates
+ * rather than wrapping. What a page has to explain goes under the bar in a
+ * `PageHint`, where it scrolls away with the page instead of staying pinned
+ * to the top of the window at twice the height. `meta` is for the short thing
+ * that belongs next to the name — a status, a period — and is never a
+ * sentence.
+ */
+export function PageBar({
+  back,
+  title,
+  meta,
+  actions,
+  className = '',
+}: {
+  /** The list this page belongs to — see `BackLink`. */
+  back?: { href: string; label: string }
+  title: ReactNode
+  /** Short, beside the title: a status pill, "KW 37". Never a sentence. */
+  meta?: ReactNode
+  /** What can be done to the page, on the right. */
+  actions?: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={`${pageToolbar} ${className}`}>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        {back && <BackLink href={back.href} label={back.label} inline />}
+        <h1 className={`min-w-0 truncate ${pageTitle}`}>{title}</h1>
+        {meta}
+      </div>
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  )
+}
+
+/**
+ * What a page has to say about itself, under its bar rather than inside it.
+ * Place it directly after the page's `StickyHead`.
+ */
+export function PageHint({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <p className={`px-1 text-sm text-muted ${className}`}>{children}</p>
+}
 
 /**
  * Keeps a page's bar — and, where a page has one, the row of tabs under it —

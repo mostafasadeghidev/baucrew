@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
@@ -77,39 +76,41 @@ export default async function EmployeeDetailPage({
   return (
     <div className="space-y-6">
       <StickyHead>
-        <div className={`items-start ${pageToolbar}`}>
-          <div>
-            <BackLink href="/employees" label={t('title')} />
-            <div className="mt-1 flex items-center gap-3">
-              <h1 className={pageTitle}>
-                {employee.firstName} {employee.lastName}
-              </h1>
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  employee.active
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-neutral-500/15 text-neutral-600 dark:text-neutral-300'
-                }`}
-              >
-                {employee.active ? tc('active') : tc('inactive')}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/employees/${employee.id}/edit`}
-              className={btn.outlineSm}
+        <PageBar
+          back={{ href: '/employees', label: t('title') }}
+          title={
+            <>
+              {employee.firstName} {employee.lastName}
+            </>
+          }
+          meta={
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                employee.active
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                  : 'bg-neutral-500/15 text-neutral-600 dark:text-neutral-300'
+              }`}
             >
-              {tc('edit')}
-            </Link>
-            <DeleteButton
-              action={deleteEmployee.bind(null, employee.id)}
-              label={tc('delete')}
-              confirmMessage={t('deleteConfirm')}
-              errorLabels={{ cannotDeleteInUse: t('cannotDeleteInUse') }}
-            />
-          </div>
-        </div>
+              {employee.active ? tc('active') : tc('inactive')}
+            </span>
+          }
+          actions={
+            <>
+              <Link
+                href={`/employees/${employee.id}/edit`}
+                className={btn.outlineSm}
+              >
+                {tc('edit')}
+              </Link>
+              <DeleteButton
+                action={deleteEmployee.bind(null, employee.id)}
+                label={tc('delete')}
+                confirmMessage={t('deleteConfirm')}
+                errorLabels={{ cannotDeleteInUse: t('cannotDeleteInUse') }}
+              />
+            </>
+          }
+        />
       </StickyHead>
 
       <div className="grid gap-6 lg:grid-cols-2">
