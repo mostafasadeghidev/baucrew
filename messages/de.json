@@ -47,7 +47,7 @@
     "employees": "Mitarbeiter",
     "vehicles": "Fahrzeuge",
     "warehouse": "Lager",
-    "reports": "Berichte",
+    "reports": "CRM",
     "settings": "Einstellungen",
     "myArea": "Mein Bereich",
     "menu": "Menü",
@@ -473,7 +473,7 @@
     "EMPLOYEE": "Mitarbeiter"
   },
   "reports": {
-    "title": "Berichte",
+    "title": "CRM",
     "revenueTitle": "Monatsplanumsatz",
     "colMonth": "Monat",
     "viewMonths": "Monate",

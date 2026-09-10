@@ -183,7 +183,15 @@ export default async function ScheduleMapPage({
   const periodLabel = `${rangeFmt.format(monday)} – ${rangeFmt.format(addDays(monday, 6))}`
 
   return (
-    <div className="space-y-4">
+    /**
+     * On a wide screen this page is exactly as tall as the window, and nothing
+     * on it scrolls but the day list: the map and the view switcher above it
+     * would otherwise walk off the top while a person reads down a week's
+     * worth of sites — and the map is the half they are reading against.
+     * Narrower than that, it goes back to one column and the page scrolls
+     * normally, because a map and a list stacked cannot both stay in view.
+     */
+    <div className="flex flex-col gap-4 lg:h-[calc(100vh-3rem)]">
       <ScheduleHeader
         title={t('title')}
         view="map"
@@ -214,11 +222,15 @@ export default async function ScheduleMapPage({
 
       {/* The map keeps its place whether the week is full or empty: swapping the
           whole body for a line of text would move everything under it. */}
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-2">
-          <SiteMap sites={sites} ariaLabel={t('viewMap')} />
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_380px]">
+        <div className="flex min-h-0 flex-col gap-2">
+          <SiteMap
+            sites={sites}
+            ariaLabel={t('viewMap')}
+            className="h-[420px] lg:h-auto lg:min-h-[320px] lg:flex-1"
+          />
           {days.length > 1 && (
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
+            <div className="flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
               {days.map((day) => (
                 <span key={day.dateIso} className="inline-flex items-center gap-1.5">
                   <span
@@ -233,7 +245,8 @@ export default async function ScheduleMapPage({
           )}
         </div>
 
-        <div className="space-y-2">
+        {/* The only thing on the page that scrolls. */}
+        <div className="min-h-0 space-y-2 lg:overflow-y-auto lg:pr-1">
           {days.length === 0 && (
             <p className="rounded-lg border border-border bg-surface px-4 py-10 text-center text-sm text-muted">
               {t('mapNoEntries')}
@@ -241,6 +254,14 @@ export default async function ScheduleMapPage({
           )}
           {days.map((day) => {
             const open = selectedDay === null || selectedDay === day.dateIso
+            /**
+             * The whole week gives every day its sites, which is what the pins
+             * on the map are numbered against — but the crew and the vehicles
+             * behind each one turn seven days into a column longer than the
+             * map beside it. They belong to the day a person actually picked,
+             * so they are written out only there.
+             */
+            const detailed = selectedDay === day.dateIso
             return (
               <div
                 key={day.dateIso}
@@ -289,13 +310,19 @@ export default async function ScheduleMapPage({
                             {site.address}
                             {approx && ` · ${t('mapApproximate')}`}
                           </p>
-                          <p className="mt-1 text-xs">
-                            {entry.employees
-                              .map((ee) => `${ee.employee.firstName} ${ee.employee.lastName}`.trim())
-                              .join(', ') || '—'}
-                            {entry.vehicles.length > 0 &&
-                              ` · ${entry.vehicles.map((ev) => ev.vehicle.name).join(', ')}`}
-                          </p>
+                          {detailed && (
+                            <p className="mt-1 text-xs">
+                              {entry.employees
+                                .map((ee) =>
+                                  `${ee.employee.firstName} ${ee.employee.lastName}`.trim()
+                                )
+                                .join(', ') || '—'}
+                              {entry.vehicles.length > 0 &&
+                                ` · ${entry.vehicles.map((ev) => ev.vehicle.name).join(', ')}`}
+                            </p>
+                          )}
+                          {/* Rain stays on every row: it is the one thing on this
+                              page that changes a plan, week view or not. */}
                           {probability != null && (
                             <p className="mt-1 flex items-center gap-1 text-xs text-sky-700 dark:text-sky-400">
                               <CloudRain className="h-3.5 w-3.5" aria-hidden />

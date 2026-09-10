@@ -18,7 +18,9 @@
  *      consequence of how wide the screen is.
  *   2. Neither row wraps; a narrow screen scrolls one sideways instead.
  *   3. No control appears or disappears with the data. A weekend toggle that
- *      cannot be switched off is shown switched on and locked, not removed.
+ *      cannot be switched off is shown switched on and locked, not removed —
+ *      greyed out and dimmed, the way any disabled control is, so that it is
+ *      clear the click did nothing on purpose.
  *   4. A toggle's label never changes with its state — on and off are told
  *      apart by the switch beside it. A word that grows when clicked drags its
  *      neighbours along with it. The switch also says at a glance that these
@@ -122,10 +124,16 @@ export function ScheduleHeader({
       <div className="flex min-h-9 items-center justify-end gap-2 overflow-x-auto">
         <div className="ml-auto flex items-center gap-2">
           {[...toggles].reverse().map((toggle) => {
+            const locked = toggle.href === null
             // Same words, same width, whichever way it stands.
             const look = `inline-flex items-center gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${
-              toggle.active ? 'text-foreground' : 'text-muted'
+              locked ? 'text-foreground opacity-50' : toggle.active ? 'text-foreground' : 'text-muted'
             }`
+            // A switch that is on but cannot be moved keeps the colour of a
+            // switch that is on — same accent track, same knob on the right —
+            // and only fades. Draining the colour out made it read as off,
+            // which is the one thing it is not; halving it reads as "on, and
+            // not yours to change", which is what it is.
             const knob = (
               <span
                 aria-hidden
@@ -134,8 +142,8 @@ export function ScheduleHeader({
                 }`}
               >
                 <span
-                  className={`h-2.5 w-2.5 rounded-full bg-current ${
-                    toggle.active ? 'ml-auto mr-0.5 text-white' : 'ml-0.5 text-muted'
+                  className={`h-2.5 w-2.5 rounded-full ${
+                    toggle.active ? 'ml-auto mr-0.5 bg-white' : 'ml-0.5 bg-muted'
                   }`}
                 />
               </span>
@@ -147,7 +155,7 @@ export function ScheduleHeader({
                 role="switch"
                 aria-checked
                 aria-disabled
-                className={`${look} cursor-default opacity-70`}
+                className={`${look} cursor-not-allowed`}
               >
                 {knob}
                 {toggle.label}

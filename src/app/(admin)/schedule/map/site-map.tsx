@@ -35,7 +35,16 @@ export type MapSite = {
   lng: number
 }
 
-export function SiteMap({ sites, ariaLabel }: { sites: MapSite[]; ariaLabel: string }) {
+export function SiteMap({
+  sites,
+  ariaLabel,
+  className = 'h-[420px] lg:h-[600px]',
+}: {
+  sites: MapSite[]
+  ariaLabel: string
+  /** How tall the map is. The week view hands it the height left on screen. */
+  className?: string
+}) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<Leaflet.Map | null>(null)
   const markers = useRef<Leaflet.LayerGroup | null>(null)
@@ -95,12 +104,22 @@ export function SiteMap({ sites, ariaLabel }: { sites: MapSite[]; ariaLabel: str
     instance.invalidateSize()
   }, [L, sites])
 
+  // The map fills whatever room is left on the page, so its box changes with
+  // the window. Leaflet lays its tiles out once and has to be told.
+  useEffect(() => {
+    const node = container.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => map.current?.invalidateSize())
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [L])
+
   return (
     <div
       ref={container}
       role="application"
       aria-label={ariaLabel}
-      className="h-[420px] w-full overflow-hidden rounded-lg border border-border bg-subtle lg:h-[600px]"
+      className={`w-full overflow-hidden rounded-lg border border-border bg-subtle ${className}`}
     />
   )
 }
