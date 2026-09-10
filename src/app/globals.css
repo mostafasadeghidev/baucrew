@@ -59,14 +59,16 @@
 }
 
 @layer base {
-  /* The scrollbar's room is kept whether the page scrolls or not. Without it a
+  /* The scrollbar is always there: working when the page is long enough to
+     scroll, standing idle when it is not — but never taken away. Without it a
      page long enough to scroll was fifteen pixels narrower than one that was
-     not, so moving between them slid every bar, button and column sideways —
+     not, so moving between them slid every bar, button and column sideways:
      the view switcher stood at 1384px on the week board and 1399px on the map.
-     Where the scrollbar floats over the page (macOS, phones, tablets) there is
-     no room to keep and this changes nothing. */
+     An idle scrollbar was chosen over an empty strip of reserved room, so the
+     edge of the window looks the same on every page. Where the scrollbar
+     floats over the page (macOS, phones, tablets) this changes nothing. */
   html {
-    scrollbar-gutter: stable;
+    overflow-y: scroll;
   }
 
   body {
