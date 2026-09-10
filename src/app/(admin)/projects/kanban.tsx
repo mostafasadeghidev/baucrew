@@ -285,6 +285,22 @@ export function ProjectsKanban({
       return delta
     }
 
+    /** The scrolling box the pointer is in — a column's cards, if any. */
+    function hostUnder(target: EventTarget | null, board: HTMLElement) {
+      let el = target instanceof Element ? target : null
+      while (el && el !== board) {
+        if (
+          el instanceof HTMLElement &&
+          el.scrollHeight > el.clientHeight &&
+          /(auto|scroll)/.test(getComputedStyle(el).overflowY)
+        ) {
+          return el
+        }
+        el = el.parentElement
+      }
+      return null
+    }
+
     function onWheel(e: WheelEvent) {
       const el = scroller.current
       if (!el) return
@@ -293,10 +309,17 @@ export function ProjectsKanban({
       const dx = toPixels(e.deltaX, e.deltaMode, el.clientWidth)
       const dy = toPixels(e.deltaY, e.deltaMode, el.clientHeight)
       if (dy === 0 || Math.abs(dx) > Math.abs(dy)) return // a real sideways swipe
-      // Downward: hold the board still and move the page by exactly what the
-      // browser would have moved it. The fling keeps sending events, so the
-      // momentum of a trackpad survives.
+      // Downward: hold the board still and move by exactly what the browser
+      // would have moved — the column under the cursor if it still has room,
+      // the page otherwise. The fling keeps sending events, so the momentum of
+      // a trackpad survives.
       e.preventDefault()
+      const host = hostUnder(e.target, el)
+      if (host) {
+        const before = host.scrollTop
+        host.scrollTop = before + dy
+        if (host.scrollTop !== before) return
+      }
       window.scrollBy(0, dy)
     }
 
@@ -305,9 +328,9 @@ export function ProjectsKanban({
   }, [])
 
   return (
-    <div className="space-y-2">
+    <div className="flex h-full flex-col gap-2">
       {error && (
-        <p className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+        <p className="shrink-0 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
           {error}
         </p>
       )}
@@ -318,7 +341,7 @@ export function ProjectsKanban({
         onPointerMove={onBoardPointerMove}
         onPointerUp={onBoardPointerEnd}
         onPointerCancel={onBoardPointerEnd}
-        className={`flex gap-3 overflow-x-auto pb-2 ${
+        className={`flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2 ${
           panning ? 'cursor-grabbing select-none' : 'cursor-grab'
         }`}
       >
@@ -332,23 +355,28 @@ export function ProjectsKanban({
             }}
             onDrop={() => drop(column.status, column.label)}
             data-board-column={column.status}
-            className={`flex w-64 shrink-0 flex-col rounded-xl border bg-subtle/40 transition-colors ${
+            className={`flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border bg-subtle/40 transition-colors ${
               over === column.status ? 'border-accent bg-accent/5' : 'border-border'
             }`}
           >
-            <div className="flex items-baseline gap-2 border-b border-border px-3 py-2">
+            {/* The head does not scroll with the cards: which status this is,
+                and how many are in it, is what the column is being read for. */}
+            <div className="flex shrink-0 items-baseline gap-2 border-b border-border px-3 py-2">
               <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${column.badgeClass}`}>
                 {column.label}
               </span>
               <span className="ml-auto text-[11px] tabular-nums text-muted">{column.count}</span>
             </div>
             {column.sum && (
-              <p className="border-b border-border px-3 py-1 text-[11px] tabular-nums text-muted">
+              <p className="shrink-0 border-b border-border px-3 py-1 text-[11px] tabular-nums text-muted">
                 {column.sum}
               </p>
             )}
 
-            <div className="flex-1 space-y-2 p-2">
+            {/* Each column carries its own scroll. One column holding a couple
+                of hundred finished projects would otherwise make every column
+                that tall, and the whole page with them. */}
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
               {column.cards.length === 0 && (
                 <p className="px-1 py-4 text-center text-[11px] text-muted">{labels.empty}</p>
               )}

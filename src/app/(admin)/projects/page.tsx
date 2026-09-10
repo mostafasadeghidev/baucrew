@@ -171,7 +171,18 @@ export default async function ProjectsPage({
   )
 
   return (
-    <div className="space-y-4">
+    /*
+     * As a list the page is as long as its twenty rows and scrolls normally.
+     * As a board it is exactly as tall as the window and nothing on it scrolls
+     * but the inside of a column: a board whose columns grow with their
+     * contents is a board where the busiest column decides how far everybody
+     * scrolls, and where the column heads — the status and the count, the
+     * whole point of the thing — walk off the top of the window. It holds from
+     * the tablet up, which is where the board is actually used; on a phone it
+     * goes back to growing with its contents, because a column with its own
+     * scroll inside a screen that small is two scrolls fighting each other.
+     */
+    <div className={kanban ? 'flex flex-col gap-4 md:h-[calc(100vh-3rem)]' : 'space-y-4'}>
       <StickyHead>
         <div className={pageToolbar}>
           <h1 className={pageTitle}>{t('title')}</h1>
@@ -208,7 +219,7 @@ export default async function ProjectsPage({
         </div>
       </StickyHead>
 
-      <PagePanel>
+      <PagePanel className={kanban ? 'flex min-h-0 flex-1 flex-col' : ''}>
         {/*
           Two choices about the same projects: the status tabs say which are
           shown, the switch says how they are drawn. The switch rides on the
@@ -268,7 +279,7 @@ export default async function ProjectsPage({
         </div>
 
         {kanban ? (
-          <div className="p-3">
+          <div className="min-h-0 flex-1 p-3">
             <ProjectsKanban
               columns={columns}
               confirmFor={['COMPLETED', 'CANCELLED']}
