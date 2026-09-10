@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/format'
 import { db } from '@/lib/db'
 import { ImportWizard } from './import-wizard'
 import { clearPlanYear } from './actions'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function ImportPlanPage() {
   await requireAdmin()
@@ -28,11 +29,15 @@ export default async function ImportPlanPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <BackLink href="/settings?tab=data" label={tNav('settings')} />
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted">{t('hint')}</p>
-      </div>
+      <StickyHead>
+        <div className={pageToolbar}>
+          <div>
+            <BackLink href="/settings?tab=data" label={tNav('settings')} />
+            <h1 className={`mt-1 ${pageTitle}`}>{t('title')}</h1>
+            <p className="mt-1 text-sm text-muted">{t('hint')}</p>
+          </div>
+        </div>
+      </StickyHead>
 
       {years.length > 0 && (
         <section className="max-w-3xl overflow-hidden rounded-lg border border-border bg-surface shadow-sm">

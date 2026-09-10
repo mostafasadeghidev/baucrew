@@ -6,6 +6,7 @@ import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
 import { BackLink } from '@/components/back-link'
 import { StockWarning } from '@/components/stock-warning'
 import { btn } from '@/components/ui/button'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 
 const card = 'overflow-hidden rounded-lg border border-border bg-surface shadow-sm'
 const STATUS_STYLE: Record<string, string> = {
@@ -78,42 +79,44 @@ export default async function PackingOverviewPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-2">
-          <BackLink href="/dashboard" label={tNav('dashboard')} />
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t('packingToday')}{' '}
-            <span className="text-base font-normal text-muted">
-              {isToday ? `${t('todayWord')} · ` : ''}
-              {dayLabel}
-            </span>
-          </h1>
+      <StickyHead>
+        <div className={`items-start ${pageToolbar}`}>
+          <div className="space-y-2">
+            <BackLink href="/dashboard" label={tNav('dashboard')} />
+            <h1 className={pageTitle}>
+              {t('packingToday')}{' '}
+              <span className="text-base font-normal text-muted">
+                {isToday ? `${t('todayWord')} · ` : ''}
+                {dayLabel}
+              </span>
+            </h1>
+          </div>
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/dashboard/packing?date=${iso(addDays(day, -1))}`}
+              className={btn.outlineSm}
+              aria-label={tToday('prevDay')}
+            >
+              ←
+            </Link>
+            <Link
+              href="/dashboard/packing"
+              className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+                isToday ? 'border-accent bg-accent/10 text-accent' : 'border-border hover:bg-surface-hover'
+              }`}
+            >
+              {t('todayWord')}
+            </Link>
+            <Link
+              href={`/dashboard/packing?date=${iso(addDays(day, 1))}`}
+              className={btn.outlineSm}
+              aria-label={tToday('nextDay')}
+            >
+              →
+            </Link>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Link
-            href={`/dashboard/packing?date=${iso(addDays(day, -1))}`}
-            className={btn.outlineSm}
-            aria-label={tToday('prevDay')}
-          >
-            ←
-          </Link>
-          <Link
-            href="/dashboard/packing"
-            className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
-              isToday ? 'border-accent bg-accent/10 text-accent' : 'border-border hover:bg-surface-hover'
-            }`}
-          >
-            {t('todayWord')}
-          </Link>
-          <Link
-            href={`/dashboard/packing?date=${iso(addDays(day, 1))}`}
-            className={btn.outlineSm}
-            aria-label={tToday('nextDay')}
-          >
-            →
-          </Link>
-        </div>
-      </div>
+      </StickyHead>
 
       {totals.total > 0 && (
         <p className="text-sm text-muted">

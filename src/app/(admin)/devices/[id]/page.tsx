@@ -9,6 +9,7 @@ import { daysOut, deviceState } from '@/lib/devices'
 import { DeviceForm } from '../device-form'
 import { HandoutPanel } from '../handout-panel'
 import { deleteDevice, updateDevice } from '../actions'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function DeviceDetailPage({
   params,
@@ -66,23 +67,27 @@ export default async function DeviceDetailPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <BackLink href="/devices" label={t('title')} />
-        <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{device.name}</h1>
-          {device.videoUrl && (
-            <a
-              href={device.videoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 text-sm text-accent hover:underline"
-            >
-              <PlayCircle className="h-4 w-4" aria-hidden />
-              {t('video')}
-            </a>
-          )}
+      <StickyHead>
+        <div className={pageToolbar}>
+          <div>
+            <BackLink href="/devices" label={t('title')} />
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <h1 className={pageTitle}>{device.name}</h1>
+              {device.videoUrl && (
+                <a
+                  href={device.videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-sm text-accent hover:underline"
+                >
+                  <PlayCircle className="h-4 w-4" aria-hidden />
+                  {t('video')}
+                </a>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </StickyHead>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <DeviceForm

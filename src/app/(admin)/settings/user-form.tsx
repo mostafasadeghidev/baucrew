@@ -1,12 +1,11 @@
 'use client'
 
 import { useActionState } from 'react'
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Combobox } from '@/components/combobox'
 import type { UserFormState } from './actions'
 import { Select } from '@/components/ui/select'
-import { btn } from '@/components/ui/button'
+import { FormHead } from '@/components/ui/form-head'
 
 export type UserFormValues = {
   username: string
@@ -27,12 +26,20 @@ export function UserForm({
   employees,
   isNew,
   isSelf,
+  cancelHref,
+  title,
+  headExtra,
 }: {
   action: (prev: UserFormState, formData: FormData) => Promise<UserFormState>
   initial: UserFormValues
   employees: Array<{ value: string; label: string }>
   isNew: boolean
   isSelf: boolean
+  cancelHref: string
+  /** The page's own name, shown in the bar above the fields. */
+  title: string
+  /** A control for the bar that belongs to the page, e.g. delete. */
+  headExtra?: React.ReactNode
 }) {
   const t = useTranslations('settings')
   const tRoles = useTranslations('roles')
@@ -41,8 +48,16 @@ export function UserForm({
   const [state, formAction, pending] = useActionState<UserFormState, FormData>(action, {})
 
   return (
-    <form action={formAction} className="max-w-xl space-y-6">
-      <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+    <form action={formAction} className="space-y-6">
+      <FormHead
+        title={title}
+        saveLabel={tc('save')}
+        cancelLabel={tc('cancel')}
+        cancelHref={cancelHref}
+        pending={pending}
+        extra={headExtra}
+      />
+      <div className="max-w-2xl rounded-xl border border-border bg-surface p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="username" className="block text-sm font-medium">
@@ -126,21 +141,6 @@ export function UserForm({
         </p>
       )}
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className={btn.primary}
-        >
-          {tc('save')}
-        </button>
-        <Link
-          href="/settings?tab=accounts"
-          className={btn.outline}
-        >
-          {tc('cancel')}
-        </Link>
-      </div>
     </form>
   )
 }

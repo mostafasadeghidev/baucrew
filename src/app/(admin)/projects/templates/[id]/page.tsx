@@ -7,6 +7,7 @@ import { deleteTemplate, updateTemplate } from '../actions'
 import { TemplateForm } from '../template-form'
 import { TemplateItemsEditor, type TemplateItemRow } from './template-items'
 import { BackLink } from '@/components/back-link'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function EditTemplatePage({
   params,
@@ -70,19 +71,21 @@ export default async function EditTemplatePage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <BackLink href="/projects/templates" label={t('title')} />
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t('editTitle')} — {template.name}
-          </h1>
+      <StickyHead>
+        <div className={`items-start ${pageToolbar}`}>
+          <div>
+            <BackLink href="/projects/templates" label={t('title')} />
+            <h1 className={pageTitle}>
+              {t('editTitle')} — {template.name}
+            </h1>
+          </div>
+          <DeleteButton
+            action={deleteTemplate.bind(null, template.id)}
+            label={tc('delete')}
+            confirmMessage={t('deleteConfirm')}
+          />
         </div>
-        <DeleteButton
-          action={deleteTemplate.bind(null, template.id)}
-          label={tc('delete')}
-          confirmMessage={t('deleteConfirm')}
-        />
-      </div>
+      </StickyHead>
 
       <TemplateForm
         action={updateTemplate.bind(null, template.id)}

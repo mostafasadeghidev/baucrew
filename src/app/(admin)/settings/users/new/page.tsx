@@ -15,11 +15,12 @@ export default async function NewUserPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('createUserTitle')}</h1>
       <UserForm
         action={createUser}
         isNew
         isSelf={false}
+        cancelHref="/settings?tab=accounts"
+        title={t('createUserTitle')}
         employees={employees.map((e) => ({
           value: e.id,
           label: `${e.firstName} ${e.lastName}`.trim(),

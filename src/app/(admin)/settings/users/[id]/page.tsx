@@ -27,25 +27,24 @@ export default async function EditUserPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('editUserTitle')} — {user.username}
-        </h1>
-        <DeleteButton
-          action={deleteUser.bind(null, user.id)}
-          label={t('deleteUser')}
-          confirmMessage={t('deleteUserConfirm')}
-          errorLabels={{
-            selfDelete: t('cannotDeleteSelf'),
-            lastAdmin: t('cannotDeleteLastAdmin'),
-            saveFailed: tc('saveFailed'),
-          }}
-        />
-      </div>
       <UserForm
         action={updateUser.bind(null, user.id)}
         isNew={false}
         isSelf={user.id === admin.id}
+        cancelHref="/settings?tab=accounts"
+        title={`${t('editUserTitle')} — ${user.username}`}
+        headExtra={
+          <DeleteButton
+            action={deleteUser.bind(null, user.id)}
+            label={t('deleteUser')}
+            confirmMessage={t('deleteUserConfirm')}
+            errorLabels={{
+              selfDelete: t('cannotDeleteSelf'),
+              lastAdmin: t('cannotDeleteLastAdmin'),
+              saveFailed: tc('saveFailed'),
+            }}
+          />
+        }
         employees={employees.map((e) => ({
           value: e.id,
           label: `${e.firstName} ${e.lastName}`.trim(),

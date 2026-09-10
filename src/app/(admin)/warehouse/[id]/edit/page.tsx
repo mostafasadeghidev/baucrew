@@ -26,20 +26,18 @@ export default async function EditItemPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('editTitle')} — {item.name}
-        </h1>
-        <DeleteButton
-          action={deleteItem.bind(null, item.id)}
-          label={tc('delete')}
-          confirmMessage={t('deleteConfirm')}
-          errorLabels={{ cannotDeleteInUse: t('cannotDeleteInUse') }}
-        />
-      </div>
       <ItemForm
         action={updateItem.bind(null, item.id)}
         cancelHref="/warehouse"
+        title={`${t('editTitle')} — ${item.name}`}
+        headExtra={
+          <DeleteButton
+            action={deleteItem.bind(null, item.id)}
+            label={tc('delete')}
+            confirmMessage={t('deleteConfirm')}
+            errorLabels={{ cannotDeleteInUse: t('cannotDeleteInUse') }}
+          />
+        }
         categories={categories.map((c) => c.name)}
         kinds={kinds.map((k) => ({ value: k.value, label: optionLabel(kinds, k.value, locale) }))}
         initial={{

@@ -14,10 +14,10 @@ export default async function NewItemPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('createTitle')}</h1>
       <ItemForm
         action={createItem}
         cancelHref="/warehouse"
+        title={t('createTitle')}
         categories={categories.map((c) => c.name)}
         kinds={kinds.map((k) => ({ value: k.value, label: optionLabel(kinds, k.value, locale) }))}
         initial={{

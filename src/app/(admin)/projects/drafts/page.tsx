@@ -8,6 +8,7 @@ import { canViewFinancials, requireManagement } from '@/lib/authz'
 import { formatCurrency } from '@/lib/format'
 import { btn } from '@/components/ui/button'
 import { dismissDraft } from './actions'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 
 /** The inbox: everything that arrived from outside, waiting to become a project. */
 export default async function DraftsPage() {
@@ -32,16 +33,18 @@ export default async function DraftsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <BackLink href="/projects" label={tProjects('title')} />
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('title')}</h1>
-          <p className="mt-1 text-sm text-muted">{t('hint')}</p>
+      <StickyHead>
+        <div className={`items-end ${pageToolbar}`}>
+          <div>
+            <BackLink href="/projects" label={tProjects('title')} />
+            <h1 className={`mt-1 ${pageTitle}`}>{t('title')}</h1>
+            <p className="mt-1 text-sm text-muted">{t('hint')}</p>
+          </div>
+          <Link href="/projects/import" className={btn.outline}>
+            {t('toImport')}
+          </Link>
         </div>
-        <Link href="/projects/import" className={btn.outline}>
-          {t('toImport')}
-        </Link>
-      </div>
+      </StickyHead>
 
       {drafts.length === 0 ? (
         <p className="rounded-lg border border-border bg-surface px-4 py-10 text-center text-sm text-muted">

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { formatDate } from '@/lib/format'
 import { KeyForm } from './key-form'
 import { revokeApiKey } from './actions'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 
 /** Settings → API keys: who may talk to the app from outside, and how. */
 export default async function ApiKeysPage() {
@@ -42,11 +43,15 @@ export default async function ApiKeysPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <BackLink href="/settings?tab=data" label={tNav('settings')} />
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('apiKeysTitle')}</h1>
-        <p className="mt-1 max-w-3xl text-sm text-muted">{t('apiKeysHint')}</p>
-      </div>
+      <StickyHead>
+        <div className={pageToolbar}>
+          <div>
+            <BackLink href="/settings?tab=data" label={tNav('settings')} />
+            <h1 className={`mt-1 ${pageTitle}`}>{t('apiKeysTitle')}</h1>
+            <p className="mt-1 max-w-3xl text-sm text-muted">{t('apiKeysHint')}</p>
+          </div>
+        </div>
+      </StickyHead>
 
       <Card title={t('newKeyTitle')} description={t('newKeyHint')}>
         <KeyForm users={users.map((u) => ({ value: u.id, label: `${u.username} (${u.role})` }))} />

@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { ChecklistForm } from '../checklist-form'
 import { deleteChecklist, updateChecklist } from '../actions'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function EditChecklistPage({
   params,
@@ -23,10 +24,14 @@ export default async function EditChecklistPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <BackLink href="/projects/checklists" label={t('templatesTitle')} />
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{list.name}</h1>
-      </div>
+      <StickyHead>
+        <div className={pageToolbar}>
+          <div>
+            <BackLink href="/projects/checklists" label={t('templatesTitle')} />
+            <h1 className={`mt-1 ${pageTitle}`}>{list.name}</h1>
+          </div>
+        </div>
+      </StickyHead>
       <ChecklistForm
         action={updateChecklist.bind(null, list.id)}
         deleteAction={deleteChecklist.bind(null, list.id)}
