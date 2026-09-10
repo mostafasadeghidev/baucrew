@@ -514,6 +514,7 @@
     "chartTitle": "Monthly revenue {year} compared to {prev}",
     "compareYears": "Comparison years",
     "compareMax": "At most {count} years",
+    "compareNone": "none",
     "chartTitleYear": "Monthly revenue {year}",
     "chartTotal": "Total",
     "chartMode": "Shape",

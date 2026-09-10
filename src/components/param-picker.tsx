@@ -60,13 +60,13 @@ export function ParamPicker({
       // What is chosen belongs in the button's name, or a screen reader hears
       // "Jahr" whichever year is on screen.
       label={`${label}: ${current?.label ?? ''}`}
-      className={`${dense ? btn.outlineXs : btn.outlineSm} gap-1.5 print:hidden ${
-        dense ? 'text-[11px]' : 'text-xs'
-      }`}
+      // The same width as the picker it stands beside: two controls that read
+      // as one sentence should not be two different sizes.
+      className={`${dense ? `${btn.outlineXs} w-28 text-[11px]` : `${btn.outlineSm} text-xs`} gap-1.5 print:hidden`}
       trigger={
         <>
-          {current?.label}
-          <ChevronDown className="h-3.5 w-3.5 text-muted" aria-hidden />
+          <span className="truncate tabular-nums">{current?.label}</span>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
         </>
       }
     >

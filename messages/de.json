@@ -514,6 +514,7 @@
     "chartTitle": "Monatsumsatz {year} im Vergleich zu {prev}",
     "compareYears": "Vergleichsjahre",
     "compareMax": "Höchstens {count} Jahre",
+    "compareNone": "keine",
     "chartTitleYear": "Monatsumsatz {year}",
     "chartTotal": "Gesamt",
     "chartMode": "Darstellung",

@@ -544,6 +544,7 @@ export default async function ReportsPage({
                       max={MAX_QUARTER_COMPARE}
                       label={t('compareYears')}
                       maxHint={t('compareMax', { count: MAX_QUARTER_COMPARE })}
+                      noneLabel={t('compareNone')}
                       dense
                     />
                   </div>

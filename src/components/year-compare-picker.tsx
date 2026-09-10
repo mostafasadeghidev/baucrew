@@ -25,6 +25,7 @@ export function YearComparePicker({
   max = 4,
   label,
   maxHint,
+  noneLabel,
   dense = false,
 }: {
   /** Every year that may be chosen, the year on screen excluded. */
@@ -37,6 +38,8 @@ export function YearComparePicker({
   label: string
   /** Shown under the list once the cap is reached. */
   maxHint: string
+  /** What the dense button says when no year is ticked, e.g. "keine". */
+  noneLabel?: string
   /**
    * Smaller, for a card that stands the picker beside another one: two
    * controls of the same weight compete, and this one is the second question.
@@ -76,25 +79,29 @@ export function YearComparePicker({
       // How many are ticked belongs in the button's name: the badge that says
       // so is text a screen reader never reaches past the label.
       label={picked.length > 0 ? `${label}: ${picked.length}` : label}
-      className={`${dense ? btn.outlineXs : btn.outlineSm} gap-1.5 print:hidden ${
-        dense ? 'text-[11px]' : 'text-xs'
-      }`}
+      className={`${dense ? `${btn.outlineXs} w-28 text-[11px]` : `${btn.outlineSm} text-xs`} gap-1.5 print:hidden`}
       trigger={
         <>
-          {label}
-          {/* The badge takes the button's own size: a twelve-pixel figure
-              inside an eleven-pixel button makes the button a pixel taller
-              than the one standing next to it. */}
-          {picked.length > 0 && (
-            <span
-              className={`rounded-full bg-accent/10 px-1.5 tabular-nums text-accent ${
-                dense ? 'text-[11px]' : 'text-xs'
-              }`}
-            >
-              {picked.length}
+          {/* Standing next to the year it is measured against, this button
+              says years too — "2026 vs. 2025" reads; "2026 vs. Vergleichs-
+              jahre 1" does not, and it is twice as wide as its neighbour. */}
+          {dense ? (
+            <span className="truncate tabular-nums">
+              {picked.length > 0
+                ? [...picked].sort((a, b) => b - a).join(', ')
+                : (noneLabel ?? label)}
             </span>
+          ) : (
+            <>
+              {label}
+              {picked.length > 0 && (
+                <span className="rounded-full bg-accent/10 px-1.5 text-xs tabular-nums text-accent">
+                  {picked.length}
+                </span>
+              )}
+            </>
           )}
-          <ChevronDown className="h-3.5 w-3.5 text-muted" aria-hidden />
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
         </>
       }
     >
