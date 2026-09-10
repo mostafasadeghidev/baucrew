@@ -1,5 +1,7 @@
 {
   "common": {
+    "expandSidebar": "Menü ausklappen",
+    "collapseSidebar": "Menü einklappen",
     "appName": "BauCrew",
     "loading": "Wird geladen …",
     "save": "Speichern",

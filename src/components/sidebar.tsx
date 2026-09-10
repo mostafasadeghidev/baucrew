@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Building2,
@@ -12,6 +12,8 @@ import {
   LayoutDashboard,
   LogOut,
   Menu as MenuIcon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Package,
   PieChart,
   Settings,
@@ -23,6 +25,8 @@ import { logout } from '@/app/actions'
 import { Menu, MenuLabel, MenuRow, MenuSeparator, menuItemClass } from './ui/menu'
 import { LanguageSwitcher } from './language-switcher'
 import { ThemeToggle } from './theme-toggle'
+import { RailTip } from './ui/rail-tip'
+import { SIDEBAR_COOKIE, SIDEBAR_COOKIE_MAX_AGE, sidebarCookieValue } from '@/lib/sidebar'
 
 type NavItem = { href: string; key: string; icon: typeof LayoutDashboard }
 type NavGroup = { labelKey: string; items: NavItem[] }
@@ -54,34 +58,59 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/')
 }
 
-function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+function NavLinks({
+  pathname,
+  onNavigate,
+  collapsed = false,
+}: {
+  pathname: string
+  onNavigate?: () => void
+  /** Folded to a rail: icons only, each named by a tooltip beside it. */
+  collapsed?: boolean
+}) {
   const t = useTranslations('nav')
   return (
-    <div className="flex-1 overflow-y-auto px-2 py-2">
+    <div className={`flex-1 overflow-y-auto py-2 ${collapsed ? 'px-1.5' : 'px-2'}`}>
       {NAV_GROUPS.map((group) => (
         <div key={group.labelKey} className="mb-2">
-          <p className="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted/80">
-            {t(group.labelKey)}
-          </p>
+          {collapsed ? (
+            // The group's name has nowhere to go on a rail; a hairline keeps
+            // the two groups apart, which is what the name was doing.
+            <div className="mx-2 mb-1.5 border-t border-border first:hidden" aria-hidden />
+          ) : (
+            <p className="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted/80">
+              {t(group.labelKey)}
+            </p>
+          )}
           <nav className="space-y-0.5">
             {group.items.map((item) => {
               const active = isActive(pathname, item.href)
               const Icon = item.icon
-              return (
+              const link = (
                 <Link
-                  key={item.href}
                   href={item.href}
                   onClick={onNavigate}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors md:py-1.5 ${
+                  aria-label={collapsed ? t(item.key) : undefined}
+                  title={undefined}
+                  className={`flex items-center rounded-md text-sm transition-colors ${
+                    collapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-2.5 py-2 md:py-1.5'
+                  } ${
                     active
                       ? 'bg-surface-hover font-medium text-foreground'
                       : 'text-muted hover:bg-surface-hover/70 hover:text-foreground'
                   }`}
                 >
                   <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-accent' : ''}`} aria-hidden />
-                  <span className="truncate">{t(item.key)}</span>
+                  {!collapsed && <span className="truncate">{t(item.key)}</span>}
                 </Link>
+              )
+              return collapsed ? (
+                <RailTip key={item.href} label={t(item.key)}>
+                  {link}
+                </RailTip>
+              ) : (
+                <div key={item.href}>{link}</div>
               )
             })}
           </nav>
@@ -92,15 +121,27 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
 }
 
 /** Footer: user button that opens a menu (settings, sign out) — shadcn style. */
-function UserMenu({ username, role, isAdmin }: { username: string; role: string; isAdmin: boolean }) {
+function UserMenu({
+  username,
+  role,
+  isAdmin,
+  collapsed = false,
+}: {
+  username: string
+  role: string
+  isAdmin: boolean
+  collapsed?: boolean
+}) {
   const t = useTranslations('nav')
   const tAuth = useTranslations('auth')
   return (
-    <div className="border-t border-border p-2">
+    <div className={`border-t border-border ${collapsed ? 'p-1.5' : 'p-2'}`}>
       <Menu
         side="top"
         label={username}
-        className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-surface-hover"
+        className={`flex w-full items-center rounded-md text-left transition-colors hover:bg-surface-hover ${
+          collapsed ? 'justify-center px-1 py-1.5' : 'gap-2.5 px-2 py-2'
+        }`}
         trigger={
           <>
             <span
@@ -109,11 +150,15 @@ function UserMenu({ username, role, isAdmin }: { username: string; role: string;
             >
               {username.slice(0, 2)}
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium">{username}</span>
-              <span className="block truncate text-xs text-muted">{role}</span>
-            </span>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+            {!collapsed && (
+              <>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">{username}</span>
+                  <span className="block truncate text-xs text-muted">{role}</span>
+                </span>
+                <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+              </>
+            )}
           </>
         }
       >
@@ -143,34 +188,86 @@ function UserMenu({ username, role, isAdmin }: { username: string; role: string;
   )
 }
 
-/** Desktop sidebar (md+), sticky over the full viewport height. */
+/**
+ * Desktop sidebar (md+), sticky over the full viewport height, open or folded
+ * to a rail of icons. The server already knows which — it reads the cookie —
+ * so the page never arrives one width and changes to the other.
+ */
 export function Sidebar({
   isAdmin,
   brandName,
   hasLogo,
   username,
   role,
+  defaultCollapsed = false,
 }: {
   isAdmin: boolean
   brandName: string
   hasLogo: boolean
   username: string
   role: string
+  defaultCollapsed?: boolean
 }) {
   const pathname = usePathname()
+  const t = useTranslations('nav')
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
+
+  const toggle = useCallback(() => {
+    setCollapsed((was) => {
+      const next = !was
+      document.cookie = `${SIDEBAR_COOKIE}=${sidebarCookieValue(next)}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}; samesite=lax`
+      return next
+    })
+  }, [])
+
+  // The shortcut every editor and every sidebar of this kind uses.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'b' || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return
+      e.preventDefault()
+      toggle()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggle])
+
+  const Fold = collapsed ? PanelLeftOpen : PanelLeftClose
+  const foldLabel = collapsed ? t('expandSidebar') : t('collapseSidebar')
+
   return (
-    <aside className="hidden w-60 shrink-0 md:block print:hidden">
+    <aside
+      className={`hidden shrink-0 transition-[width] duration-200 md:block print:hidden ${
+        collapsed ? 'w-16' : 'w-60'
+      }`}
+    >
       <div className="sticky top-0 flex h-screen flex-col border-r border-border bg-sidebar">
-        <div className="shrink-0 border-b border-border px-3 py-2.5">
-          <Link href="/dashboard" title={brandName} className="block">
-            <BrandMark hasLogo={hasLogo} name={brandName} />
-            {hasLogo && (
-              <span className="mt-1.5 block truncate text-xs font-medium text-muted">{brandName}</span>
-            )}
-          </Link>
+        <div
+          className={`flex shrink-0 items-center gap-2 border-b border-border py-2.5 ${
+            collapsed ? 'justify-center px-1.5' : 'px-3'
+          }`}
+        >
+          {!collapsed && (
+            <Link href="/dashboard" title={brandName} className="block min-w-0 flex-1">
+              <BrandMark hasLogo={hasLogo} name={brandName} />
+              {hasLogo && (
+                <span className="mt-1.5 block truncate text-xs font-medium text-muted">{brandName}</span>
+              )}
+            </Link>
+          )}
+          <RailTip label={foldLabel} className="shrink-0">
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={foldLabel}
+              aria-expanded={!collapsed}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+            >
+              <Fold className="h-4 w-4" aria-hidden />
+            </button>
+          </RailTip>
         </div>
-        <NavLinks pathname={pathname} />
-        <UserMenu username={username} role={role} isAdmin={isAdmin} />
+        <NavLinks pathname={pathname} collapsed={collapsed} />
+        <UserMenu username={username} role={role} isAdmin={isAdmin} collapsed={collapsed} />
       </div>
     </aside>
   )

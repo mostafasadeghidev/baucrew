@@ -5,6 +5,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Added
+- **The menu folds.** The button beside the logo — or Ctrl/⌘ + B — takes the
+  sidebar down to a rail of icons and gives the page back a hundred and
+  seventy-six pixels; a table that had to wrap now fits. Each icon says its
+  name in a tooltip that appears at once and is not cut off by the scrolling
+  nav around it. The choice is kept in a cookie, so the server already knows it
+  and the page arrives at the width it was left at instead of snapping to it
+  after it has been painted. On a phone the menu is the drawer it always was.
+
 ### Removed
 - **The Übersicht view is gone** from Einsatzplanung. Woche, Monat and Karte
   remain. What it did — several weeks one under the other — comes back inside

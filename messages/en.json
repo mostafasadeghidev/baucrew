@@ -1,5 +1,7 @@
 {
   "common": {
+    "expandSidebar": "Expand menu",
+    "collapseSidebar": "Collapse menu",
     "appName": "BauCrew",
     "loading": "Loading …",
     "save": "Save",
