@@ -30,7 +30,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   pixels down. Now neither row wraps, both keep their height, the weekend
   control is always drawn — locked, when the week's own assignments hold it
   open — and a toggle keeps its word whichever way it stands, so it cannot grow
-  under the cursor that clicked it.
+  under the cursor that clicked it. The stepper closes the second row, right
+  under the switcher, with the toggles queued to its left: nothing stands to
+  its right, so the arrows are in the same place in the month, which has no
+  toggles, as in the week, which has two. Its middle button says **Aktuell** in
+  every view — "Aktuelle Woche", "Aktueller Monat" and "Heute" were three
+  widths of the same button.
 - **The week board stops moving under the cursor.** The conflict and weather
   boxes above the calendar grew and vanished with the week, so paging from a
   week that had warnings to one that had none lifted every day column up the

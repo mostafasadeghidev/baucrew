@@ -181,7 +181,7 @@ export function MonthBoard({
         prevHref={prevHref}
         nextHref={nextHref}
         currentHref={currentHref}
-        currentLabel={t("currentMonth")}
+        currentLabel={t("current")}
         prevLabel={t("prevMonth")}
         nextLabel={t("nextMonth")}
       />

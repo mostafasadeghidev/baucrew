@@ -12,7 +12,7 @@
  * pixels down the page. Paging from one week to the next moved the day a
  * person was reading out from under their eyes.
  *
- * Four rules keep it still, and every one of them is load-bearing:
+ * Five rules keep it still, and every one of them is load-bearing:
  *
  *   1. Two rows, each `min-h-9`. The number of rows is a constant, not a
  *      consequence of how wide the screen is.
@@ -22,6 +22,13 @@
  *   4. A toggle's label never changes with its state — on and off are told
  *      apart by colour. A word that grows when clicked drags its neighbours
  *      along with it.
+ *   5. The stepper closes the second row, hard against the right edge and so
+ *      directly under the view switcher, with every toggle queued to its left.
+ *      Nothing stands to its right, so nothing can move it: in the month,
+ *      which has no toggles at all, the arrows are in the same place as in the
+ *      week, which has two. The word between them is the same in all three
+ *      views for the same reason — "Aktuelle Woche", "Aktueller Monat" and
+ *      "Heute" are three different widths.
  */
 
 import Link from 'next/link'
@@ -69,6 +76,11 @@ export function ScheduleHeader({
   currentLabel: string
   prevLabel: string
   nextLabel: string
+  /**
+   * Read outwards from the stepper: the first one sits next to the arrows, the
+   * next one beyond it. They are drawn in reverse so that reading the row from
+   * its right edge gives the arrows, then this list in order.
+   */
   toggles?: ScheduleHeaderToggle[]
 }) {
   const views: Array<{ key: ScheduleView; href: string; label: string }> = [
@@ -82,6 +94,7 @@ export function ScheduleHeader({
     <div className="space-y-2">
       <div className="flex min-h-9 items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{title}</h1>
+        <span className="truncate text-lg font-medium text-muted">{periodLabel}</span>
         <div className="ml-auto flex items-center gap-1 overflow-x-auto rounded-lg bg-subtle p-1 text-sm font-medium">
           {views.map((v) =>
             v.key === view ? (
@@ -101,21 +114,12 @@ export function ScheduleHeader({
         </div>
       </div>
 
-      <div className="flex min-h-9 items-center justify-between gap-3">
-        <span className="truncate text-lg font-medium text-muted">{periodLabel}</span>
-        <div className="ml-auto flex items-center gap-2 overflow-x-auto">
-          <div className="flex items-center gap-1">
-            <Link href={prevHref} className={btn.outlineSm} aria-label={prevLabel} title={prevLabel}>
-              ←
-            </Link>
-            <Link href={currentHref} className={`${btn.outlineSm} whitespace-nowrap`}>
-              {currentLabel}
-            </Link>
-            <Link href={nextHref} className={btn.outlineSm} aria-label={nextLabel} title={nextLabel}>
-              →
-            </Link>
-          </div>
-          {toggles.map((toggle) => {
+      {/* The stepper closes this row, right under the switcher above it, and
+          the toggles queue to its left — so nothing that comes and goes can
+          move the arrows a person is aiming at. */}
+      <div className="flex min-h-9 items-center justify-end gap-2 overflow-x-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {[...toggles].reverse().map((toggle) => {
             // Same words, same width, whichever way it stands.
             const look = `whitespace-nowrap rounded-md border px-3 py-1.5 text-sm font-medium ${
               toggle.active
@@ -143,6 +147,17 @@ export function ScheduleHeader({
               </Link>
             )
           })}
+          <div className="flex items-center gap-1">
+            <Link href={prevHref} className={btn.outlineSm} aria-label={prevLabel} title={prevLabel}>
+              ←
+            </Link>
+            <Link href={currentHref} className={`${btn.outlineSm} whitespace-nowrap`}>
+              {currentLabel}
+            </Link>
+            <Link href={nextHref} className={btn.outlineSm} aria-label={nextLabel} title={nextLabel}>
+              →
+            </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -204,7 +204,7 @@ export function ScheduleBoard({
         prevHref={prevWeekHref}
         nextHref={nextWeekHref}
         currentHref={currentWeekHref}
-        currentLabel={t('currentWeek')}
+        currentLabel={t('current')}
         prevLabel={t('prevWeek')}
         nextLabel={t('nextWeek')}
         toggles={[

@@ -670,6 +670,7 @@
     "title": "Scheduling",
     "weekLabel": "Week {week}",
     "currentWeek": "Current week",
+    "current": "Current",
     "weekend": "Weekend",
     "weekendLocked": "This week has a weekend assignment — Sat and Sun stay visible.",
     "prevMonth": "Previous month",

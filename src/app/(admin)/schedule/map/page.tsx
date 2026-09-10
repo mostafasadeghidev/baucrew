@@ -123,7 +123,7 @@ export default async function ScheduleMapPage({
         prevHref={step(-1)}
         nextHref={step(1)}
         currentHref="/schedule/map"
-        currentLabel={t('todayButton')}
+        currentLabel={t('current')}
         prevLabel={t('previousDay')}
         nextLabel={t('nextDay')}
       />
