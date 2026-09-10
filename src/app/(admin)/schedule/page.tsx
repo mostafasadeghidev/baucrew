@@ -61,10 +61,10 @@ const ENTRY_INCLUDE = {
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; view?: string; weekend?: string; next?: string }>
+  searchParams: Promise<{ week?: string; view?: string; weekend?: string; next?: string; new?: string }>
 }) {
   await requireManagement()
-  const { week, view, weekend, next } = await searchParams
+  const { week, view, weekend, next, new: openNew } = await searchParams
   const [t, tVehicleStatus, tAbsences, locale] = await Promise.all([
     getTranslations('schedule'),
     getTranslations('vehicleStatus'),
@@ -289,6 +289,7 @@ export default async function SchedulePage({
 
   return (
     <ScheduleBoard
+      openCreate={openNew === '1'}
       weekendToggle={
         hasWeekendEntries
           ? { href: null, active: true }

@@ -6,7 +6,9 @@ import { requireManagement } from '@/lib/authz'
 import { addDays, iso, mondayOf, todayUtc, utcDate } from '@/lib/dates'
 import { getRainWarnings } from '@/lib/weather'
 import { geocodeCity } from '@/lib/geocode'
-import { ScheduleHeader } from '../schedule-header'
+import { btn } from '@/components/ui/button'
+import { PagePanel } from '@/components/ui/page-panel'
+import { ScheduleControls, ScheduleHeader } from '../schedule-header'
 import { SiteMap, type MapSite } from './site-map'
 import { FocusSiteButton } from './focus-site-button'
 import { spreadOverlapping } from '@/lib/map-spread'
@@ -248,12 +250,22 @@ export default async function ScheduleMapPage({
     <div className="flex flex-col gap-4 lg:h-[calc(100vh-3rem)]">
       <ScheduleHeader
         title={t('title')}
+        action={
+          // The dialog lives with the week board, which has the projects, the
+          // crew and the vehicles loaded; the map hands the click over to it.
+          <Link href={`/schedule?week=${iso(monday)}&new=1`} className={btn.primary}>
+            {t('planEntry')}
+          </Link>
+        }
+      />
+
+      <PagePanel className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      <ScheduleControls
         view="map"
         weekHref={`/schedule?week=${iso(monday)}`}
         monthHref={`/schedule?view=month&week=${iso(monday)}`}
         mapHref={mapHref()}
         viewLabels={{ week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap') }}
-        periodLabel={periodLabel}
         prevHref={mapHref({ monday: addDays(monday, -7) })}
         nextHref={mapHref({ monday: addDays(monday, 7) })}
         currentHref={mapHref({ monday: mondayOf(todayUtc()) })}
@@ -272,7 +284,9 @@ export default async function ScheduleMapPage({
               }
             : { href: null, label: t('mapWholeWeek'), active: true, title: t('mapWholeWeekOn') },
         ]}
-      />
+      >
+        <span className="whitespace-nowrap text-sm font-semibold">{periodLabel}</span>
+      </ScheduleControls>
 
       {/* The map keeps its place whether the week is full or empty: swapping the
           whole body for a line of text would move everything under it. */}
@@ -414,6 +428,7 @@ export default async function ScheduleMapPage({
           })}
         </div>
       </div>
+      </PagePanel>
     </div>
   )
 }

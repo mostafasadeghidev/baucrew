@@ -21,7 +21,9 @@ import {
   updateScheduleEntry,
 } from "./actions";
 import { EntryDialog, type AbsenceHint, type BoardEntry, type DialogState } from "./entry-dialog";
-import { ScheduleHeader } from "./schedule-header";
+import { btn } from "@/components/ui/button";
+import { PagePanel } from "@/components/ui/page-panel";
+import { ScheduleControls, ScheduleHeader } from "./schedule-header";
 
 const MAX_PER_DAY = 5;
 
@@ -69,6 +71,8 @@ export function MonthBoard({
   const t = useTranslations("schedule");
   const tc = useTranslations("common");
   const [pending, startTransition] = useTransition();
+  /** Today when it falls in this month, otherwise the month's first day. */
+  const newEntryDate = todayIso.startsWith(monthKey) ? todayIso : `${monthKey}-01`;
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" });
   const [boardError, setBoardError] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -194,30 +198,44 @@ export function MonthBoard({
     <div className="space-y-4">
       <ScheduleHeader
         title={t("title")}
-        view="month"
-        weekHref={weekHref}
-        monthHref={currentHref}
-        mapHref={mapHref}
-        viewLabels={{ week: t("viewWeek"), month: t("viewMonth"), map: t("viewMap") }}
-        periodLabel={monthLabel}
-        prevHref={prevHref}
-        nextHref={nextHref}
-        currentHref={currentHref}
-        currentLabel={t("current")}
-        prevLabel={t("prevMonth")}
-        nextLabel={t("nextMonth")}
+        action={
+          <button
+            type="button"
+            onClick={() => setDialog({ mode: "create", date: newEntryDate })}
+            className={btn.primary}
+          >
+            {t("planEntry")}
+          </button>
+        }
       />
 
-      {boardError && (
-        <p
-          role="alert"
-          className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
+      <PagePanel className="space-y-3 p-4">
+        <ScheduleControls
+          view="month"
+          weekHref={weekHref}
+          monthHref={currentHref}
+          mapHref={mapHref}
+          viewLabels={{ week: t("viewWeek"), month: t("viewMonth"), map: t("viewMap") }}
+          prevHref={prevHref}
+          nextHref={nextHref}
+          currentHref={currentHref}
+          currentLabel={t("current")}
+          prevLabel={t("prevMonth")}
+          nextLabel={t("nextMonth")}
         >
-          {boardError}
-        </p>
-      )}
+          {/* Which month this is, where the week board says which week it
+              is: on the sheet, not beside the page's name. */}
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="whitespace-nowrap text-sm font-semibold">{monthLabel}</span>
+            {boardError && (
+              <span role="alert" className="truncate text-xs font-medium text-danger">
+                {boardError}
+              </span>
+            )}
+          </div>
+        </ScheduleControls>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-[720px] table-fixed border-collapse text-xs">
           <thead>
             <tr className="border-b border-border text-left text-muted">
@@ -361,6 +379,7 @@ export function MonthBoard({
           </tbody>
         </table>
       </div>
+      </PagePanel>
 
       <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
         <span>{t("dragHint")}</span>

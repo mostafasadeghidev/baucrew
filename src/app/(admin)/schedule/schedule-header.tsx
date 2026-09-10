@@ -1,42 +1,42 @@
 /**
- * The header every scheduling view wears: the three views on one line, the
- * period and its controls on the next.
+ * The scheduling views' bar, and the controls under it.
  *
- * It exists because it kept moving. The three headers were hand-copied, and
- * the right-hand group was flush right with `justify-between`, so anything
- * that changed width in that group slid everything beside it: the weekend
- * toggle vanished entirely on a week that already had a Saturday assignment
- * (about 133px of sideways jump on every screen), the toggle's own label grew
- * by 69px when it was switched on, and between roughly 890 and 1020 pixels the
- * whole thing wrapped to two or three rows and pushed the board 40 to 80
- * pixels down the page. Paging from one week to the next moved the day a
- * person was reading out from under their eyes.
+ * The bar is the bar every other page wears — the page's name on the left, the
+ * thing you come here to do on the right — at the same height, so going from
+ * Projekte to Einsatzplanung does not move the top of the page. It used to
+ * carry the views, the arrows and the toggles as well, which made it the one
+ * bar in the app twice as tall as all the others.
  *
- * Five rules keep it still, and every one of them is load-bearing:
+ * Those controls now open the sheet below it, in two rows: what the week has
+ * to say and the view switcher on the first, the toggles and the arrows under
+ * the switcher on the second. They change what the sheet shows, not what the
+ * page is, so they belong to the sheet. The rules that stopped the old header
+ * moving under the cursor all still hold:
  *
- *   1. Two rows, each `min-h-9`. The number of rows is a constant, not a
- *      consequence of how wide the screen is.
- *   2. Neither row wraps; a narrow screen scrolls one sideways instead.
- *   3. No control appears or disappears with the data. A weekend toggle that
- *      cannot be switched off is shown switched on and locked, not removed.
- *      What "locked" looks like is settled at the switch itself, below.
- *   4. A toggle's label never changes with its state — on and off are told
- *      apart by the switch beside it. A word that grows when clicked drags its
- *      neighbours along with it. The switch also says at a glance that these
- *      two are settings rather than places to go, which they did not while
- *      they wore the same bordered box as the arrows next to them.
- *   5. The stepper closes the second row, hard against the right edge and so
- *      directly under the view switcher, with every toggle queued to its left.
- *      Nothing stands to its right, so nothing can move it: in the month,
- *      which has no toggles at all, the arrows are in the same place as in the
- *      week, which has two. The word between them is the same in all three
- *      views for the same reason — "Aktuelle Woche", "Aktueller Monat" and
- *      "Heute" are three different widths.
+ *   1. Two rows, each `h-9`. The number of rows is a constant, not a
+ *      consequence of the screen's width; a narrow screen scrolls a row
+ *      sideways rather than wrapping it.
+ *   2. No control appears or disappears with the data. A weekend toggle that
+ *      cannot be switched off is shown on and locked, not removed.
+ *   3. A toggle's label never changes with its state — the switch beside it
+ *      says on or off. A word that grows when clicked drags its neighbours.
+ *   4. The arrows close the second row, hard against the right edge and so
+ *      directly under the switcher, with every toggle queued to their left.
+ *      Nothing stands to their right, so nothing can move them: in the month,
+ *      which has no toggles at all, they are where they are in the week, which
+ *      has two. The word between them is the same in all three views for the
+ *      same reason — "Aktuelle Woche", "Aktueller Monat" and "Heute" were three
+ *      different widths.
+ *   5. What the week has to say — conflicts, weather — sits in a box of fixed
+ *      width. Stretched across the row it read as a banner with two words in
+ *      it; at a fixed width it reads as the counter it is, and a busy week
+ *      scrolls inside it rather than pushing anything along.
  */
 
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { btn } from '@/components/ui/button'
-import { pageTitle, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 
 export type ScheduleView = 'week' | 'month' | 'map'
 
@@ -49,14 +49,35 @@ export type ScheduleHeaderToggle = {
   title?: string
 }
 
+/** The width of the box that says what the week has to say. */
+export const scheduleStatusBox =
+  'flex h-9 w-80 max-w-full shrink-0 items-center gap-2 overflow-x-auto rounded-md border border-border bg-subtle px-2.5 text-xs'
+
 export function ScheduleHeader({
   title,
+  action,
+}: {
+  title: string
+  /** The page's own button: planning a new assignment. */
+  action?: ReactNode
+}) {
+  // No period beside the name. The week says which week it is right above
+  // its days, and the month and the map say it on the first row of their
+  // sheet; a second copy up here was one more thing to read, and it made the
+  // bar's contents change width with the length of a month's name.
+  return (
+    <StickyHead>
+      <PageBar title={title} actions={action} />
+    </StickyHead>
+  )
+}
+
+export function ScheduleControls({
   view,
   weekHref,
   monthHref,
   mapHref,
   viewLabels,
-  periodLabel,
   prevHref,
   nextHref,
   currentHref,
@@ -64,16 +85,13 @@ export function ScheduleHeader({
   prevLabel,
   nextLabel,
   toggles = [],
+  children,
 }: {
-  /** The page's own name; on screen only where the sidebar is folded away. */
-  title: string
   view: ScheduleView
   weekHref: string
   monthHref: string
   mapHref: string
   viewLabels: { week: string; month: string; map: string }
-  /** "KW 37", "September 2026" — whatever the view is standing on. */
-  periodLabel: string
   prevHref: string
   nextHref: string
   currentHref: string
@@ -81,11 +99,13 @@ export function ScheduleHeader({
   prevLabel: string
   nextLabel: string
   /**
-   * Read outwards from the stepper: the first one sits next to the arrows, the
-   * next one beyond it. They are drawn in reverse so that reading the row from
-   * its right edge gives the arrows, then this list in order.
+   * Read outwards from the arrows: the first one sits next to them, the next
+   * one beyond it. They are drawn in reverse so that reading the row from its
+   * right edge gives the arrows, then this list in order.
    */
   toggles?: ScheduleHeaderToggle[]
+  /** What the period has to say, at the left of the first row. */
+  children?: ReactNode
 }) {
   const views: Array<{ key: ScheduleView; href: string; label: string }> = [
     { key: 'week', href: weekHref, label: viewLabels.week },
@@ -95,107 +115,100 @@ export function ScheduleHeader({
   const tab = 'rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground'
 
   return (
-    // The two rows sit on a sheet of their own, the same sheet the board under
-    // them wears. The rules above are about what may move inside it; the sheet
-    // itself has a fixed padding, so it cannot move either.
-    <StickyHead>
-      <div className="space-y-2 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm print:rounded-none print:border-0 print:px-0 print:shadow-none">
-        <div className="flex min-h-9 items-center justify-between gap-3">
-          <h1 className={pageTitle}>{title}</h1>
-          <span className="truncate text-lg font-medium text-muted">{periodLabel}</span>
-          <div className="ml-auto flex items-center gap-1 overflow-x-auto rounded-lg bg-subtle p-1 text-sm font-medium">
-            {views.map((v) =>
-              v.key === view ? (
-                <span
-                  key={v.key}
-                  aria-current="page"
-                  className="whitespace-nowrap rounded-md bg-surface px-3 py-1 text-foreground shadow-sm"
-                >
-                  {v.label}
-                </span>
-              ) : (
-                <Link key={v.key} href={v.href} className={`${tab} whitespace-nowrap`}>
-                  {v.label}
-                </Link>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* The stepper closes this row, right under the switcher above it, and
-            the toggles queue to its left — so nothing that comes and goes can
-            move the arrows a person is aiming at. */}
-        <div className="flex min-h-9 items-center justify-end gap-2 overflow-x-auto">
-          <div className="ml-auto flex items-center gap-2">
-            {[...toggles].reverse().map((toggle) => {
-              const locked = toggle.href === null
-              // Same words, same width, whichever way it stands.
-              const look = `inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-                locked ? 'text-foreground opacity-50' : toggle.active ? 'text-foreground' : 'text-muted'
-              }`
-              // A switch that is on but cannot be moved keeps the colour of a
-              // switch that is on — same accent track, same knob on the right —
-              // and only fades. Draining the colour out made it read as off,
-              // which is the one thing it is not; halving it reads as "on, and
-              // not yours to change", which is what it is.
-              const knob = (
-                <span
-                  aria-hidden
-                  className={`inline-flex h-3.5 w-6 shrink-0 items-center rounded-full border transition-colors ${
-                    toggle.active ? 'border-accent bg-accent' : 'border-border bg-subtle'
-                  }`}
-                >
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      toggle.active ? 'ml-auto mr-0.5 bg-white' : 'ml-0.5 bg-muted'
-                    }`}
-                  />
-                </span>
-              )
-              return toggle.href === null ? (
-                <span
-                  key={toggle.label}
-                  title={toggle.title}
-                  role="switch"
-                  aria-checked
-                  aria-disabled
-                  className={`${look} cursor-not-allowed`}
-                >
-                  {knob}
-                  {toggle.label}
-                </span>
-              ) : (
-                <Link
-                  key={toggle.label}
-                  href={toggle.href}
-                  title={toggle.title}
-                  role="switch"
-                  aria-checked={toggle.active}
-                  // Not `surface-hover`: in the light theme that token is the
-                  // very colour of the page these toggles sit on, so hovering an
-                  // switched-on toggle painted it its own background and nothing
-                  // moved. The accent is a tint of the switch beside it.
-                  className={`${look} hover:bg-accent/10 hover:text-foreground`}
-                >
-                  {knob}
-                  {toggle.label}
-                </Link>
-              )
-            })}
-            <div className="flex items-center gap-1">
-              <Link href={prevHref} className={btn.outlineXs} aria-label={prevLabel} title={prevLabel}>
-                ←
+    <div className="shrink-0 space-y-2">
+      <div className="flex h-9 items-center gap-3 overflow-x-auto">
+        <div className="flex h-full min-w-0 flex-1 items-center">{children}</div>
+        <div className="flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
+          {views.map((v) =>
+            v.key === view ? (
+              <span
+                key={v.key}
+                aria-current="page"
+                className="whitespace-nowrap rounded-md bg-surface px-3 py-1 text-foreground shadow-sm"
+              >
+                {v.label}
+              </span>
+            ) : (
+              <Link key={v.key} href={v.href} className={`${tab} whitespace-nowrap`}>
+                {v.label}
               </Link>
-              <Link href={currentHref} className={`${btn.outlineXs} whitespace-nowrap`}>
-                {currentLabel}
-              </Link>
-              <Link href={nextHref} className={btn.outlineXs} aria-label={nextLabel} title={nextLabel}>
-                →
-              </Link>
-            </div>
-          </div>
+            )
+          )}
         </div>
       </div>
-    </StickyHead>
+
+      {/* The arrows close this row, right under the switcher above them, and
+          the toggles queue to their left — so nothing that comes and goes can
+          move the arrows a person is aiming at. */}
+      <div className="flex h-9 items-center justify-end gap-2 overflow-x-auto">
+        {[...toggles].reverse().map((toggle) => {
+          const locked = toggle.href === null
+          // Same words, same width, whichever way it stands.
+          const look = `inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+            locked ? 'text-foreground opacity-50' : toggle.active ? 'text-foreground' : 'text-muted'
+          }`
+          // A switch that is on but cannot be moved keeps the colour of a
+          // switch that is on — same accent track, same knob on the right — and
+          // only fades. Draining the colour out made it read as off, which is
+          // the one thing it is not; halving it reads as "on, and not yours to
+          // change", which is what it is.
+          const knob = (
+            <span
+              aria-hidden
+              className={`inline-flex h-3.5 w-6 shrink-0 items-center rounded-full border transition-colors ${
+                toggle.active ? 'border-accent bg-accent' : 'border-border bg-subtle'
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  toggle.active ? 'ml-auto mr-0.5 bg-white' : 'ml-0.5 bg-muted'
+                }`}
+              />
+            </span>
+          )
+          return locked ? (
+            <span
+              key={toggle.label}
+              title={toggle.title}
+              role="switch"
+              aria-checked
+              aria-disabled
+              className={`${look} cursor-not-allowed`}
+            >
+              {knob}
+              {toggle.label}
+            </span>
+          ) : (
+            <Link
+              key={toggle.label}
+              href={toggle.href!}
+              title={toggle.title}
+              role="switch"
+              aria-checked={toggle.active}
+              // Not `surface-hover`: in the light theme that token is the very
+              // colour of the sheet these toggles sit on, so hovering a
+              // switched-on toggle painted it its own background and nothing
+              // moved. The accent is a tint of the switch beside it.
+              className={`${look} hover:bg-accent/10 hover:text-foreground`}
+            >
+              {knob}
+              {toggle.label}
+            </Link>
+          )
+        })}
+
+        <div className="flex shrink-0 items-center gap-1">
+          <Link href={prevHref} className={btn.outlineXs} aria-label={prevLabel} title={prevLabel}>
+            ←
+          </Link>
+          <Link href={currentHref} className={`${btn.outlineXs} whitespace-nowrap`}>
+            {currentLabel}
+          </Link>
+          <Link href={nextHref} className={btn.outlineXs} aria-label={nextLabel} title={nextLabel}>
+            →
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 }

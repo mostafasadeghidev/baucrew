@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import {
   DRAG_THRESHOLD,
   LONG_PRESS_MS,
@@ -22,7 +22,8 @@ import {
 } from './actions'
 import { EntryDialog, type AbsenceHint, type DialogState, type BoardEntry } from './entry-dialog'
 import { Menu, MenuLabel } from '@/components/ui/menu'
-import { ScheduleHeader } from './schedule-header'
+import { btn } from '@/components/ui/button'
+import { ScheduleControls, ScheduleHeader, scheduleStatusBox } from './schedule-header'
 import { PagePanel } from '@/components/ui/page-panel'
 export type { BoardEntry } from './entry-dialog'
 
@@ -50,6 +51,7 @@ export function ScheduleBoard({
   vehicles,
   absences = [],
   locale,
+  openCreate = false,
 }: {
   /**
    * One entry per week on the board, in order. Two of them means the office
@@ -74,6 +76,8 @@ export function ScheduleBoard({
   entries: BoardEntry[]
   conflictMessages: string[]
   weatherMessages: string[]
+  /** Open the new-assignment dialog on arrival — the map's button lands here. */
+  openCreate?: boolean
   projects: ComboboxOption[]
   employees: ComboboxOption[]
   vehicles: ComboboxOption[]
@@ -84,7 +88,23 @@ export function ScheduleBoard({
   const tc = useTranslations('common')
   const tSheet = useTranslations('sheet')
   const [pending, startTransition] = useTransition()
-  const [dialog, setDialog] = useState<DialogState>({ mode: 'closed' })
+  /** Today when it is on the board, otherwise the first day the board shows. */
+  const firstShown = weeks[0].days[0]
+  const lastWeek = weeks[weeks.length - 1].days
+  const newEntryDate =
+    todayIso >= firstShown && todayIso <= lastWeek[lastWeek.length - 1] ? todayIso : firstShown
+  const [dialog, setDialog] = useState<DialogState>(
+    openCreate ? { mode: 'create', date: newEntryDate } : { mode: 'closed' }
+  )
+  // The map sends people here with `new=1` to open this dialog. The flag comes
+  // back out of the address once it has done that, or a reload would open the
+  // dialog a second time.
+  useEffect(() => {
+    if (!openCreate) return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('new')
+    window.history.replaceState(window.history.state, '', url)
+  }, [openCreate])
   const [boardError, setBoardError] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   /** Two weeks on the board means the warnings are not about "this week". */
@@ -224,46 +244,51 @@ export function ScheduleBoard({
     <div className="space-y-4">
       <ScheduleHeader
         title={t('title')}
-        view="week"
-        weekHref={currentWeekHref}
-        monthHref={monthHref}
-        mapHref={mapHref}
-        viewLabels={{ week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap') }}
-        periodLabel={
-          weeks.length > 1
-            ? t('weekRange', { from: weeks[0].number, to: weeks[weeks.length - 1].number })
-            : t('weekLabel', { week: weeks[0].number })
+        action={
+          <button
+            type="button"
+            onClick={() => setDialog({ mode: 'create', date: newEntryDate })}
+            className={btn.primary}
+          >
+            {t('planEntry')}
+          </button>
         }
-        prevHref={prevWeekHref}
-        nextHref={nextWeekHref}
-        currentHref={currentWeekHref}
-        currentLabel={t('current')}
-        prevLabel={t('prevWeek')}
-        nextLabel={t('nextWeek')}
-        toggles={[
-          {
-            href: weekendToggle.href,
-            label: t('weekend'),
-            active: weekendToggle.active,
-            title: weekendToggle.href === null ? t('weekendLocked') : t('weekendHint'),
-          },
-          {
-            href: followingWeek.href,
-            label: t('followingWeek'),
-            active: followingWeek.active,
-            title: t('followingWeekHint'),
-          },
-        ]}
       />
 
       <PagePanel className="space-y-3 p-4">
-
+        <ScheduleControls
+          view="week"
+          weekHref={currentWeekHref}
+          monthHref={monthHref}
+          mapHref={mapHref}
+          viewLabels={{ week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap') }}
+          prevHref={prevWeekHref}
+          nextHref={nextWeekHref}
+          currentHref={currentWeekHref}
+          currentLabel={t('current')}
+          prevLabel={t('prevWeek')}
+          nextLabel={t('nextWeek')}
+          toggles={[
+            {
+              href: weekendToggle.href,
+              label: t('weekend'),
+              active: weekendToggle.active,
+              title: weekendToggle.href === null ? t('weekendLocked') : t('weekendHint'),
+            },
+            {
+              href: followingWeek.href,
+              label: t('followingWeek'),
+              active: followingWeek.active,
+              title: t('followingWeekHint'),
+            },
+          ]}
+        >
         {/* One line, always here, always the same height. What it says changes
             with the week; where the day columns begin does not. Blocks that came
             and went with the week used to push the whole board up and down as
             somebody paged through it. The detail opens in a menu over the board
             rather than under this line, for the same reason. */}
-        <div className="flex h-9 items-center gap-2 overflow-x-auto rounded-md border border-border bg-subtle px-2.5 text-xs">
+        <div className={scheduleStatusBox}>
           {conflictMessages.length === 0 && weatherMessages.length === 0 && !boardError ? (
             <span className="whitespace-nowrap text-muted">{t('allClear')}</span>
           ) : (
@@ -312,6 +337,7 @@ export function ScheduleBoard({
             </>
           )}
         </div>
+        </ScheduleControls>
 
         {/* One grid per week, stacked. Every week is given the same days, so the
             Monday of the second sits under the Monday of the first — and a card
