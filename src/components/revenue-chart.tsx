@@ -55,7 +55,7 @@
  * second, cannot be styled and never appears on a touchscreen.
  */
 
-import { Fragment, useId, useState } from 'react'
+import { Fragment, useId, useState, useEffect, useRef } from 'react'
 import { formatCurrency } from '@/lib/format'
 import { linePath, monthRuns } from '@/lib/chart-path'
 
@@ -245,7 +245,31 @@ export function RevenueChart({
   const [focused, setFocused] = useState<Spot | null>(null)
   const pointed = hover ?? focused
 
-  const W = 960
+  /**
+   * The chart is drawn at the width it is actually given, in real pixels.
+   *
+   * It used to be a fixed 960-wide drawing stretched to fit, which meant a
+   * wide screen magnified the whole picture — labels, axis figures, bar
+   * outlines and all — while every other card on the page kept its type at
+   * fourteen pixels and simply grew wider. The chart ended up the one thing
+   * that changed size with the window instead of changing shape with it.
+   *
+   * Measuring instead: the height stays put, the type stays put, and a wider
+   * card only puts more room between the months. 960 is what the server draws
+   * before the browser has measured anything, and the floor keeps a narrow
+   * phone from crushing the axis into the first bar.
+   */
+  const box = useRef<HTMLDivElement>(null)
+  const [W, setW] = useState(960)
+  useEffect(() => {
+    const node = box.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(([entry]) =>
+      setW(Math.max(560, Math.round(entry.contentRect.width)))
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
   const H = 226
   const padL = 48
   const padR = 12
@@ -533,10 +557,11 @@ export function RevenueChart({
         )}
       </div>
 
-      <div className="relative" onPointerLeave={() => setHover(null)}>
+      <div className="relative" ref={box} onPointerLeave={() => setHover(null)}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="h-auto w-full touch-manipulation"
+        height={H}
+        className="block w-full touch-manipulation"
         role="img"
         aria-label={[
           ...(curved ? [String(year)] : [legend.own, legend.sub]),

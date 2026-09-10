@@ -41,6 +41,7 @@ import { btn } from '@/components/ui/button'
 import { QuarterBreakdown, type QuarterRowView } from '@/components/quarter-breakdown'
 import { YearBars } from '@/components/year-bars'
 import { YearComparePicker } from '@/components/year-compare-picker'
+import { ParamPicker } from '@/components/param-picker'
 import { ChartModePicker } from '@/components/chart-mode-picker'
 import { formatMinutes } from '@/lib/time-entries'
 import { InfoHint } from '@/components/ui/info-hint'
@@ -508,19 +509,20 @@ export default async function ReportsPage({
             </div>
 
               <div className={`${card} p-4`}>
-                {/* No wrapping: the picker belongs beside the heading, not
-                    under it, and this card is only 360px wide — so it is the
-                    words that give way, never the control. */}
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <h2 className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm font-semibold">
+                {/* The heading and its two controls are one row while they
+                    fit and two when they do not — but never half a row: each
+                    line centres what is on it, so nothing stands a few pixels
+                    above its neighbour. Both controls are the same kind of
+                    button for the same reason. */}
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-semibold">
                     {t('quarterTitleYear')}
                     {/* The year in the heading is the control: the card is read
                         by looking at that number, so it is changed there. */}
-                    <LiveSelect
+                    <ParamPicker
                       param="qyear"
-                      ariaLabel={t('quarterYear')}
-                      className="min-w-18"
-                      compact
+                      label={t('quarterYear')}
+                      value={quarterYear === year ? '' : String(quarterYear)}
                       options={comparisonYears.map((y) => ({
                         value: y === year ? '' : String(y),
                         label: String(y),
@@ -528,7 +530,7 @@ export default async function ReportsPage({
                     />
                     <InfoHint text={t('quarterHint')} wide />
                   </h2>
-                  <div className="shrink-0">
+                  <div className="ml-auto shrink-0">
                     <YearComparePicker
                       options={comparisonYears.filter((y) => y !== quarterYear)}
                       selected={quarterCompareYears}
