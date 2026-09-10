@@ -36,7 +36,7 @@
 
 import Link from 'next/link'
 import { btn } from '@/components/ui/button'
-import { pageTitle } from '@/components/ui/page-panel'
+import { pageTitle, StickyHead } from '@/components/ui/page-panel'
 
 export type ScheduleView = 'week' | 'month' | 'map'
 
@@ -98,102 +98,104 @@ export function ScheduleHeader({
     // The two rows sit on a sheet of their own, the same sheet the board under
     // them wears. The rules above are about what may move inside it; the sheet
     // itself has a fixed padding, so it cannot move either.
-    <div className="space-y-2 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm print:rounded-none print:border-0 print:px-0 print:shadow-none">
-      <div className="flex min-h-9 items-center justify-between gap-3">
-        <h1 className={pageTitle}>{title}</h1>
-        <span className="truncate text-lg font-medium text-muted">{periodLabel}</span>
-        <div className="ml-auto flex items-center gap-1 overflow-x-auto rounded-lg bg-subtle p-1 text-sm font-medium">
-          {views.map((v) =>
-            v.key === view ? (
-              <span
-                key={v.key}
-                aria-current="page"
-                className="whitespace-nowrap rounded-md bg-surface px-3 py-1 text-foreground shadow-sm"
-              >
-                {v.label}
-              </span>
-            ) : (
-              <Link key={v.key} href={v.href} className={`${tab} whitespace-nowrap`}>
-                {v.label}
-              </Link>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* The stepper closes this row, right under the switcher above it, and
-          the toggles queue to its left — so nothing that comes and goes can
-          move the arrows a person is aiming at. */}
-      <div className="flex min-h-9 items-center justify-end gap-2 overflow-x-auto">
-        <div className="ml-auto flex items-center gap-2">
-          {[...toggles].reverse().map((toggle) => {
-            const locked = toggle.href === null
-            // Same words, same width, whichever way it stands.
-            const look = `inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-              locked ? 'text-foreground opacity-50' : toggle.active ? 'text-foreground' : 'text-muted'
-            }`
-            // A switch that is on but cannot be moved keeps the colour of a
-            // switch that is on — same accent track, same knob on the right —
-            // and only fades. Draining the colour out made it read as off,
-            // which is the one thing it is not; halving it reads as "on, and
-            // not yours to change", which is what it is.
-            const knob = (
-              <span
-                aria-hidden
-                className={`inline-flex h-3.5 w-6 shrink-0 items-center rounded-full border transition-colors ${
-                  toggle.active ? 'border-accent bg-accent' : 'border-border bg-subtle'
-                }`}
-              >
+    <StickyHead>
+      <div className="space-y-2 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm print:rounded-none print:border-0 print:px-0 print:shadow-none">
+        <div className="flex min-h-9 items-center justify-between gap-3">
+          <h1 className={pageTitle}>{title}</h1>
+          <span className="truncate text-lg font-medium text-muted">{periodLabel}</span>
+          <div className="ml-auto flex items-center gap-1 overflow-x-auto rounded-lg bg-subtle p-1 text-sm font-medium">
+            {views.map((v) =>
+              v.key === view ? (
                 <span
-                  className={`h-2 w-2 rounded-full ${
-                    toggle.active ? 'ml-auto mr-0.5 bg-white' : 'ml-0.5 bg-muted'
+                  key={v.key}
+                  aria-current="page"
+                  className="whitespace-nowrap rounded-md bg-surface px-3 py-1 text-foreground shadow-sm"
+                >
+                  {v.label}
+                </span>
+              ) : (
+                <Link key={v.key} href={v.href} className={`${tab} whitespace-nowrap`}>
+                  {v.label}
+                </Link>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* The stepper closes this row, right under the switcher above it, and
+            the toggles queue to its left — so nothing that comes and goes can
+            move the arrows a person is aiming at. */}
+        <div className="flex min-h-9 items-center justify-end gap-2 overflow-x-auto">
+          <div className="ml-auto flex items-center gap-2">
+            {[...toggles].reverse().map((toggle) => {
+              const locked = toggle.href === null
+              // Same words, same width, whichever way it stands.
+              const look = `inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                locked ? 'text-foreground opacity-50' : toggle.active ? 'text-foreground' : 'text-muted'
+              }`
+              // A switch that is on but cannot be moved keeps the colour of a
+              // switch that is on — same accent track, same knob on the right —
+              // and only fades. Draining the colour out made it read as off,
+              // which is the one thing it is not; halving it reads as "on, and
+              // not yours to change", which is what it is.
+              const knob = (
+                <span
+                  aria-hidden
+                  className={`inline-flex h-3.5 w-6 shrink-0 items-center rounded-full border transition-colors ${
+                    toggle.active ? 'border-accent bg-accent' : 'border-border bg-subtle'
                   }`}
-                />
-              </span>
-            )
-            return toggle.href === null ? (
-              <span
-                key={toggle.label}
-                title={toggle.title}
-                role="switch"
-                aria-checked
-                aria-disabled
-                className={`${look} cursor-not-allowed`}
-              >
-                {knob}
-                {toggle.label}
-              </span>
-            ) : (
-              <Link
-                key={toggle.label}
-                href={toggle.href}
-                title={toggle.title}
-                role="switch"
-                aria-checked={toggle.active}
-                // Not `surface-hover`: in the light theme that token is the
-                // very colour of the page these toggles sit on, so hovering an
-                // switched-on toggle painted it its own background and nothing
-                // moved. The accent is a tint of the switch beside it.
-                className={`${look} hover:bg-accent/10 hover:text-foreground`}
-              >
-                {knob}
-                {toggle.label}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      toggle.active ? 'ml-auto mr-0.5 bg-white' : 'ml-0.5 bg-muted'
+                    }`}
+                  />
+                </span>
+              )
+              return toggle.href === null ? (
+                <span
+                  key={toggle.label}
+                  title={toggle.title}
+                  role="switch"
+                  aria-checked
+                  aria-disabled
+                  className={`${look} cursor-not-allowed`}
+                >
+                  {knob}
+                  {toggle.label}
+                </span>
+              ) : (
+                <Link
+                  key={toggle.label}
+                  href={toggle.href}
+                  title={toggle.title}
+                  role="switch"
+                  aria-checked={toggle.active}
+                  // Not `surface-hover`: in the light theme that token is the
+                  // very colour of the page these toggles sit on, so hovering an
+                  // switched-on toggle painted it its own background and nothing
+                  // moved. The accent is a tint of the switch beside it.
+                  className={`${look} hover:bg-accent/10 hover:text-foreground`}
+                >
+                  {knob}
+                  {toggle.label}
+                </Link>
+              )
+            })}
+            <div className="flex items-center gap-1">
+              <Link href={prevHref} className={btn.outlineXs} aria-label={prevLabel} title={prevLabel}>
+                ←
               </Link>
-            )
-          })}
-          <div className="flex items-center gap-1">
-            <Link href={prevHref} className={btn.outlineXs} aria-label={prevLabel} title={prevLabel}>
-              ←
-            </Link>
-            <Link href={currentHref} className={`${btn.outlineXs} whitespace-nowrap`}>
-              {currentLabel}
-            </Link>
-            <Link href={nextHref} className={btn.outlineXs} aria-label={nextLabel} title={nextLabel}>
-              →
-            </Link>
+              <Link href={currentHref} className={`${btn.outlineXs} whitespace-nowrap`}>
+                {currentLabel}
+              </Link>
+              <Link href={nextHref} className={btn.outlineXs} aria-label={nextLabel} title={nextLabel}>
+                →
+              </Link>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </StickyHead>
   )
 }

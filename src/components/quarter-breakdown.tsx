@@ -192,9 +192,12 @@ export function QuarterBreakdown({
               {lit.compare.map((c) => (
                 <div key={c.year} className="flex items-baseline justify-between gap-3">
                   <dt className="tabular-nums text-muted">{c.year}</dt>
+                  {/* The change first and the sum last, so every year's sum
+                      ends on the same column as the one above it — including
+                      the year on screen, which has no change to show. */}
                   <dd className="flex items-baseline gap-2">
-                    <span className="tabular-nums">{c.value}</span>
                     <span className={`tabular-nums ${tone(c.percent)}`}>{arrow(c.percent)}</span>
+                    <span className="tabular-nums">{c.value}</span>
                   </dd>
                 </div>
               ))}

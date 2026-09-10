@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { StatusBadge } from '@/components/status-badge'
-import { PagePanel, pageTitle, pageToolbar } from '@/components/ui/page-panel'
+import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
 import { getPrepTabConfig } from '@/lib/prep-tab-db'
@@ -87,40 +87,42 @@ export default async function ProjectsPage({
 
   return (
     <div className="space-y-4">
-      <div className={pageToolbar}>
-        <h1 className={pageTitle}>{t('title')}</h1>
-        <div className="flex items-center gap-2">
-          <Link href="/projects/import" className={btn.outline}>
-            {tDrafts('toImport')}
-          </Link>
-          {draftCount > 0 && (
-            <Link href="/projects/drafts" className={`${btn.outline} gap-1.5`}>
-              {tDrafts('title')}
-              <span className="rounded-full bg-accent px-1.5 text-xs font-semibold text-accent-foreground">
-                {draftCount}
-              </span>
+      <StickyHead>
+        <div className={pageToolbar}>
+          <h1 className={pageTitle}>{t('title')}</h1>
+          <div className="flex items-center gap-2">
+            <Link href="/projects/import" className={btn.outline}>
+              {tDrafts('toImport')}
             </Link>
-          )}
-          <Link
-            href="/projects/checklists"
-            className={btn.outline}
-          >
-            {tChecklists('templatesTitle')}
-          </Link>
-          <Link
-            href="/projects/templates"
-            className={btn.outline}
-          >
-            {tTemplates('title')}
-          </Link>
-          <Link
-            href="/projects/new"
-            className={btn.primary}
-          >
-            {t('newProject')}
-          </Link>
+            {draftCount > 0 && (
+              <Link href="/projects/drafts" className={`${btn.outline} gap-1.5`}>
+                {tDrafts('title')}
+                <span className="rounded-full bg-accent px-1.5 text-xs font-semibold text-accent-foreground">
+                  {draftCount}
+                </span>
+              </Link>
+            )}
+            <Link
+              href="/projects/checklists"
+              className={btn.outline}
+            >
+              {tChecklists('templatesTitle')}
+            </Link>
+            <Link
+              href="/projects/templates"
+              className={btn.outline}
+            >
+              {tTemplates('title')}
+            </Link>
+            <Link
+              href="/projects/new"
+              className={btn.primary}
+            >
+              {t('newProject')}
+            </Link>
+          </div>
         </div>
-      </div>
+      </StickyHead>
 
       <PagePanel>
         <div className="space-y-3 border-b border-border p-4">

@@ -23,7 +23,7 @@ import { LogoUploader } from "./logo-uploader";
 import { BackupRestore } from "./backup-restore";
 import { SavedForm } from "@/components/saved-form";
 import { ParamTabs } from "@/components/param-tabs";
-import { pageTitle, pageToolbar } from '@/components/ui/page-panel'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { Card } from "@/components/ui/card";
 import { btn } from "@/components/ui/button";
 import { OptionListManager } from "./option-list-manager";
@@ -85,21 +85,23 @@ export default async function SettingsPage({
     // are one header, and a gap as wide as the one between two sections read
     // as if the tabs belonged to nothing.
     <div className="space-y-4">
-      <div className={pageToolbar}>
-        <h1 className={pageTitle}>{tNav("settings")}</h1>
-      </div>
+      <StickyHead>
+        <div className={pageToolbar}>
+          <h1 className={pageTitle}>{tNav("settings")}</h1>
+        </div>
 
-      <div className="rounded-xl border border-border bg-surface px-4 py-2 shadow-sm">
-        <ParamTabs
-          ariaLabel={tNav("settings")}
-          tabs={[
-            { value: "", label: t("tabGeneral") },
-            { value: "accounts", label: t("tabAccounts") },
-            { value: "categories", label: t("tabCategories") },
-            { value: "data", label: t("tabData") },
-          ]}
-        />
-      </div>
+        <div className="rounded-xl border border-border bg-surface px-4 py-2 shadow-sm">
+          <ParamTabs
+            ariaLabel={tNav("settings")}
+            tabs={[
+              { value: "", label: t("tabGeneral") },
+              { value: "accounts", label: t("tabAccounts") },
+              { value: "categories", label: t("tabCategories") },
+              { value: "data", label: t("tabData") },
+            ]}
+          />
+        </div>
+      </StickyHead>
 
       {tab === "accounts" && (
         <div className="space-y-8">

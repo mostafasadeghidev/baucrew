@@ -51,3 +51,27 @@ export const pageToolbar =
 
 /** The page's name inside that bar. */
 export const pageTitle = 'text-lg font-semibold tracking-tight'
+
+/**
+ * Keeps a page's bar — and, where a page has one, the row of tabs under it —
+ * at the top of the window while the rest of the page scrolls past.
+ *
+ * The eight pixels of air above the bar belong to this box, not to the page:
+ * painted here they travel with the bar and hide whatever slides behind it, so
+ * nothing shows through the gap between the window's edge and the card. The
+ * negative margin gives those eight pixels back to the layout, so the bar
+ * stands exactly where it stood before — it does not jump when it catches.
+ *
+ * `top-14` below md because the phone's own bar is 56 pixels of sticky header
+ * above this one; from md up that bar is gone and this one goes to the top.
+ *
+ * `print:static` because a sticky box on paper is a box printed in the wrong
+ * place, or on every page.
+ */
+export function StickyHead({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 md:top-0 print:static print:bg-transparent">
+      {children}
+    </div>
+  )
+}

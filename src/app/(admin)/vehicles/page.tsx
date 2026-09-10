@@ -5,7 +5,7 @@ import { VehicleStatusBadge } from '@/components/vehicle-status-badge'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { btn } from '@/components/ui/button'
-import { PagePanel, pageTitle, pageToolbar } from '@/components/ui/page-panel'
+import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 
 export default async function VehiclesPage({
   searchParams,
@@ -30,15 +30,17 @@ export default async function VehiclesPage({
 
   return (
     <div className="space-y-4">
-      <div className={pageToolbar}>
-        <h1 className={pageTitle}>{t('title')}</h1>
-        <Link
-          href="/vehicles/new"
-          className={btn.primary}
-        >
-          {t('newVehicle')}
-        </Link>
-      </div>
+      <StickyHead>
+        <div className={pageToolbar}>
+          <h1 className={pageTitle}>{t('title')}</h1>
+          <Link
+            href="/vehicles/new"
+            className={btn.primary}
+          >
+            {t('newVehicle')}
+          </Link>
+        </div>
+      </StickyHead>
 
       <PagePanel>
         <div className="overflow-x-auto">

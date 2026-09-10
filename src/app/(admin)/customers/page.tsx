@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { LiveSearchInput } from '@/components/live-search'
-import { PagePanel, pageTitle, pageToolbar } from '@/components/ui/page-panel'
+import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { btn } from '@/components/ui/button'
@@ -43,15 +43,17 @@ export default async function CustomersPage({
 
   return (
     <div className="space-y-4">
-      <div className={pageToolbar}>
-        <h1 className={pageTitle}>{t('title')}</h1>
-        <Link
-          href="/customers/new"
-          className={btn.primary}
-        >
-          {t('newCustomer')}
-        </Link>
-      </div>
+      <StickyHead>
+        <div className={pageToolbar}>
+          <h1 className={pageTitle}>{t('title')}</h1>
+          <Link
+            href="/customers/new"
+            className={btn.primary}
+          >
+            {t('newCustomer')}
+          </Link>
+        </div>
+      </StickyHead>
 
       <PagePanel>
         <div className="border-b border-border p-4">

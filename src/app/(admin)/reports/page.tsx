@@ -34,7 +34,7 @@ import { db } from '@/lib/db'
 import { StatusBadge } from '@/components/status-badge'
 import { RevenueChart } from '@/components/revenue-chart'
 import { ParamTabs } from '@/components/param-tabs'
-import { pageTitle, pageToolbar } from '@/components/ui/page-panel'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { LiveSelect } from '@/components/live-search'
 import { PrintButton } from '@/components/print-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
@@ -366,57 +366,59 @@ export default async function ReportsPage({
           a second, running the width of the page under it. Two sheets rather
           than one: the bar says where you are, the tabs say where you can go,
           and they are not the same question. */}
-      <div className={pageToolbar}>
-        <h1 className={pageTitle}>{t('title')}</h1>
-        <div className="flex flex-wrap items-center gap-2 print:hidden">
-          {/* Year and period belong together, so they sit in one small bar. */}
-          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-subtle px-2 py-1">
-            <CalendarRange className="h-4 w-4 shrink-0 text-muted" aria-hidden />
-            {/* The current year keeps its place in the list; its value is empty
-                because "no year in the URL" means the current year. */}
-            <LiveSelect
-              param="year"
-              ariaLabel={t('year')}
-              className="min-w-20"
-              compact
-              clears={['qyear']}
-              options={yearOptions.map((y) => ({ value: y === String(currentYear) ? '' : y, label: y }))}
-            />
-            <LiveSelect
-              param="period"
-              ariaLabel={t('period')}
-              allLabel={t('allMonths')}
-              className="min-w-40"
-              compact
-              options={periodOptions}
-            />
+      <StickyHead>
+        <div className={pageToolbar}>
+          <h1 className={pageTitle}>{t('title')}</h1>
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
+            {/* Year and period belong together, so they sit in one small bar. */}
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-subtle px-2 py-1">
+              <CalendarRange className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+              {/* The current year keeps its place in the list; its value is empty
+                  because "no year in the URL" means the current year. */}
+              <LiveSelect
+                param="year"
+                ariaLabel={t('year')}
+                className="min-w-20"
+                compact
+                clears={['qyear']}
+                options={yearOptions.map((y) => ({ value: y === String(currentYear) ? '' : y, label: y }))}
+              />
+              <LiveSelect
+                param="period"
+                ariaLabel={t('period')}
+                allLabel={t('allMonths')}
+                className="min-w-40"
+                compact
+                options={periodOptions}
+              />
+            </div>
+            <PrintButton label={t('print')} />
+            {showFinancials && (
+              <a
+                href={exportHref}
+                className={btn.outlineSm}
+              >
+                {t('exportExcel')}
+              </a>
+            )}
           </div>
-          <PrintButton label={t('print')} />
-          {showFinancials && (
-            <a
-              href={exportHref}
-              className={btn.outlineSm}
-            >
-              {t('exportExcel')}
-            </a>
-          )}
         </div>
-      </div>
 
-      <div className="rounded-xl border border-border bg-surface px-4 py-2 shadow-sm print:hidden">
-        <ParamTabs
-          ariaLabel={t('title')}
-          tabs={[
-            { value: '', label: t('tabOverview') },
-            { value: 'revenue', label: t('tabRevenue') },
-            { value: 'projects', label: t('tabProjects'), count: efficiency.rows.length },
-            { value: 'offers', label: t('tabOffers'), count: openOffers?.offers.length },
-            { value: 'customers', label: t('tabCustomers') },
-            { value: 'utilization', label: t('tabUtilization') },
-            { value: 'quality', label: t('tabQuality'), count: qualityCount },
-          ]}
-        />
-      </div>
+        <div className="rounded-xl border border-border bg-surface px-4 py-2 shadow-sm print:hidden">
+          <ParamTabs
+            ariaLabel={t('title')}
+            tabs={[
+              { value: '', label: t('tabOverview') },
+              { value: 'revenue', label: t('tabRevenue') },
+              { value: 'projects', label: t('tabProjects'), count: efficiency.rows.length },
+              { value: 'offers', label: t('tabOffers'), count: openOffers?.offers.length },
+              { value: 'customers', label: t('tabCustomers') },
+              { value: 'utilization', label: t('tabUtilization') },
+              { value: 'quality', label: t('tabQuality'), count: qualityCount },
+            ]}
+          />
+        </div>
+      </StickyHead>
 
       {/* ── Overview ─────────────────────────────────────── */}
       {tab === 'overview' &&

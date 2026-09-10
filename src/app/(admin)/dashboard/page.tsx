@@ -6,7 +6,7 @@ import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflict
 import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, iso, isoWeek, mondayOf, todayUtc } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
-import { pageTitle, pageToolbar } from '@/components/ui/page-panel'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { canViewFinancials, requireManagement } from '@/lib/authz'
 import { allowedLayout, parseLayout, type DashboardWidget } from '@/lib/dashboard-layout'
 import { formatCurrency } from '@/lib/format'
@@ -679,37 +679,39 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className={pageToolbar}>
-        <h1 className={pageTitle}>{t('title')}</h1>
-        <div className="flex flex-wrap items-baseline gap-3">
-          <p className="text-sm text-muted">
-            {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
-              weekday: 'long',
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-            }).format(new Date())}{' '}
-            · {tSchedule('weekLabel', { week: isoWeek(today) })}
-          </p>
-          {editing ? (
-            <span className="flex items-center gap-2">
-              <form action={resetDashboardLayout}>
-                <button type="submit" className={btn.outlineSm}>
-                  {t('resetLayout')}
-                </button>
-              </form>
-              <Link href="/dashboard" className={btn.primarySm}>
-                {t('editDone')}
+      <StickyHead>
+        <div className={pageToolbar}>
+          <h1 className={pageTitle}>{t('title')}</h1>
+          <div className="flex flex-wrap items-baseline gap-3">
+            <p className="text-sm text-muted">
+              {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+              }).format(new Date())}{' '}
+              · {tSchedule('weekLabel', { week: isoWeek(today) })}
+            </p>
+            {editing ? (
+              <span className="flex items-center gap-2">
+                <form action={resetDashboardLayout}>
+                  <button type="submit" className={btn.outlineSm}>
+                    {t('resetLayout')}
+                  </button>
+                </form>
+                <Link href="/dashboard" className={btn.primarySm}>
+                  {t('editDone')}
+                </Link>
+              </span>
+            ) : (
+              <Link href="/dashboard?edit=1" className={`${btn.outlineSm} gap-1.5`}>
+                <LayoutGrid className="h-3.5 w-3.5" aria-hidden />
+                {t('editLayout')}
               </Link>
-            </span>
-          ) : (
-            <Link href="/dashboard?edit=1" className={`${btn.outlineSm} gap-1.5`}>
-              <LayoutGrid className="h-3.5 w-3.5" aria-hidden />
-              {t('editLayout')}
-            </Link>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      </StickyHead>
 
       {editing && <p className="text-sm text-muted">{t('editHint')}</p>}
 
