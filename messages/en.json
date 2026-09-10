@@ -750,6 +750,8 @@
     "viewMap": "Map",
     "mapNoEntries": "Nothing is planned for this week.",
     "mapWholeWeek": "Whole week",
+    "mapShowOnMap": "Show on the map",
+    "mapSharedPlace": "Several sites at this place — the pins are drawn slightly apart.",
     "mapWholeWeekHint": "Show every day of the week on the map again.",
     "mapWholeWeekOn": "The whole week is on the map — pick a day on the right for a single one.",
     "mapWithoutCoordinates": "No coordinates — not on the map",

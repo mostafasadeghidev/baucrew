@@ -750,6 +750,8 @@
     "viewMap": "Karte",
     "mapNoEntries": "In dieser Woche ist nichts geplant.",
     "mapWholeWeek": "Ganze Woche",
+    "mapShowOnMap": "Auf der Karte zeigen",
+    "mapSharedPlace": "Mehrere Baustellen an diesem Ort — die Punkte stehen leicht auseinander.",
     "mapWholeWeekHint": "Wieder alle Tage der Woche auf der Karte zeigen.",
     "mapWholeWeekOn": "Die ganze Woche ist auf der Karte — für einen einzelnen Tag rechts einen Tag auswählen.",
     "mapWithoutCoordinates": "Ohne Koordinaten — nicht auf der Karte",

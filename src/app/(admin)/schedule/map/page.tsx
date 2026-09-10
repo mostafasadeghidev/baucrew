@@ -8,6 +8,8 @@ import { getRainWarnings } from '@/lib/weather'
 import { geocodeCity } from '@/lib/geocode'
 import { ScheduleHeader } from '../schedule-header'
 import { SiteMap, type MapSite } from './site-map'
+import { FocusSiteButton } from './focus-site-button'
+import { spreadOverlapping } from '@/lib/map-spread'
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -221,6 +223,9 @@ export default async function ScheduleMapPage({
       sites.push(site)
     }
   sites.sort((a, b) => a.index - b.index)
+  // Two sites in one town both fall back to the town centre, so their pins
+  // land on the same spot and only the top one is ever seen.
+  const pins = spreadOverlapping(sites)
 
   const mapHref = (change: { monday?: Date; day?: string | null } = {}) => {
     const start = change.monday ?? monday
@@ -274,8 +279,9 @@ export default async function ScheduleMapPage({
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_380px]">
         <div className="flex min-h-0 flex-col gap-2">
           <SiteMap
-            sites={sites}
+            sites={pins}
             ariaLabel={t('viewMap')}
+            sharedPlaceNote={t('mapSharedPlace')}
             className="h-[420px] lg:h-auto lg:min-h-[320px] lg:flex-1"
           />
           {/* The legend reads the pins back: number, colour, site. It is the
@@ -335,12 +341,12 @@ export default async function ScheduleMapPage({
                   <ul className="divide-y divide-border border-t border-border">
                     {day.rows.map(({ entry, number, color, address, approx, rain: probability }) => (
                       <li key={entry.id} className="flex gap-3 px-3 py-2.5 text-sm">
-                        <span
-                          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-                          style={{ background: color }}
-                        >
-                          {number}
-                        </span>
+                        <FocusSiteButton
+                          siteId={entry.project.id}
+                          index={number}
+                          color={color}
+                          label={t('mapShowOnMap')}
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-baseline gap-x-2">
                             {(entry.startTime || entry.endTime) && (
