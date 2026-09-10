@@ -23,6 +23,7 @@ import { LogoUploader } from "./logo-uploader";
 import { BackupRestore } from "./backup-restore";
 import { SavedForm } from "@/components/saved-form";
 import { ParamTabs } from "@/components/param-tabs";
+import { pageTitle, pageToolbar } from '@/components/ui/page-panel'
 import { Card } from "@/components/ui/card";
 import { btn } from "@/components/ui/button";
 import { OptionListManager } from "./option-list-manager";
@@ -81,19 +82,21 @@ export default async function SettingsPage({
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {tNav("settings")}
-      </h1>
+      <div className={pageToolbar}>
+        <h1 className={pageTitle}>{tNav("settings")}</h1>
+      </div>
 
-      <ParamTabs
-        ariaLabel={tNav("settings")}
-        tabs={[
-          { value: "", label: t("tabGeneral") },
-          { value: "accounts", label: t("tabAccounts") },
-          { value: "categories", label: t("tabCategories") },
-          { value: "data", label: t("tabData") },
-        ]}
-      />
+      <div className="rounded-xl border border-border bg-surface px-4 py-2 shadow-sm">
+        <ParamTabs
+          ariaLabel={tNav("settings")}
+          tabs={[
+            { value: "", label: t("tabGeneral") },
+            { value: "accounts", label: t("tabAccounts") },
+            { value: "categories", label: t("tabCategories") },
+            { value: "data", label: t("tabData") },
+          ]}
+        />
+      </div>
 
       {tab === "accounts" && (
         <div className="space-y-8">

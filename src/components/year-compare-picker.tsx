@@ -25,6 +25,7 @@ export function YearComparePicker({
   max = 4,
   label,
   maxHint,
+  dense = false,
 }: {
   /** Every year that may be chosen, the year on screen excluded. */
   options: number[]
@@ -36,6 +37,11 @@ export function YearComparePicker({
   label: string
   /** Shown under the list once the cap is reached. */
   maxHint: string
+  /**
+   * Smaller, for a card that stands the picker beside another one: two
+   * controls of the same weight compete, and this one is the second question.
+   */
+  dense?: boolean
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -70,7 +76,9 @@ export function YearComparePicker({
       // How many are ticked belongs in the button's name: the badge that says
       // so is text a screen reader never reaches past the label.
       label={picked.length > 0 ? `${label}: ${picked.length}` : label}
-      className={`${btn.outlineSm} gap-1.5 text-xs print:hidden`}
+      className={`${dense ? btn.outlineXs : btn.outlineSm} gap-1.5 text-xs print:hidden ${
+        dense ? 'text-[11px]' : ''
+      }`}
       trigger={
         <>
           {label}

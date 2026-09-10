@@ -22,6 +22,8 @@ export const btn = {
   primarySm: `${base} bg-accent px-3 py-1.5 text-accent-foreground shadow-sm hover:bg-accent-hover`,
   outline: `${base} border border-border bg-surface px-4 py-2 shadow-sm hover:bg-surface-hover`,
   outlineSm: `${base} border border-border bg-surface px-3 py-1.5 shadow-sm hover:bg-surface-hover`,
+  /** Smaller again: rows of controls that sit above content, not in it. */
+  outlineXs: `${base} border border-border bg-surface px-2.5 py-1 text-xs shadow-sm hover:bg-surface-hover`,
   ghost: `${base} px-3 py-1.5 text-muted hover:bg-surface-hover hover:text-foreground`,
   danger: `${base} border border-danger/40 px-4 py-2 text-danger shadow-sm hover:bg-danger/10`,
   dangerSm: `${base} border border-danger/40 px-3 py-1.5 text-danger shadow-sm hover:bg-danger/10`,

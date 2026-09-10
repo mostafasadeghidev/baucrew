@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { BackLink } from '@/components/back-link'
 import { LiveSelect } from '@/components/live-search'
+import { pageTitle, pageToolbar } from '@/components/ui/page-panel'
 import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { orderValue } from '@/lib/reports'
@@ -218,9 +219,9 @@ export default async function PlanMatchPage({
     <div className="space-y-4">
       <div>
         <BackLink href="/reports?tab=revenue" label={tNav('reports')} />
-        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+        <div className={`mt-1 ${pageToolbar}`}>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+            <h1 className={pageTitle}>{t('title')}</h1>
             <p className="mt-1 text-sm text-muted">{t('hint')}</p>
           </div>
           {yearOptions.length > 0 && (

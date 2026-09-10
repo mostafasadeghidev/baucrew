@@ -34,7 +34,7 @@ import { db } from '@/lib/db'
 import { StatusBadge } from '@/components/status-badge'
 import { RevenueChart } from '@/components/revenue-chart'
 import { ParamTabs } from '@/components/param-tabs'
-import { pageTitle } from '@/components/ui/page-panel'
+import { pageTitle, pageToolbar } from '@/components/ui/page-panel'
 import { LiveSelect } from '@/components/live-search'
 import { PrintButton } from '@/components/print-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
@@ -358,11 +358,11 @@ export default async function ReportsPage({
           {periodLabel ? `${periodLabel} ${year}` : year}
         </span>
       </p>
-      {/* The page's name, the period it stands on and the tabs into it are one
-          bar on a sheet of its own — the same sheet every card below wears, so
-          the top of the page belongs to the page rather than floating over it. */}
-      <div className="rounded-xl border border-border bg-surface shadow-sm print:rounded-none print:border-0 print:shadow-none">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 print:px-0">
+      {/* The page's name and the period it stands on are one bar; the tabs are
+          a second, running the width of the page under it. Two sheets rather
+          than one: the bar says where you are, the tabs say where you can go,
+          and they are not the same question. */}
+      <div className={pageToolbar}>
         <h1 className={pageTitle}>{t('title')}</h1>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           {/* Year and period belong together, so they sit in one small bar. */}
@@ -399,7 +399,7 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      <div className="border-t border-border px-4 py-2 print:hidden">
+      <div className="rounded-xl border border-border bg-surface px-4 py-2 shadow-sm print:hidden">
         <ParamTabs
           ariaLabel={t('title')}
           tabs={[
@@ -412,7 +412,6 @@ export default async function ReportsPage({
             { value: 'quality', label: t('tabQuality'), count: qualityCount },
           ]}
         />
-      </div>
       </div>
 
       {/* ── Overview ─────────────────────────────────────── */}
@@ -514,16 +513,19 @@ export default async function ReportsPage({
             </div>
 
               <div className={`${card} p-4`}>
-                {/* The heading and its two controls are one row while they
-                    fit and two when they do not — but never half a row: each
-                    line centres what is on it, so nothing stands a few pixels
-                    above its neighbour. Both controls are the same kind of
-                    button for the same reason. */}
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-semibold">
+                {/* The card's name on its own line, and under it the two
+                    years it is about, read left to right as a sentence: this
+                    year against those. Beside the name they made a row too
+                    long for 360 pixels, and it broke differently in every
+                    language. */}
+                <div className="mb-3 space-y-2">
+                  <h2 className="flex items-center gap-1.5 text-sm font-semibold">
                     {t('quarterTitleYear')}
-                    {/* The year in the heading is the control: the card is read
-                        by looking at that number, so it is changed there. */}
+                    <InfoHint text={t('quarterHint')} wide />
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* The year is the control: the card is read by looking at
+                        that number, so it is changed there. */}
                     <ParamPicker
                       param="qyear"
                       label={t('quarterYear')}
@@ -533,9 +535,7 @@ export default async function ReportsPage({
                         label: String(y),
                       }))}
                     />
-                    <InfoHint text={t('quarterHint')} wide />
-                  </h2>
-                  <div className="ml-auto shrink-0">
+                    <span className="text-xs text-muted">{t('quarterVersus')}</span>
                     <YearComparePicker
                       options={comparisonYears.filter((y) => y !== quarterYear)}
                       selected={quarterCompareYears}
@@ -543,6 +543,7 @@ export default async function ReportsPage({
                       max={MAX_QUARTER_COMPARE}
                       label={t('compareYears')}
                       maxHint={t('compareMax', { count: MAX_QUARTER_COMPARE })}
+                      dense
                     />
                   </div>
                 </div>

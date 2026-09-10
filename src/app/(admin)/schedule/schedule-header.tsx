@@ -129,7 +129,7 @@ export function ScheduleHeader({
           {[...toggles].reverse().map((toggle) => {
             const locked = toggle.href === null
             // Same words, same width, whichever way it stands.
-            const look = `inline-flex items-center gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${
+            const look = `inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition-colors ${
               locked ? 'text-foreground opacity-50' : toggle.active ? 'text-foreground' : 'text-muted'
             }`
             // A switch that is on but cannot be moved keeps the colour of a
@@ -140,12 +140,12 @@ export function ScheduleHeader({
             const knob = (
               <span
                 aria-hidden
-                className={`inline-flex h-4 w-7 shrink-0 items-center rounded-full border transition-colors ${
+                className={`inline-flex h-3.5 w-6 shrink-0 items-center rounded-full border transition-colors ${
                   toggle.active ? 'border-accent bg-accent' : 'border-border bg-subtle'
                 }`}
               >
                 <span
-                  className={`h-2.5 w-2.5 rounded-full ${
+                  className={`h-2 w-2 rounded-full ${
                     toggle.active ? 'ml-auto mr-0.5 bg-white' : 'ml-0.5 bg-muted'
                   }`}
                 />
@@ -182,13 +182,13 @@ export function ScheduleHeader({
             )
           })}
           <div className="flex items-center gap-1">
-            <Link href={prevHref} className={btn.outlineSm} aria-label={prevLabel} title={prevLabel}>
+            <Link href={prevHref} className={btn.outlineXs} aria-label={prevLabel} title={prevLabel}>
               ←
             </Link>
-            <Link href={currentHref} className={`${btn.outlineSm} whitespace-nowrap`}>
+            <Link href={currentHref} className={`${btn.outlineXs} whitespace-nowrap`}>
               {currentLabel}
             </Link>
-            <Link href={nextHref} className={btn.outlineSm} aria-label={nextLabel} title={nextLabel}>
+            <Link href={nextHref} className={btn.outlineXs} aria-label={nextLabel} title={nextLabel}>
               →
             </Link>
           </div>
