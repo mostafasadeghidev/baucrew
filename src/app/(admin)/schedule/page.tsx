@@ -105,14 +105,15 @@ export default async function SchedulePage({
       db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, status: true } }),
       absencesBetween(gridStart, gridEnd),
     ])
-    // Sa/So columns only when the month actually has weekend assignments.
-    const monthShowWeekend = monthEntries.some((e) => [0, 6].includes(e.date.getUTCDay()))
     const monthConflicts = [
       ...detectConflicts(monthEntries),
       ...detectAbsenceConflicts(monthEntries, monthAbsences),
     ]
     const conflicted = new Set(monthConflicts.flatMap((c) => c.entryIds))
-    const dayCount = monthShowWeekend ? 7 : 5
+    // The month always shows all seven columns, planned or empty. It used to
+    // drop Sa/So in months with nothing on a weekend, so the grid changed its
+    // column count — and every column its width — from one month to the next.
+    const dayCount = 7
     const weeks: string[][] = []
     for (let d = gridStart; d < gridEnd; d = addDays(d, 7)) {
       weeks.push(Array.from({ length: dayCount }, (_, i) => iso(addDays(d, i))))

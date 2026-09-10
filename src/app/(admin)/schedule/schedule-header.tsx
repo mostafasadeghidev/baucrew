@@ -20,8 +20,10 @@
  *   3. No control appears or disappears with the data. A weekend toggle that
  *      cannot be switched off is shown switched on and locked, not removed.
  *   4. A toggle's label never changes with its state — on and off are told
- *      apart by colour. A word that grows when clicked drags its neighbours
- *      along with it.
+ *      apart by the switch beside it. A word that grows when clicked drags its
+ *      neighbours along with it. The switch also says at a glance that these
+ *      two are settings rather than places to go, which they did not while
+ *      they wore the same bordered box as the arrows next to them.
  *   5. The stepper closes the second row, hard against the right edge and so
  *      directly under the view switcher, with every toggle queued to its left.
  *      Nothing stands to its right, so nothing can move it: in the month,
@@ -121,18 +123,33 @@ export function ScheduleHeader({
         <div className="ml-auto flex items-center gap-2">
           {[...toggles].reverse().map((toggle) => {
             // Same words, same width, whichever way it stands.
-            const look = `whitespace-nowrap rounded-md border px-3 py-1.5 text-sm font-medium ${
-              toggle.active
-                ? 'border-accent bg-accent/10 text-accent'
-                : 'border-border text-muted hover:bg-surface-hover hover:text-foreground'
+            const look = `inline-flex items-center gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${
+              toggle.active ? 'text-foreground' : 'text-muted'
             }`
+            const knob = (
+              <span
+                aria-hidden
+                className={`inline-flex h-4 w-7 shrink-0 items-center rounded-full border transition-colors ${
+                  toggle.active ? 'border-accent bg-accent' : 'border-border bg-subtle'
+                }`}
+              >
+                <span
+                  className={`h-2.5 w-2.5 rounded-full bg-current ${
+                    toggle.active ? 'ml-auto mr-0.5 text-white' : 'ml-0.5 text-muted'
+                  }`}
+                />
+              </span>
+            )
             return toggle.href === null ? (
               <span
                 key={toggle.label}
                 title={toggle.title}
+                role="switch"
+                aria-checked
                 aria-disabled
                 className={`${look} cursor-default opacity-70`}
               >
+                {knob}
                 {toggle.label}
               </span>
             ) : (
@@ -140,9 +157,11 @@ export function ScheduleHeader({
                 key={toggle.label}
                 href={toggle.href}
                 title={toggle.title}
-                aria-pressed={toggle.active}
-                className={`${look} ${toggle.active ? 'hover:bg-accent/15' : ''}`}
+                role="switch"
+                aria-checked={toggle.active}
+                className={`${look} hover:bg-surface-hover hover:text-foreground`}
               >
+                {knob}
                 {toggle.label}
               </Link>
             )

@@ -198,11 +198,18 @@ export default async function ScheduleMapPage({
         currentLabel={t('current')}
         prevLabel={t('prevWeek')}
         nextLabel={t('nextWeek')}
-        toggles={
+        toggles={[
+          // Always drawn, whichever way it stands: a control that comes and
+          // goes with the selection would move the row it sits in.
           selectedDay
-            ? [{ href: mapHref({ day: null }), label: t('mapWholeWeek'), active: false }]
-            : []
-        }
+            ? {
+                href: mapHref({ day: null }),
+                label: t('mapWholeWeek'),
+                active: false,
+                title: t('mapWholeWeekHint'),
+              }
+            : { href: null, label: t('mapWholeWeek'), active: true, title: t('mapWholeWeekOn') },
+        ]}
       />
 
       {/* The map keeps its place whether the week is full or empty: swapping the
