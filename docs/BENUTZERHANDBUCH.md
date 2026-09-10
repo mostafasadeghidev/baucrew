@@ -372,11 +372,15 @@ ist unter Einstellungen → Arbeitsbereiche → Anfragequellen anpassbar).
 
 **Monat:** Kalender mit allen Einsätzen — und genauso bedienbar wie die Woche: Klick auf einen Eintrag öffnet das Einsatzfenster, **+** neben der Tageszahl legt einen neuen Einsatz an, Einträge lassen sich per Ziehen auf einen anderen Tag verschieben (am Tablet gedrückt halten). „+2“ klappt einen vollen Tag auf; die KW-Nummer links springt in die Woche.
 
-### 7.4 Die Karte (Tag für Tag)
+### 7.4 Die Karte (die Woche)
 
 **Wo:** in der Einsatzplanung oben der dritte Reiter **Karte**.
 
-Alle Baustellen **eines Tages** auf einer Landkarte: nummerierte Punkte auf der Karte, daneben dieselbe Liste mit Uhrzeit, Projekt, Adresse, Team und Fahrzeug — und, wenn vorhanden, der Regenwahrscheinlichkeit für diesen Ort und Tag. Mit **← Heute →** blättern Sie tageweise; ein Klick auf einen Punkt zeigt Name und Adresse, ein Klick auf den Projektnamen öffnet das Projekt. Gezoomt wird mit dem **Mausrad** (oder mit + / − links oben), verschoben durch Ziehen der Karte.
+Alle Baustellen **einer Woche** auf einer Landkarte. Jeder Wochentag hat seine eigene Farbe — die Punkte tragen sie, die Liste daneben auch, und unter der Karte steht, welche Farbe zu welchem Tag gehört. Die Liste ist nach Tagen gegliedert und zeigt Uhrzeit, Projekt, Adresse, Team und Fahrzeug — und, wenn vorhanden, die Regenwahrscheinlichkeit für diesen Ort und Tag.
+
+**Ein Tag allein:** Klick auf einen Tagesnamen in der Liste. Die anderen Tage klappen zu einer Zeile zusammen und die Karte zeigt nur noch die Baustellen dieses Tages. **Ganze Woche** oben führt zurück; ein zweiter Klick auf denselben Tag tut es auch.
+
+Mit **← Aktuell →** blättern Sie wochenweise; ein Klick auf einen Punkt zeigt Name, Tag und Adresse, ein Klick auf den Projektnamen öffnet das Projekt. Gezoomt wird mit dem **Mausrad** (oder mit + / − links oben), verschoben durch Ziehen der Karte.
 
 Die Position kommt aus der **Adresse des Projekts**. Wurde beim Anlegen ein Ort aus der Vorschlagsliste gewählt, sitzt der Punkt genau; sonst wird die **Ortsmitte** verwendet (in der Liste steht dann *ca. Ortsmitte*). Projekte ganz ohne Ort stehen unter der Liste als **Ohne Koordinaten**. Kartenbilder kommen von OpenStreetMap — dafür braucht der Rechner Internet, ein Konto oder Schlüssel ist nicht nötig.
 

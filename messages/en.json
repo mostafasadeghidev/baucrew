@@ -742,6 +742,7 @@
     "rangeRemoves": "{count} later days are taken out of the schedule",
     "viewMap": "Map",
     "mapNoEntries": "Nothing is planned for this day.",
+    "mapWholeWeek": "Whole week",
     "mapWithoutCoordinates": "No coordinates — not on the map",
     "previousDay": "Previous day",
     "nextDay": "Next day",

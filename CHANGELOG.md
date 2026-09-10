@@ -15,6 +15,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   after it has been painted. On a phone the menu is the drawer it always was.
 
 ### Added
+- **The map opens on a week.** Every site of the week on one map, each weekday
+  in its own colour, with the legend under it and the list beside it split day
+  by day. Clicking a day opens it: the other days fold to a line each and the
+  map narrows to that day's sites; **Ganze Woche** — or the same day again —
+  goes back. The arrows step a week. A link carrying the old `date` still
+  lands on that day, inside its week.
 - **Folgewoche.** A toggle beside the weekend one puts the week after this one
   underneath it: two grids, same columns, Monday under Monday. A card drags
   from any day to any other, whichever of the two weeks it is in — a drop only
@@ -30,6 +36,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   remain. What it did — several weeks one under the other — comes back inside
   the week view, where it belongs, rather than as a fourth tab nobody opened.
   A bookmark to it lands on the week board.
+
+### Fixed
+- The map page no longer answers 500 on every request. Leaflet reaches for
+  `window` while its module body runs and a client component is still run on
+  the server to make the first HTML, so importing it at the top threw there
+  every time. The page came out anyway, drawn again in the browser, and left an
+  error behind it each visit. It is fetched inside an effect now.
 
 ### Changed
 - **One header for all three scheduling views, in two rows.** The views sit on

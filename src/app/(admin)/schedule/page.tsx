@@ -131,7 +131,7 @@ export default async function SchedulePage({
         nextHref={`/schedule?view=month&week=${iso(addMonths(start, 1))}`}
         currentHref="/schedule?view=month"
         weekHref={`/schedule?week=${iso(monday)}`}
-        mapHref={`/schedule/map?date=${iso(monday)}`}
+        mapHref={`/schedule/map?week=${iso(monday)}`}
         entries={monthEntries.map((entry) => ({
           id: entry.id,
           date: iso(entry.date),
@@ -299,7 +299,7 @@ export default async function SchedulePage({
       nextWeekHref={weekHref({ monday: addDays(monday, 7 * weekCount) })}
       currentWeekHref={weekHref({ monday: mondayOf(new Date()) })}
       monthHref={`/schedule?view=month&week=${iso(monday)}`}
-      mapHref={`/schedule/map?date=${iso(monday)}`}
+      mapHref={`/schedule/map?week=${iso(monday)}`}
       todayIso={iso(new Date())}
       entries={boardEntries}
       conflictMessages={conflictMessages}
