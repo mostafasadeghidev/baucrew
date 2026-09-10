@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { BackLink } from '@/components/back-link'
+import { NoteText } from '@/components/ui/note-text'
+import { pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
@@ -146,11 +148,12 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <StickyHead>
+      <div className={`items-start ${pageToolbar}`}>
         <div>
           <BackLink href="/projects" label={t('title')} />
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-lg font-semibold tracking-tight">
               <span className="mr-2 text-muted">{project.number}</span>
               {project.name}
             </h1>
@@ -203,10 +206,11 @@ export default async function ProjectDetailPage({
           )}
         </div>
       </div>
+      </StickyHead>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Overview */}
-        <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <h2 className="text-sm font-semibold">{t('overview')}</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex gap-2">
@@ -312,14 +316,14 @@ export default async function ProjectDetailPage({
             )}
           </dl>
           {project.description && (
-            <p className="mt-4 whitespace-pre-wrap border-t border-border pt-3 text-sm text-muted">
-              {project.description}
-            </p>
+            <div className="mt-4 border-t border-border pt-3 text-sm text-muted">
+              <NoteText text={project.description} />
+            </div>
           )}
         </section>
 
         {/* Dates & assignment */}
-        <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <h2 className="text-sm font-semibold">{t('planning')}</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex gap-2">
@@ -384,7 +388,7 @@ export default async function ProjectDetailPage({
           />
         )}
 
-        <section className="rounded-lg border border-border bg-surface shadow-sm">
+        <section className="rounded-xl border border-border bg-surface shadow-sm">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
           </div>
@@ -392,7 +396,7 @@ export default async function ProjectDetailPage({
         </section>
 
         {/* Machines this site needs — same shape as the tools/materials list */}
-        <section className="rounded-lg border border-border bg-surface shadow-sm">
+        <section className="rounded-xl border border-border bg-surface shadow-sm">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
             <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
@@ -449,7 +453,7 @@ export default async function ProjectDetailPage({
         />
 
         {/* Site checklists — ticked off on site, saved with who and when */}
-        <section className="rounded-lg border border-border bg-surface shadow-sm">
+        <section className="rounded-xl border border-border bg-surface shadow-sm">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tChecklists('title')}</h2>
             <p className="mt-0.5 text-xs text-muted">{tChecklists('hint')}</p>
@@ -488,7 +492,7 @@ export default async function ProjectDetailPage({
         />
 
         {/* Schedule (read-only here) */}
-        <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('scheduleTitle')}</h2>
             <PlanEntryButton
@@ -526,7 +530,7 @@ export default async function ProjectDetailPage({
       {project.internalNotes && (
         <section className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-5">
           <h2 className="text-sm font-semibold">{t('internalNotes')}</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-muted">{project.internalNotes}</p>
+          <NoteText text={project.internalNotes} className="mt-2 text-sm text-muted" />
         </section>
       )}
     </div>

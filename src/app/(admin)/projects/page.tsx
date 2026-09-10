@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
-import { StatusBadge } from '@/components/status-badge'
+import { StatusBadge, STATUS_STYLES } from '@/components/status-badge'
 import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
@@ -13,23 +13,25 @@ import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
+import { ProjectsKanban, type KanbanColumn } from './kanban'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
 
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; page?: string }>
+  searchParams: Promise<{ q?: string; status?: string; page?: string; view?: string }>
 }) {
   const user = await requireManagement()
-  const { q, status, page: pageParam } = await searchParams
+  const { q, status, page: pageParam, view } = await searchParams
   const page = parsePage(pageParam)
-  const [t, tStatus, tTemplates, tChecklists, tDrafts, locale] = await Promise.all([
+  const [t, tStatus, tTemplates, tChecklists, tDrafts, tc, locale] = await Promise.all([
     getTranslations('projects'),
     getTranslations('status'),
     getTranslations('templates'),
     getTranslations('checklists'),
     getTranslations('drafts'),
+    getTranslations('common'),
     getLocale(),
   ])
 
@@ -83,6 +85,55 @@ export default async function ProjectsPage({
     prepTab.enabled ? db.project.count({ where: { ...whereWithoutStatus, ...prepWhere } }) : Promise.resolve(0),
   ])
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
+  /**
+   * The board reads the same search as the list, but never its status filter:
+   * a board with one column is a list with extra steps. It takes the newest
+   * fifty of each column — a column of two hundred cards is scrolled past, not
+   * read, and the count in its head still says how many there are.
+   */
+  const kanban = view === 'kanban'
+  const COLUMN_CARDS = 50
+  const boardProjects = kanban
+    ? await db.project.findMany({
+        where: whereWithoutStatus,
+        select: {
+          id: true,
+          number: true,
+          name: true,
+          city: true,
+          status: true,
+          price: true,
+          priority: true,
+          plannedStart: true,
+          customer: { select: { name: true } },
+        },
+        orderBy: { number: 'desc' },
+      })
+    : []
+  const columns: KanbanColumn[] = STATUSES.map((value) => {
+    const own = boardProjects.filter((p) => p.status === value)
+    const sum = own.reduce((total, p) => total + (p.price ? Number(p.price) : 0), 0)
+    return {
+      status: value,
+      label: tStatus(value),
+      count: own.length,
+      sum: showPrice && sum > 0 ? formatCurrency(sum, locale) : null,
+      moreLabel:
+        own.length > COLUMN_CARDS ? t('kanbanMore', { count: own.length - COLUMN_CARDS }) : null,
+      badgeClass: STATUS_STYLES[value],
+      cards: own.slice(0, COLUMN_CARDS).map((p) => ({
+        id: p.id,
+        number: p.number,
+        name: p.name,
+        customer: p.customer.name,
+        city: p.city,
+        start: p.plannedStart ? formatDate(p.plannedStart, locale) : null,
+        price: showPrice ? formatCurrency(p.price ? Number(p.price) : null, locale) : null,
+        urgent: p.priority === 'HIGH',
+        status: p.status,
+      })),
+    }
+  })
   const allCount = statusCounts.reduce((sum, s) => sum + s._count._all, 0)
 
   return (
@@ -114,6 +165,34 @@ export default async function ProjectsPage({
             >
               {tTemplates('title')}
             </Link>
+            {/* List or board — the same projects, the same search, two ways
+                of looking at them. */}
+            <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
+              {[
+                { value: '', label: t('viewList') },
+                { value: 'kanban', label: t('viewBoard') },
+              ].map((option) =>
+                (option.value === 'kanban') === kanban ? (
+                  <span
+                    key={option.value || 'list'}
+                    aria-current="page"
+                    className="whitespace-nowrap rounded-md bg-surface px-3 py-1 text-foreground shadow-sm"
+                  >
+                    {option.label}
+                  </span>
+                ) : (
+                  <Link
+                    key={option.value || 'list'}
+                    href={`/projects${option.value ? '?view=kanban' : ''}${
+                      query ? `${option.value ? '&' : '?'}q=${encodeURIComponent(query)}` : ''
+                    }`}
+                    className="whitespace-nowrap rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
+                  >
+                    {option.label}
+                  </Link>
+                )
+              )}
+            </div>
             <Link
               href="/projects/new"
               className={btn.primary}
@@ -126,6 +205,7 @@ export default async function ProjectsPage({
 
       <PagePanel>
         <div className="space-y-3 border-b border-border p-4">
+          {!kanban && (
           <StatusTabs
             allLabel={t('allStatuses')}
             allCount={allCount}
@@ -142,93 +222,113 @@ export default async function ProjectsPage({
               ),
             ]}
           />
+          )}
           <div className="flex max-w-md">
             <LiveSearchInput placeholder={t('searchPlaceholder')} />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-4 py-3 font-medium">{t('number')}</th>
-                <th className="px-4 py-3 font-medium">{t('name')}</th>
-                <th className="px-4 py-3 font-medium">{t('customer')}</th>
-                <th className="px-4 py-3 font-medium">{t('city')}</th>
-                <th className="px-4 py-3 font-medium">{t('plannedStart')}</th>
-                <th className="px-4 py-3 font-medium">{t('status')}</th>
-                {showPrice && <th className="px-4 py-3 text-right font-medium">{t('price')}</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {projects.length === 0 ? (
-                <tr>
-                  <td colSpan={showPrice ? 7 : 6} className="px-4 py-8 text-center text-muted">
-                    {t('noResults')}
-                  </td>
+        {kanban ? (
+          <div className="p-3">
+            <ProjectsKanban
+              columns={columns}
+              confirmFor={['COMPLETED', 'CANCELLED']}
+              labels={{
+                confirmTitle: t('kanbanConfirmTitle'),
+                confirmBody: t('kanbanConfirmBody'),
+                confirm: tc('confirm'),
+                cancel: tc('cancel'),
+                empty: t('kanbanEmpty'),
+                saveFailed: tc('saveFailed'),
+              }}
+            />
+          </div>
+        ) : (
+          <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                  <th className="px-4 py-3 font-medium">{t('number')}</th>
+                  <th className="px-4 py-3 font-medium">{t('name')}</th>
+                  <th className="px-4 py-3 font-medium">{t('customer')}</th>
+                  <th className="px-4 py-3 font-medium">{t('city')}</th>
+                  <th className="px-4 py-3 font-medium">{t('plannedStart')}</th>
+                  <th className="px-4 py-3 font-medium">{t('status')}</th>
+                  {showPrice && <th className="px-4 py-3 text-right font-medium">{t('price')}</th>}
                 </tr>
-              ) : (
-                projects.map((p) => (
-                  <tr key={p.id} className="hover:bg-surface-hover">
-                    <td className="px-4 py-3 tabular-nums text-muted">{p.number}</td>
-                    <td className="px-4 py-3">
-                      {/* High priority: a red mark in front of the name */}
-                      {p.priority === 'HIGH' && (
-                        <span
-                          className="mr-1 font-bold text-red-700 dark:text-red-400"
-                          title={t('priorityHigh')}
-                        >
-                          !
-                        </span>
-                      )}
-                      <Link href={`/projects/${p.id}`} className="font-medium text-accent hover:underline">
-                        {p.name}
-                      </Link>
-                      {/* Site checklists: how far the crew has ticked through */}
-                      {(() => {
-                        const items = p.checklists.flatMap((c) => c.items)
-                        if (items.length === 0) return null
-                        const done = items.filter((i) => i.ok !== null).length
-                        const problems = items.filter((i) => i.ok === false).length
-                        return (
-                          <span
-                            title={t('checklistProgressTitle')}
-                            className={`ml-2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${
-                              problems > 0
-                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
-                                : done === items.length
-                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                                  : 'bg-subtle text-muted'
-                            }`}
-                          >
-                            {problems > 0 && '⚠ '}
-                            {done}/{items.length}
-                          </span>
-                        )
-                      })()}
+              </thead>
+              <tbody className="divide-y divide-border">
+                {projects.length === 0 ? (
+                  <tr>
+                    <td colSpan={showPrice ? 7 : 6} className="px-4 py-8 text-center text-muted">
+                      {t('noResults')}
                     </td>
-                    <td className="px-4 py-3 text-muted">{p.customer.name}</td>
-                    <td className="px-4 py-3 text-muted">{p.city ?? '—'}</td>
-                    <td className="px-4 py-3 tabular-nums text-muted">
-                      {formatDate(p.plannedStart, locale)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={p.status} />
-                    </td>
-                    {showPrice && (
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {formatCurrency(p.price ? Number(p.price) : null, locale)}
-                      </td>
-                    )}
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  projects.map((p) => (
+                    <tr key={p.id} className="hover:bg-surface-hover">
+                      <td className="px-4 py-3 tabular-nums text-muted">{p.number}</td>
+                      <td className="px-4 py-3">
+                        {/* High priority: a red mark in front of the name */}
+                        {p.priority === 'HIGH' && (
+                          <span
+                            className="mr-1 font-bold text-red-700 dark:text-red-400"
+                            title={t('priorityHigh')}
+                          >
+                            !
+                          </span>
+                        )}
+                        <Link href={`/projects/${p.id}`} className="font-medium text-accent hover:underline">
+                          {p.name}
+                        </Link>
+                        {/* Site checklists: how far the crew has ticked through */}
+                        {(() => {
+                          const items = p.checklists.flatMap((c) => c.items)
+                          if (items.length === 0) return null
+                          const done = items.filter((i) => i.ok !== null).length
+                          const problems = items.filter((i) => i.ok === false).length
+                          return (
+                            <span
+                              title={t('checklistProgressTitle')}
+                              className={`ml-2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${
+                                problems > 0
+                                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                                  : done === items.length
+                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                                    : 'bg-subtle text-muted'
+                              }`}
+                            >
+                              {problems > 0 && '⚠ '}
+                              {done}/{items.length}
+                            </span>
+                          )
+                        })()}
+                      </td>
+                      <td className="px-4 py-3 text-muted">{p.customer.name}</td>
+                      <td className="px-4 py-3 text-muted">{p.city ?? '—'}</td>
+                      <td className="px-4 py-3 tabular-nums text-muted">
+                        {formatDate(p.plannedStart, locale)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={p.status} />
+                      </td>
+                      {showPrice && (
+                        <td className="px-4 py-3 text-right tabular-nums">
+                          {formatCurrency(p.price ? Number(p.price) : null, locale)}
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          </>
+        )}
       </PagePanel>
 
-      <Pagination page={page} total={total} />
+      {!kanban && <Pagination page={page} total={total} />}
     </div>
   )
 }

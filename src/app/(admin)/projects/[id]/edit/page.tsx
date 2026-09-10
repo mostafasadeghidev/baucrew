@@ -5,6 +5,7 @@ import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { toDateInputValue } from '@/lib/format'
 import { updateProject } from '../../actions'
 import { ProjectForm } from '../../project-form'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 
@@ -66,9 +67,13 @@ export default async function EditProjectPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {t('editTitle')} — {project.number}
-      </h1>
+      <StickyHead>
+        <div className={pageToolbar}>
+          <h1 className={pageTitle}>
+            {t('editTitle')} — {project.number}
+          </h1>
+        </div>
+      </StickyHead>
       <ProjectForm
         action={updateProject.bind(null, project.id)}
         cancelHref={`/projects/${project.id}`}

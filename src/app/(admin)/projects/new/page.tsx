@@ -4,6 +4,7 @@ import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { createProject } from '../actions'
 import { ProjectForm } from '../project-form'
 import { TemplatePicker } from './template-picker'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { TemplateItemsSection } from './template-items-section'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
@@ -92,7 +93,11 @@ export default async function NewProjectPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('createTitle')}</h1>
+      <StickyHead>
+        <div className={pageToolbar}>
+          <h1 className={pageTitle}>{t('createTitle')}</h1>
+        </div>
+      </StickyHead>
 
       {templates.length > 0 && (
         <TemplatePicker

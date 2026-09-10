@@ -45,7 +45,7 @@ export async function ProjectTimeSummary({
   const perHour = showPrice && orderValue != null && total >= 30 ? orderValue / (total / 60) : null
 
   return (
-    <section className="rounded-lg border border-border bg-surface shadow-sm">
+    <section className="rounded-xl border border-border bg-surface shadow-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
         <h2 className="text-sm font-semibold">{t('projectTitle')}</h2>
         {entries.length > 0 && (

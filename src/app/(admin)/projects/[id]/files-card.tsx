@@ -30,7 +30,7 @@ export async function FilesCard({ projectId, files }: { projectId: string; files
   })
 
   return (
-    <section className="rounded-lg border border-border bg-surface shadow-sm">
+    <section className="rounded-xl border border-border bg-surface shadow-sm">
       <div className="border-b border-border px-5 py-3">
         <h2 className="text-sm font-semibold">{t('title')}</h2>
         <p className="mt-0.5 text-xs text-muted">{t('hint')}</p>

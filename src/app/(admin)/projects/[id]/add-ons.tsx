@@ -60,7 +60,7 @@ export function ProjectAddOns({
   }
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+    <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-3">
         <div>
           <h2 className="text-sm font-semibold">{t('addOnsTitle')}</h2>
