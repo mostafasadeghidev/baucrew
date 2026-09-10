@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { btn } from '@/components/ui/button'
 import { LiveSearchInput } from '@/components/live-search'
-import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PagePanel, StickyHead } from '@/components/ui/page-panel'
 import { deviceState } from '@/lib/devices'
 
 export default async function DevicesPage({
@@ -44,7 +44,6 @@ export default async function DevicesPage({
     orderBy: [{ active: 'desc' }, { name: 'asc' }],
   })
 
-  const free = devices.filter((d) => d.assignments.length === 0).length
 
   return (
     <div className="space-y-4">
@@ -58,7 +57,6 @@ export default async function DevicesPage({
           }
         />
       </StickyHead>
-      <PageHint>{t('summary', { free, total: devices.length })}</PageHint>
 
       <PagePanel>
         <div className="border-b border-border p-4">

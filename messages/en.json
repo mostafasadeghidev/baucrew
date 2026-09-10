@@ -785,7 +785,6 @@
   },
   "warehouse": {
     "title": "Warehouse",
-    "catalogTitle": "Tool and material catalog",
     "newItem": "New item",
     "searchPlaceholder": "Search by name, category, location …",
     "noResults": "No items found.",
@@ -1149,7 +1148,6 @@
     "freeInStore": "in the store ({place})",
     "store": "store",
     "out": "handed out",
-    "summary": "{free} of {total} devices in the store",
     "searchPlaceholder": "Search device, number, kind or place …",
     "none": "No devices yet.",
     "noResults": "Nothing found",

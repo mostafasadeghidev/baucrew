@@ -5,7 +5,7 @@ import { getOptionList } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { db } from '@/lib/db'
 import { LiveSearchInput, LiveSelect } from '@/components/live-search'
-import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PagePanel, StickyHead } from '@/components/ui/page-panel'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { listCategories } from './actions'
@@ -82,7 +82,6 @@ export default async function WarehousePage({
           }
         />
       </StickyHead>
-      <PageHint>{t('catalogTitle')}</PageHint>
 
       <PagePanel>
         <div className="border-b border-border p-4">

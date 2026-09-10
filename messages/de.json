@@ -785,7 +785,6 @@
   },
   "warehouse": {
     "title": "Lager",
-    "catalogTitle": "Werkzeug- und Materialkatalog",
     "newItem": "Neuer Artikel",
     "searchPlaceholder": "Suchen nach Bezeichnung, Kategorie, Lagerort …",
     "noResults": "Keine Artikel gefunden.",
@@ -1149,7 +1148,6 @@
     "freeInStore": "im Lager ({place})",
     "store": "Lager",
     "out": "ausgegeben",
-    "summary": "{free} von {total} Geräten im Lager",
     "searchPlaceholder": "Gerät, Nummer, Art oder Lagerort suchen …",
     "none": "Noch keine Geräte angelegt.",
     "noResults": "Nichts gefunden",
