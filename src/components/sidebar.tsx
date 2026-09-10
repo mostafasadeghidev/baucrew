@@ -235,12 +235,34 @@ export function Sidebar({
   const foldLabel = collapsed ? t('expandSidebar') : t('collapseSidebar')
 
   return (
+    /**
+     * The rail is a panel standing on the page, not a column welded to the
+     * left edge of the window: eight pixels of air all round, a border the
+     * whole way round instead of one down its right-hand side, and the same
+     * rounded corners and quiet shadow every card on the page wears.
+     *
+     * The column is sixteen pixels wider than the panel inside it — w-20 for
+     * w-16, w-64 for w-60 — so those eight pixels a side come out of the page
+     * and not out of the rail. The icons and the labels sit exactly where they
+     * sat before; change these two numbers back and the panel gets narrower
+     * rather than the gap disappearing.
+     *
+     * `overflow-hidden` because the brand row and the user row draw a rule the
+     * full width of the panel, and a straight rule crosses a rounded corner.
+     * The folded rail's labels are not caught by it: they are drawn into the
+     * document body, not into this box (see `RailTip`).
+     *
+     * `top-2` with `h-[calc(100vh-1rem)]` keeps the panel stuck to the window
+     * with its air above and below it. The air is the panel's own margin on
+     * purpose — padding on the page around it would add sixteen pixels to
+     * every page's height and hand each one a scrollbar it does not need.
+     */
     <aside
       className={`hidden shrink-0 transition-[width] duration-200 md:block print:hidden ${
-        collapsed ? 'w-16' : 'w-60'
+        collapsed ? 'w-20' : 'w-64'
       }`}
     >
-      <div className="sticky top-0 flex h-screen flex-col border-r border-border bg-sidebar">
+      <div className="sticky top-2 m-2 flex h-[calc(100vh-1rem)] flex-col overflow-hidden rounded-xl border border-border bg-sidebar shadow-sm">
         <div
           className={`flex shrink-0 items-center gap-2 border-b border-border py-2.5 ${
             collapsed ? 'justify-center px-1.5' : 'px-3'

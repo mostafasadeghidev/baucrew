@@ -15,8 +15,10 @@
   --accent-hover: #1e40af;
   --accent-foreground: #ffffff;
   --danger: #dc2626;
-  /* Sidebar + subtle surfaces (segmented tabs, menus) */
-  --sidebar: #fbfbfc;
+  /* Sidebar + subtle surfaces (segmented tabs, menus). The rail is a panel on
+     the page now, so it is the same white as every card: at #fbfbfc against a
+     #f4f4f5 page there was nothing to see it against. */
+  --sidebar: #ffffff;
   --subtle: #f1f1f3;
   --ring: #1d4ed8;
   color-scheme: light;
