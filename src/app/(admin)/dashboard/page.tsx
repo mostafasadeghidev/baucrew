@@ -6,6 +6,7 @@ import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflict
 import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, iso, isoWeek, mondayOf, todayUtc } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
+import { pageTitle, pageToolbar } from '@/components/ui/page-panel'
 import { canViewFinancials, requireManagement } from '@/lib/authz'
 import { allowedLayout, parseLayout, type DashboardWidget } from '@/lib/dashboard-layout'
 import { formatCurrency } from '@/lib/format'
@@ -678,8 +679,8 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 md:justify-end">
-        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
+      <div className={pageToolbar}>
+        <h1 className={pageTitle}>{t('title')}</h1>
         <div className="flex flex-wrap items-baseline gap-3">
           <p className="text-sm text-muted">
             {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {

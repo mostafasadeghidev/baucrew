@@ -34,6 +34,7 @@ import { db } from '@/lib/db'
 import { StatusBadge } from '@/components/status-badge'
 import { RevenueChart } from '@/components/revenue-chart'
 import { ParamTabs } from '@/components/param-tabs'
+import { pageTitle } from '@/components/ui/page-panel'
 import { LiveSelect } from '@/components/live-search'
 import { PrintButton } from '@/components/print-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
@@ -49,8 +50,8 @@ import { InfoHint } from '@/components/ui/info-hint'
 const TABS = ['overview', 'revenue', 'offers', 'projects', 'customers', 'utilization', 'quality'] as const
 type Tab = (typeof TABS)[number]
 
-const card = 'rounded-lg border border-border bg-surface shadow-sm'
-const kpi = 'rounded-lg border border-border bg-surface px-3 py-2.5 shadow-sm'
+const card = 'rounded-xl border border-border bg-surface shadow-sm'
+const kpi = 'rounded-xl border border-border bg-surface px-3 py-2.5 shadow-sm'
 const kpiLabel = 'text-[11px] uppercase tracking-wide text-muted'
 const kpiValue = 'mt-0.5 text-lg font-semibold tabular-nums'
 const kpiSub = 'mt-0.5 text-[11px]'
@@ -357,9 +358,12 @@ export default async function ReportsPage({
           {periodLabel ? `${periodLabel} ${year}` : year}
         </span>
       </p>
-      {/* Header + period controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 md:justify-end">
-        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
+      {/* The page's name, the period it stands on and the tabs into it are one
+          bar on a sheet of its own — the same sheet every card below wears, so
+          the top of the page belongs to the page rather than floating over it. */}
+      <div className="rounded-xl border border-border bg-surface shadow-sm print:rounded-none print:border-0 print:shadow-none">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 print:px-0">
+        <h1 className={pageTitle}>{t('title')}</h1>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           {/* Year and period belong together, so they sit in one small bar. */}
           <div className="flex items-center gap-1.5 rounded-lg border border-border bg-subtle px-2 py-1">
@@ -395,7 +399,7 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      <div className="print:hidden">
+      <div className="border-t border-border px-4 py-2 print:hidden">
         <ParamTabs
           ariaLabel={t('title')}
           tabs={[
@@ -408,6 +412,7 @@ export default async function ReportsPage({
             { value: 'quality', label: t('tabQuality'), count: qualityCount },
           ]}
         />
+      </div>
       </div>
 
       {/* ── Overview ─────────────────────────────────────── */}

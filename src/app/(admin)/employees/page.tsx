@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { LiveSearchInput } from '@/components/live-search'
-import { PagePanel } from '@/components/ui/page-panel'
+import { PagePanel, pageTitle, pageToolbar } from '@/components/ui/page-panel'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { listSkills } from './actions'
@@ -64,8 +64,8 @@ export default async function EmployeesPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 md:justify-end">
-        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
+      <div className={pageToolbar}>
+        <h1 className={pageTitle}>{t('title')}</h1>
         <Link
           href="/employees/new"
           className={btn.primary}

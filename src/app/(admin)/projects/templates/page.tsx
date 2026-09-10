@@ -4,7 +4,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { btn } from '@/components/ui/button'
-import { PagePanel } from '@/components/ui/page-panel'
+import { PagePanel, pageTitle, pageToolbar } from '@/components/ui/page-panel'
 
 export default async function TemplatesPage() {
   await requireManagement()
@@ -25,10 +25,10 @@ export default async function TemplatesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className={pageToolbar}>
         <div>
           <BackLink href="/projects" label={tProjects('title')} />
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('title')}</h1>
+          <h1 className={`mt-1 ${pageTitle}`}>{t('title')}</h1>
         </div>
         <Link
           href="/projects/templates/new"

@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { StatusBadge } from '@/components/status-badge'
-import { PagePanel } from '@/components/ui/page-panel'
+import { PagePanel, pageTitle, pageToolbar } from '@/components/ui/page-panel'
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
 import { getPrepTabConfig } from '@/lib/prep-tab-db'
@@ -87,8 +87,8 @@ export default async function ProjectsPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 md:justify-end">
-        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
+      <div className={pageToolbar}>
+        <h1 className={pageTitle}>{t('title')}</h1>
         <div className="flex items-center gap-2">
           <Link href="/projects/import" className={btn.outline}>
             {tDrafts('toImport')}

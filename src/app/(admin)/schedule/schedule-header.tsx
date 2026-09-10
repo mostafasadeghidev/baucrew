@@ -36,6 +36,7 @@
 
 import Link from 'next/link'
 import { btn } from '@/components/ui/button'
+import { pageTitle } from '@/components/ui/page-panel'
 
 export type ScheduleView = 'week' | 'month' | 'map'
 
@@ -94,9 +95,12 @@ export function ScheduleHeader({
   const tab = 'rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground'
 
   return (
-    <div className="space-y-2">
+    // The two rows sit on a sheet of their own, the same sheet the board under
+    // them wears. The rules above are about what may move inside it; the sheet
+    // itself has a fixed padding, so it cannot move either.
+    <div className="space-y-2 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm print:rounded-none print:border-0 print:px-0 print:shadow-none">
       <div className="flex min-h-9 items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{title}</h1>
+        <h1 className={pageTitle}>{title}</h1>
         <span className="truncate text-lg font-medium text-muted">{periodLabel}</span>
         <div className="ml-auto flex items-center gap-1 overflow-x-auto rounded-lg bg-subtle p-1 text-sm font-medium">
           {views.map((v) =>

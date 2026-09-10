@@ -195,7 +195,7 @@ export function MonthBoard({
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-surface shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
         <table className="w-full min-w-[720px] table-fixed border-collapse text-xs">
           <thead>
             <tr className="border-b border-border text-left text-muted">

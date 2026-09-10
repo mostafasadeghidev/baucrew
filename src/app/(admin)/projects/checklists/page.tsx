@@ -4,7 +4,7 @@ import { BackLink } from '@/components/back-link'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { btn } from '@/components/ui/button'
-import { PagePanel } from '@/components/ui/page-panel'
+import { PagePanel, pageTitle, pageToolbar } from '@/components/ui/page-panel'
 
 export default async function ChecklistsPage() {
   await requireManagement()
@@ -21,10 +21,10 @@ export default async function ChecklistsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className={pageToolbar}>
         <div>
           <BackLink href="/projects" label={tProjects('title')} />
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('templatesTitle')}</h1>
+          <h1 className={`mt-1 ${pageTitle}`}>{t('templatesTitle')}</h1>
           <p className="mt-1 text-sm text-muted">{t('templatesHint')}</p>
         </div>
         <Link href="/projects/checklists/new" className={btn.primary}>

@@ -5,7 +5,7 @@ import { getOptionList } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { db } from '@/lib/db'
 import { LiveSearchInput, LiveSelect } from '@/components/live-search'
-import { PagePanel } from '@/components/ui/page-panel'
+import { PagePanel, pageTitle, pageToolbar } from '@/components/ui/page-panel'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { listCategories } from './actions'
@@ -69,9 +69,9 @@ export default async function WarehousePage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className={pageToolbar}>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
+          <h1 className={pageTitle}>{t('title')}</h1>
           <p className="text-sm text-muted">{t('catalogTitle')}</p>
         </div>
         <div className="flex items-center gap-2">

@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { btn } from '@/components/ui/button'
 import { LiveSearchInput } from '@/components/live-search'
-import { PagePanel } from '@/components/ui/page-panel'
+import { PagePanel, pageTitle, pageToolbar } from '@/components/ui/page-panel'
 import { deviceState } from '@/lib/devices'
 
 export default async function DevicesPage({
@@ -48,9 +48,9 @@ export default async function DevicesPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className={pageToolbar}>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
+          <h1 className={pageTitle}>{t('title')}</h1>
           <p className="mt-1 text-sm text-muted">
             {t('summary', { free, total: devices.length })}
           </p>

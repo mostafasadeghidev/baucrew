@@ -32,3 +32,22 @@ export function PagePanel({
     </div>
   )
 }
+
+/**
+ * The bar a page wears above its sheet: the page's name on the left, the
+ * things you can do to it on the right, on a sheet of its own.
+ *
+ * The name used to be there only for screen readers and for phones — on a
+ * desktop the sidebar was the only thing saying which page you were on, and
+ * the buttons floated on the page background with nothing to belong to. Now
+ * they belong to the bar, and the bar sits beside the sheet under it the way
+ * two cards sit beside each other.
+ *
+ * In print the frame goes and the name stays: a printed sheet has no chrome,
+ * but it does need to say what it is.
+ */
+export const pageToolbar =
+  'flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm print:rounded-none print:border-0 print:px-0 print:shadow-none'
+
+/** The page's name inside that bar. */
+export const pageTitle = 'text-lg font-semibold tracking-tight'
