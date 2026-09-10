@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { BackLink } from '@/components/back-link'
+import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
@@ -52,29 +53,31 @@ export default async function CustomerDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <BackLink href="/customers" label={t('title')} />
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{customer.name}</h1>
+      <StickyHead>
+        <div className={`items-start ${pageToolbar}`}>
+          <div>
+            <BackLink href="/customers" label={t('title')} />
+            <h1 className={`mt-1 ${pageTitle}`}>{customer.name}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/customers/${customer.id}/edit`}
+              className={btn.outlineSm}
+            >
+              {tc('edit')}
+            </Link>
+            <DeleteButton
+              action={deleteCustomer.bind(null, customer.id)}
+              label={tc('delete')}
+              confirmMessage={t('deleteConfirm')}
+              errorLabels={{ cannotDeleteHasProjects: t('cannotDeleteHasProjects') }}
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/customers/${customer.id}/edit`}
-            className={btn.outlineSm}
-          >
-            {tc('edit')}
-          </Link>
-          <DeleteButton
-            action={deleteCustomer.bind(null, customer.id)}
-            label={tc('delete')}
-            confirmMessage={t('deleteConfirm')}
-            errorLabels={{ cannotDeleteHasProjects: t('cannotDeleteHasProjects') }}
-          />
-        </div>
-      </div>
+      </StickyHead>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <h2 className="text-sm font-semibold">{t('contactData')}</h2>
           <dl className="mt-3 space-y-2 text-sm">
             {rows.map(([label, value]) => (
@@ -92,7 +95,7 @@ export default async function CustomerDetailPage({
           )}
         </section>
 
-        <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
           <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">
             {t('projectsTitle')}
           </h2>

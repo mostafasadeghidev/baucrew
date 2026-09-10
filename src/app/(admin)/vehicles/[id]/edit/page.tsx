@@ -16,12 +16,10 @@ export default async function EditVehiclePage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {t('editTitle')} — {vehicle.name}
-      </h1>
       <VehicleForm
         action={updateVehicle.bind(null, vehicle.id)}
         cancelHref={`/vehicles/${vehicle.id}`}
+        title={`${t('editTitle')} — ${vehicle.name}`}
         initial={{
           name: vehicle.name,
           licensePlate: vehicle.licensePlate ?? '',

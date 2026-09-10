@@ -7,10 +7,10 @@ export default async function NewCustomerPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('createTitle')}</h1>
       <CustomerForm
         action={createCustomer}
         cancelHref="/customers"
+        title={t('createTitle')}
         initial={{
           name: '',
           company: '',

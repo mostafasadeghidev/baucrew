@@ -8,6 +8,8 @@ import { requireManagement, requireAdmin } from '@/lib/authz'
 import { hashPassword } from '@/lib/auth'
 import { Role } from '@/generated/prisma/enums'
 import { audit } from '@/lib/audit'
+import { addExtraSkill, cleanSkill, mergeSkills } from '@/lib/extra-skills'
+import { getExtraSkills, setExtraSkills } from '@/lib/extra-skills-db'
 import { isAbsenceType } from '@/lib/absences'
 import { validInterval } from '@/lib/time-entries'
 
@@ -250,22 +252,52 @@ export async function deleteEmployee(
 
 // ── Skills (free text on employees; managed as a set of distinct values) ──
 
-export type SkillState = { error?: 'nameRequired' | 'saveFailed'; savedAt?: number }
+export type SkillState = {
+  error?: 'nameRequired' | 'saveFailed' | 'skillExists'
+  savedAt?: number
+}
 
 /** Distinct skills across all employees with how many employees have each. */
 export async function listSkills(): Promise<Array<{ name: string; count: number }>> {
-  const employees = await db.employee.findMany({ select: { skills: true } })
+  const [employees, extra] = await Promise.all([
+    db.employee.findMany({ select: { skills: true } }),
+    getExtraSkills(),
+  ])
   const counts = new Map<string, number>()
   for (const e of employees) for (const s of e.skills) {
     const k = s.trim()
     if (k) counts.set(k, (counts.get(k) ?? 0) + 1)
   }
-  return [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name, 'de'))
+  const used = [...counts.entries()].map(([name, count]) => ({ name, count }))
+  // The ones written down before anybody has them belong in the same list.
+  return mergeSkills(used, extra)
+}
+
+/** Writes down a skill nobody has yet, so it can be picked from the start. */
+export async function addSkill(_prev: SkillState, formData: FormData): Promise<SkillState> {
+  const user = await requireManagement()
+  const [extra, employees] = await Promise.all([
+    getExtraSkills(),
+    db.employee.findMany({ select: { skills: true } }),
+  ])
+  const used = [...new Set(employees.flatMap((e) => e.skills.map((s) => s.trim()).filter(Boolean)))]
+  const result = addExtraSkill(extra, used, String(formData.get('name') ?? ''))
+  if (!result.names) return { error: result.error }
+  await setExtraSkills(result.names)
+  await audit({
+    userId: user.id,
+    action: 'skill.add',
+    entity: 'Employee',
+    entityId: result.names[result.names.length - 1],
+    newValue: result.names[result.names.length - 1],
+  })
+  revalidatePath('/employees')
+  return { savedAt: Date.now() }
 }
 
 export async function renameSkill(from: string, _prev: SkillState, formData: FormData): Promise<SkillState> {
   const user = await requireManagement()
-  const to = String(formData.get('name') ?? '').trim().slice(0, 100)
+  const to = cleanSkill(String(formData.get('name') ?? ''))
   if (!to) return { error: 'nameRequired' }
   if (to === from) return { savedAt: Date.now() }
   const affected = await db.employee.findMany({ where: { skills: { has: from } }, select: { id: true, skills: true } })
@@ -273,6 +305,9 @@ export async function renameSkill(from: string, _prev: SkillState, formData: For
     const next = [...new Set(e.skills.map((s) => (s === from ? to : s)))]
     await db.employee.update({ where: { id: e.id }, data: { skills: next } })
   }
+  // A skill that is only written down has no employee to rename it on.
+  const extra = await getExtraSkills()
+  if (extra.some((s) => s === from)) await setExtraSkills(extra.map((s) => (s === from ? to : s)))
   await audit({ userId: user.id, action: 'skill.rename', entity: 'Employee', entityId: from, oldValue: from, newValue: `${to} (${affected.length})` })
   revalidatePath('/employees')
   return { savedAt: Date.now() }
@@ -284,6 +319,8 @@ export async function removeSkill(name: string, _prev: { error?: string }, _form
   for (const e of affected) {
     await db.employee.update({ where: { id: e.id }, data: { skills: e.skills.filter((s) => s !== name) } })
   }
+  const extra = await getExtraSkills()
+  if (extra.includes(name)) await setExtraSkills(extra.filter((s) => s !== name))
   await audit({ userId: user.id, action: 'skill.remove', entity: 'Employee', entityId: name, oldValue: `${name} (${affected.length})` })
   revalidatePath('/employees')
   return {}

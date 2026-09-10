@@ -1,11 +1,10 @@
 'use client'
 
 import { useActionState } from 'react'
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { VehicleFormState } from './actions'
 import { Select } from '@/components/ui/select'
-import { btn } from '@/components/ui/button'
+import { FormHead } from '@/components/ui/form-head'
 
 export type VehicleFormValues = {
   name: string
@@ -25,10 +24,13 @@ export function VehicleForm({
   action,
   initial,
   cancelHref,
+  title,
 }: {
   action: (prev: VehicleFormState, formData: FormData) => Promise<VehicleFormState>
   initial: VehicleFormValues
   cancelHref: string
+  /** The page's own name, shown in the bar above the fields. */
+  title: string
 }) {
   const t = useTranslations('vehicles')
   const tc = useTranslations('common')
@@ -36,8 +38,15 @@ export function VehicleForm({
   const [state, formAction, pending] = useActionState<VehicleFormState, FormData>(action, {})
 
   return (
-    <form action={formAction} className="max-w-2xl space-y-6">
-      <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+    <form action={formAction} className="space-y-6">
+      <FormHead
+        title={title}
+        saveLabel={tc('save')}
+        cancelLabel={tc('cancel')}
+        cancelHref={cancelHref}
+        pending={pending}
+      />
+      <div className="max-w-3xl rounded-xl border border-border bg-surface p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="name" className="block text-sm font-medium">
@@ -95,26 +104,11 @@ export function VehicleForm({
       </div>
 
       {state.error && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="max-w-3xl text-sm text-danger">
           {state.error === 'nameRequired' ? t('nameRequired') : tc('saveFailed')}
         </p>
       )}
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className={btn.primary}
-        >
-          {tc('save')}
-        </button>
-        <Link
-          href={cancelHref}
-          className={btn.outline}
-        >
-          {tc('cancel')}
-        </Link>
-      </div>
     </form>
   )
 }

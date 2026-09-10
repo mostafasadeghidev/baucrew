@@ -16,12 +16,10 @@ export default async function EditCustomerPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {t('editTitle')} — {customer.name}
-      </h1>
       <CustomerForm
         action={updateCustomer.bind(null, customer.id)}
         cancelHref={`/customers/${customer.id}`}
+        title={`${t('editTitle')} — ${customer.name}`}
         initial={{
           name: customer.name,
           company: customer.company ?? '',

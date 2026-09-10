@@ -2,10 +2,9 @@
 
 import { useActionState, useState } from 'react'
 import { CityPicker } from '@/components/city-picker'
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { CustomerFormState } from './actions'
-import { btn } from '@/components/ui/button'
+import { FormHead } from '@/components/ui/form-head'
 
 export type CustomerFormValues = {
   name: string
@@ -60,10 +59,13 @@ export function CustomerForm({
   action,
   initial,
   cancelHref,
+  title,
 }: {
   action: (prev: CustomerFormState, formData: FormData) => Promise<CustomerFormState>
   initial: CustomerFormValues
   cancelHref: string
+  /** The page's own name, shown in the bar above the fields. */
+  title: string
 }) {
   const t = useTranslations('customers')
   const tc = useTranslations('common')
@@ -72,8 +74,15 @@ export function CustomerForm({
   const [postalCode, setPostalCode] = useState(initial.postalCode)
 
   return (
-    <form action={formAction} className="max-w-2xl space-y-6">
-      <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+    <form action={formAction} className="space-y-6">
+      <FormHead
+        title={title}
+        saveLabel={tc('save')}
+        cancelLabel={tc('cancel')}
+        cancelHref={cancelHref}
+        pending={pending}
+      />
+      <div className="max-w-3xl rounded-xl border border-border bg-surface p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t('name')} name="name" defaultValue={initial.name} required />
           <Field label={t('company')} name="company" defaultValue={initial.company} />
@@ -110,26 +119,11 @@ export function CustomerForm({
       </div>
 
       {state.error && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="max-w-3xl text-sm text-danger">
           {state.error === 'nameRequired' ? t('nameRequired') : tc('saveFailed')}
         </p>
       )}
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className={btn.primary}
-        >
-          {tc('save')}
-        </button>
-        <Link
-          href={cancelHref}
-          className={btn.outline}
-        >
-          {tc('cancel')}
-        </Link>
-      </div>
     </form>
   )
 }

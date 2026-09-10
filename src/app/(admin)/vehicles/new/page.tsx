@@ -7,10 +7,10 @@ export default async function NewVehiclePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('createTitle')}</h1>
       <VehicleForm
         action={createVehicle}
         cancelHref="/vehicles"
+        title={t('createTitle')}
         initial={{
           name: '',
           licensePlate: '',

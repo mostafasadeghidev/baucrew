@@ -16,12 +16,10 @@ export default async function EditEmployeePage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {t('editTitle')} — {employee.firstName} {employee.lastName}
-      </h1>
       <EmployeeForm
         action={updateEmployee.bind(null, employee.id)}
         cancelHref={`/employees/${employee.id}`}
+        title={`${t('editTitle')} — ${employee.firstName} ${employee.lastName}`}
         skillSuggestions={skills.map((s) => s.name)}
         initial={{
           firstName: employee.firstName,

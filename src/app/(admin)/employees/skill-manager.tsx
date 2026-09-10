@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { removeSkill, renameSkill, type SkillState } from './actions'
+import { addSkill, removeSkill, renameSkill, type SkillState } from './actions'
 import { SavedToast } from '@/components/saved-toast'
 import { DeleteButton } from '@/components/delete-button'
 import { btn } from '@/components/ui/button'
@@ -43,12 +43,50 @@ function SkillRow({ name, count }: { name: string; count: number }) {
   )
 }
 
+/**
+ * The row that writes a new skill down. A skill is otherwise only born by
+ * being typed onto an employee, which is the wrong way round when the company
+ * is setting the app up or has just started offering something.
+ */
+function AddSkill() {
+  const t = useTranslations('employees')
+  const tc = useTranslations('common')
+  const [state, action, pending] = useActionState<SkillState, FormData>(addSkill, {})
+  return (
+    <form
+      action={action}
+      key={state.savedAt ?? 'new'}
+      className="flex flex-wrap items-center gap-2 px-4 py-2"
+    >
+      <input
+        name="name"
+        aria-label={t('addSkill')}
+        placeholder={t('addSkillPlaceholder')}
+        className={`${inputClass} min-w-40 max-w-xs`}
+      />
+      <button type="submit" disabled={pending} className={btn.primarySm}>
+        {t('addSkill')}
+      </button>
+      <SavedToast trigger={state.savedAt} />
+      {state.error && (
+        <span role="alert" className="text-xs text-danger">
+          {state.error === 'nameRequired'
+            ? t('skillNameRequired')
+            : state.error === 'skillExists'
+              ? t('skillExists')
+              : tc('saveFailed')}
+        </span>
+      )}
+    </form>
+  )
+}
+
 /** Collapsible "manage skills" box at the bottom of the employees page. */
 export function SkillManager({ skills }: { skills: Array<{ name: string; count: number }> }) {
   const t = useTranslations('employees')
   const [open, setOpen] = useState(false)
   return (
-    <section className="rounded-lg border border-border bg-surface shadow-sm">
+    <section className="rounded-xl border border-border bg-surface shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -68,6 +106,9 @@ export function SkillManager({ skills }: { skills: Array<{ name: string; count: 
       {open && (
         <div className="border-t border-border">
           <p className="px-4 py-2 text-xs text-muted">{t('skillsManageHint')}</p>
+          <div className="border-t border-border">
+            <AddSkill />
+          </div>
           {skills.length === 0 ? (
             <p className="px-4 pb-3 text-sm text-muted">{t('noSkills')}</p>
           ) : (

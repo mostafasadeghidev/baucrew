@@ -7,10 +7,10 @@ export default async function NewEmployeePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('createTitle')}</h1>
       <EmployeeForm
         action={createEmployee}
         cancelHref="/employees"
+        title={t('createTitle')}
         skillSuggestions={skills.map((s) => s.name)}
         initial={{
           firstName: '',

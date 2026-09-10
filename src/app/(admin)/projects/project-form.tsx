@@ -1,7 +1,6 @@
 'use client'
 
 import { useActionState, useState, type ReactNode } from 'react'
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Combobox } from '@/components/combobox'
 import { MultiCombobox } from '@/components/multi-combobox'
@@ -9,7 +8,7 @@ import { CityPicker } from '@/components/city-picker'
 import { NewCustomerModal } from './new-customer-modal'
 import type { ProjectFormState } from './actions'
 import { Select } from '@/components/ui/select'
-import { btn } from '@/components/ui/button'
+import { FormHead } from '@/components/ui/form-head'
 
 export type Option = { value: string; label: string }
 export type CustomerAddress = {
@@ -235,6 +234,7 @@ export function ProjectForm({
   action,
   initial,
   cancelHref,
+  title,
   customers,
   employees,
   vehicles,
@@ -253,6 +253,8 @@ export function ProjectForm({
   action: (prev: ProjectFormState, formData: FormData) => Promise<ProjectFormState>
   initial: ProjectFormValues
   cancelHref: string
+  /** The page's own name, shown in the bar above the fields. */
+  title: string
   customers: Option[]
   employees: Option[]
   vehicles: Option[]
@@ -380,6 +382,14 @@ export function ProjectForm({
   return (
     <>
     <form action={formAction} className="grid items-start gap-6 xl:grid-cols-2">
+      <FormHead
+        title={title}
+        saveLabel={tc('save')}
+        cancelLabel={tc('cancel')}
+        cancelHref={cancelHref}
+        pending={pending}
+        className="xl:col-span-2"
+      />
       {templateId && <input type="hidden" name="templateId" value={templateId} />}
       {draftId && <input type="hidden" name="draftId" value={draftId} />}
       <Section title={t('basicData')}>
@@ -663,21 +673,6 @@ export function ProjectForm({
         </p>
       )}
 
-      <div className="flex items-center gap-3 xl:col-span-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className={btn.primary}
-        >
-          {tc('save')}
-        </button>
-        <Link
-          href={cancelHref}
-          className={btn.outline}
-        >
-          {tc('cancel')}
-        </Link>
-      </div>
     </form>
     {customerModal.open && (
       <NewCustomerModal

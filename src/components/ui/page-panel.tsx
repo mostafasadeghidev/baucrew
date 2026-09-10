@@ -68,9 +68,18 @@ export const pageTitle = 'text-lg font-semibold tracking-tight'
  * `print:static` because a sticky box on paper is a box printed in the wrong
  * place, or on every page.
  */
-export function StickyHead({ children }: { children: React.ReactNode }) {
+export function StickyHead({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode
+  /** For a page laid out as a grid: the bar has to span every column. */
+  className?: string
+}) {
   return (
-    <div className="sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 md:top-0 print:static print:bg-transparent">
+    <div
+      className={`sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 md:top-0 print:static print:bg-transparent ${className}`}
+    >
       {children}
     </div>
   )
