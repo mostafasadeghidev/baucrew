@@ -18,9 +18,8 @@
  *      consequence of how wide the screen is.
  *   2. Neither row wraps; a narrow screen scrolls one sideways instead.
  *   3. No control appears or disappears with the data. A weekend toggle that
- *      cannot be switched off is shown switched on and locked, not removed —
- *      greyed out and dimmed, the way any disabled control is, so that it is
- *      clear the click did nothing on purpose.
+ *      cannot be switched off is shown switched on and locked, not removed.
+ *      What "locked" looks like is settled at the switch itself, below.
  *   4. A toggle's label never changes with its state — on and off are told
  *      apart by the switch beside it. A word that grows when clicked drags its
  *      neighbours along with it. The switch also says at a glance that these
@@ -167,7 +166,11 @@ export function ScheduleHeader({
                 title={toggle.title}
                 role="switch"
                 aria-checked={toggle.active}
-                className={`${look} hover:bg-surface-hover hover:text-foreground`}
+                // Not `surface-hover`: in the light theme that token is the
+                // very colour of the page these toggles sit on, so hovering an
+                // switched-on toggle painted it its own background and nothing
+                // moved. The accent is a tint of the switch beside it.
+                className={`${look} hover:bg-accent/10 hover:text-foreground`}
               >
                 {knob}
                 {toggle.label}

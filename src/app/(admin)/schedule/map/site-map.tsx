@@ -3,9 +3,9 @@
 /**
  * The scheduling map: plain Leaflet over OpenStreetMap tiles — no account, no
  * API key. Markers are numbered `divIcon`s, so nothing depends on Leaflet's
- * own image assets, and each carries the colour of the day it belongs to: a
- * week's worth of sites is five to seven sets of pins on one map, and the
- * colour is the only thing that says which day a pin is for.
+ * own image assets, and each carries the colour of the site it stands for —
+ * one pin per place, however many days that place is worked. The days it is
+ * worked are in the popup.
  *
  * Leaflet is fetched inside an effect rather than imported at the top. It
  * reaches for `window` while its module body runs, and a client component is
@@ -27,9 +27,9 @@ export type MapSite = {
   index: number
   name: string
   address: string
-  /** The day it belongs to, spelled out, for the popup. */
-  dayLabel: string
-  /** A CSS colour for the pin — one per weekday. */
+  /** The days this site is planned for, spelled out, for the popup. */
+  days: string[]
+  /** A CSS colour for the pin — one per site. */
   color: string
   lat: number
   lng: number
@@ -91,9 +91,10 @@ export function SiteMap({
         html: `<span style="background:${escapeHtml(site.color)}" class="flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-xs font-semibold text-white shadow-md">${site.index}</span>`,
         iconSize: [0, 0],
       })
-      L.marker([site.lat, site.lng], { icon, title: `${site.dayLabel} · ${site.name}` })
+      const days = site.days.join(' · ')
+      L.marker([site.lat, site.lng], { icon, title: `${site.name} · ${days}` })
         .bindPopup(
-          `<strong>${escapeHtml(site.name)}</strong><br>${escapeHtml(site.dayLabel)}<br>${escapeHtml(site.address)}`
+          `<strong>${escapeHtml(site.name)}</strong><br>${escapeHtml(site.address)}<br>${escapeHtml(days)}`
         )
         .addTo(group)
     }

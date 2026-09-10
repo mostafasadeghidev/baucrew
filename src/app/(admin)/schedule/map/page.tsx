@@ -12,12 +12,31 @@ import { SiteMap, type MapSite } from './site-map'
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
 
 /**
- * One colour per weekday, Monday first. A week puts five to seven days of pins
- * on one map at once, and shades of one colour stop telling each other apart —
- * so these are hues, far enough apart to survive both themes and the map's own
- * greens and greys underneath them.
+ * One colour per building site, not per weekday.
+ *
+ * It was per weekday at first, and that lied about the week: the same two sites
+ * planned Monday through Sunday came out as seven colours and a seven-line
+ * legend, while the map underneath showed two pins — because two sites are two
+ * places however many days they are worked. Colour by site and the two match:
+ * a colour is a place, the number beside it is the same number on the pin, and
+ * a week of one site is one colour however often it comes round.
+ *
+ * Hues, not shades of one: they have to tell each other apart in both themes
+ * and over the map's own greens and greys. More sites than colours simply
+ * start again — by then the numbers are doing the work.
  */
-const DAY_COLORS = ['#7F77DD', '#378ADD', '#1D9E75', '#BA7517', '#D4537E', '#5F5E5A', '#65A30D']
+const SITE_COLORS = [
+  '#7F77DD',
+  '#1D9E75',
+  '#BA7517',
+  '#D4537E',
+  '#378ADD',
+  '#65A30D',
+  '#B45309',
+  '#0E7490',
+  '#9333EA',
+  '#5F5E5A',
+]
 
 export default async function ScheduleMapPage({
   searchParams,
@@ -110,6 +129,16 @@ export default async function ScheduleMapPage({
     await Promise.all([...byProject].map(async ([id, p]) => [id, await p] as const))
   )
 
+  /**
+   * Every site the week touches, numbered once. A project planned on four days
+   * is one number and one colour, on the map and in the list alike.
+   */
+  const siteIndex = new Map<string, number>()
+  for (const entry of entries)
+    if (!siteIndex.has(entry.project.id)) siteIndex.set(entry.project.id, siteIndex.size + 1)
+  const numberOf = (projectId: string) => siteIndex.get(projectId) ?? 0
+  const colorOf = (projectId: string) => SITE_COLORS[(numberOf(projectId) - 1) % SITE_COLORS.length]
+
   const dayFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
     weekday: 'long',
     day: '2-digit',
@@ -124,14 +153,16 @@ export default async function ScheduleMapPage({
 
   /** The week, day by day; days with nothing planned are left out. */
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
-    .map((date, weekday) => {
+    .map((date) => {
       const dateIso = iso(date)
       const dayEntries = entries.filter((e) => iso(e.date) === dateIso)
-      const sites: MapSite[] = []
       const unlocated: typeof dayEntries = []
       const rows: Array<{
         entry: (typeof dayEntries)[number]
-        site: MapSite
+        number: number
+        color: string
+        address: string
+        located: { lat: number; lng: number } | null
         approx: boolean
         rain: number | undefined
       }> = []
@@ -141,20 +172,12 @@ export default async function ScheduleMapPage({
           unlocated.push(entry)
           continue
         }
-        const site: MapSite = {
-          id: entry.id,
-          index: sites.length + 1,
-          name: entry.project.name,
-          address: addressOf(entry.project) || entry.project.customer.name,
-          dayLabel: dayFmt.format(date),
-          color: DAY_COLORS[weekday],
-          lat: hit.lat,
-          lng: hit.lng,
-        }
-        sites.push(site)
         rows.push({
           entry,
-          site,
+          number: numberOf(entry.project.id),
+          color: colorOf(entry.project.id),
+          address: addressOf(entry.project) || entry.project.customer.name,
+          located: { lat: hit.lat, lng: hit.lng },
           approx: hit.approx,
           rain: entry.project.city ? rainAt.get(`${entry.project.city}|${dateIso}`) : undefined,
         })
@@ -162,7 +185,6 @@ export default async function ScheduleMapPage({
       return {
         dateIso,
         label: dayFmt.format(date),
-        color: DAY_COLORS[weekday],
         rows,
         unlocated,
         count: dayEntries.length,
@@ -171,7 +193,34 @@ export default async function ScheduleMapPage({
     .filter((d) => d.count > 0)
 
   const shown = selectedDay ? days.filter((d) => d.dateIso === selectedDay) : days
-  const sites = shown.flatMap((d) => d.rows.map((r) => r.site))
+  /**
+   * One pin per site, not one per planned day: the same site on five days is
+   * five entries and one place, and five markers on one spot were only ever
+   * the top one. The popup carries the days instead.
+   */
+  const sites: MapSite[] = []
+  const seen = new Map<string, MapSite>()
+  for (const day of shown)
+    for (const row of day.rows) {
+      const known = seen.get(row.entry.project.id)
+      if (known) {
+        if (!known.days.includes(day.label)) known.days.push(day.label)
+        continue
+      }
+      const site: MapSite = {
+        id: row.entry.project.id,
+        index: row.number,
+        name: row.entry.project.name,
+        address: row.address,
+        days: [day.label],
+        color: row.color,
+        lat: row.located!.lat,
+        lng: row.located!.lng,
+      }
+      seen.set(row.entry.project.id, site)
+      sites.push(site)
+    }
+  sites.sort((a, b) => a.index - b.index)
 
   const mapHref = (change: { monday?: Date; day?: string | null } = {}) => {
     const start = change.monday ?? monday
@@ -229,16 +278,21 @@ export default async function ScheduleMapPage({
             ariaLabel={t('viewMap')}
             className="h-[420px] lg:h-auto lg:min-h-[320px] lg:flex-1"
           />
-          {days.length > 1 && (
+          {/* The legend reads the pins back: number, colour, site. It is the
+              only place the two halves of this page are spelled out together,
+              and a week of two sites says two lines — not seven. */}
+          {sites.length > 1 && (
             <div className="flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
-              {days.map((day) => (
-                <span key={day.dateIso} className="inline-flex items-center gap-1.5">
+              {sites.map((site) => (
+                <span key={site.id} className="inline-flex items-center gap-1.5">
                   <span
                     aria-hidden
-                    className="inline-block h-2 w-2 rounded-full"
-                    style={{ background: day.color }}
-                  />
-                  {day.label}
+                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-semibold text-white"
+                    style={{ background: site.color }}
+                  >
+                    {site.index}
+                  </span>
+                  <span className="max-w-48 truncate">{site.name}</span>
                 </span>
               ))}
             </div>
@@ -273,24 +327,19 @@ export default async function ScheduleMapPage({
                   href={mapHref({ day: selectedDay === day.dateIso ? null : day.dateIso })}
                   className="flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-hover"
                 >
-                  <span
-                    aria-hidden
-                    className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: day.color }}
-                  />
                   <span className="truncate">{day.label}</span>
                   <span className="ml-auto text-xs tabular-nums text-muted">{day.count}</span>
                 </Link>
 
                 {open && (
                   <ul className="divide-y divide-border border-t border-border">
-                    {day.rows.map(({ entry, site, approx, rain: probability }) => (
+                    {day.rows.map(({ entry, number, color, address, approx, rain: probability }) => (
                       <li key={entry.id} className="flex gap-3 px-3 py-2.5 text-sm">
                         <span
                           className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-                          style={{ background: day.color }}
+                          style={{ background: color }}
                         >
-                          {site.index}
+                          {number}
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-baseline gap-x-2">
@@ -307,7 +356,7 @@ export default async function ScheduleMapPage({
                             </Link>
                           </div>
                           <p className="truncate text-xs text-muted">
-                            {site.address}
+                            {address}
                             {approx && ` · ${t('mapApproximate')}`}
                           </p>
                           {detailed && (
