@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { StatusBadge } from '@/components/status-badge'
+import { PagePanel } from '@/components/ui/page-panel'
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
 import { getPrepTabConfig } from '@/lib/prep-tab-db'
@@ -121,104 +122,109 @@ export default async function ProjectsPage({
         </div>
       </div>
 
-      <StatusTabs
-        allLabel={t('allStatuses')}
-        allCount={allCount}
-        tabs={[
-          ...(prepTab.enabled
-            ? [{ value: 'prep', label: prepTab.label || t('tabPreparation'), count: prepCount }]
-            : []),
-          ...STATUSES.filter((s) => (countByStatus.get(s) ?? 0) > 0 || s === statusFilter).map((s) => ({
-            value: s,
-            label: tStatus(s),
-            count: countByStatus.get(s) ?? 0,
-          })),
-        ]}
-      />
+      <PagePanel>
+        <div className="space-y-3 border-b border-border p-4">
+          <StatusTabs
+            allLabel={t('allStatuses')}
+            allCount={allCount}
+            tabs={[
+              ...(prepTab.enabled
+                ? [{ value: 'prep', label: prepTab.label || t('tabPreparation'), count: prepCount }]
+                : []),
+              ...STATUSES.filter((s) => (countByStatus.get(s) ?? 0) > 0 || s === statusFilter).map(
+                (s) => ({
+                  value: s,
+                  label: tStatus(s),
+                  count: countByStatus.get(s) ?? 0,
+                })
+              ),
+            ]}
+          />
+          <div className="flex max-w-md">
+            <LiveSearchInput placeholder={t('searchPlaceholder')} />
+          </div>
+        </div>
 
-      <div className="flex max-w-md">
-        <LiveSearchInput placeholder={t('searchPlaceholder')} />
-      </div>
-
-      <div className="overflow-x-auto rounded-lg border border-border bg-surface shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-              <th className="px-4 py-3 font-medium">{t('number')}</th>
-              <th className="px-4 py-3 font-medium">{t('name')}</th>
-              <th className="px-4 py-3 font-medium">{t('customer')}</th>
-              <th className="px-4 py-3 font-medium">{t('city')}</th>
-              <th className="px-4 py-3 font-medium">{t('plannedStart')}</th>
-              <th className="px-4 py-3 font-medium">{t('status')}</th>
-              {showPrice && <th className="px-4 py-3 text-right font-medium">{t('price')}</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {projects.length === 0 ? (
-              <tr>
-                <td colSpan={showPrice ? 7 : 6} className="px-4 py-8 text-center text-muted">
-                  {t('noResults')}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                <th className="px-4 py-3 font-medium">{t('number')}</th>
+                <th className="px-4 py-3 font-medium">{t('name')}</th>
+                <th className="px-4 py-3 font-medium">{t('customer')}</th>
+                <th className="px-4 py-3 font-medium">{t('city')}</th>
+                <th className="px-4 py-3 font-medium">{t('plannedStart')}</th>
+                <th className="px-4 py-3 font-medium">{t('status')}</th>
+                {showPrice && <th className="px-4 py-3 text-right font-medium">{t('price')}</th>}
               </tr>
-            ) : (
-              projects.map((p) => (
-                <tr key={p.id} className="hover:bg-surface-hover">
-                  <td className="px-4 py-3 tabular-nums text-muted">{p.number}</td>
-                  <td className="px-4 py-3">
-                    {/* High priority: a red mark in front of the name */}
-                    {p.priority === 'HIGH' && (
-                      <span
-                        className="mr-1 font-bold text-red-700 dark:text-red-400"
-                        title={t('priorityHigh')}
-                      >
-                        !
-                      </span>
-                    )}
-                    <Link href={`/projects/${p.id}`} className="font-medium text-accent hover:underline">
-                      {p.name}
-                    </Link>
-                    {/* Site checklists: how far the crew has ticked through */}
-                    {(() => {
-                      const items = p.checklists.flatMap((c) => c.items)
-                      if (items.length === 0) return null
-                      const done = items.filter((i) => i.ok !== null).length
-                      const problems = items.filter((i) => i.ok === false).length
-                      return (
-                        <span
-                          title={t('checklistProgressTitle')}
-                          className={`ml-2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${
-                            problems > 0
-                              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
-                              : done === items.length
-                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                                : 'bg-subtle text-muted'
-                          }`}
-                        >
-                          {problems > 0 && '⚠ '}
-                          {done}/{items.length}
-                        </span>
-                      )
-                    })()}
+            </thead>
+            <tbody className="divide-y divide-border">
+              {projects.length === 0 ? (
+                <tr>
+                  <td colSpan={showPrice ? 7 : 6} className="px-4 py-8 text-center text-muted">
+                    {t('noResults')}
                   </td>
-                  <td className="px-4 py-3 text-muted">{p.customer.name}</td>
-                  <td className="px-4 py-3 text-muted">{p.city ?? '—'}</td>
-                  <td className="px-4 py-3 tabular-nums text-muted">
-                    {formatDate(p.plannedStart, locale)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={p.status} />
-                  </td>
-                  {showPrice && (
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {formatCurrency(p.price ? Number(p.price) : null, locale)}
-                    </td>
-                  )}
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                projects.map((p) => (
+                  <tr key={p.id} className="hover:bg-surface-hover">
+                    <td className="px-4 py-3 tabular-nums text-muted">{p.number}</td>
+                    <td className="px-4 py-3">
+                      {/* High priority: a red mark in front of the name */}
+                      {p.priority === 'HIGH' && (
+                        <span
+                          className="mr-1 font-bold text-red-700 dark:text-red-400"
+                          title={t('priorityHigh')}
+                        >
+                          !
+                        </span>
+                      )}
+                      <Link href={`/projects/${p.id}`} className="font-medium text-accent hover:underline">
+                        {p.name}
+                      </Link>
+                      {/* Site checklists: how far the crew has ticked through */}
+                      {(() => {
+                        const items = p.checklists.flatMap((c) => c.items)
+                        if (items.length === 0) return null
+                        const done = items.filter((i) => i.ok !== null).length
+                        const problems = items.filter((i) => i.ok === false).length
+                        return (
+                          <span
+                            title={t('checklistProgressTitle')}
+                            className={`ml-2 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${
+                              problems > 0
+                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                                : done === items.length
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                                  : 'bg-subtle text-muted'
+                            }`}
+                          >
+                            {problems > 0 && '⚠ '}
+                            {done}/{items.length}
+                          </span>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-4 py-3 text-muted">{p.customer.name}</td>
+                    <td className="px-4 py-3 text-muted">{p.city ?? '—'}</td>
+                    <td className="px-4 py-3 tabular-nums text-muted">
+                      {formatDate(p.plannedStart, locale)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={p.status} />
+                    </td>
+                    {showPrice && (
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {formatCurrency(p.price ? Number(p.price) : null, locale)}
+                      </td>
+                    )}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </PagePanel>
 
       <Pagination page={page} total={total} />
     </div>

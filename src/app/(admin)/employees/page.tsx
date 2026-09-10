@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { LiveSearchInput } from '@/components/live-search'
+import { PagePanel } from '@/components/ui/page-panel'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { listSkills } from './actions'
@@ -73,93 +74,97 @@ export default async function EmployeesPage({
         </Link>
       </div>
 
-      <div className="flex max-w-md">
-        <LiveSearchInput placeholder={t('searchPlaceholder')} />
-      </div>
+      <PagePanel>
+        <div className="border-b border-border p-4">
+          <div className="flex max-w-md">
+            <LiveSearchInput placeholder={t('searchPlaceholder')} />
+          </div>
+        </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-surface shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-              <th className="px-4 py-3 font-medium">{t('name')}</th>
-              <th className="px-4 py-3 font-medium">{t('phone')}</th>
-              <th className="px-4 py-3 font-medium">{t('skills')}</th>
-              <th className="px-4 py-3 font-medium">{t('status')}</th>
-              <th className="px-4 py-3 font-medium">{t('accountColumn')}</th>
-              <th className="px-4 py-3 text-right font-medium">{t('projectsTitle')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {employees.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted">
-                  {t('noResults')}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                <th className="px-4 py-3 font-medium">{t('name')}</th>
+                <th className="px-4 py-3 font-medium">{t('phone')}</th>
+                <th className="px-4 py-3 font-medium">{t('skills')}</th>
+                <th className="px-4 py-3 font-medium">{t('status')}</th>
+                <th className="px-4 py-3 font-medium">{t('accountColumn')}</th>
+                <th className="px-4 py-3 text-right font-medium">{t('projectsTitle')}</th>
               </tr>
-            ) : (
-              employees.map((e) => (
-                <tr key={e.id} className="hover:bg-surface-hover">
-                  <td className="px-4 py-3">
-                    <Link href={`/employees/${e.id}`} className="font-medium text-accent hover:underline">
-                      {e.firstName} {e.lastName}
-                    </Link>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {employees.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                    {t('noResults')}
                   </td>
-                  <td className="px-4 py-3 text-muted">{e.phone ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className="flex flex-wrap gap-1">
-                      {e.skills.length === 0
-                        ? '—'
-                        : e.skills.map((s) => (
-                            <span
-                              key={s}
-                              className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium"
-                            >
-                              {s}
-                            </span>
-                          ))}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        e.active
-                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                          : 'bg-neutral-500/15 text-neutral-600 dark:text-neutral-300'
-                      }`}
-                    >
-                      {e.active ? tc('active') : tc('inactive')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {e.user ? (
-                      <span className="inline-flex flex-wrap items-center gap-1">
-                        <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium">
-                          {e.user.username}
-                        </span>
-                        {e.user.role !== 'EMPLOYEE' && (
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                              e.user.role === 'ADMIN'
-                                ? 'bg-red-500/15 text-red-700 dark:text-red-400'
-                                : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400'
-                            }`}
-                          >
-                            {tRoles(e.user.role)}
-                          </span>
-                        )}
-                        {!e.user.active && <span className="text-xs text-muted">({tc('inactive')})</span>}
-                      </span>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{e._count.projectMemberships}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                employees.map((e) => (
+                  <tr key={e.id} className="hover:bg-surface-hover">
+                    <td className="px-4 py-3">
+                      <Link href={`/employees/${e.id}`} className="font-medium text-accent hover:underline">
+                        {e.firstName} {e.lastName}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-muted">{e.phone ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className="flex flex-wrap gap-1">
+                        {e.skills.length === 0
+                          ? '—'
+                          : e.skills.map((s) => (
+                              <span
+                                key={s}
+                                className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          e.active
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                            : 'bg-neutral-500/15 text-neutral-600 dark:text-neutral-300'
+                        }`}
+                      >
+                        {e.active ? tc('active') : tc('inactive')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {e.user ? (
+                        <span className="inline-flex flex-wrap items-center gap-1">
+                          <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium">
+                            {e.user.username}
+                          </span>
+                          {e.user.role !== 'EMPLOYEE' && (
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                e.user.role === 'ADMIN'
+                                  ? 'bg-red-500/15 text-red-700 dark:text-red-400'
+                                  : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400'
+                              }`}
+                            >
+                              {tRoles(e.user.role)}
+                            </span>
+                          )}
+                          {!e.user.active && <span className="text-xs text-muted">({tc('inactive')})</span>}
+                        </span>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">{e._count.projectMemberships}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </PagePanel>
 
       <Pagination page={page} total={total} />
 

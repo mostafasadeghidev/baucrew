@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/authz'
 import { BackLink } from '@/components/back-link'
 import { DeleteButton } from '@/components/delete-button'
 import { LiveSearchInput, LiveSelect } from '@/components/live-search'
+import { PagePanel } from '@/components/ui/page-panel'
 import { Pagination } from '@/components/pagination'
 import { parsePage } from '@/lib/pagination'
 import type { Prisma } from '@/generated/prisma/client'
@@ -141,68 +142,72 @@ export default async function AuditLogPage({
         </div>
       </div>
 
-      <div className="flex max-w-2xl flex-wrap items-center gap-2">
-        <LiveSearchInput placeholder={t('searchPlaceholder')} />
-        <LiveSelect
-          param="entity"
-          allLabel={t('allEntities')}
-          options={entities.map((e) => ({ value: e.entity, label: `${entityLabel(e.entity)} (${e._count._all})` }))}
-        />
-      </div>
+      <PagePanel>
+        <div className="border-b border-border p-4">
+          <div className="flex max-w-2xl flex-wrap items-center gap-2">
+            <LiveSearchInput placeholder={t('searchPlaceholder')} />
+            <LiveSelect
+              param="entity"
+              allLabel={t('allEntities')}
+              options={entities.map((e) => ({ value: e.entity, label: `${entityLabel(e.entity)} (${e._count._all})` }))}
+            />
+          </div>
+        </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-surface shadow-sm">
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
-              <th className="px-3 py-2 font-medium">{t('time')}</th>
-              <th className="px-3 py-2 font-medium">{t('user')}</th>
-              <th className="px-3 py-2 font-medium">{t('action')}</th>
-              <th className="px-3 py-2 font-medium">{t('entity')}</th>
-              <th className="px-3 py-2 font-medium">{t('change')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-muted">
-                  {t('empty')}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
+                <th className="px-3 py-2 font-medium">{t('time')}</th>
+                <th className="px-3 py-2 font-medium">{t('user')}</th>
+                <th className="px-3 py-2 font-medium">{t('action')}</th>
+                <th className="px-3 py-2 font-medium">{t('entity')}</th>
+                <th className="px-3 py-2 font-medium">{t('change')}</th>
               </tr>
-            ) : (
-              rows.map((r) => {
-                const href = entityHref(r.entity, r.entityId)
-                return (
-                  <tr key={r.id} className="align-top hover:bg-surface-hover">
-                    <td className="whitespace-nowrap px-3 py-1.5 tabular-nums text-muted">{fmt.format(r.createdAt)}</td>
-                    <td className="whitespace-nowrap px-3 py-1.5">
-                      {r.user?.username ?? <span className="text-muted">{t('system')}</span>}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-1.5" title={r.action}>
-                      {actionLabel(r.action)}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      {href ? (
-                        <Link href={href} className="text-accent hover:underline" title={t('open')}>
-                          {entityLabel(r.entity)} ↗
-                        </Link>
-                      ) : (
-                        entityLabel(r.entity)
-                      )}
-                      {r.field && <span className="ml-1 text-xs text-muted">· {fieldLabel(r.field)}</span>}
-                    </td>
-                    <td className="max-w-[420px] px-3 py-1.5">
-                      {r.oldValue && <span className="text-muted line-through">{valueLabel(r.oldValue, r.field)}</span>}
-                      {r.oldValue && r.newValue && <span className="mx-1 text-muted">→</span>}
-                      {r.newValue && <span>{valueLabel(r.newValue, r.field)}</span>}
-                      {!r.oldValue && !r.newValue && <span className="text-muted">—</span>}
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-8 text-center text-muted">
+                    {t('empty')}
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => {
+                  const href = entityHref(r.entity, r.entityId)
+                  return (
+                    <tr key={r.id} className="align-top hover:bg-surface-hover">
+                      <td className="whitespace-nowrap px-3 py-1.5 tabular-nums text-muted">{fmt.format(r.createdAt)}</td>
+                      <td className="whitespace-nowrap px-3 py-1.5">
+                        {r.user?.username ?? <span className="text-muted">{t('system')}</span>}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-1.5" title={r.action}>
+                        {actionLabel(r.action)}
+                      </td>
+                      <td className="px-3 py-1.5">
+                        {href ? (
+                          <Link href={href} className="text-accent hover:underline" title={t('open')}>
+                            {entityLabel(r.entity)} ↗
+                          </Link>
+                        ) : (
+                          entityLabel(r.entity)
+                        )}
+                        {r.field && <span className="ml-1 text-xs text-muted">· {fieldLabel(r.field)}</span>}
+                      </td>
+                      <td className="max-w-[420px] px-3 py-1.5">
+                        {r.oldValue && <span className="text-muted line-through">{valueLabel(r.oldValue, r.field)}</span>}
+                        {r.oldValue && r.newValue && <span className="mx-1 text-muted">→</span>}
+                        {r.newValue && <span>{valueLabel(r.newValue, r.field)}</span>}
+                        {!r.oldValue && !r.newValue && <span className="text-muted">—</span>}
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </PagePanel>
       <p className="text-xs text-muted">{t('total', { count: total })}</p>
       <Pagination page={page} total={total} pageSize={PAGE} />
     </div>
