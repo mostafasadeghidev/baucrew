@@ -265,24 +265,41 @@ export function ProjectsKanban({
     setPanning(false)
   }
 
-  // React attaches its own wheel handler passively, where preventDefault does
+  // The wheel keeps to one axis at a time. A trackpad reports a few pixels of
+  // sideways movement on almost every downward swipe, and a strip that can
+  // scroll sideways takes them: reading down the board slid it left and right
+  // under the eye. So a gesture that is mostly downward moves the page and
+  // nothing else, and only a clearly sideways one — two fingers across, or
+  // shift and the wheel — moves the board.
+  //
+  // React binds its own wheel handler passively, where preventDefault does
   // nothing, so this one is bound by hand.
   useEffect(() => {
     const box = scroller.current
     if (!box) return
+
+    /** Firefox counts in lines and pages; everything else in pixels. */
+    function toPixels(delta: number, mode: number, page: number) {
+      if (mode === 1) return delta * 16
+      if (mode === 2) return delta * page
+      return delta
+    }
+
     function onWheel(e: WheelEvent) {
       const el = scroller.current
       if (!el) return
-      // A trackpad's sideways swipe and shift+wheel are already horizontal —
-      // leave those to the browser.
-      if (e.deltaX !== 0 || e.shiftKey || e.ctrlKey) return
-      const max = el.scrollWidth - el.clientWidth
-      if (max <= 0) return
-      const next = el.scrollLeft + e.deltaY
-      if (next < 0 || next > max) return // at an end: the page scrolls on
+      if (el.scrollWidth <= el.clientWidth) return // nothing to drift
+      if (e.shiftKey || e.ctrlKey) return // sideways by hand, or zoom
+      const dx = toPixels(e.deltaX, e.deltaMode, el.clientWidth)
+      const dy = toPixels(e.deltaY, e.deltaMode, el.clientHeight)
+      if (dy === 0 || Math.abs(dx) > Math.abs(dy)) return // a real sideways swipe
+      // Downward: hold the board still and move the page by exactly what the
+      // browser would have moved it. The fling keeps sending events, so the
+      // momentum of a trackpad survives.
       e.preventDefault()
-      el.scrollLeft = next
+      window.scrollBy(0, dy)
     }
+
     box.addEventListener('wheel', onWheel, { passive: false })
     return () => box.removeEventListener('wheel', onWheel)
   }, [])
