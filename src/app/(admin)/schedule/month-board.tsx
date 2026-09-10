@@ -2,6 +2,15 @@
 
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
+import {
+  DRAG_THRESHOLD,
+  LONG_PRESS_MS,
+  LONG_PRESS_SLOP,
+  carry,
+  drop as dropGhost,
+  lift,
+  zoneAtPoint,
+} from "@/lib/card-lift";
 import { useTranslations } from "next-intl";
 import type { ComboboxOption } from "@/components/combobox";
 import {
@@ -84,87 +93,100 @@ export function MonthBoard({
       if (result.error) setBoardError(errorText(result.error));
     });
   }
-  function onDrop(date: string, e: React.DragEvent) {
-    e.preventDefault();
-    const id = e.dataTransfer.getData("text/plain");
-    // Ctrl / ⌘ duplicates the assignment onto that day instead of moving it.
-    if (id) moveTo(id, date, e.ctrlKey || e.metaKey);
-  }
 
-  // Touch drag (long-press) — same approach as the week board.
-  const touchDrag = useRef<{
+  // Picking a chip up — the same gesture as the week board, and as the project
+  // board: a mouse lifts after six pixels, a finger after resting a quarter of
+  // a second, and what follows the pointer is the chip itself.
+  const grab = useRef<{
     id: string;
     timer: ReturnType<typeof setTimeout> | null;
     active: boolean;
     startX: number;
     startY: number;
     ghost: HTMLElement | null;
+    el: HTMLElement;
   } | null>(null);
   const suppressClick = useRef(false);
+
   function cellAtPoint(x: number, y: number): string | null {
-    const el = document.elementFromPoint(x, y);
-    return (
-      el?.closest<HTMLElement>("[data-day-column]")?.dataset.dayColumn ?? null
-    );
+    return zoneAtPoint(x, y, "[data-day-column]", "dayColumn");
   }
+
+  function pickUp(state: NonNullable<typeof grab.current>, pointerId: number) {
+    state.active = true;
+    state.ghost = lift(state.el);
+    try {
+      state.el.setPointerCapture(pointerId);
+    } catch {
+      /* ignore */
+    }
+  }
+
   function onChipPointerDown(
     e: React.PointerEvent<HTMLDivElement>,
     entryId: string,
   ) {
-    if (e.pointerType === "mouse") return;
-    const chip = e.currentTarget;
-    touchDrag.current = {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const el = e.currentTarget;
+    const state = {
       id: entryId,
-      timer: setTimeout(() => {
-        const s = touchDrag.current;
-        if (!s || s.id !== entryId) return;
-        s.active = true;
-        const ghost = chip.cloneNode(true) as HTMLElement;
-        const rect = chip.getBoundingClientRect();
-        ghost.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;pointer-events:none;opacity:.85;z-index:60;`;
-        document.body.appendChild(ghost);
-        s.ghost = ghost;
-        chip.style.opacity = "0.4";
-        try {
-          chip.setPointerCapture(e.pointerId);
-        } catch {
-          /* ignore */
-        }
-        if (navigator.vibrate) navigator.vibrate(15);
-      }, 250),
+      timer: null as ReturnType<typeof setTimeout> | null,
       active: false,
       startX: e.clientX,
       startY: e.clientY,
-      ghost: null,
+      ghost: null as HTMLElement | null,
+      el,
     };
-  }
-  function onChipPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    const s = touchDrag.current;
-    if (!s) return;
-    if (!s.active) {
-      if (Math.hypot(e.clientX - s.startX, e.clientY - s.startY) > 10) {
-        if (s.timer) clearTimeout(s.timer);
-        touchDrag.current = null;
+    if (e.pointerType === "mouse") {
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
       }
-      return;
+    } else {
+      const pointerId = e.pointerId;
+      state.timer = setTimeout(() => {
+        if (grab.current !== state) return;
+        pickUp(state, pointerId);
+        if (navigator.vibrate) navigator.vibrate(15);
+      }, LONG_PRESS_MS);
+    }
+    grab.current = state;
+  }
+
+  function onChipPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const state = grab.current;
+    if (!state) return;
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+    if (!state.active) {
+      if (state.timer) {
+        if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) {
+          clearTimeout(state.timer);
+          grab.current = null;
+        }
+        return;
+      }
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      pickUp(state, e.pointerId);
     }
     e.preventDefault();
-    if (s.ghost)
-      s.ghost.style.transform = `translate(${e.clientX - s.startX}px, ${e.clientY - s.startY}px)`;
+    carry(state.ghost, dx, dy);
     setDropTarget(cellAtPoint(e.clientX, e.clientY));
   }
+
   function onChipPointerEnd(e: React.PointerEvent<HTMLDivElement>) {
-    const s = touchDrag.current;
-    touchDrag.current = null;
-    if (!s) return;
-    if (s.timer) clearTimeout(s.timer);
-    e.currentTarget.style.opacity = "";
-    if (!s.active) return;
+    const state = grab.current;
+    grab.current = null;
+    if (!state) return;
+    if (state.timer) clearTimeout(state.timer);
+    if (!state.active) return;
+    dropGhost(state.ghost, state.el);
     suppressClick.current = true;
     setTimeout(() => (suppressClick.current = false), 300);
-    s.ghost?.remove();
     const target = cellAtPoint(e.clientX, e.clientY);
-    if (target) moveTo(s.id, target);
+    // Ctrl / ⌘ on release duplicates the assignment onto that day.
+    if (target) moveTo(state.id, target, e.ctrlKey || e.metaKey);
     else setDropTarget(null);
   }
 
@@ -242,15 +264,6 @@ export function MonthBoard({
                       <td
                         key={day}
                         data-day-column={day}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDragEnter={() => setDropTarget(day)}
-                        onDragLeave={(e) => {
-                          if (
-                            !e.currentTarget.contains(e.relatedTarget as Node)
-                          )
-                            setDropTarget(null);
-                        }}
-                        onDrop={(e) => onDrop(day, e)}
                         className={`group h-24 border-l border-border px-1.5 py-1.5 align-top transition-colors ${
                           inMonth ? "" : "bg-surface-hover/50 text-muted"
                         } ${isWeekend ? "bg-surface-hover/30" : ""} ${day === todayIso ? "bg-accent/5" : ""} ${
@@ -290,10 +303,6 @@ export function MonthBoard({
                               key={e.id}
                               role="button"
                               tabIndex={0}
-                              draggable
-                              onDragStart={(ev) =>
-                                ev.dataTransfer.setData("text/plain", e.id)
-                              }
                               onPointerDown={(ev) =>
                                 onChipPointerDown(ev, e.id)
                               }

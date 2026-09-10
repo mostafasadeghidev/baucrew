@@ -49,6 +49,14 @@ import { useTranslations } from 'next-intl'
 import { GripVertical, Undo2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { moveColumn } from '@/lib/board-columns'
+import {
+  DRAG_THRESHOLD,
+  LONG_PRESS_MS,
+  LONG_PRESS_SLOP,
+  carry,
+  drop as dropGhost,
+  lift,
+} from '@/lib/card-lift'
 import { setBoardOrder, setProjectStatus } from './actions'
 
 export type KanbanCard = {
@@ -82,22 +90,16 @@ export type KanbanColumn = {
 /** How many cards a column shows before it says how many more it has. */
 const CARDS_AT_A_TIME = 50
 
-/** A finger has to rest this long on a card before it picks it up. */
-const LONG_PRESS_MS = 250
-
-/** How far a mouse must travel before a press becomes a drag rather than a click. */
-const MOVE_THRESHOLD = 6
-
 /**
  * What is being held. A press does not yet say what it means — `maybe` is the
  * few pixels between pressing and knowing.
  */
 type Grab =
   | { kind: 'maybe-card'; pointerId: number; card: KanbanCard; el: HTMLElement; x: number; y: number; timer: ReturnType<typeof setTimeout> | null }
-  | { kind: 'card'; pointerId: number; card: KanbanCard; x: number; y: number; ghost: HTMLElement | null }
+  | { kind: 'card'; pointerId: number; card: KanbanCard; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement }
   | { kind: 'pan'; pointerId: number; x: number; left: number }
-  | { kind: 'maybe-column'; pointerId: number; status: string; x: number; y: number; timer: ReturnType<typeof setTimeout> | null }
-  | { kind: 'column'; pointerId: number; status: string }
+  | { kind: 'maybe-column'; pointerId: number; status: string; el: HTMLElement; x: number; y: number; timer: ReturnType<typeof setTimeout> | null }
+  | { kind: 'column'; pointerId: number; status: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement }
 
 export function ProjectsKanban({
   columns,
@@ -290,31 +292,8 @@ export function ProjectsKanban({
   }
 
   function beginCardDrag(card: KanbanCard, el: HTMLElement, x: number, y: number, pointerId: number) {
-    // Whatever the browser managed to highlight in the six pixels before we
-    // knew this was a drag: a card being carried across a page of blue text
-    // is not a card being carried.
-    window.getSelection()?.removeAllRanges()
-    const ghost = el.cloneNode(true) as HTMLElement
-    const rect = el.getBoundingClientRect()
-    // It leaves the board rather than merely tilting on it: full opacity, off
-    // the page on its own shadow, tipped a degree and a half so it reads as a
-    // thing in the hand. The card it came from stays behind at 40%, so where
-    // it will fall back to if it is let go is never in doubt.
-    ghost.style.cssText = [
-      'position:fixed',
-      `left:${rect.left}px`,
-      `top:${rect.top}px`,
-      `width:${rect.width}px`,
-      'margin:0',
-      'pointer-events:none',
-      'user-select:none',
-      'z-index:60',
-      'will-change:transform',
-      'box-shadow:0 16px 32px rgba(0,0,0,.28), 0 2px 8px rgba(0,0,0,.18)',
-      'transform:rotate(1.5deg) scale(1.03)',
-    ].join(';')
-    document.body.appendChild(ghost)
-    grab.current = { kind: 'card', pointerId, card, x, y, ghost }
+    const ghost = lift(el)
+    grab.current = { kind: 'card', pointerId, card, x, y, ghost, el }
     capture(pointerId)
     setDragging(card.id)
   }
@@ -349,13 +328,26 @@ export function ProjectsKanban({
     grab.current = state
   }
 
+  function beginColumnDrag(status: string, el: HTMLElement, x: number, y: number, pointerId: number) {
+    // Carried flat, not tipped: a column is as tall as the board, and a degree
+    // and a half of tilt on something that tall swings its corners well outside
+    // the window.
+    grab.current = { kind: 'column', pointerId, status, x, y, ghost: lift(el, 0), el }
+    capture(pointerId)
+    setMovingColumn(status)
+  }
+
   function onHeadPointerDown(e: React.PointerEvent<HTMLDivElement>, status: string) {
     if (!scroller.current) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
+    // The head is the handle, but what is carried is the whole column.
+    const el = e.currentTarget.closest<HTMLElement>('[data-board-column]')
+    if (!el) return
     const state: Grab = {
       kind: 'maybe-column',
       pointerId: e.pointerId,
       status,
+      el,
       x: e.clientX,
       y: e.clientY,
       timer: null,
@@ -363,12 +355,10 @@ export function ProjectsKanban({
     if (e.pointerType === 'mouse') {
       capture(e.pointerId)
     } else {
-      const { pointerId } = state
+      const { pointerId, x, y } = state
       state.timer = setTimeout(() => {
         if (grab.current !== state) return
-        grab.current = { kind: 'column', pointerId, status }
-        capture(pointerId)
-        setMovingColumn(status)
+        beginColumnDrag(status, el, x, y, pointerId)
         if (navigator.vibrate) navigator.vibrate(15)
       }, LONG_PRESS_MS)
     }
@@ -400,7 +390,7 @@ export function ProjectsKanban({
       if (state.timer) {
         // A finger, still waiting out the long press: any real movement means
         // it is scrolling, not picking up.
-        if (Math.hypot(dx, dy) > 10) {
+        if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) {
           clearTimeout(state.timer)
           grab.current = null
         }
@@ -409,16 +399,14 @@ export function ProjectsKanban({
       // Six pixels in any direction at all. The column a card is going to is
       // as often to the side as below, so nothing about the direction of the
       // pull may decide whether the card is picked up.
-      if (Math.hypot(dx, dy) < MOVE_THRESHOLD) return
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return
       beginCardDrag(state.card, state.el, state.x, state.y, state.pointerId)
       return
     }
 
     if (state.kind === 'card') {
       e.preventDefault()
-      if (state.ghost) {
-        state.ghost.style.transform = `translate(${e.clientX - state.x}px, ${e.clientY - state.y}px) rotate(1.5deg) scale(1.03)`
-      }
+      carry(state.ghost, e.clientX - state.x, e.clientY - state.y)
       trackPointer(e.clientX, e.clientY)
       edgeScroll(e.clientX, e.clientY)
       return
@@ -431,13 +419,16 @@ export function ProjectsKanban({
 
     if (state.kind === 'maybe-column') {
       if (state.timer) return // a finger, still waiting
-      if (Math.hypot(e.clientX - state.x, e.clientY - state.y) < 6) return
-      grab.current = { kind: 'column', pointerId: state.pointerId, status: state.status }
-      setMovingColumn(state.status)
+      if (Math.hypot(e.clientX - state.x, e.clientY - state.y) < DRAG_THRESHOLD) return
+      beginColumnDrag(state.status, state.el, state.x, state.y, state.pointerId)
       return
     }
 
     if (state.kind === 'column') {
+      // Sideways only: a column is put beside another column, never above one,
+      // and a copy that drifts up the screen while the columns shuffle under it
+      // is a copy that has come loose from the thing it stands for.
+      carry(state.ghost, e.clientX - state.x, 0, 0)
       trackPointer(e.clientX, e.clientY)
       edgeScroll(e.clientX, e.clientY)
     }
@@ -460,7 +451,7 @@ export function ProjectsKanban({
       return
     }
     if (state.kind === 'card') {
-      state.ghost?.remove()
+      dropGhost(state.ghost, state.el)
       const status = columnAtPoint(e.clientX, e.clientY)
       if (status) drop(status)
       else {
@@ -470,6 +461,7 @@ export function ProjectsKanban({
       return
     }
     if (state.kind === 'column') {
+      dropGhost(state.ghost, state.el)
       setMovingColumn(null)
       saveOrder([...order.current])
     }
@@ -568,11 +560,9 @@ export function ProjectsKanban({
               key={column.status}
               data-board-column={column.status}
               className={`flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border bg-subtle/40 transition-colors ${
-                movingColumn === column.status
-                  ? 'border-accent opacity-70 ring-2 ring-accent'
-                  : over === column.status
-                    ? 'border-accent bg-accent/5'
-                    : 'border-border'
+                over === column.status && movingColumn !== column.status
+                  ? 'border-accent bg-accent/5'
+                  : 'border-border'
               }`}
             >
               {/* The head does not scroll with the cards: which status this is,

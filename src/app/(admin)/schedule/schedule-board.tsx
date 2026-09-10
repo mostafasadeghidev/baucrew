@@ -1,6 +1,15 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
+import {
+  DRAG_THRESHOLD,
+  LONG_PRESS_MS,
+  LONG_PRESS_SLOP,
+  carry,
+  drop as dropGhost,
+  lift,
+  zoneAtPoint,
+} from '@/lib/card-lift'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { ComboboxOption } from '@/components/combobox'
@@ -107,96 +116,107 @@ export function ScheduleBoard({
     })
   }
 
-  function onDrop(date: string, e: React.DragEvent) {
-    e.preventDefault()
-    const id = e.dataTransfer.getData('text/plain')
-    // Ctrl / ⌘ while dropping duplicates the assignment instead of moving it.
-    if (id) moveTo(id, date, e.ctrlKey || e.metaKey)
-  }
-
-  // ── Touch drag (Pointer Events) ─────────────────────────────
-  // Native HTML5 drag & drop does not fire on touch screens. For touch/pen
-  // pointers a long-press (250 ms) picks the card up; the card follows the
-  // finger, columns highlight via hit-testing, release drops it.
-  const touchDrag = useRef<{
+  // ── Picking a card up ───────────────────────────────────────
+  // One gesture for every pointer. The browser's own drag and drop used to do
+  // the mouse half of this; it starts the moment the mouse moves, drags the
+  // page's text along with it, and leaves the card sitting where it was, so a
+  // drag looked like an accidental selection. A mouse now lifts a card after
+  // six pixels, a finger after resting on it for a quarter of a second, and
+  // what follows the pointer is the card itself — see `lift`.
+  const grab = useRef<{
     id: string
     timer: ReturnType<typeof setTimeout> | null
     active: boolean
     startX: number
     startY: number
     ghost: HTMLElement | null
+    el: HTMLElement
   } | null>(null)
 
   function columnAtPoint(x: number, y: number): string | null {
-    const el = document.elementFromPoint(x, y)
-    const col = el?.closest<HTMLElement>('[data-day-column]')
-    return col?.dataset.dayColumn ?? null
+    return zoneAtPoint(x, y, '[data-day-column]', 'dayColumn')
+  }
+
+  function pickUp(state: NonNullable<typeof grab.current>, pointerId: number) {
+    state.active = true
+    state.ghost = lift(state.el)
+    try {
+      state.el.setPointerCapture(pointerId)
+    } catch {
+      /* the browser may refuse; the drag still works over the card */
+    }
   }
 
   function onCardPointerDown(e: React.PointerEvent<HTMLDivElement>, entryId: string) {
-    if (e.pointerType === 'mouse') return // mouse uses native drag & drop
-    const card = e.currentTarget
-    touchDrag.current = {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    const el = e.currentTarget
+    const state = {
       id: entryId,
-      timer: setTimeout(() => {
-        const state = touchDrag.current
-        if (!state || state.id !== entryId) return
-        state.active = true
-        const ghost = card.cloneNode(true) as HTMLElement
-        const rect = card.getBoundingClientRect()
-        ghost.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;pointer-events:none;opacity:.85;z-index:60;transform:rotate(1.5deg);`
-        document.body.appendChild(ghost)
-        state.ghost = ghost
-        card.style.opacity = '0.4'
-        // Keep receiving moves even when the finger leaves the card,
-        // and stop the page from scrolling while dragging.
-        try {
-          card.setPointerCapture(e.pointerId)
-        } catch {
-          /* ignore */
-        }
-        if (navigator.vibrate) navigator.vibrate(15)
-      }, 250),
+      timer: null as ReturnType<typeof setTimeout> | null,
       active: false,
       startX: e.clientX,
       startY: e.clientY,
-      ghost: null,
+      ghost: null as HTMLElement | null,
+      el,
     }
+    if (e.pointerType === 'mouse') {
+      // Held until the pointer has travelled, so a plain click still opens the
+      // assignment.
+      try {
+        el.setPointerCapture(e.pointerId)
+      } catch {
+        /* ignore */
+      }
+    } else {
+      const pointerId = e.pointerId
+      state.timer = setTimeout(() => {
+        if (grab.current !== state) return
+        pickUp(state, pointerId)
+        if (navigator.vibrate) navigator.vibrate(15)
+      }, LONG_PRESS_MS)
+    }
+    grab.current = state
   }
 
   function onCardPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    const state = touchDrag.current
+    const state = grab.current
     if (!state) return
+    const dx = e.clientX - state.startX
+    const dy = e.clientY - state.startY
     if (!state.active) {
-      // Moved before the long-press fired → this is a scroll, cancel pickup.
-      if (Math.hypot(e.clientX - state.startX, e.clientY - state.startY) > 10) {
-        if (state.timer) clearTimeout(state.timer)
-        touchDrag.current = null
+      if (state.timer) {
+        // A finger, still waiting out the long press: real movement means it
+        // is scrolling, not picking up.
+        if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) {
+          clearTimeout(state.timer)
+          grab.current = null
+        }
+        return
       }
-      return
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return
+      pickUp(state, e.pointerId)
     }
     e.preventDefault()
-    if (state.ghost) {
-      state.ghost.style.transform = `translate(${e.clientX - state.startX}px, ${e.clientY - state.startY}px) rotate(1.5deg)`
-    }
+    carry(state.ghost, dx, dy)
     setDropTarget(columnAtPoint(e.clientX, e.clientY))
   }
 
   const suppressClick = useRef(false)
 
   function onCardPointerEnd(e: React.PointerEvent<HTMLDivElement>) {
-    const state = touchDrag.current
-    touchDrag.current = null
+    const state = grab.current
+    grab.current = null
     if (!state) return
     if (state.timer) clearTimeout(state.timer)
-    e.currentTarget.style.opacity = ''
     if (!state.active) return
-    // Swallow the synthetic click that follows a completed touch-drag.
+    dropGhost(state.ghost, state.el)
+    // Swallow the click that follows a completed drag.
     suppressClick.current = true
     setTimeout(() => (suppressClick.current = false), 300)
-    state.ghost?.remove()
     const target = columnAtPoint(e.clientX, e.clientY)
-    if (target) moveTo(state.id, target)
+    // Ctrl / ⌘ on release duplicates the assignment instead of moving it, the
+    // same as it always did on a drop.
+    if (target) moveTo(state.id, target, e.ctrlKey || e.metaKey)
     else setDropTarget(null)
   }
 
@@ -316,12 +336,6 @@ export function ScheduleBoard({
               <div
                 key={date}
                 data-day-column={date}
-                onDragOver={(e) => e.preventDefault()}
-                onDragEnter={() => setDropTarget(date)}
-                onDragLeave={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null)
-                }}
-                onDrop={(e) => onDrop(date, e)}
                 className={`flex min-h-64 flex-col rounded-lg border shadow-sm transition-colors ${
                   isWeekend ? 'border-dashed bg-surface/60' : 'bg-surface'
                 } ${dropTarget === date ? 'border-accent ring-1 ring-accent' : 'border-border'}`}
@@ -355,8 +369,6 @@ export function ScheduleBoard({
                       key={entry.id}
                       role="button"
                       tabIndex={0}
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData('text/plain', entry.id)}
                       onPointerDown={(e) => onCardPointerDown(e, entry.id)}
                       onPointerMove={onCardPointerMove}
                       onPointerUp={onCardPointerEnd}
@@ -369,7 +381,7 @@ export function ScheduleBoard({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') setDialog({ mode: 'edit', entry })
                       }}
-                      style={{ touchAction: 'pan-y' }}
+                      style={{ touchAction: 'pan-x pan-y' }}
                       className={`cursor-grab rounded-md border p-2 text-left text-xs shadow-sm transition-colors hover:border-accent active:cursor-grabbing ${
                         ['COMPLETED', 'INVOICED', 'PAID'].includes(entry.projectStatus ?? '')
                           ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
