@@ -292,7 +292,11 @@ export default async function ReportsPage({
       months: `${shortMonths[row.index * 3]}–${shortMonths[row.index * 3 + 2]}`,
       value: money(row.total),
       share: row.share,
-      compare: row.compare.map((c) => ({ year: c.year, percent: c.percent })),
+      compare: row.compare.map((c) => ({
+        year: c.year,
+        percent: c.percent,
+        value: money(c.total),
+      })),
       // Clicking a quarter of another year takes the whole page to that year
       // and that quarter — otherwise the sums above would answer for one year
       // and the quarter below for another. Clicking the quarter that is
@@ -458,7 +462,9 @@ export default async function ReportsPage({
               </div>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
+            {/* Each card as tall as what is in it: stretched to match its
+                neighbour, the chart card ended in a hand's width of nothing. */}
+            <div className="grid items-start gap-4 xl:grid-cols-[1fr_360px]">
             <div className={`${card} p-4`}>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold">
@@ -523,7 +529,7 @@ export default async function ReportsPage({
                     {t('quarterTitleYear')}
                     <InfoHint text={t('quarterHint')} wide align="end" />
                   </h2>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     {/* The year is the control: the card is read by looking at
                         that number, so it is changed there. */}
                     <ParamPicker
@@ -551,6 +557,7 @@ export default async function ReportsPage({
                 </div>
                 <QuarterBreakdown
                   rows={quarterViews}
+                  year={quarterYear}
                   center={
                     best
                       ? {

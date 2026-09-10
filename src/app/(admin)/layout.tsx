@@ -40,7 +40,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           brandName={branding.companyName}
           hasLogo={branding.hasLogo}
         />
-        <main className="flex-1 p-4 md:p-6 print:p-0">{children}</main>
+        {/* Less air above than around: the rail's panel starts eight pixels
+            down, and the page's own bar has to start on the same line as it
+            or the two tops look like a mistake. */}
+        <main className="flex-1 p-4 pt-2 md:p-6 md:pt-2 print:p-0">{children}</main>
       </div>
     </div>
   )
