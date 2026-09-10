@@ -296,9 +296,10 @@ export function ScheduleBoard({
           the drop only ever carries a date. */}
       {weeks.map((week) => (
         <div key={week.number} className="space-y-2">
-          {weeks.length > 1 && (
-            <p className="text-xs font-medium text-muted">{t('weekLabel', { week: week.number })}</p>
-          )}
+          {/* Always here, one week or two: a caption that appears with the
+              second week would push the first week's columns down the page as
+              soon as the toggle was pressed. */}
+          <p className="text-xs font-medium text-muted">{t('weekLabel', { week: week.number })}</p>
           <div
             className={`grid grid-cols-1 gap-3 ${
               week.days.length > 5 ? 'md:grid-cols-7' : 'md:grid-cols-5'

@@ -27,7 +27,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   ever carries a date. The arrows then step a fortnight at a time, the heading
   reads *KW 32–33*, and each grid says which week it is. Both weeks share one
   weekend decision, or the columns of the second would not line up with the
-  first. The choice rides in the address with the week and the weekend, and
+  first. The week number stands over the grid whether one week is shown or two,
+  so pressing the toggle does not push the first week down the page. The choice rides in the address with the week and the weekend, and
   every link on the board now carries all three: stepping a week used to close
   the weekend columns again behind you.
 
