@@ -10,6 +10,11 @@ import { planChecklistChanges } from '@/lib/project-checklists'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { nextProjectNumber } from '@/lib/project-numbers'
+import {
+  PROJECT_BOARD_KEY,
+  boardConfigFromOrder,
+  serializeBoardConfig,
+} from '@/lib/board-columns'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -428,6 +433,36 @@ export async function setProjectStatus(id: string, status: string): Promise<{ er
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
   revalidatePath('/dashboard')
+  return {}
+}
+
+/**
+ * The order the board's columns stand in, as somebody dragged them.
+ *
+ * It shares the setting the tick-boxes in Einstellungen write, so the two
+ * cannot disagree: which columns there are is chosen there, and the order they
+ * stand in is chosen here, on the board itself, where it can be seen.
+ *
+ * Management rather than admin: this is arranging a desk, not changing what
+ * the company records.
+ */
+export async function setBoardOrder(statuses: string[]): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  const value = serializeBoardConfig(boardConfigFromOrder(statuses))
+  await db.appSetting.upsert({
+    where: { key: PROJECT_BOARD_KEY },
+    update: { value },
+    create: { key: PROJECT_BOARD_KEY, value },
+  })
+  await audit({
+    userId: user.id,
+    action: 'settings.projectBoard',
+    entity: 'AppSetting',
+    entityId: PROJECT_BOARD_KEY,
+    newValue: value,
+  })
+  revalidatePath('/projects')
+  revalidatePath('/settings')
   return {}
 }
 

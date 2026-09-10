@@ -17,6 +17,7 @@ import type { SaveState } from '@/components/saved-form'
 import { deleteUserBlockReason } from '@/lib/user-guards'
 import { PREP_TAB_KEY, prepTabConfigFromForm, serializePrepTabConfig } from '@/lib/prep-tab'
 import { PROJECT_BOARD_KEY, boardConfigFromForm, serializeBoardConfig } from '@/lib/board-columns'
+import { getBoardConfig } from '@/lib/board-columns-db'
 import { normalizeAccent } from "@/lib/branding";
 import {
   optionListFromForm,
@@ -431,7 +432,10 @@ export async function updatePrepTab(formData: FormData): Promise<SaveState> {
 /** Which statuses stand as columns on the project board. */
 export async function updateProjectBoard(formData: FormData): Promise<SaveState> {
   const admin = await requireAdmin()
-  const value = serializeBoardConfig(boardConfigFromForm((n) => formData.get(n)))
+  // The board may have been arranged by hand since it was last ticked, and
+  // ticking one more box must not shuffle it back into lifecycle order.
+  const current = await getBoardConfig()
+  const value = serializeBoardConfig(boardConfigFromForm((n) => formData.get(n), current.statuses))
   await db.appSetting.upsert({
     where: { key: PROJECT_BOARD_KEY },
     update: { value },

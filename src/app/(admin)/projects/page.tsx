@@ -88,12 +88,13 @@ export default async function ProjectsPage({
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
   /**
    * The board reads the same search as the list, but never its status filter:
-   * a board with one column is a list with extra steps. It takes the newest
-   * fifty of each column — a column of two hundred cards is scrolled past, not
-   * read, and the count in its head still says how many there are.
+   * a board with one column is a list with extra steps. Every card of every
+   * column is sent — the same rows the board already had to read to count them
+   * — and the column shows the first fifty, with the rest a click away. Paging
+   * this from the server would mean a round trip to see cards the page is
+   * already holding.
    */
   const kanban = view === 'kanban'
-  const COLUMN_CARDS = 50
   const boardProjects = kanban
     ? await db.project.findMany({
         where: whereWithoutStatus,
@@ -121,10 +122,8 @@ export default async function ProjectsPage({
       label: tStatus(value),
       count: own.length,
       sum: showPrice && sum > 0 ? formatCurrency(sum, locale) : null,
-      moreLabel:
-        own.length > COLUMN_CARDS ? t('kanbanMore', { count: own.length - COLUMN_CARDS }) : null,
       badgeClass: STATUS_STYLES[value],
-      cards: own.slice(0, COLUMN_CARDS).map((p) => ({
+      cards: own.map((p) => ({
         id: p.id,
         number: p.number,
         name: p.name,

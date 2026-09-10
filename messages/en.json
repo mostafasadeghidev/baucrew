@@ -26,7 +26,9 @@
     "saved": "Saved",
     "optional": "optional",
     "pagination": "Pagination",
-    "clear": "Clear selection"
+    "clear": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -287,7 +289,8 @@
     "leadSource": "Request via",
     "externalSource": "Source",
     "externalSourceLink": "Open origin",
-    "plannedRevenue": "Planned revenue"
+    "plannedRevenue": "Planned revenue",
+    "kanbanMoveColumn": "Move column"
   },
   "employees": {
     "title": "Employees",
