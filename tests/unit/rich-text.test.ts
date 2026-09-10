@@ -118,7 +118,9 @@ describe('parseNotes — a name that is already written out', () => {
   })
 
   it('matches across the difference between a space and an underscore', () => {
-    const out = parseNotes('AW_ Muster30 Bamberg.msg: https://example.test/d/AW__Muster30_Bamberg.msg')
+    const out = parseNotes(
+      'AW_ Muster30 Musterstadt.msg: https://example.test/d/AW__Muster30_Musterstadt.msg'
+    )
     expect(out[0][1].text).toBe('')
   })
 
