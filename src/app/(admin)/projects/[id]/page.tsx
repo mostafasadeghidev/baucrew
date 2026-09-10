@@ -11,8 +11,10 @@ import { QuickStatus } from '@/components/quick-status'
 import { ReopenButton } from './reopen-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { DeleteButton } from '@/components/delete-button'
-import { formatCurrency, formatDate } from '@/lib/format'
-import { deleteProject, setProjectStatus } from '../actions'
+import { formatCurrency, formatDate, toDateInputValue } from '@/lib/format'
+import { deleteProject, setProjectStatus, updateProject } from '../actions'
+import { ProjectForm } from '../project-form'
+import { EditAllButton } from './edit-all-button'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
 import { PlanEntryButton } from './plan-entry-button'
 import { MergeButton } from './merge-button'
@@ -60,6 +62,7 @@ export default async function ProjectDetailPage({
         include: { uploadedBy: { select: { username: true } } },
       },
       workCategories: { include: { workCategory: true } },
+      deviceNeeds: { select: { deviceId: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
       items: { include: { catalogItem: true }, orderBy: { catalogItem: { name: 'asc' } } },
       devices: {
@@ -92,13 +95,32 @@ export default async function ProjectDetailPage({
   })
   if (!project) notFound()
 
-  const [allEmployees, allVehicles, checklistTemplates, otherProjects] = await Promise.all([
+  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects] =
+    await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
     db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     db.checklistTemplate.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true },
+    }),
+    db.customer.findMany({
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        street: true,
+        postalCode: true,
+        city: true,
+        phone: true,
+        latitude: true,
+        longitude: true,
+      },
+    }),
+    db.workCategory.findMany({
+      where: { active: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, nameDe: true, nameEn: true },
     }),
     // What a duplicate could be folded into this one — admins only.
     user.role === 'ADMIN'
@@ -146,134 +168,84 @@ export default async function ProjectDetailPage({
     .filter(Boolean)
     .join(', ')
 
-  return (
-    <div className="space-y-6">
-      <StickyHead>
-      <div className={`items-start ${pageToolbar}`}>
-        <div>
-          <BackLink href="/projects" label={t('title')} />
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-lg font-semibold tracking-tight">
-              <span className="mr-2 text-muted">{project.number}</span>
-              {project.name}
-            </h1>
-            <QuickStatus
-              value={project.status}
-              ariaLabel={t('status')}
-              colorClass={STATUS_STYLES[project.status]}
-              options={(Object.keys(ProjectStatus) as ProjectStatus[]).map((s) => ({
-                value: s,
-                label: tStatus(s),
-              }))}
-              onChange={setProjectStatus.bind(null, project.id)}
-            />
-          </div>
-          <p className="mt-1 text-sm text-muted">
-            <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
-              {project.customer.name}
-            </Link>
-            {address && <> · {address}</>}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
-            <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
+  const row = (label: string, value: React.ReactNode) => (
+    <div className="flex gap-2">
+      <dt className="w-44 shrink-0 text-muted">{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  )
+  /**
+   * What each card shows while it is closed. The fields behind them are the
+   * project form's own — see `ProjectForm`'s `inline` prop — so every field is
+   * described in one place and edited in one place, however many pages show it.
+   */
+  const views = {
+    basic: (
+      <dl className="space-y-2 text-sm">
+        {row(t('clientType'), optionLabel(lists.clientTypes, project.clientType, locale) || '—')}
+        {row(t('buildingType'), optionLabel(lists.buildingTypes, project.buildingType, locale) || '—')}
+        {row(
+          t('priority'),
+          project.priority ? (
+            <span
+              className={
+                project.priority === 'HIGH'
+                  ? 'font-semibold text-red-700 dark:text-red-400'
+                  : 'text-muted'
+              }
+            >
+              {project.priority === 'HIGH' ? t('priorityHigh') : t('priorityLow')}
+            </span>
+          ) : (
+            t('priorityNormal')
+          )
+        )}
+        {row(t('leadSource'), optionLabel(lists.leadSources, project.leadSource, locale) || '—')}
+        {row(
+          t('workCategories'),
+          <span className="flex flex-wrap gap-1">
+            {project.workCategories.length === 0
+              ? '—'
+              : project.workCategories.map((wc) => (
+                  <span
+                    key={wc.workCategoryId}
+                    className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent"
+                  >
+                    {categoryLabel(wc.workCategory)}
+                  </span>
+                ))}
+          </span>
+        )}
+        {row(t('isSub'), project.isSub ? tc('yes') : tc('no'))}
+        {project.externalUrl &&
+          row(
+            t('externalSource'),
+            <a
+              href={project.externalUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent hover:underline"
+            >
+              {project.externalSystem || t('externalSourceLink')} ↗
+            </a>
           )}
-          <Link
-            href={`/projects/${project.id}/sheet`}
-            className={btn.outlineSm}
-          >
-            {tSheet('title')}
-          </Link>
-          <Link
-            href={`/projects/${project.id}/edit`}
-            className={btn.outlineSm}
-          >
-            {tc('edit')}
-          </Link>
-          {user.role === 'ADMIN' && (
-            <>
-              <MergeButton
-                projectId={project.id}
-                projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
-              />
-              <DeleteButton
-                action={deleteProject.bind(null, project.id)}
-                label={tc('delete')}
-                confirmMessage={t('deleteConfirm')}
-              />
-            </>
-          )}
-        </div>
-      </div>
-      </StickyHead>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Overview */}
-        <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <h2 className="text-sm font-semibold">{t('overview')}</h2>
-          <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('clientType')}</dt>
-              <dd>{optionLabel(lists.clientTypes, project.clientType, locale) || '—'}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('buildingType')}</dt>
-              <dd>{optionLabel(lists.buildingTypes, project.buildingType, locale) || '—'}</dd>
-            </div>
-            {project.priority && (
-              <div className="flex gap-2">
-                <dt className="w-44 shrink-0 text-muted">{t('priority')}</dt>
-                <dd
-                  className={
-                    project.priority === 'HIGH'
-                      ? 'font-semibold text-red-700 dark:text-red-400'
-                      : 'text-muted'
-                  }
-                >
-                  {project.priority === 'HIGH' ? t('priorityHigh') : t('priorityLow')}
-                </dd>
-              </div>
-            )}
-            {project.leadSource && (
-              <div className="flex gap-2">
-                <dt className="w-44 shrink-0 text-muted">{t('leadSource')}</dt>
-                <dd>{optionLabel(lists.leadSources, project.leadSource, locale) || project.leadSource}</dd>
-              </div>
-            )}
-            {project.externalUrl && (
-              <div className="flex gap-2">
-                <dt className="w-44 shrink-0 text-muted">{t('externalSource')}</dt>
-                <dd>
-                  <a href={project.externalUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-                    {project.externalSystem || t('externalSourceLink')} ↗
-                  </a>
-                </dd>
-              </div>
-            )}
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('workCategories')}</dt>
-              <dd className="flex flex-wrap gap-1">
-                {project.workCategories.length === 0
-                  ? '—'
-                  : project.workCategories.map((wc) => (
-                      <span
-                        key={wc.workCategoryId}
-                        className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent"
-                      >
-                        {categoryLabel(wc.workCategory)}
-                      </span>
-                    ))}
-              </dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('phone')}</dt>
-              <dd>{project.phone ?? '—'}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('contact')}</dt>
-              <dd>{project.contact ?? '—'}</dd>
-            </div>
+      </dl>
+    ),
+    address: (
+      <dl className="space-y-2 text-sm">
+        {row(t('street'), project.street || '—')}
+        {row(t('postalCode'), project.postalCode || '—')}
+        {row(t('city'), project.city || '—')}
+        {row(t('phone'), project.phone || '—')}
+        {row(t('contact'), project.contact || '—')}
+      </dl>
+    ),
+    planning: (
+      <dl className="space-y-2 text-sm">
+        {row(t('plannedStart'), <span className="tabular-nums">{formatDate(project.plannedStart, locale)}</span>)}
+        {row(t('plannedEnd'), <span className="tabular-nums">{formatDate(project.plannedEnd, locale)}</span>)}
+        {row(t('actualStart'), <span className="tabular-nums">{formatDate(project.actualStart, locale)}</span>)}
+        {row(t('actualEnd'), <span className="tabular-nums">{formatDate(project.actualEnd, locale)}</span>)}
             {showPrice && (
               <div className="flex gap-2">
                 <dt className="w-44 shrink-0 text-muted">{t('price')}</dt>
@@ -314,65 +286,175 @@ export default async function ProjectDetailPage({
                 </dd>
               </div>
             )}
-          </dl>
-          {project.description && (
-            <div className="mt-4 border-t border-border pt-3 text-sm text-muted">
-              <NoteText text={project.description} />
-            </div>
+      </dl>
+    ),
+    assignment: (
+      <dl className="space-y-2 text-sm">
+        {row(
+          t('manager'),
+          project.manager ? `${project.manager.firstName} ${project.manager.lastName}` : '—'
+        )}
+        {row(
+          t('vehicle'),
+          project.vehicles.length > 0 ? project.vehicles.map((pv) => pv.vehicle.name).join(', ') : '—'
+        )}
+        {row(
+          t('team'),
+          <span className="flex flex-wrap gap-1">
+            {project.team.length === 0
+              ? '—'
+              : project.team.map((m) => (
+                  <span
+                    key={m.employeeId}
+                    className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium"
+                  >
+                    {m.employee.firstName} {m.employee.lastName}
+                  </span>
+                ))}
+          </span>
+        )}
+      </dl>
+    ),
+    description: (
+      <div className="space-y-3 text-sm">
+        {project.description ? (
+          <NoteText text={project.description} className="text-muted" />
+        ) : (
+          <p className="text-muted">—</p>
+        )}
+        {project.internalNotes && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+            <p className="text-xs font-semibold">{t('internalNotes')}</p>
+            <NoteText text={project.internalNotes} className="mt-1 text-muted" />
+          </div>
+        )}
+      </div>
+    ),
+  }
+
+  return (
+    <div className="space-y-6">
+      <StickyHead>
+      <div className={`items-start ${pageToolbar}`}>
+        <div>
+          <BackLink href="/projects" label={t('title')} />
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-lg font-semibold tracking-tight">
+              <span className="mr-2 text-muted">{project.number}</span>
+              {project.name}
+            </h1>
+            <QuickStatus
+              value={project.status}
+              ariaLabel={t('status')}
+              colorClass={STATUS_STYLES[project.status]}
+              options={(Object.keys(ProjectStatus) as ProjectStatus[]).map((s) => ({
+                value: s,
+                label: tStatus(s),
+              }))}
+              onChange={setProjectStatus.bind(null, project.id)}
+            />
+          </div>
+          <p className="mt-1 text-sm text-muted">
+            <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
+              {project.customer.name}
+            </Link>
+            {address && <> · {address}</>}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
+            <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
           )}
-        </section>
+          <Link
+            href={`/projects/${project.id}/sheet`}
+            className={btn.outlineSm}
+          >
+            {tSheet('title')}
+          </Link>
+          <EditAllButton label={tc('edit')} />
+          {user.role === 'ADMIN' && (
+            <>
+              <MergeButton
+                projectId={project.id}
+                projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+              />
+              <DeleteButton
+                action={deleteProject.bind(null, project.id)}
+                label={tc('delete')}
+                confirmMessage={t('deleteConfirm')}
+              />
+            </>
+          )}
+        </div>
+      </div>
+      </StickyHead>
 
-        {/* Dates & assignment */}
-        <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <h2 className="text-sm font-semibold">{t('planning')}</h2>
-          <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('plannedStart')}</dt>
-              <dd className="tabular-nums">{formatDate(project.plannedStart, locale)}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('plannedEnd')}</dt>
-              <dd className="tabular-nums">{formatDate(project.plannedEnd, locale)}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('actualStart')}</dt>
-              <dd className="tabular-nums">{formatDate(project.actualStart, locale)}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('actualEnd')}</dt>
-              <dd className="tabular-nums">{formatDate(project.actualEnd, locale)}</dd>
-            </div>
-          </dl>
-          <h2 className="mt-5 text-sm font-semibold">{t('assignmentSection')}</h2>
-          <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('manager')}</dt>
-              <dd>
-                {project.manager ? `${project.manager.firstName} ${project.manager.lastName}` : '—'}
-              </dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('vehicle')}</dt>
-              <dd>{project.vehicles.length > 0 ? project.vehicles.map((pv) => pv.vehicle.name).join(', ') : '—'}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-44 shrink-0 text-muted">{t('team')}</dt>
-              <dd className="flex flex-wrap gap-1">
-                {project.team.length === 0
-                  ? '—'
-                  : project.team.map((m) => (
-                      <span
-                        key={m.employeeId}
-                        className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium"
-                      >
-                        {m.employee.firstName} {m.employee.lastName}
-                      </span>
-                    ))}
-              </dd>
-            </div>
-          </dl>
-        </section>
+      <ProjectForm
+        action={updateProject.bind(null, project.id)}
+        cancelHref={`/projects/${project.id}`}
+        title={project.name}
+        showPrice={showPrice}
+        inline={{
+          views,
+          labels: { edit: tc('edit'), save: tc('save'), cancel: tc('cancel') },
+        }}
+        customers={customers.map((c) => ({ value: c.id, label: c.name }))}
+        customerAddresses={Object.fromEntries(
+          customers.map((c) => [
+            c.id,
+            {
+              street: c.street ?? '',
+              postalCode: c.postalCode ?? '',
+              city: c.city ?? '',
+              phone: c.phone ?? '',
+              latitude: c.latitude,
+              longitude: c.longitude,
+            },
+          ])
+        )}
+        employees={allEmployees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}` }))}
+        vehicles={allVehicles.map((v) => ({ value: v.id, label: v.name }))}
+        checklists={checklistTemplates.map((c) => ({ value: c.id, label: c.name }))}
+        devices={deviceOptions}
+        leadSources={lists.leadSources.map((e) => ({ value: e.value, label: optionLabel(lists.leadSources, e.value, locale) }))}
+        clientTypes={lists.clientTypes.map((e) => ({ value: e.value, label: optionLabel(lists.clientTypes, e.value, locale) }))}
+        buildingTypes={lists.buildingTypes.map((e) => ({ value: e.value, label: optionLabel(lists.buildingTypes, e.value, locale) }))}
+        categories={allCategories.map((c) => ({ value: c.id, label: categoryLabel(c) }))}
+        initial={{
+          name: project.name,
+          customerId: project.customerId,
+          status: project.status,
+          isSub: project.isSub,
+          clientType: project.clientType ?? '',
+          priority: project.priority ?? '',
+          leadSource: project.leadSource ?? '',
+          buildingType: project.buildingType ?? '',
+          street: project.street ?? '',
+          postalCode: project.postalCode ?? '',
+          city: project.city ?? '',
+          latitude: project.latitude,
+          longitude: project.longitude,
+          phone: project.phone ?? '',
+          contact: project.contact ?? '',
+          price: showPrice && project.price != null ? String(Number(project.price)) : '',
+          plannedStart: toDateInputValue(project.plannedStart),
+          plannedEnd: toDateInputValue(project.plannedEnd),
+          actualStart: toDateInputValue(project.actualStart),
+          actualEnd: toDateInputValue(project.actualEnd),
+          managerId: project.managerId ?? '',
+          vehicleIds: project.vehicles.map((pv) => pv.vehicleId),
+          description: project.description ?? '',
+          internalNotes: project.internalNotes ?? '',
+          categoryIds: project.workCategories.map((wc) => wc.workCategoryId),
+          teamIds: project.team.map((m) => m.employeeId),
+          checklistIds: project.checklists
+            .map((c) => c.templateId)
+            .filter((cid): cid is string => cid !== null),
+          deviceIds: project.deviceNeeds.map((pd) => pd.deviceId),
+        }}
+      />
 
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Tools & materials — no overflow-hidden: the picker dropdown must escape the card */}
         {showPrice && (
           <ProjectAddOns
@@ -527,12 +609,6 @@ export default async function ProjectDetailPage({
         </section>
       </div>
 
-      {project.internalNotes && (
-        <section className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-5">
-          <h2 className="text-sm font-semibold">{t('internalNotes')}</h2>
-          <NoteText text={project.internalNotes} className="mt-2 text-sm text-muted" />
-        </section>
-      )}
     </div>
   )
 }

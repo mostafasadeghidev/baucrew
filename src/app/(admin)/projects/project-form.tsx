@@ -1,6 +1,8 @@
 'use client'
 
-import { useActionState, useState, type ReactNode } from 'react'
+import { useActionState, useEffect, useState, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import { Pencil } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Combobox } from '@/components/combobox'
 import { MultiCombobox } from '@/components/multi-combobox'
@@ -8,7 +10,21 @@ import { CityPicker } from '@/components/city-picker'
 import { NewCustomerModal } from './new-customer-modal'
 import type { ProjectFormState } from './actions'
 import { Select } from '@/components/ui/select'
+import { btn } from '@/components/ui/button'
 import { FormHead } from '@/components/ui/form-head'
+
+/**
+ * The project's own page shows these five cards read-only and lets each one be
+ * opened for editing where it stands. It is this very form that does the
+ * editing — the fields are defined once, here, and the page hands in what each
+ * card should look like while it is closed. A closed card keeps its fields in
+ * the page, hidden: they still travel with the form, so one card can be saved
+ * without the other four losing what they hold.
+ */
+export type ProjectSectionKey = 'basic' | 'address' | 'planning' | 'assignment' | 'description'
+
+/** Fired by the button in the page's bar; opens every card at once. */
+export const PROJECT_EDIT_ALL_EVENT = 'baucrew:project-edit-all'
 
 export type Option = { value: string; label: string }
 export type CustomerAddress = {
@@ -74,20 +90,52 @@ function Section({
   title,
   children,
   wide = false,
+  view,
+  open = true,
+  onOpen,
+  editLabel,
 }: {
   title: string
   children: React.ReactNode
   /** Runs the full width of the form — for the long text boxes. */
   wide?: boolean
+  /**
+   * What the card shows while it is closed. Only the project's own page hands
+   * one in; on the add and edit pages every card is open from the start.
+   */
+  view?: ReactNode
+  open?: boolean
+  onOpen?: () => void
+  /** The pencil's name for a screen reader. */
+  editLabel?: string
 }) {
+  const inline = view !== undefined
   return (
     <section
       className={`rounded-xl border border-border bg-surface p-5 shadow-sm ${
         wide ? 'xl:col-span-2' : ''
       }`}
     >
-      <h2 className="text-sm font-semibold">{title}</h2>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        {inline && !open && onOpen && (
+          <button
+            type="button"
+            onClick={onOpen}
+            title={editLabel}
+            aria-label={`${editLabel}: ${title}`}
+            className="-mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        )}
+      </div>
+      {inline && !open && <div className="mt-3">{view}</div>}
+      {/* Hidden, not absent: the fields of a closed card still travel with the
+          form, so saving one card cannot empty the other four. */}
+      <div hidden={inline && !open} className="mt-4 grid gap-4 sm:grid-cols-2">
+        {children}
+      </div>
     </section>
   )
 }
@@ -250,6 +298,7 @@ export function ProjectForm({
   draftId,
   extraSection,
   customerAddresses = {},
+  inline,
 }: {
   action: (prev: ProjectFormState, formData: FormData) => Promise<ProjectFormState>
   initial: ProjectFormValues
@@ -279,6 +328,15 @@ export function ProjectForm({
   extraSection?: ReactNode
   /** Addresses per customer id — for "same as customer address". */
   customerAddresses?: Record<string, CustomerAddress>
+  /**
+   * Set on the project's own page: each card shows `views[key]` until its
+   * pencil is used. Absent on the add and edit pages, where every card is open.
+   */
+  inline?: {
+    views: Record<ProjectSectionKey, ReactNode>
+    /** The pencil's name, and the words on the two buttons. */
+    labels: { edit: string; save: string; cancel: string }
+  }
 }) {
   const t = useTranslations('projects')
   const tc = useTranslations('common')
@@ -344,6 +402,55 @@ export function ProjectForm({
     prefill: '',
   })
 
+  const router = useRouter()
+  /** Which cards are open for editing; every one of them when this is not inline. */
+  const [openCards, setOpenCards] = useState<Partial<Record<ProjectSectionKey, boolean>>>({})
+  /**
+   * Bumped on cancel. It is the form's key, so React builds the fields again
+   * from their original values — the only way to take back what was typed into
+   * an input that keeps its own value.
+   */
+  const [formKey, setFormKey] = useState(0)
+  const editing = !inline || Object.values(openCards).some(Boolean)
+  const openCard = (key: ProjectSectionKey) => setOpenCards((o) => ({ ...o, [key]: true }))
+
+  // The button in the page's bar opens all five at once.
+  useEffect(() => {
+    if (!inline) return
+    const openAll = () =>
+      setOpenCards({ basic: true, address: true, planning: true, assignment: true, description: true })
+    window.addEventListener(PROJECT_EDIT_ALL_EVENT, openAll)
+    return () => window.removeEventListener(PROJECT_EDIT_ALL_EVENT, openAll)
+  }, [inline])
+
+  function cancelInline() {
+    setOpenCards({})
+    setVehicleIds(initial.vehicleIds)
+    setChecklistIds(initial.checklistIds)
+    setDeviceIds(initial.deviceIds)
+    setTeamIds(initial.teamIds)
+    setManagerId(initial.managerId)
+    setManagerAdded(false)
+    setCustomerId(initial.customerId)
+    setSameAsCustomer(false)
+    setAddress({
+      street: initial.street,
+      postalCode: initial.postalCode,
+      city: initial.city,
+      latitude: initial.latitude,
+      longitude: initial.longitude,
+      phone: initial.phone,
+    })
+    setFormKey((k) => k + 1)
+    router.refresh()
+  }
+
+  /** The props every card needs in inline mode, and nothing at all otherwise. */
+  const card = (key: ProjectSectionKey) =>
+    inline
+      ? { view: inline.views[key], open: !!openCards[key], onOpen: () => openCard(key), editLabel: inline.labels.edit }
+      : {}
+
   function handleCustomerCreated(customer: {
     id: string
     name: string
@@ -384,7 +491,21 @@ export function ProjectForm({
    */
   return (
     <>
-    <form action={formAction} className="grid items-start gap-6 xl:grid-cols-2">
+    <form key={formKey} action={formAction} className="grid items-start gap-6 xl:grid-cols-2">
+      {inline ? (
+        // On the project's own page the bar belongs to the page, not to the
+        // form; these two only appear once a card has been opened.
+        editing && (
+          <div className="sticky top-2 z-10 flex items-center justify-end gap-2 rounded-xl border border-border bg-surface px-3 py-2 shadow-sm md:top-0 xl:col-span-2">
+            <button type="button" onClick={cancelInline} className={btn.outlineSm}>
+              {inline.labels.cancel}
+            </button>
+            <button type="submit" disabled={pending} className={btn.primarySm}>
+              {inline.labels.save}
+            </button>
+          </div>
+        )
+      ) : (
       <FormHead
         title={title}
         saveLabel={tc('save')}
@@ -394,9 +515,10 @@ export function ProjectForm({
         className="xl:col-span-2"
         extra={headExtra}
       />
+      )}
       {templateId && <input type="hidden" name="templateId" value={templateId} />}
       {draftId && <input type="hidden" name="draftId" value={draftId} />}
-      <Section title={t('basicData')}>
+      <Section title={t('basicData')} {...card('basic')}>
         <TextField label={t('name')} name="name" defaultValue={initial.name} required />
         <div>
           <label className="block text-sm font-medium">
@@ -484,7 +606,7 @@ export function ProjectForm({
         </div>
       </Section>
 
-      <Section title={t('addressSection')}>
+      <Section title={t('addressSection')} {...card('address')}>
         <div className="sm:col-span-2">
           <label className={`flex items-center gap-2 text-sm font-medium ${customerHasAddress ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
             <input
@@ -531,7 +653,7 @@ export function ProjectForm({
         <TextField label={t('contact')} name="contact" defaultValue={initial.contact} />
       </Section>
 
-      <Section title={t('planningSection')}>
+      <Section title={t('planningSection')} {...card('planning')}>
         {/* Planning looks forward: a new project cannot start in the past. */}
         <TextField
           label={t('plannedStart')}
@@ -566,7 +688,7 @@ export function ProjectForm({
         )}
       </Section>
 
-      <Section title={t('assignmentSection')}>
+      <Section title={t('assignmentSection')} {...card('assignment')}>
         <div>
           <label className="block text-sm font-medium">{t('manager')}</label>
           <Combobox
@@ -644,7 +766,7 @@ export function ProjectForm({
 
       {extraSection}
 
-      <Section title={t('descriptionSection')} wide>
+      <Section title={t('descriptionSection')} wide {...card('description')}>
         <div className="sm:col-span-2">
           <label htmlFor="description" className="block text-sm font-medium">
             {t('description')}
