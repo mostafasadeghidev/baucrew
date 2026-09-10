@@ -81,7 +81,10 @@ export default async function SettingsPage({
   );
 
   return (
-    <div className="space-y-8">
+    // Four in a row rather than eight: the bar, the tabs and the first card
+    // are one header, and a gap as wide as the one between two sections read
+    // as if the tabs belonged to nothing.
+    <div className="space-y-4">
       <div className={pageToolbar}>
         <h1 className={pageTitle}>{tNav("settings")}</h1>
       </div>

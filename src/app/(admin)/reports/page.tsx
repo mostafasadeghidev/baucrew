@@ -521,7 +521,7 @@ export default async function ReportsPage({
                 <div className="mb-3 space-y-2">
                   <h2 className="flex items-center gap-1.5 text-sm font-semibold">
                     {t('quarterTitleYear')}
-                    <InfoHint text={t('quarterHint')} wide />
+                    <InfoHint text={t('quarterHint')} wide align="end" />
                   </h2>
                   <div className="flex flex-wrap items-center gap-2">
                     {/* The year is the control: the card is read by looking at
@@ -534,6 +534,7 @@ export default async function ReportsPage({
                         value: y === year ? '' : String(y),
                         label: String(y),
                       }))}
+                      dense
                     />
                     <span className="text-xs text-muted">{t('quarterVersus')}</span>
                     <YearComparePicker

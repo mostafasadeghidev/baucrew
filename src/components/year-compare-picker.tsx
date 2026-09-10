@@ -76,14 +76,21 @@ export function YearComparePicker({
       // How many are ticked belongs in the button's name: the badge that says
       // so is text a screen reader never reaches past the label.
       label={picked.length > 0 ? `${label}: ${picked.length}` : label}
-      className={`${dense ? btn.outlineXs : btn.outlineSm} gap-1.5 text-xs print:hidden ${
-        dense ? 'text-[11px]' : ''
+      className={`${dense ? btn.outlineXs : btn.outlineSm} gap-1.5 print:hidden ${
+        dense ? 'text-[11px]' : 'text-xs'
       }`}
       trigger={
         <>
           {label}
+          {/* The badge takes the button's own size: a twelve-pixel figure
+              inside an eleven-pixel button makes the button a pixel taller
+              than the one standing next to it. */}
           {picked.length > 0 && (
-            <span className="rounded-full bg-accent/10 px-1.5 text-xs tabular-nums text-accent">
+            <span
+              className={`rounded-full bg-accent/10 px-1.5 tabular-nums text-accent ${
+                dense ? 'text-[11px]' : 'text-xs'
+              }`}
+            >
               {picked.length}
             </span>
           )}

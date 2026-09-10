@@ -27,6 +27,7 @@ export function ParamPicker({
   value,
   param,
   label,
+  dense = false,
 }: {
   options: ParamOption[]
   /** The value in the URL now; '' is the default. */
@@ -34,6 +35,8 @@ export function ParamPicker({
   param: string
   /** What the button is called for a screen reader, e.g. "Jahr". */
   label: string
+  /** Smaller, to match a picker it stands beside. */
+  dense?: boolean
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -57,7 +60,9 @@ export function ParamPicker({
       // What is chosen belongs in the button's name, or a screen reader hears
       // "Jahr" whichever year is on screen.
       label={`${label}: ${current?.label ?? ''}`}
-      className={`${btn.outlineSm} gap-1.5 text-xs print:hidden`}
+      className={`${dense ? btn.outlineXs : btn.outlineSm} gap-1.5 print:hidden ${
+        dense ? 'text-[11px]' : 'text-xs'
+      }`}
       trigger={
         <>
           {current?.label}

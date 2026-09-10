@@ -10,11 +10,19 @@ export function InfoHint({
   text,
   className = '',
   wide = false,
+  align = 'start',
 }: {
   text: string
   className?: string
   /** For a paragraph rather than a sentence: a wider bubble. */
   wide?: boolean
+  /**
+   * Which edge the bubble hangs from. `start` opens it to the right of the
+   * mark, which is right for a mark on the left of the page; `end` opens it
+   * to the left, for a mark in a narrow column near the right-hand edge,
+   * where a bubble opening rightwards walks off the window.
+   */
+  align?: 'start' | 'end'
 }) {
   return (
     <span className={`group relative inline-flex align-middle ${className}`}>
@@ -28,7 +36,11 @@ export function InfoHint({
       </details>
       <span
         role="tooltip"
-        className={`pointer-events-none absolute left-0 top-full z-20 mt-1.5 hidden ${wide ? 'w-96 max-w-[80vw]' : 'w-64'} rounded-md border border-border bg-surface p-2.5 text-left text-xs font-normal not-italic leading-snug text-foreground shadow-md group-hover:block group-has-[[open]]:block`}
+        className={`pointer-events-none absolute top-full z-20 mt-1.5 hidden ${
+          align === 'end' ? 'right-0' : 'left-0'
+        } ${
+          wide ? 'w-96 max-w-[80vw]' : 'w-64 max-w-[80vw]'
+        } rounded-md border border-border bg-surface p-2.5 text-left text-xs font-normal not-italic leading-snug text-foreground shadow-md group-hover:block group-has-[[open]]:block`}
       >
         {text}
       </span>
