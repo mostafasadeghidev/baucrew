@@ -3,7 +3,7 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [1.36.0] — 2026-09-10
 
 ### Added
 - **The menu folds.** The button beside the logo — or Ctrl/⌘ + B — takes the
@@ -13,8 +13,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   nav around it. The choice is kept in a cookie, so the server already knows it
   and the page arrives at the width it was left at instead of snapping to it
   after it has been painted. On a phone the menu is the drawer it always was.
-
-### Added
 - **The map opens on a week.** Every site of the week on one map, each weekday
   in its own colour, with the legend under it and the list beside it split day
   by day. Clicking a day opens it: the other days fold to a line each and the
@@ -31,6 +29,34 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   so pressing the toggle does not push the first week down the page. The choice rides in the address with the week and the weekend, and
   every link on the board now carries all three: stepping a week used to close
   the weekend columns again behind you.
+- **A board beside the list** (Projekte). Every one of the nine statuses is a
+  column; dragging a card into another column moves the project, and the two
+  that end a project — *Abgeschlossen* and *Storniert* — ask first. It answers a
+  finger as well as a mouse: hold a card a quarter of a second and it follows
+  the thumb, so the board works on the tablet in the van. Which columns are
+  shown is the office's own choice, under Einstellungen, and **Liste / Board**
+  sits with the other filters rather than above them.
+- **Every card on a project's page is edited where it stands.** The pencil at
+  the top right of a card opens that card's fields and nothing else, and it
+  *becomes* the save and cancel buttons rather than adding a second row above
+  the page — so no line of the page shifts under the hand that clicked. The
+  **Bearbeiten** button in the page's bar opens every card at once and puts the
+  rest of the bar away while it is open: deleting or merging a project is not
+  something anybody means to do with an unsaved form on screen. Adding a
+  project and editing one now show the same cards the project page shows.
+- **A file from Trello is a link.** A note that carries a file name and a URL
+  used to print both, one under the other, neither clickable. It is one link
+  now, with a small mark beside the name; when the note already names the file,
+  only the mark is drawn.
+- **A skill can be written down before anybody has it** (Mitarbeiter, the
+  skills panel at the foot of the page). Skills are free text on a person, so
+  until now a new one could not exist until somebody had it — the wrong way
+  round when the company is setting the app up or has just started offering
+  something.
+- **Umsatz je Quartal** in CRM: a ring with the best quarter named in the
+  middle, each quarter's share of the year beside it, and up to two other years
+  to compare against — each card picks its own years. Pointing at a slice or a
+  row names it.
 
 ### Removed
 - **The Übersicht view is gone** from Einsatzplanung. Woche, Monat and Karte
@@ -44,6 +70,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   the server to make the first HTML, so importing it at the top threw there
   every time. The page came out anyway, drawn again in the browser, and left an
   error behind it each visit. It is fetched inside an effect now.
+- The quarter card's two year pickers are the same width, with **vs.** exactly
+  between them, and its hover bubble no longer falls off the edge of the
+  screen or covers the two slices above the one being pointed at. A slice that
+  grows under the cursor is no longer clipped by the edge of its own drawing,
+  and the two cards in that row are one height.
 
 ### Changed
 - **One header for all three scheduling views, in two rows.** The views sit on
@@ -68,7 +99,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   counter for each, and the list behind a click, in a menu over the board
   rather than under the line. A week with nothing to report says so. The ⚠ on
   the entries themselves — where the work is — is unchanged.
-
+- **Berichte is now CRM.** The address stays `/reports`, so every existing link
+  and bookmark still lands.
+- **Every page in the admin area wears the same bar**, with the page's own name
+  on it and its buttons at the right end — save and cancel included, which used
+  to sit at the foot of a long form where reaching them meant scrolling past
+  every field. The bar holds to the top of the window while the page scrolls
+  under it, and the strip of background above it is painted, so nothing shows
+  through the gap. Seventeen pages had no bar at all; they have one now.
+- **The map colours a building site, not a weekday.** Two sites over a week had
+  been drawn in seven colours with two pins; now each site keeps one colour and
+  one pin, however many days it is worked. Pins that share a town are pushed
+  apart by about three hundred metres **on the ground** rather than by a number
+  of screen pixels — measured in pixels they flew into the next district as
+  soon as the map was zoomed out. Clicking a number in the day list opens that
+  pin.
+- **The monthly chart grows wider, not bigger.** It measures the space it is
+  given and draws itself at that size, so a wider window buys more months
+  rather than a taller picture.
+- **The sidebar is a panel on the page** rather than an edge of the window, and
+  the tabs in CRM and Einstellungen sit on a sheet of their own.
 ## [1.35.0] — 2026-09-08
 
 ### Added — the revenue tab holds three views
