@@ -342,7 +342,7 @@ ist unter Einstellungen → Arbeitsbereiche → Anfragequellen anpassbar).
 ![Woche mit Wochenend-Spalte](screenshots/39-woche-wochenende.png)
 
 ![Knopf + Wochenende](screenshots/40-wochenende-knopf.png)
-- Oben: **Woche | Monat | Übersicht**, Pfeile **← →** für die Wochen, **Aktuelle Woche**.
+- Oben: **Woche | Monat | Karte**, darunter Pfeile **← →** für die Wochen und **Aktuelle Woche**.
 - **Einsatz verschieben:** Karte mit der Maus packen und auf einen anderen Tag ziehen. Am Tablet/Handy: Karte kurz gedrückt halten, dann ziehen.
 - **Einsatz kopieren:** dasselbe Ziehen mit gedrückter **Strg**-Taste (⌘ am Mac) — der Einsatz bleibt am alten Tag und wird zusätzlich auf dem neuen Tag angelegt.
 - **Tage, die es schon gibt:** Reicht der gewählte Zeitraum über Tage, an denen das Projekt bereits eingeplant ist, bleiben diese Tage unangetastet — im Fenster steht dann *„… Tage sind schon geplant und bleiben unverändert"*. Sollen Team, Fahrzeuge und Zeiten auch dort gelten (z. B. weil Sie gerade jemanden zum Trupp genommen haben), setzen Sie das Häkchen **„Die bestehenden Tage auch anpassen"**; der Knopf sagt dann genau, was passiert (*„Speichern und 2 Tage anpassen"*).
@@ -366,17 +366,15 @@ ist unter Einstellungen → Arbeitsbereiche → Anfragequellen anpassbar).
 
 ![Projekt abschließen im Einsatzfenster](screenshots/38-einsatz-abschliessen.png)
 
-### 7.3 Monat und Übersicht
+### 7.3 Der Monat
 
 ![Monatsansicht](screenshots/13-einsatzplanung-monat.png)
 
 **Monat:** Kalender mit allen Einsätzen — und genauso bedienbar wie die Woche: Klick auf einen Eintrag öffnet das Einsatzfenster, **+** neben der Tageszahl legt einen neuen Einsatz an, Einträge lassen sich per Ziehen auf einen anderen Tag verschieben (am Tablet gedrückt halten). „+2“ klappt einen vollen Tag auf; die KW-Nummer links springt in die Woche.
 
-![Übersicht](screenshots/14-einsatzplanung-uebersicht.png)
-
 ### 7.4 Die Karte (Tag für Tag)
 
-**Wo:** in der Einsatzplanung oben der vierte Reiter **Karte**.
+**Wo:** in der Einsatzplanung oben der dritte Reiter **Karte**.
 
 Alle Baustellen **eines Tages** auf einer Landkarte: nummerierte Punkte auf der Karte, daneben dieselbe Liste mit Uhrzeit, Projekt, Adresse, Team und Fahrzeug — und, wenn vorhanden, der Regenwahrscheinlichkeit für diesen Ort und Tag. Mit **← Heute →** blättern Sie tageweise; ein Klick auf einen Punkt zeigt Name und Adresse, ein Klick auf den Projektnamen öffnet das Projekt. Gezoomt wird mit dem **Mausrad** (oder mit + / − links oben), verschoben durch Ziehen der Karte.
 

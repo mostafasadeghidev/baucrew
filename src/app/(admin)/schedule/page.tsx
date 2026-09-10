@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
@@ -7,7 +6,6 @@ import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, addMonths, iso, isoWeek, mondayOf, monthStart, utcDate } from '@/lib/dates'
 import { MonthBoard } from './month-board'
 import { ScheduleBoard, type BoardEntry } from './schedule-board'
-import { btn } from '@/components/ui/button'
 
 const OPEN_STATUSES = ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] as const
 
@@ -27,8 +25,6 @@ function projectOptions(
   return [...byId].map(([value, label]) => ({ value, label })).sort((a, b) => b.label.localeCompare(a.label))
 }
 
-const OVERVIEW_WEEK_OPTIONS = [4, 6, 8, 12] as const
-const DEFAULT_OVERVIEW_WEEKS = 6
 
 /** Absences overlapping [start, end) — feeds warnings in every view. */
 function absencesBetween(start: Date, end: Date) {
@@ -68,7 +64,7 @@ export default async function SchedulePage({
   searchParams: Promise<{ week?: string; view?: string; weekend?: string; weeks?: string }>
 }) {
   await requireManagement()
-  const { week, view, weekend, weeks: weeksParam } = await searchParams
+  const { week, view, weekend } = await searchParams
   const [t, tVehicleStatus, tAbsences, locale] = await Promise.all([
     getTranslations('schedule'),
     getTranslations('vehicleStatus'),
@@ -135,7 +131,6 @@ export default async function SchedulePage({
         nextHref={`/schedule?view=month&week=${iso(addMonths(start, 1))}`}
         currentHref="/schedule?view=month"
         weekHref={`/schedule?week=${iso(monday)}`}
-        overviewHref={`/schedule?view=overview&week=${iso(monday)}`}
         mapHref={`/schedule/map?date=${iso(monday)}`}
         entries={monthEntries.map((entry) => ({
           id: entry.id,
@@ -156,17 +151,6 @@ export default async function SchedulePage({
         employees={employees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
         vehicles={vehicles.map((v) => ({ value: v.id, label: v.name }))}
         absences={toHints(monthAbsences)}
-      />
-    )
-  }
-
-  if (view === 'overview') {
-    return (
-      <OverviewView
-        monday={monday}
-        weeksCount={OVERVIEW_WEEK_OPTIONS.includes(Number(weeksParam) as 4) ? Number(weeksParam) : DEFAULT_OVERVIEW_WEEKS}
-        locale={locale}
-        t={t}
       />
     )
   }
@@ -290,7 +274,6 @@ export default async function SchedulePage({
       prevWeekHref={`/schedule?week=${iso(addDays(monday, -7))}`}
       nextWeekHref={`/schedule?week=${iso(addDays(monday, 7))}`}
       currentWeekHref="/schedule"
-      overviewHref={`/schedule?view=overview&week=${iso(monday)}`}
       monthHref={`/schedule?view=month&week=${iso(monday)}`}
       mapHref={`/schedule/map?date=${iso(monday)}`}
       todayIso={iso(new Date())}
@@ -309,258 +292,4 @@ export default async function SchedulePage({
   )
 }
 
-// ─────────────────────────────────────────────────────────────
-// Multi-week overview — same visual language as the paper
-// Wochenplan: per week, one condensed row per project with a
-// weekday range (Mo.–Mi.), vehicle and conflict badge.
-// ─────────────────────────────────────────────────────────────
 
-async function OverviewView({
-  monday,
-  weeksCount,
-  locale,
-  t,
-}: {
-  monday: Date
-  weeksCount: number
-  locale: string
-  t: Awaited<ReturnType<typeof getTranslations<'schedule'>>>
-}) {
-  const overviewEnd = addDays(monday, weeksCount * 7)
-  const [entries, overviewAbsences] = await Promise.all([
-    db.scheduleEntry.findMany({
-      where: { date: { gte: monday, lt: overviewEnd } },
-      include: ENTRY_INCLUDE,
-      orderBy: { date: 'asc' },
-    }),
-    absencesBetween(monday, overviewEnd),
-  ])
-
-  const weekdayFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
-    weekday: 'short',
-    timeZone: 'UTC',
-  })
-  const dayMonthFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: 'UTC',
-  })
-
-  type WeekSummary = {
-    mondayIso: string
-    weekNumber: number
-    rangeLabel: string
-    /** Calendar year of the week — shown when the range crosses into another year. */
-    year: number
-    conflictCount: number
-    isCurrent: boolean
-    projects: Array<{
-      id: string
-      name: string
-      customer: string
-      daysLabel: string
-      vehicles: string[]
-      hasConflict: boolean
-    }>
-  }
-
-  const currentMondayIso = iso(mondayOf(new Date()))
-  const currentYear = new Date().getUTCFullYear()
-  const dayMonthYearFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
-  const weeks: WeekSummary[] = []
-
-  for (let w = 0; w < weeksCount; w++) {
-    const start = addDays(monday, w * 7)
-    const end = addDays(start, 7)
-    const weekEntries = entries.filter((e) => e.date >= start && e.date < end)
-    const conflicts = [
-      ...detectConflicts(weekEntries),
-      ...detectAbsenceConflicts(weekEntries, overviewAbsences),
-    ]
-    const conflictedEntryIds = new Set(conflicts.flatMap((c) => c.entryIds))
-
-    const byProject = new Map<
-      string,
-      { name: string; customer: string; dates: Date[]; vehicles: Set<string>; hasConflict: boolean }
-    >()
-    for (const entry of weekEntries) {
-      const existing = byProject.get(entry.project.id) ?? {
-        name: entry.project.name,
-        customer: entry.project.customer.name,
-        dates: [],
-        vehicles: new Set<string>(),
-        hasConflict: false,
-      }
-      existing.dates.push(entry.date)
-      for (const ev of entry.vehicles) existing.vehicles.add(ev.vehicle.name)
-      if (conflictedEntryIds.has(entry.id)) existing.hasConflict = true
-      byProject.set(entry.project.id, existing)
-    }
-
-    // Collapse the scheduled dates into ranges like "Mo.–Mi." or "Mo., Do."
-    const projectRows = [...byProject.entries()].map(([id, p]) => {
-      const dayIdx = [...new Set(p.dates.map((d) => Math.round((d.getTime() - start.getTime()) / 86400000)))].sort(
-        (a, b) => a - b
-      )
-      const ranges: string[] = []
-      let i = 0
-      while (i < dayIdx.length) {
-        let j = i
-        while (j + 1 < dayIdx.length && dayIdx[j + 1] === dayIdx[j] + 1) j++
-        const from = weekdayFmt.format(addDays(start, dayIdx[i]))
-        const to = weekdayFmt.format(addDays(start, dayIdx[j]))
-        ranges.push(i === j ? from : `${from}–${to}`)
-        i = j + 1
-      }
-      return {
-        id,
-        name: p.name,
-        customer: p.customer,
-        daysLabel: ranges.join(', '),
-        vehicles: [...p.vehicles],
-        hasConflict: p.hasConflict,
-      }
-    })
-
-    weeks.push({
-      mondayIso: iso(start),
-      weekNumber: isoWeek(start),
-      // Weeks of another year carry it in the label (…08.01.2027) so a range
-      // running over New Year stays unambiguous.
-      rangeLabel:
-        addDays(start, 3).getUTCFullYear() === currentYear
-          ? `${dayMonthFmt.format(start)} – ${dayMonthFmt.format(addDays(start, 4))}`
-          : `${dayMonthYearFmt.format(start)} – ${dayMonthYearFmt.format(addDays(start, 4))}`,
-      year: addDays(start, 3).getUTCFullYear(),
-      conflictCount: conflicts.length,
-      isCurrent: iso(start) === currentMondayIso,
-      projects: projectRows,
-    })
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 md:justify-end">
-        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
-            <Link href={`/schedule?week=${weeks[0].mondayIso}`} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
-              {t('viewWeek')}
-            </Link>
-            <Link href={`/schedule?view=month&week=${weeks[0].mondayIso}`} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
-              {t('viewMonth')}
-            </Link>
-            <span className="rounded-md bg-surface px-3 py-1 text-foreground shadow-sm">{t('viewOverview')}</span>
-            <Link href={`/schedule/map?date=${weeks[0].mondayIso}`} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
-              {t('viewMap')}
-            </Link>
-          </div>
-          <div className="flex items-center gap-1">
-            <Link
-              // Page by the whole shown range: 6 weeks shown → 6 weeks back.
-              href={`/schedule?view=overview&week=${iso(addDays(monday, -7 * weeksCount))}&weeks=${weeksCount}`}
-              className={btn.outlineSm}
-              title={t('prevWeeks', { count: weeksCount })}
-            >
-              ←
-            </Link>
-            <Link
-              href={`/schedule?view=overview&weeks=${weeksCount}`}
-              className={btn.outlineSm}
-            >
-              {t('currentWeek')}
-            </Link>
-            <Link
-              href={`/schedule?view=overview&week=${iso(addDays(monday, 7 * weeksCount))}&weeks=${weeksCount}`}
-              className={btn.outlineSm}
-              title={t('nextWeeks', { count: weeksCount })}
-            >
-              →
-            </Link>
-          </div>
-          <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
-            {OVERVIEW_WEEK_OPTIONS.map((n) => (
-              <Link
-                key={n}
-                href={`/schedule?view=overview&week=${iso(monday)}&weeks=${n}`}
-                className={`rounded-md px-2.5 py-1 ${n === weeksCount ? 'bg-surface text-foreground shadow-sm' : 'text-muted transition-colors hover:text-foreground'}`}
-                title={t('weeksShown', { count: n })}
-              >
-                {n}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {weeks.map((week) => (
-          <Link
-            key={week.mondayIso}
-            href={`/schedule?week=${week.mondayIso}`}
-            title={t('openWeek')}
-            className={`flex flex-col rounded-lg border bg-surface shadow-sm transition-colors hover:border-accent ${
-              week.isCurrent ? 'border-accent' : 'border-border'
-            }`}
-          >
-            <div
-              className={`flex items-center justify-between border-b border-border px-4 py-3 ${
-                week.isCurrent ? 'bg-accent/10' : ''
-              }`}
-            >
-              <div>
-                <p className={`flex items-center gap-1.5 text-sm font-semibold ${week.isCurrent ? 'text-accent' : ''}`}>
-                  {t('weekLabel', { week: week.weekNumber })}
-                  {/* Range runs into another year — say which one. */}
-                  {week.year !== currentYear && (
-                    <span className="rounded-md bg-subtle px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-muted">
-                      {week.year}
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-muted">{week.rangeLabel}</p>
-              </div>
-              {week.conflictCount > 0 && (
-                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
-                  ⚠ {t('conflictCount', { count: week.conflictCount })}
-                </span>
-              )}
-            </div>
-            <div className="flex-1 space-y-2 p-3">
-              {week.projects.length === 0 ? (
-                <p className="py-4 text-center text-sm text-muted">{t('noEntries')}</p>
-              ) : (
-                week.projects.map((p) => (
-                  <div
-                    key={p.id}
-                    className={`rounded-md border px-2.5 py-1.5 text-xs ${
-                      p.hasConflict ? 'border-amber-500/60 bg-amber-500/10' : 'border-border bg-background'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate font-semibold">
-                        {p.hasConflict && '⚠ '}
-                        {p.name}
-                      </p>
-                      <span className="shrink-0 rounded bg-surface-hover px-1.5 py-0.5 font-medium tabular-nums">
-                        {p.daysLabel}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 truncate text-muted">
-                      {[p.customer, p.vehicles.join(', ')].filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  )
-}

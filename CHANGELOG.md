@@ -5,6 +5,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Removed
+- **The Übersicht view is gone** from Einsatzplanung. Woche, Monat and Karte
+  remain. What it did — several weeks one under the other — comes back inside
+  the week view, where it belongs, rather than as a fourth tab nobody opened.
+  A bookmark to it lands on the week board.
+
 ### Changed
 - **The week board stops moving under the cursor.** The conflict and weather
   boxes above the calendar grew and vanished with the week, so paging from a

@@ -126,9 +126,6 @@ export default async function ScheduleMapPage({
             <Link href={`/schedule?view=month&week=${dateIso}`} className={tab}>
               {t('viewMonth')}
             </Link>
-            <Link href={`/schedule?view=overview&week=${dateIso}`} className={tab}>
-              {t('viewOverview')}
-            </Link>
             <span className="rounded-md bg-surface px-3 py-1 text-foreground shadow-sm">
               {t('viewMap')}
             </span>

@@ -33,7 +33,6 @@ export function MonthBoard({
   nextHref,
   currentHref,
   weekHref,
-  overviewHref,
   mapHref,
   projects,
   employees,
@@ -52,7 +51,6 @@ export function MonthBoard({
   nextHref: string;
   currentHref: string;
   weekHref: string;
-  overviewHref: string;
   mapHref: string;
   projects: ComboboxOption[];
   employees: ComboboxOption[];
@@ -190,12 +188,6 @@ export function MonthBoard({
             <span className="rounded-md bg-surface px-3 py-1 text-foreground shadow-sm">
               {t("viewMonth")}
             </span>
-            <Link
-              href={overviewHref}
-              className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
-            >
-              {t("viewOverview")}
-            </Link>
             <Link
               href={mapHref}
               className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
