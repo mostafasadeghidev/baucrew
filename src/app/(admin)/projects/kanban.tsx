@@ -18,9 +18,16 @@
  * The card jumps to its new column before the server has answered — a board
  * that waits for a round trip on every drag feels broken — and goes back if
  * the answer is an error.
+ *
+ * A mouse drags with the browser's own drag and drop; a finger cannot, because
+ * that never fires on a touch screen. So a touch or a pen picks a card up by
+ * resting on it for a quarter of a second, carries a copy of it under the
+ * finger, and drops it into whatever column is under the finger when it lifts
+ * — the same way the scheduling board is dragged, so the two boards are not
+ * two different gestures to learn.
  */
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertDialog } from '@/components/ui/alert-dialog'
@@ -127,6 +134,87 @@ export function ProjectsKanban({
     else move(card, status)
   }
 
+  // ── Touch drag (Pointer Events) ─────────────────────────────
+  // Native drag and drop does not fire on a touch screen. A long press picks
+  // the card up, a copy of it follows the finger, the column under the finger
+  // lights, and letting go drops it there.
+  const touch = useRef<{
+    id: string
+    timer: ReturnType<typeof setTimeout> | null
+    active: boolean
+    startX: number
+    startY: number
+    ghost: HTMLElement | null
+  } | null>(null)
+
+  function columnAtPoint(x: number, y: number): string | null {
+    const column = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-board-column]')
+    return column?.dataset.boardColumn ?? null
+  }
+
+  function onCardPointerDown(e: React.PointerEvent<HTMLDivElement>, id: string) {
+    if (e.pointerType === 'mouse') return
+    const card = e.currentTarget
+    touch.current = {
+      id,
+      timer: setTimeout(() => {
+        const state = touch.current
+        if (!state || state.id !== id) return
+        state.active = true
+        const ghost = card.cloneNode(true) as HTMLElement
+        const rect = card.getBoundingClientRect()
+        ghost.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;pointer-events:none;opacity:.85;z-index:60;transform:rotate(1.5deg);`
+        document.body.appendChild(ghost)
+        state.ghost = ghost
+        setDragging(id)
+        try {
+          card.setPointerCapture(e.pointerId)
+        } catch {
+          /* the browser may refuse; the drag still works, it just leaves the card */
+        }
+        if (navigator.vibrate) navigator.vibrate(15)
+      }, 250),
+      active: false,
+      startX: e.clientX,
+      startY: e.clientY,
+      ghost: null,
+    }
+  }
+
+  function onCardPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const state = touch.current
+    if (!state) return
+    if (!state.active) {
+      // Moved before the press was long enough → the finger is scrolling.
+      if (Math.hypot(e.clientX - state.startX, e.clientY - state.startY) > 10) {
+        if (state.timer) clearTimeout(state.timer)
+        touch.current = null
+      }
+      return
+    }
+    e.preventDefault()
+    if (state.ghost) {
+      state.ghost.style.transform = `translate(${e.clientX - state.startX}px, ${e.clientY - state.startY}px) rotate(1.5deg)`
+    }
+    setOver(columnAtPoint(e.clientX, e.clientY))
+  }
+
+  function onCardPointerEnd(e: React.PointerEvent<HTMLDivElement>) {
+    const state = touch.current
+    touch.current = null
+    if (!state) return
+    if (state.timer) clearTimeout(state.timer)
+    if (!state.active) return
+    state.ghost?.remove()
+    const status = columnAtPoint(e.clientX, e.clientY)
+    const column = board.find((c) => c.status === status)
+    if (column) drop(column.status, column.label)
+    else {
+      setDragging(null)
+      setOver(null)
+    }
+  }
+
   return (
     <div className="space-y-2">
       {error && (
@@ -145,6 +233,7 @@ export function ProjectsKanban({
               if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(null)
             }}
             onDrop={() => drop(column.status, column.label)}
+            data-board-column={column.status}
             className={`flex w-64 shrink-0 flex-col rounded-xl border bg-subtle/40 transition-colors ${
               over === column.status ? 'border-accent bg-accent/5' : 'border-border'
             }`}
@@ -174,6 +263,11 @@ export function ProjectsKanban({
                     setDragging(null)
                     setOver(null)
                   }}
+                  onPointerDown={(e) => onCardPointerDown(e, card.id)}
+                  onPointerMove={onCardPointerMove}
+                  onPointerUp={onCardPointerEnd}
+                  onPointerCancel={onCardPointerEnd}
+                  style={{ touchAction: 'pan-y' }}
                   className={`rounded-lg border border-border bg-surface px-2.5 py-2 shadow-sm transition-opacity ${
                     dragging === card.id ? 'opacity-40' : ''
                   }`}

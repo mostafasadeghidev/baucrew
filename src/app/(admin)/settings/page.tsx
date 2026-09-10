@@ -13,11 +13,13 @@ import {
   updateItemKinds,
   updateLeadSources,
   updatePrepTab,
+  updateProjectBoard,
   updateRainThreshold,
   updateHistoryCutoff,
 } from "./actions";
 import { getRainThreshold } from "@/lib/weather";
 import { getPrepTabConfig } from "@/lib/prep-tab-db";
+import { getBoardConfig } from "@/lib/board-columns-db";
 import { ALL_PROJECT_STATUSES } from "@/lib/prep-tab";
 import { LogoUploader } from "./logo-uploader";
 import { BackupRestore } from "./backup-restore";
@@ -68,9 +70,10 @@ export default async function SettingsPage({
     getBranding(),
   ]);
 
-  const [rainThreshold, prepTab, lists, cutoff] = await Promise.all([
+  const [rainThreshold, prepTab, board, lists, cutoff] = await Promise.all([
     getRainThreshold(),
     getPrepTabConfig(),
+    getBoardConfig(),
     getOptionLists(),
     getHistoryCutoff(),
   ]);
@@ -382,6 +385,34 @@ export default async function SettingsPage({
                 />
                 {t("prepTabUnscheduledOnly")}
               </label>
+              <button type="submit" className={btn.primarySm}>
+                {tc("save")}
+              </button>
+            </SavedForm>
+          </Card>
+
+          {/* Project board: which statuses get a column */}
+          <Card title={t("boardTitle")} description={t("boardHint")}>
+            <SavedForm action={updateProjectBoard} className="max-w-2xl space-y-3">
+              <fieldset>
+                <legend className="text-sm">{t("boardStatuses")}</legend>
+                <div className="mt-1 grid grid-cols-2 gap-1 sm:grid-cols-3">
+                  {ALL_PROJECT_STATUSES.map((s) => (
+                    <label
+                      key={s}
+                      className="flex items-center gap-2 rounded-md border border-border px-2 py-1 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        name={`board_${s}`}
+                        defaultChecked={board.statuses.includes(s)}
+                        className="h-4 w-4 accent-[var(--accent)]"
+                      />
+                      {tStatus(s)}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <button type="submit" className={btn.primarySm}>
                 {tc("save")}
               </button>

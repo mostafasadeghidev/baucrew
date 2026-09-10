@@ -7,6 +7,7 @@ import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/p
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
 import { getPrepTabConfig } from '@/lib/prep-tab-db'
+import { getBoardConfig } from '@/lib/board-columns-db'
 import type { Prisma } from '@/generated/prisma/client'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
@@ -35,7 +36,7 @@ export default async function ProjectsPage({
     getLocale(),
   ])
 
-  const prepTab = await getPrepTabConfig()
+  const [prepTab, board] = await Promise.all([getPrepTabConfig(), getBoardConfig()])
   const query = q?.trim() ?? ''
   const statusFilter = STATUSES.includes(status as ProjectStatus)
     ? (status as ProjectStatus)
@@ -110,7 +111,9 @@ export default async function ProjectsPage({
         orderBy: { number: 'desc' },
       })
     : []
-  const columns: KanbanColumn[] = STATUSES.map((value) => {
+  // Which statuses get a column is the office's own choice (Einstellungen →
+  // Arbeitsbereiche), the same way the combined tab on the list is.
+  const columns: KanbanColumn[] = board.statuses.map((value) => {
     const own = boardProjects.filter((p) => p.status === value)
     const sum = own.reduce((total, p) => total + (p.price ? Number(p.price) : 0), 0)
     return {
@@ -165,34 +168,6 @@ export default async function ProjectsPage({
             >
               {tTemplates('title')}
             </Link>
-            {/* List or board — the same projects, the same search, two ways
-                of looking at them. */}
-            <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
-              {[
-                { value: '', label: t('viewList') },
-                { value: 'kanban', label: t('viewBoard') },
-              ].map((option) =>
-                (option.value === 'kanban') === kanban ? (
-                  <span
-                    key={option.value || 'list'}
-                    aria-current="page"
-                    className="whitespace-nowrap rounded-md bg-surface px-3 py-1 text-foreground shadow-sm"
-                  >
-                    {option.label}
-                  </span>
-                ) : (
-                  <Link
-                    key={option.value || 'list'}
-                    href={`/projects${option.value ? '?view=kanban' : ''}${
-                      query ? `${option.value ? '&' : '?'}q=${encodeURIComponent(query)}` : ''
-                    }`}
-                    className="whitespace-nowrap rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
-                  >
-                    {option.label}
-                  </Link>
-                )
-              )}
-            </div>
             <Link
               href="/projects/new"
               className={btn.primary}
@@ -223,8 +198,39 @@ export default async function ProjectsPage({
             ]}
           />
           )}
-          <div className="flex max-w-md">
-            <LiveSearchInput placeholder={t('searchPlaceholder')} />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex max-w-md flex-1">
+              <LiveSearchInput placeholder={t('searchPlaceholder')} />
+            </div>
+            {/* List or board — the same projects, the same search, two ways of
+                looking at them. It sits with the search rather than up with the
+                buttons: it changes what you are looking at, not what you do. */}
+            <div className="ml-auto flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
+              {[
+                { value: '', label: t('viewList') },
+                { value: 'kanban', label: t('viewBoard') },
+              ].map((option) =>
+                (option.value === 'kanban') === kanban ? (
+                  <span
+                    key={option.value || 'list'}
+                    aria-current="page"
+                    className="whitespace-nowrap rounded-md bg-surface px-3 py-1 text-foreground shadow-sm"
+                  >
+                    {option.label}
+                  </span>
+                ) : (
+                  <Link
+                    key={option.value || 'list'}
+                    href={`/projects${option.value ? '?view=kanban' : ''}${
+                      query ? `${option.value ? '&' : '?'}q=${encodeURIComponent(query)}` : ''
+                    }`}
+                    className="whitespace-nowrap rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
+                  >
+                    {option.label}
+                  </Link>
+                )
+              )}
+            </div>
           </div>
         </div>
 

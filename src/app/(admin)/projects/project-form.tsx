@@ -71,9 +71,22 @@ const todayIso = new Date().toISOString().slice(0, 10)
 const inputClass =
   'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  wide = false,
+}: {
+  title: string
+  children: React.ReactNode
+  /** Runs the full width of the form — for the long text boxes. */
+  wide?: boolean
+}) {
   return (
-    <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <section
+      className={`rounded-xl border border-border bg-surface p-5 shadow-sm ${
+        wide ? 'xl:col-span-2' : ''
+      }`}
+    >
       <h2 className="text-sm font-semibold">{title}</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
     </section>
@@ -358,9 +371,15 @@ export function ProjectForm({
     setCustomerModal({ open: false, prefill: '' })
   }
 
+  /**
+   * The form has the same shape as the project's own page: cards side by side
+   * across the width of the window rather than one narrow column of them. Two
+   * columns only from xl up — a field needs more room than a line of read-only
+   * text, and the fields inside each card already pair off at sm.
+   */
   return (
     <>
-    <form action={formAction} className="max-w-3xl space-y-6">
+    <form action={formAction} className="grid items-start gap-6 xl:grid-cols-2">
       {templateId && <input type="hidden" name="templateId" value={templateId} />}
       {draftId && <input type="hidden" name="draftId" value={draftId} />}
       <Section title={t('basicData')}>
@@ -611,7 +630,7 @@ export function ProjectForm({
 
       {extraSection}
 
-      <Section title={t('descriptionSection')}>
+      <Section title={t('descriptionSection')} wide>
         <div className="sm:col-span-2">
           <label htmlFor="description" className="block text-sm font-medium">
             {t('description')}
@@ -639,12 +658,12 @@ export function ProjectForm({
       </Section>
 
       {state.error && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="text-sm text-danger xl:col-span-2">
           {state.error === 'saveFailed' ? tc('saveFailed') : t(state.error)}
         </p>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 xl:col-span-2">
         <button
           type="submit"
           disabled={pending}
