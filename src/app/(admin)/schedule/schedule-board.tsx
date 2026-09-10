@@ -13,9 +13,14 @@ import {
 } from './actions'
 import { EntryDialog, type AbsenceHint, type DialogState, type BoardEntry } from './entry-dialog'
 import { btn } from '@/components/ui/button'
+import { Menu, MenuLabel } from '@/components/ui/menu'
 export type { BoardEntry } from './entry-dialog'
 
 
+
+/** A counter in the strip above the board: short, round, and never wrapping. */
+const chip =
+  'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 font-medium transition-opacity hover:opacity-80'
 
 export function ScheduleBoard({
   days,
@@ -244,33 +249,60 @@ export function ScheduleBoard({
         </div>
       </div>
 
-      {conflictMessages.length > 0 && (
-        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
-          <p className="text-sm font-semibold">⚠ {t('conflictsTitle')}</p>
-          <ul className="mt-1 list-inside list-disc text-sm text-muted">
-            {conflictMessages.map((m, i) => (
-              <li key={i}>{m}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {weatherMessages.length > 0 && (
-        <div className="rounded-lg border border-sky-500/40 bg-sky-500/10 p-4">
-          <p className="text-sm font-semibold">🌧 {t('weatherTitle')}</p>
-          <ul className="mt-1 list-inside list-disc text-sm text-muted">
-            {weatherMessages.map((m, i) => (
-              <li key={i}>{m}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {boardError && (
-        <p role="alert" className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-          {boardError}
-        </p>
-      )}
+      {/* One line, always here, always the same height. What it says changes
+          with the week; where the day columns begin does not. Blocks that came
+          and went with the week used to push the whole board up and down as
+          somebody paged through it. The detail opens in a menu over the board
+          rather than under this line, for the same reason. */}
+      <div className="flex h-9 items-center gap-2 overflow-x-auto rounded-md border border-border bg-subtle px-2.5 text-xs">
+        {conflictMessages.length === 0 && weatherMessages.length === 0 && !boardError ? (
+          <span className="whitespace-nowrap text-muted">{t('allClear')}</span>
+        ) : (
+          <>
+            {conflictMessages.length > 0 && (
+              <Menu
+                side="bottom"
+                align="start"
+                label={t('conflictsTitle')}
+                className={`${chip} bg-amber-500/15 text-amber-700 dark:text-amber-400`}
+                trigger={<>⚠ {t('conflictsCount', { count: conflictMessages.length })}</>}
+              >
+                <div className="max-w-[22rem]">
+                  <MenuLabel>{t('conflictsTitle')}</MenuLabel>
+                  {conflictMessages.map((m, i) => (
+                    <p key={i} className="px-2 py-1 text-sm text-muted">
+                      {m}
+                    </p>
+                  ))}
+                </div>
+              </Menu>
+            )}
+            {weatherMessages.length > 0 && (
+              <Menu
+                side="bottom"
+                align="start"
+                label={t('weatherTitle')}
+                className={`${chip} bg-sky-500/15 text-sky-700 dark:text-sky-400`}
+                trigger={<>🌧 {t('weatherCount', { count: weatherMessages.length })}</>}
+              >
+                <div className="max-w-[22rem]">
+                  <MenuLabel>{t('weatherTitle')}</MenuLabel>
+                  {weatherMessages.map((m, i) => (
+                    <p key={i} className="px-2 py-1 text-sm text-muted">
+                      {m}
+                    </p>
+                  ))}
+                </div>
+              </Menu>
+            )}
+            {boardError && (
+              <span role="alert" className="whitespace-nowrap font-medium text-danger">
+                {boardError}
+              </span>
+            )}
+          </>
+        )}
+      </div>
 
       <div className={`grid grid-cols-1 gap-3 ${days.length > 5 ? 'md:grid-cols-7' : 'md:grid-cols-5'}`}>
         {days.map((date) => {

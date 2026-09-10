@@ -3,6 +3,17 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **The week board stops moving under the cursor.** The conflict and weather
+  boxes above the calendar grew and vanished with the week, so paging from a
+  week that had warnings to one that had none lifted every day column up the
+  page. They are one line now, always there and always the same height: a
+  counter for each, and the list behind a click, in a menu over the board
+  rather than under the line. A week with nothing to report says so. The ⚠ on
+  the entries themselves — where the work is — is unchanged.
+
 ## [1.35.0] — 2026-09-08
 
 ### Added — the revenue tab holds three views
