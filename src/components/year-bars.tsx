@@ -40,6 +40,12 @@ export function YearBars({
   if (rows.length === 0) return null
   const max = Math.max(1, ...rows.map((r) => r.total))
   const pctOf = (v: number) => `${(v / max) * 100}%`
+  // Both columns of figures are given their room up front: a sum in the
+  // millions and a change of a hundred per cent are the widest either can get,
+  // and a column that measures itself against its content makes the bar beside
+  // it a different length in every year. Written out in full on both the head
+  // and the rows — Tailwind reads these files as text, so a class it has to
+  // assemble at runtime is a class it never generates.
 
   return (
     <div className="space-y-2">
@@ -51,8 +57,15 @@ export function YearBars({
           <span className="inline-block h-2 w-2 rounded-[3px] bg-accent/40" /> {legend.sub}
         </span>
       </div>
-      <div className="hidden justify-end pr-2 text-[11px] text-muted sm:flex">
-        <span className="w-14 text-right">{legend.change}</span>
+      {/* The head is laid out on the very grid the rows use, so its word sits
+          over the column it names however wide that word turns out to be —
+          "ggü. Vorjahr" broke across two lines in the hand-set box it had
+          before, and shifted every row underneath it down with it. */}
+      <div className="hidden gap-3 px-2 text-[11px] text-muted sm:grid sm:grid-cols-[2.5rem_1fr_9.5rem_6.5rem]">
+        <span />
+        <span />
+        <span />
+        <span className="whitespace-nowrap text-right">{legend.change}</span>
       </div>
       <ul className="space-y-0.5">
         {rows.map((r) => (
@@ -60,7 +73,7 @@ export function YearBars({
             <Link
               href={hrefFor(r.year)}
               aria-current={r.year === selected ? 'true' : undefined}
-              className={`grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-surface-hover sm:grid-cols-[2.5rem_1fr_auto_3.5rem] ${
+              className={`grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-surface-hover sm:grid-cols-[2.5rem_1fr_9.5rem_6.5rem] ${
                 r.year === selected ? 'bg-surface-hover' : ''
               }`}
             >
@@ -75,9 +88,11 @@ export function YearBars({
                 <span className="bg-accent" style={{ width: pctOf(r.own) }} />
                 <span className="bg-accent/40" style={{ width: pctOf(r.sub) }} />
               </span>
-              <span className="text-sm font-semibold tabular-nums">{formatValue(r.total)}</span>
+              <span className="whitespace-nowrap text-right text-sm font-semibold tabular-nums">
+                {formatValue(r.total)}
+              </span>
               <span
-                className={`hidden text-right text-xs tabular-nums sm:block ${
+                className={`hidden whitespace-nowrap text-right text-xs tabular-nums sm:block ${
                   r.change == null
                     ? 'text-muted'
                     : r.change >= 0

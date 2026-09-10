@@ -10,10 +10,13 @@ function useParamUpdater() {
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
 
-  return (param: string, value: string) => {
+  return (param: string, value: string, clears: string[] = []) => {
     const params = new URLSearchParams(searchParams)
     if (value) params.set(param, value)
     else params.delete(param)
+    // Some filters carry others with them: a card that was looking at its own
+    // year has no business staying there once the whole page has moved.
+    for (const other of clears) params.delete(other)
     // Changing a filter always jumps back to the first page.
     params.delete('page')
     const qs = params.toString()
@@ -72,6 +75,7 @@ export function LiveSelect({
   ariaLabel,
   className = 'min-w-44',
   compact = false,
+  clears,
 }: {
   param: string
   options: Array<LiveSelectOption | LiveSelectGroup>
@@ -79,6 +83,8 @@ export function LiveSelect({
   ariaLabel?: string
   className?: string
   compact?: boolean
+  /** Other query parameters to drop when this one changes. */
+  clears?: string[]
 }) {
   const searchParams = useSearchParams()
   const update = useParamUpdater()
@@ -95,7 +101,7 @@ export function LiveSelect({
       compact={compact}
       aria-label={ariaLabel}
       value={searchParams.get(param) ?? ''}
-      onChange={(e) => update(param, e.target.value)}
+      onChange={(e) => update(param, e.target.value, clears)}
     >
       {allLabel !== undefined && <option value="">{allLabel}</option>}
       {options.map((o) =>

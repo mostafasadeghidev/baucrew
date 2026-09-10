@@ -80,6 +80,59 @@ export function sumThroughMonth(monthTotals: number[], throughMonth: number): nu
   return monthTotals.slice(0, Math.max(0, Math.min(11, throughMonth)) + 1).reduce((a, b) => a + b, 0)
 }
 
+// ── Quarters ───────────────────────────────────────────────────────────
+
+export type QuarterCompare = { year: number; total: number; percent: number | null }
+
+export type QuarterRow = {
+  /** 0-3. */
+  index: number
+  total: number
+  /** Of the whole year, 0..1; 0 when the year is empty. */
+  share: number
+  /** The same quarter of each year given, in the order they were given. */
+  compare: QuarterCompare[]
+}
+
+/**
+ * The year's twelve months folded into four quarters, each one set against the
+ * same quarter of every year the office asked to compare with.
+ *
+ * Quarter against the same quarter, never against the year on screen as a
+ * whole: three winter months are not a fourth of the year's work anywhere in
+ * this trade, and measuring them against a yearly average would say every
+ * winter is a bad one.
+ */
+export function quarterBreakdown(
+  months: number[],
+  compare: Array<{ year: number; months: number[] }> = []
+): QuarterRow[] {
+  const quarterOf = (values: number[], q: number) =>
+    values.slice(q * 3, q * 3 + 3).reduce((sum, v) => sum + (Number.isFinite(v) ? v : 0), 0)
+  const totals = [0, 1, 2, 3].map((q) => quarterOf(months, q))
+  const yearTotal = totals.reduce((sum, v) => sum + v, 0)
+  return totals.map((total, index) => ({
+    index,
+    total,
+    share: yearTotal > 0 ? total / yearTotal : 0,
+    compare: compare.map((other) => {
+      const otherTotal = quarterOf(other.months, index)
+      return { year: other.year, total: otherTotal, percent: percentChange(total, otherTotal) }
+    }),
+  }))
+}
+
+/**
+ * The quarter with the most in it. Null when the year is empty — there is no
+ * "best" quarter of a year in which nothing was earned, and a card that named
+ * one would be inventing it.
+ */
+export function bestQuarter(rows: QuarterRow[]): QuarterRow | null {
+  let best: QuarterRow | null = null
+  for (const row of rows) if (row.total > 0 && (!best || row.total > best.total)) best = row
+  return best
+}
+
 // ── Period selection (whole year, quarter, half-year, single month) ─────
 
 export type MonthRange = { from: number; to: number } // 0-11 inclusive

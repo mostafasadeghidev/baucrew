@@ -20,6 +20,8 @@ import {
   percentChange,
   cumulativeMonths,
   parseCompareYears,
+  quarterBreakdown,
+  bestQuarter,
   splitPlanGaps,
   sumRange,
   topSites,
@@ -36,7 +38,7 @@ import { LiveSelect } from '@/components/live-search'
 import { PrintButton } from '@/components/print-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
-import { DonutChart } from '@/components/donut-chart'
+import { QuarterBreakdown, type QuarterRowView } from '@/components/quarter-breakdown'
 import { YearBars } from '@/components/year-bars'
 import { YearComparePicker } from '@/components/year-compare-picker'
 import { ChartModePicker } from '@/components/chart-mode-picker'
@@ -62,10 +64,10 @@ const warn = 'text-amber-700 dark:text-amber-400'
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; period?: string; tab?: string; order?: string; view?: string; compare?: string; chart?: string }>
+  searchParams: Promise<{ year?: string; period?: string; tab?: string; order?: string; view?: string; compare?: string; chart?: string; qcompare?: string; qyear?: string }>
 }) {
   const user = await requireManagement()
-  const { year: yearParam, period: periodParam, tab: tabParam, order: orderParam, view: viewParam, compare: compareParam, chart: chartParam } = await searchParams
+  const { year: yearParam, period: periodParam, tab: tabParam, order: orderParam, view: viewParam, compare: compareParam, chart: chartParam, qcompare: quarterCompareParam, qyear: quarterYearParam } = await searchParams
   const [t, tProjects, locale] = await Promise.all([
     getTranslations('reports'),
     getTranslations('projects'),
@@ -108,15 +110,6 @@ export default async function ReportsPage({
     d == null ? '—' : d === 0 ? t('onTime') : `${d > 0 ? '+' : ''}${t('daysShort', { count: d })}`
   const money = (v: number | null | undefined) => formatCurrency(v, locale)
 
-  // Revenue per quarter, as a ring instead of another table.
-  const quarters = (revenue?.months ?? []).reduce<Array<{ label: string; value: number; hint?: string }>>(
-    (acc, m) => {
-      const q = Math.floor(m.month / 3)
-      acc[q].value += m.total
-      return acc
-    },
-    [0, 1, 2, 3].map((q) => ({ label: `Q${q + 1}`, value: 0, hint: `${q * 3 + 1}–${q * 3 + 3}` }))
-  )
 
   /** Human label of the selected period ("August", "3. Quartal", "1. Halbjahr"). */
   const periodLabel = (() => {
@@ -214,6 +207,13 @@ export default async function ReportsPage({
   // aggregate the year comparison below already loads, so choosing a fourth
   // year costs no query.
   const MAX_COMPARE = 5
+  /**
+   * The quarter card carries its comparison on a second line under each sum,
+   * so it holds two other years and no more — a third would either wrap that
+   * line or shrink the figures it sits under. It keeps its own parameter: the
+   * two cards are read for different things and are not tied to each other.
+   */
+  const MAX_QUARTER_COMPARE = 2
   /** Bars unless the office asks for a curve. */
   const chartMode: 'bars' | 'line' | 'linear' | 'area' =
     chartParam === 'line' || chartParam === 'linear' || chartParam === 'area' ? chartParam : 'bars'
@@ -232,6 +232,76 @@ export default async function ReportsPage({
         : null
     })
     .filter((row) => row !== null)
+  /**
+   * The quarter card walks the years on its own. The picker at the top of the
+   * page moves everything at once — the sums, the chart, the tables; this one
+   * moves the four quarters and leaves the rest of the page where it was, so
+   * one year's quarters can be read while another year's figures stand above
+   * them. Absent means "whatever the page is on", and choosing the page's own
+   * year writes nothing, so the two only come apart on purpose.
+   */
+  const quarterYear =
+    quarterYearParam && /^\d{4}$/.test(quarterYearParam) &&
+    comparisonYears.includes(Number(quarterYearParam))
+      ? Number(quarterYearParam)
+      : year
+  const monthsOfYear = (y: number): number[] =>
+    y === year
+      ? (revenue?.months ?? []).map((m) => m.total)
+      : ((yearTotals ?? []).find((r) => r.year === y)?.months ?? []).map((m) => m.total)
+  const quarterCompareYears = parseCompareYears(
+    quarterCompareParam,
+    quarterYear,
+    comparisonYears,
+    MAX_QUARTER_COMPARE
+  )
+  const quarterRows = quarterBreakdown(
+    monthsOfYear(quarterYear),
+    quarterCompareYears
+      .map((y) => ({ year: y, months: monthsOfYear(y) }))
+      .filter((row) => row.months.length > 0)
+  )
+  const best = bestQuarter(quarterRows)
+  /** Every link out of this page keeps the rest of the page as it stands. */
+  const reportHref = (change: { period?: string | null; year?: number } = {}) => {
+    const nextYear = change.year ?? year
+    const params = new URLSearchParams({ year: String(nextYear) })
+    const period = change.period === undefined ? periodParam : change.period
+    if (period) params.set('period', period)
+    if (tabParam) params.set('tab', tabParam)
+    if (orderParam) params.set('order', orderParam)
+    if (viewParam) params.set('view', viewParam)
+    // An empty comparison is a choice, not an absence — see parseCompareYears.
+    if (compareParam !== undefined) params.set('compare', compareParam)
+    if (quarterCompareParam !== undefined) params.set('qcompare', quarterCompareParam)
+    // The card's own year goes once the page has caught up with it: two names
+    // for the same year in one address is how they drift apart later.
+    if (quarterYearParam !== undefined && quarterYear !== nextYear)
+      params.set('qyear', String(quarterYear))
+    if (chartParam) params.set('chart', chartParam)
+    return `/reports?${params.toString()}`
+  }
+  const quarterViews: QuarterRowView[] = quarterRows.map((row) => {
+    const key = `q${row.index + 1}`
+    // Only the year the page is already on can have a period selected on it.
+    const selected = quarterYear === year && periodParam === key
+    return {
+      label: `Q${row.index + 1}`,
+      months: `${shortMonths[row.index * 3]}–${shortMonths[row.index * 3 + 2]}`,
+      value: money(row.total),
+      share: row.share,
+      compare: row.compare.map((c) => ({ year: c.year, percent: c.percent })),
+      // Clicking a quarter of another year takes the whole page to that year
+      // and that quarter — otherwise the sums above would answer for one year
+      // and the quarter below for another. Clicking the quarter that is
+      // already the period goes back to the year: a filter has to be undoable
+      // where it is set.
+      href: reportHref({ year: quarterYear, period: selected ? null : key }),
+      selected,
+      running: quarterYear === currentYear && Math.floor(now.getUTCMonth() / 3) === row.index,
+    }
+  })
+
   /** The default comparison keeps the title it always had. */
   const chartTitle =
     compareYears.length === 1 && compareYears[0] === year - 1
@@ -278,7 +348,7 @@ export default async function ReportsPage({
   return (
     <div className="space-y-4">
       {/* Neither the sidebar nor the top bar is printed, so the sheet carries
-          its own title. On screen the sidebar already says "Berichte", which
+          its own title. On screen the sidebar already says "CRM", which
           is why the heading below steps out of sight from md upwards. */}
       <p className="hidden text-lg font-semibold tracking-tight print:block">
         {t('title')}
@@ -300,6 +370,7 @@ export default async function ReportsPage({
               ariaLabel={t('year')}
               className="min-w-20"
               compact
+              clears={['qyear']}
               options={yearOptions.map((y) => ({ value: y === String(currentYear) ? '' : y, label: y }))}
             />
             <LiveSelect
@@ -437,12 +508,54 @@ export default async function ReportsPage({
             </div>
 
               <div className={`${card} p-4`}>
-                <h2 className="mb-3 text-sm font-semibold">{t('quarterTitle', { year })}</h2>
-                <DonutChart
-                  slices={quarters}
-                  centerLabel={t('yearTotal')}
-                  centerValue={money(revenue.yearTotal)}
-                  formatValue={(v) => money(v)}
+                {/* No wrapping: the picker belongs beside the heading, not
+                    under it, and this card is only 360px wide — so it is the
+                    words that give way, never the control. */}
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <h2 className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm font-semibold">
+                    {t('quarterTitleYear')}
+                    {/* The year in the heading is the control: the card is read
+                        by looking at that number, so it is changed there. */}
+                    <LiveSelect
+                      param="qyear"
+                      ariaLabel={t('quarterYear')}
+                      className="min-w-18"
+                      compact
+                      options={comparisonYears.map((y) => ({
+                        value: y === year ? '' : String(y),
+                        label: String(y),
+                      }))}
+                    />
+                    <InfoHint text={t('quarterHint')} wide />
+                  </h2>
+                  <div className="shrink-0">
+                    <YearComparePicker
+                      options={comparisonYears.filter((y) => y !== quarterYear)}
+                      selected={quarterCompareYears}
+                      param="qcompare"
+                      max={MAX_QUARTER_COMPARE}
+                      label={t('compareYears')}
+                      maxHint={t('compareMax', { count: MAX_QUARTER_COMPARE })}
+                    />
+                  </div>
+                </div>
+                <QuarterBreakdown
+                  rows={quarterViews}
+                  center={
+                    best
+                      ? {
+                          label: t('quarterBest'),
+                          quarter: `Q${best.index + 1}`,
+                          share: `${Math.round(best.share * 100)} %`,
+                        }
+                      : null
+                  }
+                  labels={{
+                    share: t('quarterShare'),
+                    change: t('quarterChange'),
+                    running: t('quarterRunning'),
+                    empty: t('quarterEmpty'),
+                  }}
                 />
               </div>
             </div>

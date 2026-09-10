@@ -28,7 +28,7 @@ Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen �
 11. [Fahrzeuge](#11-fahrzeuge)
 12. [Vorlagen](#12-vorlagen)
 13. [Mein Bereich — für Mitarbeiter am Handy](#13-mein-bereich--für-mitarbeiter-am-handy)
-14. [Berichte](#14-berichte)
+14. [CRM](#14-crm-die-auswertungen)
 15. [Einstellungen (nur Administrator)](#15-einstellungen-nur-administrator)
 16. [Was tun, wenn …? — Hilfe bei Problemen](#16-was-tun-wenn---hilfe-bei-problemen)
 17. [Kleines Wörterbuch](#17-kleines-wörterbuch)
@@ -48,7 +48,7 @@ Sie legen ein **Projekt** an (Kunde, Adresse, Termine, Team, Fahrzeuge, Werkzeug
 - die **Packliste** auf dem Bildschirm im Lager,
 - den **Arbeitsauftrag** zum Ausdrucken für die Baustelle,
 - den **Handy-Bereich** für jeden Mitarbeiter („Wo arbeite ich heute?“),
-- die **Berichte** (Umsatz, Auslastung, Kunden) und den Excel-Export.
+- das **CRM** (Umsatz, Auslastung, Kunden) und den Excel-Export.
 
 Ändern Sie etwas an einer Stelle — etwa weil es regnet und ein Einsatz verschoben wird — ist es überall sofort richtig.
 
@@ -72,7 +72,7 @@ Sie bleiben 30 Tage angemeldet. **Abmelden** ganz unten in der Menüleiste (link
 
 ### 2.2 So ist der Bildschirm aufgebaut
 
-- **Links das Menü** mit Symbolen, in zwei Gruppen: **Betrieb** (Übersicht, Projekte, Einsatzplanung, Berichte) und **Stammdaten** (Kunden, Mitarbeiter, Fahrzeuge, Lager). Es bleibt beim Blättern stehen; **ganz unten** steht Ihr Benutzername — ein Klick darauf öffnet ein kleines Menü mit **Einstellungen** (nur Administrator) und **Abmelden**. Am Handy versteckt sich das Menü hinter dem Symbol **☰** oben links.
+- **Links das Menü** mit Symbolen, in zwei Gruppen: **Betrieb** (Übersicht, Projekte, Einsatzplanung, CRM) und **Stammdaten** (Kunden, Mitarbeiter, Fahrzeuge, Lager). Es bleibt beim Blättern stehen; **ganz unten** steht Ihr Benutzername — ein Klick darauf öffnet ein kleines Menü mit **Einstellungen** (nur Administrator) und **Abmelden**. Am Handy versteckt sich das Menü hinter dem Symbol **☰** oben links.
 - **Sprache (DE | EN) und Design** (hell / dunkel / wie das Gerät) stehen im Menü, das sich beim Klick auf Ihren Benutzernamen ganz unten in der Menüleiste öffnet — zusammen mit **Einstellungen** und **Abmelden**.
 - **In der Mitte:** der aktuelle Bereich.
 
@@ -212,7 +212,7 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 - **Status** — beginnt meist bei *Anfrage* oder *Beauftragt*.
 - **Auftragsart** (privat / gewerblich / öffentlich …), **Objektart** (Wohnung, Haus, Gewerbe …).
 - **Bezeichnung der Arbeit** — ein oder mehrere Kreuze (Malern, Putz, Außenfassade, WDVS …). Außenfassade, WDVS und Gerüstbau gelten als *Außenarbeit* → Wetterwarnung.
-- **Subunternehmer (SUB)** — ankreuzen, wenn ein Subunternehmer die Arbeit macht. Diese Projekte werden in den Berichten getrennt gezählt.
+- **Subunternehmer (SUB)** — ankreuzen, wenn ein Subunternehmer die Arbeit macht. Diese Projekte werden im CRM getrennt gezählt.
 - Die **Projektnummer** (z. B. `2026-0031`) vergibt BauCrew selbst.
 
 **Baustellenadresse**
@@ -228,11 +228,11 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 - **Ort:** wie beim Kunden — tippen, aus der Liste wählen, „✓ Ort erkannt“ abwarten.
 
 **Termine und Preis**
-- **Beginn / Ende (geplant)** — die Planung. **Beginn / Ende (tatsächlich)** — was wirklich war; tragen Sie das Ende nach, wenn das Projekt fertig ist (die Berichte vergleichen dann Plan und Wirklichkeit).
+- **Beginn / Ende (geplant)** — die Planung. **Beginn / Ende (tatsächlich)** — was wirklich war; tragen Sie das Ende nach, wenn das Projekt fertig ist (das CRM vergleicht dann Plan und Wirklichkeit).
 - **Auftragswert** — nur sichtbar mit Finanzfreigabe. Ohne Wert fehlt das Projekt im Umsatzbericht!
 - **Nachträge** — nachträglich beauftragte Zusatzleistungen tragen Sie unten auf der Projektseite ein (Bezeichnung, Betrag, Datum). Sie werden zum Auftragswert addiert und wirken überall: Umsatz, Auftragsbestand, Kundenauswertung, Plan vs. Ist. Nur Konten mit Finanzfreigabe können sie buchen.
 - **Checklisten** — auf der Projektseite (und am Handy unter „Mein Bereich“) abhaken; die Liste steht mit Haken, Notiz und Namen auch auf dem gedruckten Arbeitsauftrag. In der Projektliste zeigt ein kleines Feld den Stand (z. B. 8/10, ⚠ bei einem Problem).
-- **Offene Angebote** — Berichte → Reiter **Angebote**: alle noch nicht bestätigten Angebote mit Summe, Wartezeit und Markierung ab 21 Tagen; auch als eigenes Blatt im Excel-Export und als Hinweis unter Datenqualität.
+- **Offene Angebote** — CRM → Reiter **Angebote**: alle noch nicht bestätigten Angebote mit Summe, Wartezeit und Markierung ab 21 Tagen; auch als eigenes Blatt im Excel-Export und als Hinweis unter Datenqualität.
 
 **Zuordnung**
 - **Baustellenverantwortlicher**, **Fahrzeuge** (mehrere möglich — als Chips), **Mitarbeiter** (Team). Wer als Baustellenverantwortlicher gewählt wird, ist automatisch im Team angehakt. Diese Auswahl wird beim Planen der Einsätze automatisch vorgeschlagen.
@@ -271,7 +271,7 @@ Zwei Wege — beide setzen Status **Abgeschlossen** und tragen **Ende (tatsächl
 - **Versehentlich abgeschlossen?** Im Einsatzfenster steht an der Stelle von „✓ Projekt abschließen“ dann **Projekt wieder öffnen**; denselben Knopf gibt es auf der Projektseite: der Status geht zurück, *Ende (tatsächlich)* wird geleert und die aus der Planung genommenen Tage kommen zurück in den Wochenplan.
 - **Auf der Projektseite:** Status-Auswahl auf *Abgeschlossen*. Ist „Ende (tatsächlich)“ leer, nimmt BauCrew den letzten Einsatztag (spätestens heute).
 
-Danach bitte den **Auftragswert** prüfen — sonst fehlt das Projekt im Umsatz. Die Berichte erinnern Sie daran (Kapitel 14, „Datenqualität“). Später Status auf *Abgerechnet* und *Bezahlt* setzen.
+Danach bitte den **Auftragswert** prüfen — sonst fehlt das Projekt im Umsatz. Das CRM erinnert Sie daran (Kapitel 14, „Datenqualität“). Später Status auf *Abgerechnet* und *Bezahlt* setzen.
 
 ### 6.5 Was BauCrew von selbst erledigt (Status-Automatik)
 
@@ -337,12 +337,13 @@ ist unter Einstellungen → Arbeitsbereiche → Anfragequellen anpassbar).
 ![Wochenansicht](screenshots/11-einsatzplanung-woche.png)
 
 - Fünf Spalten Montag bis Freitag. Jede **Karte** ist ein Einsatz: Projekt, Nummer, Kunde, Uhrzeit, Fahrzeuge, Team.
-- **Wochenende:** Liegt in einer Woche ein Einsatz auf Samstag oder Sonntag, erscheinen automatisch zwei weitere (gestrichelte) Spalten **Sa** und **So**. Ohne solche Einsätze bleibt es bei fünf Spalten; mit dem Knopf **+ Wochenende** oben rechts können Sie die beiden Spalten trotzdem öffnen (z. B. um eine Karte auf den Samstag zu ziehen). Wählen Sie im Einsatzfenster ein Wochenend-Datum, weist ein gelber Hinweis darauf hin. Die Monatsansicht zeigt Sa/So ebenfalls nur, wenn der Monat Wochenend-Einsätze hat.
+- **Wochenende:** Liegt in einer Woche ein Einsatz auf Samstag oder Sonntag, erscheinen automatisch zwei weitere (gestrichelte) Spalten **Sa** und **So**. Ohne solche Einsätze bleibt es bei fünf Spalten; mit dem Schalter **Wochenende** oben rechts können Sie die beiden Spalten trotzdem öffnen (z. B. um eine Karte auf den Samstag zu ziehen). Liegt bereits ein Einsatz am Wochenende, steht der Schalter fest auf ein — er ist dann blass und lässt sich nicht ausschalten, denn diese Spalten müssen sichtbar bleiben. Wählen Sie im Einsatzfenster ein Wochenend-Datum, weist ein gelber Hinweis darauf hin. Die **Monatsansicht** zeigt Sa und So dagegen immer, auch in Monaten ganz ohne Wochenend-Einsätze.
+- **Folgewoche:** der zweite Schalter oben rechts. Eingeschaltet steht die Woche danach unter der aktuellen — dieselben Spalten, untereinander. Eine Karte lässt sich von jedem Tag auf jeden anderen ziehen, auch über die Wochengrenze hinweg. Die Pfeile blättern dann um zwei Wochen weiter.
 
 ![Woche mit Wochenend-Spalte](screenshots/39-woche-wochenende.png)
 
 ![Knopf + Wochenende](screenshots/40-wochenende-knopf.png)
-- Oben: **Woche | Monat | Karte**, darunter Pfeile **← →** für die Wochen und **Aktuelle Woche**.
+- Oben rechts: **Woche | Monat | Karte**. Genau darunter, in derselben Zeile wie die Schalter, die Pfeile **← →** und dazwischen **Aktuell** — das führt in jeder der drei Ansichten zurück zum Heute. Die Kopfzeile behält immer dieselbe Höhe und dieselbe Breite, damit die Tagesspalten beim Blättern nicht verrutschen.
 - **Einsatz verschieben:** Karte mit der Maus packen und auf einen anderen Tag ziehen. Am Tablet/Handy: Karte kurz gedrückt halten, dann ziehen.
 - **Einsatz kopieren:** dasselbe Ziehen mit gedrückter **Strg**-Taste (⌘ am Mac) — der Einsatz bleibt am alten Tag und wird zusätzlich auf dem neuen Tag angelegt.
 - **Tage, die es schon gibt:** Reicht der gewählte Zeitraum über Tage, an denen das Projekt bereits eingeplant ist, bleiben diese Tage unangetastet — im Fenster steht dann *„… Tage sind schon geplant und bleiben unverändert"*. Sollen Team, Fahrzeuge und Zeiten auch dort gelten (z. B. weil Sie gerade jemanden zum Trupp genommen haben), setzen Sie das Häkchen **„Die bestehenden Tage auch anpassen"**; der Knopf sagt dann genau, was passiert (*„Speichern und 2 Tage anpassen"*).
@@ -376,7 +377,9 @@ ist unter Einstellungen → Arbeitsbereiche → Anfragequellen anpassbar).
 
 **Wo:** in der Einsatzplanung oben der dritte Reiter **Karte**.
 
-Alle Baustellen **einer Woche** auf einer Landkarte. Jeder Wochentag hat seine eigene Farbe — die Punkte tragen sie, die Liste daneben auch, und unter der Karte steht, welche Farbe zu welchem Tag gehört. Die Liste ist nach Tagen gegliedert und zeigt Uhrzeit, Projekt, Adresse, Team und Fahrzeug — und, wenn vorhanden, die Regenwahrscheinlichkeit für diesen Ort und Tag.
+Alle Baustellen **einer Woche** auf einer Landkarte. Jeder Wochentag hat seine eigene Farbe — die Punkte tragen sie, die Liste daneben auch, und unter der Karte steht, welche Farbe zu welchem Tag gehört. Die Liste ist nach Tagen gegliedert und zeigt Uhrzeit, Projekt und Adresse — und, wenn vorhanden, die Regenwahrscheinlichkeit für diesen Ort und Tag. **Team und Fahrzeug** stehen erst da, wenn Sie einen Tag auswählen: eine ganze Woche mit allen Namen wäre eine Liste, die länger ist als die Karte daneben.
+
+Am Bildschirm bleiben die Karte und die Reiter oben stehen; gescrollt wird nur die Tagesliste rechts.
 
 **Ein Tag allein:** Klick auf einen Tagesnamen in der Liste. Die anderen Tage klappen zu einer Zeile zusammen und die Karte zeigt nur noch die Baustellen dieses Tages. **Ganze Woche** oben führt zurück; ein zweiter Klick auf denselben Tag tut es auch.
 
@@ -384,7 +387,7 @@ Mit **← Aktuell →** blättern Sie wochenweise; ein Klick auf einen Punkt zei
 
 Die Position kommt aus der **Adresse des Projekts**. Wurde beim Anlegen ein Ort aus der Vorschlagsliste gewählt, sitzt der Punkt genau; sonst wird die **Ortsmitte** verwendet (in der Liste steht dann *ca. Ortsmitte*). Projekte ganz ohne Ort stehen unter der Liste als **Ohne Koordinaten**. Kartenbilder kommen von OpenStreetMap — dafür braucht der Rechner Internet, ein Konto oder Schlüssel ist nicht nötig.
 
-**Übersicht:** mehrere Wochen nebeneinander — wie der frühere Papier-Wochenplan, gut zum Ausdrucken und für den Blick nach vorn. Rechts oben wählen Sie, wie viele Wochen: **4 · 6 · 8 · 12** (Standard 6). Die Pfeile blättern um den gesamten angezeigten Zeitraum (bei 6 Wochen also 6 Wochen vor/zurück); Wochen im nächsten Jahr zeigen die Jahreszahl.
+**Mehrere Wochen am Stück:** dafür ist der Schalter **Folgewoche** in der Wochenansicht da (Kapitel 7.1) — er stellt zwei Wochen untereinander. Für den längeren Blick nach vorn nehmen Sie die **Monatsansicht**.
 
 ---
 
@@ -610,7 +613,7 @@ Das Büro sieht und korrigiert alles auf der Mitarbeiterseite in der Karte
 nachtragen inklusive. Vergessene Stopps länger als 16 Stunden werden nicht
 angenommen — das Büro trägt den Tag korrekt nach.
 
-In den Berichten (Reiter *Projekte*) stehen zu jedem abgeschlossenen Projekt
+Im CRM (Reiter *Projekte*) stehen zu jedem abgeschlossenen Projekt
 die **erfassten Stunden** und — mit Finanzfreigabe — der **Auftragswert je
 Stunde**, für die Nachkalkulation ohne jedes Excel.
 
@@ -627,7 +630,7 @@ gebuchten Stunden, aufgeschlüsselt **je Mitarbeiter**, dazu die letzten
 Buchungen mit Tag, Uhrzeit und Dauer. Konten mit Finanzfreigabe sehen daneben
 den **Auftragswert je Stunde** — die Zahl, an der Sie schon während der
 Baustelle sehen, ob die Kalkulation noch aufgeht. Der Abschluss (Plan gegen Ist
-über alle fertigen Projekte) steht weiterhin in den Berichten.
+über alle fertigen Projekte) steht weiterhin im CRM.
 
 **Zeit nachtragen:** Vergisst jemand den Start, tippt er auf **Zeit nachtragen**
 — unter dem Start/Stopp-Knopf am heutigen Tag, und auf älteren Tagen als
@@ -635,23 +638,23 @@ einziger Knopf. Von–bis eintragen, speichern, fertig. Das geht für **heute un
 die letzten sieben Tage**; ältere Tage macht das Büro. Im Büro steht bei diesen
 Buchungen **nachgetragen**, damit man sie von den gestoppten unterscheiden kann.
 
-## 14. Berichte
+## 14. CRM (die Auswertungen)
 
-**Wo:** Menü → **Berichte**. Für die Geschäftsführung und das Büro. Zahlen mit Preisen sehen nur Konten mit Finanzfreigabe.
+**Wo:** Menü → **CRM**. Für die Geschäftsführung und das Büro. Zahlen mit Preisen sehen nur Konten mit Finanzfreigabe.
 
-![Berichte — Übersicht](screenshots/16-berichte.png)
+![CRM — Übersicht](screenshots/16-berichte.png)
 
 **Zeitraum wählen:** oben rechts **Jahr** und **Zeitraum** — *Ganzes Jahr*, ein **Quartal**, ein **Halbjahr** oder ein **Monat**. Die Auswahl gilt für alle Reiter, den **Excel-Export** und **Drucken / PDF** (druckt den aktuellen Reiter ohne Menü — so entsteht eine Monatsübersicht mit einem Klick).
 
 Die Reiter:
 
-- **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in vier Stufen (*Angebote offen* · *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*), das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr) und daneben der **Quartalsring**: Q1 bis Q4 als Kreis mit der Jahressumme in der Mitte — ein Blick genügt, um zu sehen, welches Quartal trägt. Ist eine **Jahresplanung** eingelesen, liegt im Monatsdiagramm über jedem Monat zusätzlich eine **gestrichelte Linie** auf Höhe des Planumsatzes.
+- **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in vier Stufen (*Angebote offen* · *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*), das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr) und daneben die Karte **Umsatz je Quartal**: Q1 bis Q4 als Ring, in der Mitte das **beste Quartal** mit seinem Anteil am Jahr. Darunter steht jedes Quartal mit seiner Summe, seinem Anteil und der Veränderung gegenüber demselben Quartal der Vergleichsjahre — voreingestellt das Vorjahr, über **Vergleichsjahre** rechts oben in der Karte sind bis zu zwei andere Jahre wählbar. Ein Klick auf eine Quartalszeile setzt dieses Quartal als Zeitraum für die ganze Seite, ein zweiter nimmt ihn zurück. Ist eine **Jahresplanung** eingelesen, liegt im Monatsdiagramm über jedem Monat zusätzlich eine **gestrichelte Linie** auf Höhe des Planumsatzes.
 - **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt).
   Projekte **ohne geplanten Start** gehören zu keinem Monat: sie stehen in einer eigenen Karte
   *Ohne Termin* mit ihrer Summe und zählen erst in die Monate und die Jahressumme, wenn ein
   Termin eingetragen ist — unter *Datenqualität* sind sie alle aufgeführt. Ist eine **Jahresplanung** eingelesen (Kapitel 15), ist die Tabelle die Zahl: jede Monatskarte zeigt die Zeilen der Jahresplanung mit ihren Beträgen — Monat für Monat so, wie die Tabelle sie führt. Eine Zeile, die im Planabgleich einem Projekt zugeordnet ist, verlinkt dorthin; eine ohne Projekt steht nur in der Tabelle. Projekte mit Start in diesem Monat, die in der Tabelle nicht stehen, sind darunter unter *Nicht in der Tabelle* aufgeführt und zählen nicht in die Summen, damit die Monate der Tabelle entsprechen. Das kleine ⓘ neben *Eigene Leute*, *SUB* und *Nicht in der Tabelle* erklärt die Zahl; ein Hinweis über den Monaten nennt die Quelle. Ein Jahr ohne Jahresplanung wird weiter aus den Projekten gebaut (Startmonat, Auftragswert). Baustellen, die in der Tabelle noch auf keinen Monat gelegt sind (Spalte *Baustellen für <Jahr>*), stehen als eigene Zeile unter der Überschrift — sie gehören zu keiner Monatskarte. Für ein Jahr, aus dem in BauCrew gar keine Projekte erfasst sind, sagt der Hinweis über den Monaten, dass die Zahlen ein **Rückblick** aus der Tabelle sind; ein Projekt, das später für so ein Jahr angelegt wird, ändert die Monatszahlen nicht, sondern erscheint unter *Nicht in der Tabelle*, bis es in der Tabelle steht oder einer Zeile zugeordnet ist. Der Jahresvergleich oben rechts und die Karte *Umsatz diesen Monat* auf dem Dashboard lesen dieselben Zahlen. Auslastung, Kunden und Datenqualität zeigen weiterhin nur, was in BauCrew erfasst ist.
 
-![Berichte — Plan vs. Ist](screenshots/26-berichte-projekte.png)
+![CRM — Plan vs. Ist](screenshots/26-berichte-projekte.png)
 
 - **Planabgleich** (unter *Umsatz*, wenn eine Jahresplanung eingelesen ist): Die Karte
   *Geplant, aber noch kein Projekt* listet die geplanten Baustellen **dieses und der
@@ -695,15 +698,15 @@ Die Reiter:
 
 - **Projekte:** *Abgeschlossene Projekte — Plan vs. Ist* — geplante Arbeitstage gegen tatsächliche Einsatztage, Personentage und **€ pro Personentag** (Auftragswert ÷ Personentage — zeigt ohne jede Kostenerfassung, welche Projekte sich lohnen). *Verzug (Ende)* nur, wenn „Ende (tatsächlich)“ eingetragen ist.
 
-![Berichte — Kunden](screenshots/27-berichte-kunden.png)
+![CRM — Kunden](screenshots/27-berichte-kunden.png)
 
 - **Kunden:** Kunden nach Umsatz mit Anteil (über 30 % = Warnung „hohe Abhängigkeit“) und **Kunden ohne Projekt seit über 12 Monaten** — ein Anlass, sich zu melden.
 
-![Berichte — Auslastung](screenshots/28-berichte-auslastung.png)
+![CRM — Auslastung](screenshots/28-berichte-auslastung.png)
 
 - **Auslastung:** Mitarbeiter und Fahrzeuge in **Prozent** (Einsatztage ÷ Arbeitstage des Zeitraums). Unter 50 % gelb, über 90 % grün.
 
-![Berichte — Datenqualität](screenshots/29-berichte-datenqualitaet.png)
+![CRM — Datenqualität](screenshots/29-berichte-datenqualitaet.png)
 
 - **Datenqualität:** eine To-do-Liste für saubere Zahlen — Projekte *In Ausführung* ohne Einsatz in den nächsten 14 Tagen, abgeschlossene Projekte **ohne Auftragswert**, Projekte ohne oder mit unauffindbarem Ort, Artikel, die in mehreren Projekten fehlen. Jeder Eintrag ist ein Link zum Korrigieren.
 
@@ -733,7 +736,7 @@ Die Reiter:
 
 **Datenqualität** fragt nur nach dem, was jemand beantworten kann: einen **Termin** zu Projekten, die geplant, in Arbeit oder abgeschlossen sind (ein angenommenes Angebot, das noch niemand eingeplant hat, hat noch keinen Termin — es steht weiterhin im Umsatz unter *Ohne Termin*, das dort also mehr Projekte listet als die Datenqualität), und eine **Stadt** zu geplanten und laufenden Projekten, denn nur eingeplante Tage bekommen eine Wetterwarnung.
 
-**Altdaten** — Beim Start bringt eine Firma Jahre erledigter Arbeit mit: importierte Karten, Aufträge, die längst abgerechnet sind. Unter *Daten → Altdaten* tragen Sie den Tag ein, ab dem BauCrew geführt wird. Alles, was davor **abgeschlossen** wurde, gilt als Altbestand: es bleibt vollständig sichtbar, zählt in den Berichten weiter (bei eingelesener Jahresplanung stehen die Zahlen ohnehin in der Tabelle), wird unter *Datenqualität* und in der Karte *Ohne Termin* aber nicht mehr angemahnt — beide sagen dazu, wie viele Projekte das betrifft. Laufende Arbeit wird immer angemahnt, egal wie alt. Bleibt das Feld leer, ändert sich nichts.
+**Altdaten** — Beim Start bringt eine Firma Jahre erledigter Arbeit mit: importierte Karten, Aufträge, die längst abgerechnet sind. Unter *Daten → Altdaten* tragen Sie den Tag ein, ab dem BauCrew geführt wird. Alles, was davor **abgeschlossen** wurde, gilt als Altbestand: es bleibt vollständig sichtbar, zählt im CRM weiter (bei eingelesener Jahresplanung stehen die Zahlen ohnehin in der Tabelle), wird unter *Datenqualität* und in der Karte *Ohne Termin* aber nicht mehr angemahnt — beide sagen dazu, wie viele Projekte das betrifft. Laufende Arbeit wird immer angemahnt, egal wie alt. Bleibt das Feld leer, ändert sich nichts.
 
 **Datensicherung**
 - **Backup herunterladen (JSON):** alle Daten in einer Datei. Regelmäßig machen und sicher aufbewahren — die Datei enthält vertrauliche Daten.
@@ -745,7 +748,7 @@ Der Import darf **jederzeit wiederholt** werden. Steht am Ende eines Kartentitel
 
 Der Kunde wird aus dem Titel gelesen: normalerweise das erste Wort, bei „HV …“ oder „BV: …“ der Name dahinter, bei „Gemeinde …“ oder „Stadt …“ beides zusammen. Nennt ein Titel nur ein Gebäude („Kläranlage …“), steht dort der ganze Titel als Kunde und der Import weist am Ende darauf hin — diese Karten bitte nachsehen. Dateien an einer Karte werden mit Link in die Projektbeschreibung übernommen.
 
-**Jahresplanung importieren** — die eigene Monatsplanumsatz-Tabelle einlesen, damit in den Berichten
+**Jahresplanung importieren** — die eigene Monatsplanumsatz-Tabelle einlesen, damit im CRM
 neben dem tatsächlichen Umsatz auch der **Plan** steht.
 
 Erwartet wird genau die übliche Form dieser Tabellen: je Jahr ein Blatt, und darauf die Monate
@@ -795,7 +798,7 @@ Benutzername und Passwort prüfen (Groß-/Kleinschreibung!). Nach mehreren Fehlv
 Ihr Konto hat keine Finanzfreigabe. Der Administrator kann sie setzen.
 
 **… keine Wetterwarnung erscheint?**
-Nur wenn das Projekt einen **erkannten Ort** hat („✓ Ort erkannt“), eine Außen-Kategorie (Außenfassade, WDVS, Gerüstbau) angekreuzt ist, der Einsatz in den nächsten 16 Tagen liegt und die Regenwahrscheinlichkeit ≥ 60 % ist. *Berichte → Datenqualität* zeigt Projekte mit unauffindbarem Ort.
+Nur wenn das Projekt einen **erkannten Ort** hat („✓ Ort erkannt“), eine Außen-Kategorie (Außenfassade, WDVS, Gerüstbau) angekreuzt ist, der Einsatz in den nächsten 16 Tagen liegt und die Regenwahrscheinlichkeit ≥ 60 % ist. *CRM → Datenqualität* zeigt Projekte mit unauffindbarem Ort.
 
 **… die Kundenadresse nicht ins Projekt übernommen wurde?**
 Der Haken „Wie Kundenadresse“ wird nur automatisch gesetzt, wenn die Adressfelder leer sind und der Kunde eine Adresse hat. Haken von Hand setzen — oder beim Kunden die Adresse nachtragen.
@@ -810,7 +813,7 @@ Beiden Einsätzen **Beginn und Ende** geben. Überschneiden sich die Zeiten nich
 Absicht. Mit einem anderen Administrator-Konto anmelden und von dort ändern.
 
 **… ein Projekt im Umsatzbericht fehlt?**
-Es hat keinen Auftragswert oder den Status *Storniert*. *Berichte → Datenqualität* listet abgeschlossene Projekte ohne Auftragswert.
+Es hat keinen Auftragswert oder den Status *Storniert*. *CRM → Datenqualität* listet abgeschlossene Projekte ohne Auftragswert.
 
 **… sich der Projektstatus „von selbst“ geändert hat?**
 Das ist die Status-Automatik (Kapitel 6.5): erster Einsatz geplant → *Geplant*; erster Einsatztag erreicht → *In Ausführung*. Im Protokoll steht es als „automatisch“. Wollen Sie einen anderen Status, setzen Sie ihn einfach von Hand.
@@ -834,7 +837,7 @@ Geht überall: Menü über ☰, Listen, Formulare, Wochenplan (Karten per Gedrü
 | **Tagesvorbereitung** | der Bildschirm im Lager mit den Packlisten von heute |
 | **Mein Bereich** | die Handy-Ansicht der Mitarbeiter |
 | **Vorlage** | Muster für wiederkehrende Aufträge mit fertiger Artikelliste |
-| **SUB** | Subunternehmer — das Projekt macht eine Fremdfirma; wird in Berichten getrennt gezählt |
+| **SUB** | Subunternehmer — das Projekt macht eine Fremdfirma; wird im CRM getrennt gezählt |
 | **Konflikt** | Mitarbeiter oder Fahrzeug am selben Tag doppelt verplant (oder Fahrzeug nicht verfügbar) — nur eine Warnung |
 | **Finanzfreigabe / „Finanzdaten sichtbar“** | Recht, Preise und Umsätze zu sehen |
 | **Status** | Stufe eines Projekts: Anfrage → Angebot → Beauftragt → Geplant → In Ausführung → Abgeschlossen → Abgerechnet → Bezahlt (oder Storniert) |
