@@ -85,7 +85,14 @@ export function QuarterBreakdown({
   const [hover, setHover] = useState<{ index: number; from: 'arc' | 'row' } | null>(null)
   const size = 200
   const stroke = 26
-  const radius = (size - stroke) / 2
+  /** How much a slice thickens while it is pointed at. */
+  const grow = 8
+  /**
+   * The ring is drawn a few pixels inside the box rather than against it: a
+   * slice grows outwards as well as inwards while it is lit, and drawn at the
+   * full radius the grown edge was simply cut off by the side of the drawing.
+   */
+  const radius = (size - stroke - grow) / 2 - 1
   const circumference = 2 * Math.PI * radius
 
   let offset = 0
@@ -129,7 +136,7 @@ export function QuarterBreakdown({
                   r={radius}
                   fill="none"
                   stroke={a.color}
-                  strokeWidth={hover?.index === i ? stroke + 8 : stroke}
+                  strokeWidth={hover?.index === i ? stroke + grow : stroke}
                   strokeDasharray={a.dash}
                   strokeDashoffset={a.offset}
                   className="cursor-pointer transition-[stroke-width]"
