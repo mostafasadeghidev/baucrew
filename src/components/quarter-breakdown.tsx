@@ -77,7 +77,12 @@ export function QuarterBreakdown({
     empty: string
   }
 }) {
-  const [hover, setHover] = useState<number | null>(null)
+  /**
+   * Which quarter is lit, and whether the pointer found it on the ring or in
+   * the list — because the bubble has to keep out of the way of whichever of
+   * the two the reader is actually looking at.
+   */
+  const [hover, setHover] = useState<{ index: number; from: 'arc' | 'row' } | null>(null)
   const size = 200
   const stroke = 26
   const radius = (size - stroke) / 2
@@ -95,7 +100,7 @@ export function QuarterBreakdown({
     return arc
   })
 
-  const lit = hover === null ? null : rows[hover]
+  const lit = hover === null ? null : rows[hover.index]
 
   return (
     <div className="space-y-2" onPointerLeave={() => setHover(null)}>
@@ -124,12 +129,12 @@ export function QuarterBreakdown({
                   r={radius}
                   fill="none"
                   stroke={a.color}
-                  strokeWidth={hover === i ? stroke + 8 : stroke}
+                  strokeWidth={hover?.index === i ? stroke + 8 : stroke}
                   strokeDasharray={a.dash}
                   strokeDashoffset={a.offset}
                   className="cursor-pointer transition-[stroke-width]"
                   style={{ pointerEvents: 'stroke' }}
-                  onPointerEnter={() => setHover(i)}
+                  onPointerEnter={() => setHover({ index: i, from: 'arc' })}
                 />
               ))}
           </g>
@@ -158,10 +163,16 @@ export function QuarterBreakdown({
           )}
         </svg>
 
-        {/* Over the ring, not beside it: the card is 360 pixels wide and the
-            rows below have to stay readable while the bubble is up. */}
+        {/* The bubble covers whichever half the pointer is not on: come from a
+            row and it sits over the ring, come from a slice and it drops below
+            it. A bubble over the thing you are pointing at answers a question
+            you can no longer see. */}
         {lit && (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 rounded-lg border border-border bg-surface p-2.5 text-[11px] shadow-md">
+          <div
+            className={`pointer-events-none absolute inset-x-0 z-10 rounded-lg border border-border bg-surface p-2.5 text-[11px] shadow-md ${
+              hover?.from === 'arc' ? 'top-full mt-1' : 'top-0'
+            }`}
+          >
             <p className="mb-1 flex items-baseline gap-1.5 font-medium">
               {lit.label}
               <span className="text-muted">{lit.months}</span>
@@ -198,7 +209,7 @@ export function QuarterBreakdown({
             <Link
               href={r.href}
               aria-current={r.selected ? 'true' : undefined}
-              onPointerEnter={() => setHover(i)}
+              onPointerEnter={() => setHover({ index: i, from: 'row' })}
               className={`block rounded-md px-2 py-1 transition-colors hover:bg-surface-hover ${
                 r.selected ? 'bg-surface-hover ring-1 ring-inset ring-accent/40' : ''
               }`}

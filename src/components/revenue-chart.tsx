@@ -260,17 +260,28 @@ export function RevenueChart({
    * phone from crushing the axis into the first bar.
    */
   const box = useRef<HTMLDivElement>(null)
-  const [W, setW] = useState(960)
+  const [size, setSize] = useState({ w: 960, h: 226 })
   useEffect(() => {
     const node = box.current
     if (!node || typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(([entry]) =>
-      setW(Math.max(560, Math.round(entry.contentRect.width)))
+      setSize({
+        w: Math.max(560, Math.round(entry.contentRect.width)),
+        h: Math.max(200, Math.round(entry.contentRect.height)),
+      })
     )
     observer.observe(node)
     return () => observer.disconnect()
   }, [])
-  const H = 226
+  const W = size.w
+  /**
+   * The height comes from the card, not from a number in here: the chart
+   * shares a row with the quarter card, and a fixed height left whichever of
+   * them was shorter ending in a band of nothing. The drawing is taken out of
+   * the flow (`absolute inset-0` below) so that measuring the box it sits in
+   * cannot end up measuring itself.
+   */
+  const H = size.h
   const padL = 48
   const padR = 12
   const padT = 12
@@ -516,10 +527,12 @@ export function RevenueChart({
   })()
 
   return (
-    <div className="space-y-2">
+    <div className="flex h-full min-h-0 flex-col">
       {/* The legend runs in the order the bars do, so the eye can walk from
-          one to the other. The year on screen is the one with a named split. */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
+          one to the other. The year on screen is the one with a named split.
+          It keeps its distance from the drawing: read tight against the top
+          bar it looked like an axis label. */}
+      <div className="mb-4 flex shrink-0 flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
         {lanes.map((lane) =>
           lane.compare === -1 ? (
             curved ? (
@@ -557,11 +570,14 @@ export function RevenueChart({
         )}
       </div>
 
-      <div className="relative" ref={box} onPointerLeave={() => setHover(null)}>
+      <div
+        className="relative min-h-[220px] flex-1"
+        ref={box}
+        onPointerLeave={() => setHover(null)}
+      >
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        height={H}
-        className="block w-full touch-manipulation"
+        className="absolute inset-0 h-full w-full touch-manipulation"
         role="img"
         aria-label={[
           ...(curved ? [String(year)] : [legend.own, legend.sub]),

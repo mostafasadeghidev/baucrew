@@ -462,10 +462,11 @@ export default async function ReportsPage({
               </div>
             </div>
 
-            {/* Each card as tall as what is in it: stretched to match its
-                neighbour, the chart card ended in a hand's width of nothing. */}
-            <div className="grid items-start gap-4 xl:grid-cols-[1fr_360px]">
-            <div className={`${card} p-4`}>
+            {/* The two stretch to the same height, and the chart takes
+                whatever height is left over inside its card — a fixed drawing
+                in a stretched card is what left the band of nothing under it. */}
+            <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
+            <div className={`${card} flex flex-col p-4`}>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold">
                   {chartTitle}
