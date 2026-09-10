@@ -1,13 +1,18 @@
 'use client'
 
 /**
- * "Bearbeiten" in the project's own bar. It opens every card on the page at
- * once, and then becomes the save and cancel for them — in the same place,
- * so the bar keeps its width and nothing under it moves.
+ * The right-hand end of a project's bar.
  *
- * A card opened on its own with its pencil carries its own two buttons; this
- * one stays "Bearbeiten" then, because that is still what it does: open the
- * rest of them.
+ * Normally it is what the page can do to the project — reopen it, print its
+ * work order, fold a duplicate into it, delete it — with "Bearbeiten" at the
+ * end. Press that and the whole group is replaced by save and cancel: while
+ * the page is being edited, deleting or merging it is not something anybody
+ * means to do, and a row of buttons that stay live next to an unsaved form is
+ * a row of ways to lose the work. It is also why they are replaced rather than
+ * hidden — the bar keeps its shape, so nothing on the page moves.
+ *
+ * A single card opened with its pencil carries its own two buttons; this stays
+ * "Bearbeiten" then, because that is still what it does: open the rest.
  *
  * It talks to the form through DOM events rather than props, because the bar
  * and the cards are siblings: lifting the state high enough to pass it down
@@ -15,7 +20,7 @@
  * button. Saving works from out here because the form has an id.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Pencil } from 'lucide-react'
 import { btn } from '@/components/ui/button'
 import {
@@ -26,14 +31,17 @@ import {
   type ProjectEditMode,
 } from '../project-form'
 
-export function EditAllButton({
+export function ProjectBarActions({
   label,
   saveLabel,
   cancelLabel,
+  children,
 }: {
   label: string
   saveLabel: string
   cancelLabel: string
+  /** Everything the bar offers while nothing is being edited. */
+  children: ReactNode
 }) {
   const [mode, setMode] = useState<ProjectEditMode>('none')
 
@@ -45,7 +53,7 @@ export function EditAllButton({
 
   if (mode === 'all') {
     return (
-      <span className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent(PROJECT_EDIT_CANCEL_EVENT))}
@@ -56,18 +64,21 @@ export function EditAllButton({
         <button type="submit" form={PROJECT_FORM_ID} className={btn.primarySm}>
           {saveLabel}
         </button>
-      </span>
+      </div>
     )
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => window.dispatchEvent(new CustomEvent(PROJECT_EDIT_ALL_EVENT))}
-      className={`${btn.outlineSm} gap-1.5`}
-    >
-      <Pencil className="h-3.5 w-3.5" aria-hidden />
-      {label}
-    </button>
+    <div className="flex flex-wrap items-center gap-2">
+      {children}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent(PROJECT_EDIT_ALL_EVENT))}
+        className={`${btn.outlineSm} gap-1.5`}
+      >
+        <Pencil className="h-3.5 w-3.5" aria-hidden />
+        {label}
+      </button>
+    </div>
   )
 }

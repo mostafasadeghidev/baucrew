@@ -14,7 +14,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { formatCurrency, formatDate, toDateInputValue } from '@/lib/format'
 import { deleteProject, setProjectStatus, updateProject } from '../actions'
 import { ProjectForm } from '../project-form'
-import { EditAllButton } from './edit-all-button'
+import { ProjectBarActions } from './edit-all-button'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
 import { PlanEntryButton } from './plan-entry-button'
 import { MergeButton } from './merge-button'
@@ -361,17 +361,17 @@ export default async function ProjectDetailPage({
             {address && <> · {address}</>}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <ProjectBarActions
+          label={tc('edit')}
+          saveLabel={tc('save')}
+          cancelLabel={tc('cancel')}
+        >
           {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
             <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
           )}
-          <Link
-            href={`/projects/${project.id}/sheet`}
-            className={btn.outlineSm}
-          >
+          <Link href={`/projects/${project.id}/sheet`} className={btn.outlineSm}>
             {tSheet('title')}
           </Link>
-          <EditAllButton label={tc('edit')} saveLabel={tc('save')} cancelLabel={tc('cancel')} />
           {user.role === 'ADMIN' && (
             <>
               <MergeButton
@@ -385,7 +385,7 @@ export default async function ProjectDetailPage({
               />
             </>
           )}
-        </div>
+        </ProjectBarActions>
       </div>
       </StickyHead>
 
