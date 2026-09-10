@@ -21,6 +21,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   A bookmark to it lands on the week board.
 
 ### Changed
+- **One header for all three scheduling views, in two rows.** The views sit on
+  the first row, the period and its controls on the second. It was hand-copied
+  three times with three different conventions, and it moved: the weekend
+  control disappeared entirely on a week that already had a Saturday
+  assignment, sliding everything beside it about 133px sideways, and between
+  roughly 890 and 1020 pixels the row wrapped and pushed the board 40 to 80
+  pixels down. Now neither row wraps, both keep their height, the weekend
+  control is always drawn — locked, when the week's own assignments hold it
+  open — and a toggle keeps its word whichever way it stands, so it cannot grow
+  under the cursor that clicked it.
 - **The week board stops moving under the cursor.** The conflict and weather
   boxes above the calendar grew and vanished with the week, so paging from a
   week that had warnings to one that had none lifted every day column up the

@@ -265,7 +265,7 @@ export default async function SchedulePage({
       days={days}
       weekendToggle={
         hasWeekendEntries
-          ? null
+          ? { href: null, active: true }
           : showWeekend
             ? { href: `/schedule?week=${iso(monday)}`, active: true }
             : { href: `/schedule?week=${iso(monday)}&weekend=1`, active: false }

@@ -1,0 +1,150 @@
+/**
+ * The header every scheduling view wears: the three views on one line, the
+ * period and its controls on the next.
+ *
+ * It exists because it kept moving. The three headers were hand-copied, and
+ * the right-hand group was flush right with `justify-between`, so anything
+ * that changed width in that group slid everything beside it: the weekend
+ * toggle vanished entirely on a week that already had a Saturday assignment
+ * (about 133px of sideways jump on every screen), the toggle's own label grew
+ * by 69px when it was switched on, and between roughly 890 and 1020 pixels the
+ * whole thing wrapped to two or three rows and pushed the board 40 to 80
+ * pixels down the page. Paging from one week to the next moved the day a
+ * person was reading out from under their eyes.
+ *
+ * Four rules keep it still, and every one of them is load-bearing:
+ *
+ *   1. Two rows, each `min-h-9`. The number of rows is a constant, not a
+ *      consequence of how wide the screen is.
+ *   2. Neither row wraps; a narrow screen scrolls one sideways instead.
+ *   3. No control appears or disappears with the data. A weekend toggle that
+ *      cannot be switched off is shown switched on and locked, not removed.
+ *   4. A toggle's label never changes with its state — on and off are told
+ *      apart by colour. A word that grows when clicked drags its neighbours
+ *      along with it.
+ */
+
+import Link from 'next/link'
+import { btn } from '@/components/ui/button'
+
+export type ScheduleView = 'week' | 'month' | 'map'
+
+export type ScheduleHeaderToggle = {
+  /** Where it goes; null when it is on and cannot be switched off. */
+  href: string | null
+  label: string
+  active: boolean
+  /** The sentence behind the hover, e.g. why it cannot be switched off. */
+  title?: string
+}
+
+export function ScheduleHeader({
+  title,
+  view,
+  weekHref,
+  monthHref,
+  mapHref,
+  viewLabels,
+  periodLabel,
+  prevHref,
+  nextHref,
+  currentHref,
+  currentLabel,
+  prevLabel,
+  nextLabel,
+  toggles = [],
+}: {
+  /** The page's own name; on screen only where the sidebar is folded away. */
+  title: string
+  view: ScheduleView
+  weekHref: string
+  monthHref: string
+  mapHref: string
+  viewLabels: { week: string; month: string; map: string }
+  /** "KW 37", "September 2026" — whatever the view is standing on. */
+  periodLabel: string
+  prevHref: string
+  nextHref: string
+  currentHref: string
+  currentLabel: string
+  prevLabel: string
+  nextLabel: string
+  toggles?: ScheduleHeaderToggle[]
+}) {
+  const views: Array<{ key: ScheduleView; href: string; label: string }> = [
+    { key: 'week', href: weekHref, label: viewLabels.week },
+    { key: 'month', href: monthHref, label: viewLabels.month },
+    { key: 'map', href: mapHref, label: viewLabels.map },
+  ]
+  const tab = 'rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground'
+
+  return (
+    <div className="space-y-2">
+      <div className="flex min-h-9 items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{title}</h1>
+        <div className="ml-auto flex items-center gap-1 overflow-x-auto rounded-lg bg-subtle p-1 text-sm font-medium">
+          {views.map((v) =>
+            v.key === view ? (
+              <span
+                key={v.key}
+                aria-current="page"
+                className="whitespace-nowrap rounded-md bg-surface px-3 py-1 text-foreground shadow-sm"
+              >
+                {v.label}
+              </span>
+            ) : (
+              <Link key={v.key} href={v.href} className={`${tab} whitespace-nowrap`}>
+                {v.label}
+              </Link>
+            )
+          )}
+        </div>
+      </div>
+
+      <div className="flex min-h-9 items-center justify-between gap-3">
+        <span className="truncate text-lg font-medium text-muted">{periodLabel}</span>
+        <div className="ml-auto flex items-center gap-2 overflow-x-auto">
+          <div className="flex items-center gap-1">
+            <Link href={prevHref} className={btn.outlineSm} aria-label={prevLabel} title={prevLabel}>
+              ←
+            </Link>
+            <Link href={currentHref} className={`${btn.outlineSm} whitespace-nowrap`}>
+              {currentLabel}
+            </Link>
+            <Link href={nextHref} className={btn.outlineSm} aria-label={nextLabel} title={nextLabel}>
+              →
+            </Link>
+          </div>
+          {toggles.map((toggle) => {
+            // Same words, same width, whichever way it stands.
+            const look = `whitespace-nowrap rounded-md border px-3 py-1.5 text-sm font-medium ${
+              toggle.active
+                ? 'border-accent bg-accent/10 text-accent'
+                : 'border-border text-muted hover:bg-surface-hover hover:text-foreground'
+            }`
+            return toggle.href === null ? (
+              <span
+                key={toggle.label}
+                title={toggle.title}
+                aria-disabled
+                className={`${look} cursor-default opacity-70`}
+              >
+                {toggle.label}
+              </span>
+            ) : (
+              <Link
+                key={toggle.label}
+                href={toggle.href}
+                title={toggle.title}
+                aria-pressed={toggle.active}
+                className={`${look} ${toggle.active ? 'hover:bg-accent/15' : ''}`}
+              >
+                {toggle.label}
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}

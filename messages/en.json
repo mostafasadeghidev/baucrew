@@ -1,7 +1,5 @@
 {
   "common": {
-    "expandSidebar": "Expand menu",
-    "collapseSidebar": "Collapse menu",
     "appName": "BauCrew",
     "loading": "Loading …",
     "save": "Save",
@@ -40,6 +38,8 @@
     "tooManyAttempts": "Too many login attempts. Please wait a moment and try again."
   },
   "nav": {
+    "expandSidebar": "Expand menu",
+    "collapseSidebar": "Collapse menu",
     "dashboard": "Dashboard",
     "projects": "Projects",
     "customers": "Customers",
@@ -670,6 +670,10 @@
     "title": "Scheduling",
     "weekLabel": "Week {week}",
     "currentWeek": "Current week",
+    "weekend": "Weekend",
+    "weekendLocked": "This week has a weekend assignment — Sat and Sun stay visible.",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
     "prevWeek": "Previous week",
     "nextWeek": "Next week",
     "viewWeek": "Week",

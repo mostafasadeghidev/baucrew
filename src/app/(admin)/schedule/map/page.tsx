@@ -6,7 +6,7 @@ import { requireManagement } from '@/lib/authz'
 import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
 import { getRainWarnings } from '@/lib/weather'
 import { geocodeCity } from '@/lib/geocode'
-import { btn } from '@/components/ui/button'
+import { ScheduleHeader } from '../schedule-header'
 import { DayMap, type MapSite } from './day-map'
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -108,41 +108,25 @@ export default async function ScheduleMapPage({
   })
 
   const step = (days: number) => `/schedule/map?date=${iso(addDays(date, days))}`
-  const tab = 'rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground'
   const weekHref = `/schedule?week=${dateIso}`
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
-          <span className="text-lg font-medium text-muted">{dateFmt.format(date)}</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
-            <Link href={weekHref} className={tab}>
-              {t('viewWeek')}
-            </Link>
-            <Link href={`/schedule?view=month&week=${dateIso}`} className={tab}>
-              {t('viewMonth')}
-            </Link>
-            <span className="rounded-md bg-surface px-3 py-1 text-foreground shadow-sm">
-              {t('viewMap')}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Link href={step(-1)} className={btn.outlineSm} aria-label={t('previousDay')}>
-              ←
-            </Link>
-            <Link href="/schedule/map" className={btn.outlineSm}>
-              {t('todayButton')}
-            </Link>
-            <Link href={step(1)} className={btn.outlineSm} aria-label={t('nextDay')}>
-              →
-            </Link>
-          </div>
-        </div>
-      </div>
+      <ScheduleHeader
+        title={t('title')}
+        view="map"
+        weekHref={weekHref}
+        monthHref={`/schedule?view=month&week=${dateIso}`}
+        mapHref={`/schedule/map?date=${dateIso}`}
+        viewLabels={{ week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap') }}
+        periodLabel={dateFmt.format(date)}
+        prevHref={step(-1)}
+        nextHref={step(1)}
+        currentHref="/schedule/map"
+        currentLabel={t('todayButton')}
+        prevLabel={t('previousDay')}
+        nextLabel={t('nextDay')}
+      />
 
       {entries.length === 0 ? (
         <p className="rounded-lg border border-border bg-surface px-4 py-10 text-center text-sm text-muted">

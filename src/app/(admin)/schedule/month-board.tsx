@@ -12,7 +12,7 @@ import {
   updateScheduleEntry,
 } from "./actions";
 import { EntryDialog, type AbsenceHint, type BoardEntry, type DialogState } from "./entry-dialog";
-import { btn } from "@/components/ui/button";
+import { ScheduleHeader } from "./schedule-header";
 
 const MAX_PER_DAY = 5;
 
@@ -170,44 +170,21 @@ export function MonthBoard({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight md:sr-only">
-            {t("title")}
-          </h1>
-          <span className="text-lg font-medium text-muted">{monthLabel}</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
-            <Link
-              href={weekHref}
-              className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
-            >
-              {t("viewWeek")}
-            </Link>
-            <span className="rounded-md bg-surface px-3 py-1 text-foreground shadow-sm">
-              {t("viewMonth")}
-            </span>
-            <Link
-              href={mapHref}
-              className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
-            >
-              {t("viewMap")}
-            </Link>
-          </div>
-          <div className="flex items-center gap-1">
-            <Link href={prevHref} className={btn.outlineSm}>
-              ←
-            </Link>
-            <Link href={currentHref} className={btn.outlineSm}>
-              {t("currentMonth")}
-            </Link>
-            <Link href={nextHref} className={btn.outlineSm}>
-              →
-            </Link>
-          </div>
-        </div>
-      </div>
+      <ScheduleHeader
+        title={t("title")}
+        view="month"
+        weekHref={weekHref}
+        monthHref={currentHref}
+        mapHref={mapHref}
+        viewLabels={{ week: t("viewWeek"), month: t("viewMonth"), map: t("viewMap") }}
+        periodLabel={monthLabel}
+        prevHref={prevHref}
+        nextHref={nextHref}
+        currentHref={currentHref}
+        currentLabel={t("currentMonth")}
+        prevLabel={t("prevMonth")}
+        nextLabel={t("nextMonth")}
+      />
 
       {boardError && (
         <p

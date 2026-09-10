@@ -1,7 +1,5 @@
 {
   "common": {
-    "expandSidebar": "Menü ausklappen",
-    "collapseSidebar": "Menü einklappen",
     "appName": "BauCrew",
     "loading": "Wird geladen …",
     "save": "Speichern",
@@ -40,6 +38,8 @@
     "tooManyAttempts": "Zu viele Anmeldeversuche. Bitte warten Sie kurz und versuchen Sie es erneut."
   },
   "nav": {
+    "expandSidebar": "Menü ausklappen",
+    "collapseSidebar": "Menü einklappen",
     "dashboard": "Übersicht",
     "projects": "Projekte",
     "customers": "Kunden",
@@ -670,6 +670,10 @@
     "title": "Einsatzplanung",
     "weekLabel": "KW {week}",
     "currentWeek": "Aktuelle Woche",
+    "weekend": "Wochenende",
+    "weekendLocked": "In dieser Woche liegt ein Einsatz am Wochenende — Sa und So bleiben sichtbar.",
+    "prevMonth": "Vorheriger Monat",
+    "nextMonth": "Nächster Monat",
     "prevWeek": "Vorherige Woche",
     "nextWeek": "Nächste Woche",
     "viewWeek": "Woche",

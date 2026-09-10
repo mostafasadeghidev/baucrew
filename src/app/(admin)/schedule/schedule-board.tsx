@@ -12,8 +12,8 @@ import {
   updateScheduleEntry,
 } from './actions'
 import { EntryDialog, type AbsenceHint, type DialogState, type BoardEntry } from './entry-dialog'
-import { btn } from '@/components/ui/button'
 import { Menu, MenuLabel } from '@/components/ui/menu'
+import { ScheduleHeader } from './schedule-header'
 export type { BoardEntry } from './entry-dialog'
 
 
@@ -42,8 +42,12 @@ export function ScheduleBoard({
   locale,
 }: {
   days: string[]
-  /** null = weekend columns are forced on by existing entries; otherwise a link to show/hide them. */
-  weekendToggle: { href: string; active: boolean } | null
+  /**
+   * The weekend columns. `href: null` means they are on because an assignment
+   * falls on a Saturday or Sunday and cannot be switched off — the control is
+   * still drawn, locked, so the header keeps its width.
+   */
+  weekendToggle: { href: string | null; active: boolean }
   weekNumber: number
   prevWeekHref: string
   nextWeekHref: string
@@ -189,60 +193,29 @@ export function ScheduleBoard({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight md:sr-only">{t('title')}</h1>
-          <span className="text-lg font-medium text-muted">
-            {t('weekLabel', { week: weekNumber })}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
-            <span className="rounded-md bg-surface px-3 py-1 text-foreground shadow-sm">{t('viewWeek')}</span>
-            <Link href={monthHref} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
-              {t('viewMonth')}
-            </Link>
-            <Link href={mapHref} className="rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground">
-              {t('viewMap')}
-            </Link>
-          </div>
-          <div className="flex items-center gap-1">
-            <Link
-              href={prevWeekHref}
-              className={btn.outlineSm}
-              title={t('prevWeek')}
-            >
-              ←
-            </Link>
-            <Link
-              href={currentWeekHref}
-              className={btn.outlineSm}
-            >
-              {t('currentWeek')}
-            </Link>
-            <Link
-              href={nextWeekHref}
-              className={btn.outlineSm}
-              title={t('nextWeek')}
-            >
-              →
-            </Link>
-          </div>
-          {weekendToggle && (
-            <Link
-              href={weekendToggle.href}
-              title={t('weekendHint')}
-              className={`whitespace-nowrap rounded-md border px-3 py-1.5 text-sm font-medium ${
-                weekendToggle.active
-                  ? 'border-accent bg-accent/10 text-accent hover:bg-accent/15'
-                  : 'border-border text-muted hover:bg-surface-hover hover:text-foreground'
-              }`}
-            >
-              {weekendToggle.active ? t('hideWeekend') : t('showWeekend')}
-            </Link>
-          )}
-        </div>
-      </div>
+      <ScheduleHeader
+        title={t('title')}
+        view="week"
+        weekHref={currentWeekHref}
+        monthHref={monthHref}
+        mapHref={mapHref}
+        viewLabels={{ week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap') }}
+        periodLabel={t('weekLabel', { week: weekNumber })}
+        prevHref={prevWeekHref}
+        nextHref={nextWeekHref}
+        currentHref={currentWeekHref}
+        currentLabel={t('currentWeek')}
+        prevLabel={t('prevWeek')}
+        nextLabel={t('nextWeek')}
+        toggles={[
+          {
+            href: weekendToggle.href,
+            label: t('weekend'),
+            active: weekendToggle.active,
+            title: weekendToggle.href === null ? t('weekendLocked') : t('weekendHint'),
+          },
+        ]}
+      />
 
       {/* One line, always here, always the same height. What it says changes
           with the week; where the day columns begin does not. Blocks that came
