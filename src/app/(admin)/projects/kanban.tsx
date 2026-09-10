@@ -25,14 +25,21 @@
  *
  * ── One gesture path, not two ──
  * This used to drag with the browser's own drag and drop for a mouse and with
- * pointer events for a finger. The browser's version picks a card up the
- * instant the mouse moves, which meant that pulling the board sideways — the
- * obvious way to reach the far columns — filed a project under another status
- * instead, without saying which. So everything goes through pointer events
- * now, and the first few pixels decide what the gesture meant: sideways moves
- * the board, anything else carries the card (see `dragIntent`). A finger still
- * picks a card up by resting on it for a quarter of a second, the way the
- * scheduling board works, so the two boards are not two gestures to learn.
+ * pointer events for a finger. The browser's version starts the moment the
+ * mouse moves and drags the page's *text* along with it, so picking a card up
+ * left half the board highlighted in blue and the card itself never visibly
+ * left its place. Everything goes through pointer events now: a card lifts
+ * after six pixels, in whatever direction — a column to the right is reached
+ * by pulling right, and no rule about direction may stand in the way of that —
+ * and what follows the cursor is a copy of the card with the board's own
+ * shadow under it. A finger still picks a card up by resting on it for a
+ * quarter of a second, the way the scheduling board works, so the two boards
+ * are not two gestures to learn.
+ *
+ * The board is moved sideways by the space around the cards, by its scrollbar,
+ * by two fingers, or by holding a card near the edge until it comes to you.
+ * Nothing is selectable on it, because a press here always means "carry",
+ * never "select from here to there".
  */
 
 import { useEffect, useRef, useState, useTransition } from 'react'
@@ -42,7 +49,6 @@ import { useTranslations } from 'next-intl'
 import { GripVertical, Undo2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { moveColumn } from '@/lib/board-columns'
-import { dragIntent } from '@/lib/drag-intent'
 import { setBoardOrder, setProjectStatus } from './actions'
 
 export type KanbanCard = {
@@ -79,12 +85,15 @@ const CARDS_AT_A_TIME = 50
 /** A finger has to rest this long on a card before it picks it up. */
 const LONG_PRESS_MS = 250
 
+/** How far a mouse must travel before a press becomes a drag rather than a click. */
+const MOVE_THRESHOLD = 6
+
 /**
  * What is being held. A press does not yet say what it means — `maybe` is the
  * few pixels between pressing and knowing.
  */
 type Grab =
-  | { kind: 'maybe-card'; pointerId: number; card: KanbanCard; el: HTMLElement; x: number; y: number; left: number; timer: ReturnType<typeof setTimeout> | null }
+  | { kind: 'maybe-card'; pointerId: number; card: KanbanCard; el: HTMLElement; x: number; y: number; timer: ReturnType<typeof setTimeout> | null }
   | { kind: 'card'; pointerId: number; card: KanbanCard; x: number; y: number; ghost: HTMLElement | null }
   | { kind: 'pan'; pointerId: number; x: number; left: number }
   | { kind: 'maybe-column'; pointerId: number; status: string; x: number; y: number; timer: ReturnType<typeof setTimeout> | null }
@@ -131,6 +140,16 @@ export function ProjectsKanban({
 
   const scroller = useRef<HTMLDivElement | null>(null)
   const grab = useRef<Grab | null>(null)
+  /**
+   * The order as it stands this instant.
+   *
+   * A column being carried past the edge is re-ordered by a timer, many times
+   * a second, and letting go reads the order to save it. Read from `board`
+   * that is a value captured when the handler was last drawn, which can be a
+   * step or two behind what is on the screen — and what was saved was then not
+   * what the person had just arranged. This is always current.
+   */
+  const order = useRef<string[]>(columns.map((c) => c.status))
 
   // The page reloads under us after a move; take the server's word for it
   // unless something is in the air.
@@ -140,6 +159,13 @@ export function ProjectsKanban({
     setSeen(columns)
     setBoard(columns)
   }
+
+  // Kept level with what is drawn, however the board came to be that way — a
+  // drag, or the server answering. Written here rather than during the render
+  // itself, which is not a place a ref may be touched.
+  useEffect(() => {
+    order.current = board.map((c) => c.status)
+  }, [board])
 
   const labelOf = (status: string) => board.find((c) => c.status === status)?.label ?? status
 
@@ -209,14 +235,10 @@ export function ProjectsKanban({
     if (state?.kind === 'column') {
       const target = columnAtPoint(x, y)
       if (!target || target === state.status) return
-      setBoard((current) => {
-        const order = moveColumn(
-          current.map((c) => c.status),
-          state.status,
-          target
-        )
-        return order.map((s) => current.find((c) => c.status === s)!).filter(Boolean)
-      })
+      const next = moveColumn(order.current, state.status, target)
+      if (next === order.current) return
+      order.current = next
+      setBoard((current) => next.map((s) => current.find((c) => c.status === s)!).filter(Boolean))
     }
   }
 
@@ -268,9 +290,29 @@ export function ProjectsKanban({
   }
 
   function beginCardDrag(card: KanbanCard, el: HTMLElement, x: number, y: number, pointerId: number) {
+    // Whatever the browser managed to highlight in the six pixels before we
+    // knew this was a drag: a card being carried across a page of blue text
+    // is not a card being carried.
+    window.getSelection()?.removeAllRanges()
     const ghost = el.cloneNode(true) as HTMLElement
     const rect = el.getBoundingClientRect()
-    ghost.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;pointer-events:none;opacity:.85;z-index:60;transform:rotate(1.5deg);`
+    // It leaves the board rather than merely tilting on it: full opacity, off
+    // the page on its own shadow, tipped a degree and a half so it reads as a
+    // thing in the hand. The card it came from stays behind at 40%, so where
+    // it will fall back to if it is let go is never in doubt.
+    ghost.style.cssText = [
+      'position:fixed',
+      `left:${rect.left}px`,
+      `top:${rect.top}px`,
+      `width:${rect.width}px`,
+      'margin:0',
+      'pointer-events:none',
+      'user-select:none',
+      'z-index:60',
+      'will-change:transform',
+      'box-shadow:0 16px 32px rgba(0,0,0,.28), 0 2px 8px rgba(0,0,0,.18)',
+      'transform:rotate(1.5deg) scale(1.03)',
+    ].join(';')
     document.body.appendChild(ghost)
     grab.current = { kind: 'card', pointerId, card, x, y, ghost }
     capture(pointerId)
@@ -278,8 +320,7 @@ export function ProjectsKanban({
   }
 
   function onCardPointerDown(e: React.PointerEvent<HTMLDivElement>, card: KanbanCard) {
-    const box = scroller.current
-    if (!box) return
+    if (!scroller.current) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
     const el = e.currentTarget
     const state: Grab = {
@@ -289,7 +330,6 @@ export function ProjectsKanban({
       el,
       x: e.clientX,
       y: e.clientY,
-      left: box.scrollLeft,
       timer: null,
     }
     if (e.pointerType === 'mouse') {
@@ -366,14 +406,10 @@ export function ProjectsKanban({
         }
         return
       }
-      const intent = dragIntent(dx, dy)
-      if (intent === 'none') return
-      if (intent === 'board') {
-        grab.current = { kind: 'pan', pointerId: state.pointerId, x: state.x, left: state.left }
-        setPanning(true)
-        box.scrollLeft = state.left - dx
-        return
-      }
+      // Six pixels in any direction at all. The column a card is going to is
+      // as often to the side as below, so nothing about the direction of the
+      // pull may decide whether the card is picked up.
+      if (Math.hypot(dx, dy) < MOVE_THRESHOLD) return
       beginCardDrag(state.card, state.el, state.x, state.y, state.pointerId)
       return
     }
@@ -381,7 +417,7 @@ export function ProjectsKanban({
     if (state.kind === 'card') {
       e.preventDefault()
       if (state.ghost) {
-        state.ghost.style.transform = `translate(${e.clientX - state.x}px, ${e.clientY - state.y}px) rotate(1.5deg)`
+        state.ghost.style.transform = `translate(${e.clientX - state.x}px, ${e.clientY - state.y}px) rotate(1.5deg) scale(1.03)`
       }
       trackPointer(e.clientX, e.clientY)
       edgeScroll(e.clientX, e.clientY)
@@ -435,7 +471,7 @@ export function ProjectsKanban({
     }
     if (state.kind === 'column') {
       setMovingColumn(null)
-      saveOrder(board.map((c) => c.status))
+      saveOrder([...order.current])
     }
   }
 
@@ -515,8 +551,13 @@ export function ProjectsKanban({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className={`flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2 ${
-          panning ? 'cursor-grabbing select-none' : 'cursor-grab'
+        // `select-none` on the whole board, not only while something is being
+        // dragged: the browser starts selecting on the press, before anyone
+        // knows the press was a drag, and by then half the board is blue.
+        // A press here always means "take hold of", never "select from here to
+        // there" — the project's own page is where its text is read.
+        className={`flex min-h-0 flex-1 select-none gap-3 overflow-x-auto pb-2 ${
+          panning || dragging || movingColumn ? 'cursor-grabbing' : 'cursor-grab'
         }`}
       >
         {board.map((column) => {
