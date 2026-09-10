@@ -23,9 +23,9 @@ const chip =
   'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 font-medium transition-opacity hover:opacity-80'
 
 export function ScheduleBoard({
-  days,
+  weeks,
   weekendToggle,
-  weekNumber,
+  followingWeek,
   prevWeekHref,
   nextWeekHref,
   currentWeekHref,
@@ -41,14 +41,20 @@ export function ScheduleBoard({
   absences = [],
   locale,
 }: {
-  days: string[]
+  /**
+   * One entry per week on the board, in order. Two of them means the office
+   * asked for the following week as well; every week shows the same days, so
+   * the columns of one line up with the columns of the next.
+   */
+  weeks: Array<{ number: number; days: string[] }>
   /**
    * The weekend columns. `href: null` means they are on because an assignment
    * falls on a Saturday or Sunday and cannot be switched off — the control is
    * still drawn, locked, so the header keeps its width.
    */
   weekendToggle: { href: string | null; active: boolean }
-  weekNumber: number
+  /** Whether the week after this one is on the board, and how to change that. */
+  followingWeek: { href: string; active: boolean }
   prevWeekHref: string
   nextWeekHref: string
   currentWeekHref: string
@@ -71,6 +77,8 @@ export function ScheduleBoard({
   const [dialog, setDialog] = useState<DialogState>({ mode: 'closed' })
   const [boardError, setBoardError] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
+  /** Two weeks on the board means the warnings are not about "this week". */
+  const conflictsTitle = weeks.length > 1 ? t('conflictsTitleTwo') : t('conflictsTitle')
 
   const dayFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
     weekday: 'long',
@@ -200,7 +208,11 @@ export function ScheduleBoard({
         monthHref={monthHref}
         mapHref={mapHref}
         viewLabels={{ week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap') }}
-        periodLabel={t('weekLabel', { week: weekNumber })}
+        periodLabel={
+          weeks.length > 1
+            ? t('weekRange', { from: weeks[0].number, to: weeks[weeks.length - 1].number })
+            : t('weekLabel', { week: weeks[0].number })
+        }
         prevHref={prevWeekHref}
         nextHref={nextWeekHref}
         currentHref={currentWeekHref}
@@ -213,6 +225,12 @@ export function ScheduleBoard({
             label: t('weekend'),
             active: weekendToggle.active,
             title: weekendToggle.href === null ? t('weekendLocked') : t('weekendHint'),
+          },
+          {
+            href: followingWeek.href,
+            label: t('followingWeek'),
+            active: followingWeek.active,
+            title: t('followingWeekHint'),
           },
         ]}
       />
@@ -231,12 +249,12 @@ export function ScheduleBoard({
               <Menu
                 side="bottom"
                 align="start"
-                label={t('conflictsTitle')}
+                label={conflictsTitle}
                 className={`${chip} bg-amber-500/15 text-amber-700 dark:text-amber-400`}
                 trigger={<>⚠ {t('conflictsCount', { count: conflictMessages.length })}</>}
               >
                 <div className="max-w-[22rem]">
-                  <MenuLabel>{t('conflictsTitle')}</MenuLabel>
+                  <MenuLabel>{conflictsTitle}</MenuLabel>
                   {conflictMessages.map((m, i) => (
                     <p key={i} className="px-2 py-1 text-sm text-muted">
                       {m}
@@ -272,8 +290,21 @@ export function ScheduleBoard({
         )}
       </div>
 
-      <div className={`grid grid-cols-1 gap-3 ${days.length > 5 ? 'md:grid-cols-7' : 'md:grid-cols-5'}`}>
-        {days.map((date) => {
+      {/* One grid per week, stacked. Every week is given the same days, so the
+          Monday of the second sits under the Monday of the first — and a card
+          can be dragged from any day to any other, whichever week it is in:
+          the drop only ever carries a date. */}
+      {weeks.map((week) => (
+        <div key={week.number} className="space-y-2">
+          {weeks.length > 1 && (
+            <p className="text-xs font-medium text-muted">{t('weekLabel', { week: week.number })}</p>
+          )}
+          <div
+            className={`grid grid-cols-1 gap-3 ${
+              week.days.length > 5 ? 'md:grid-cols-7' : 'md:grid-cols-5'
+            }`}
+          >
+        {week.days.map((date) => {
           const dayEntries = entries.filter((e) => e.date === date)
           const isToday = date === todayIso
           const isWeekend = [0, 6].includes(new Date(`${date}T00:00:00.000Z`).getUTCDay())
@@ -387,7 +418,9 @@ export function ScheduleBoard({
             </div>
           )
         })}
-      </div>
+          </div>
+        </div>
+      ))}
 
       <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
         <span>{t('dragHint')}</span>

@@ -669,6 +669,10 @@
   "schedule": {
     "title": "Scheduling",
     "weekLabel": "Week {week}",
+    "followingWeek": "Next week",
+    "followingWeekHint": "Show the week after this one underneath — cards can be dragged between them.",
+    "weekRange": "Week {from}–{to}",
+    "conflictsTitleTwo": "Conflicts in these two weeks",
     "currentWeek": "Current week",
     "current": "Current",
     "weekend": "Weekend",

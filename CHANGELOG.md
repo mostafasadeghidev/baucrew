@@ -14,6 +14,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
   and the page arrives at the width it was left at instead of snapping to it
   after it has been painted. On a phone the menu is the drawer it always was.
 
+### Added
+- **Folgewoche.** A toggle beside the weekend one puts the week after this one
+  underneath it: two grids, same columns, Monday under Monday. A card drags
+  from any day to any other, whichever of the two weeks it is in — a drop only
+  ever carries a date. The arrows then step a fortnight at a time, the heading
+  reads *KW 32–33*, and each grid says which week it is. Both weeks share one
+  weekend decision, or the columns of the second would not line up with the
+  first. The choice rides in the address with the week and the weekend, and
+  every link on the board now carries all three: stepping a week used to close
+  the weekend columns again behind you.
+
 ### Removed
 - **The Übersicht view is gone** from Einsatzplanung. Woche, Monat and Karte
   remain. What it did — several weeks one under the other — comes back inside

@@ -61,10 +61,10 @@ const ENTRY_INCLUDE = {
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; view?: string; weekend?: string; weeks?: string }>
+  searchParams: Promise<{ week?: string; view?: string; weekend?: string; next?: string }>
 }) {
   await requireManagement()
-  const { week, view, weekend } = await searchParams
+  const { week, view, weekend, next } = await searchParams
   const [t, tVehicleStatus, tAbsences, locale] = await Promise.all([
     getTranslations('schedule'),
     getTranslations('vehicleStatus'),
@@ -157,7 +157,9 @@ export default async function SchedulePage({
 
   // Always load the full 7-day week; Saturday/Sunday columns are shown only
   // when an assignment falls on them (or when the user asks via ?weekend=1).
-  const weekEnd = addDays(monday, 7)
+  // One week, or two when the office asked for the following one as well.
+  const weekCount = next === '1' ? 2 : 1
+  const weekEnd = addDays(monday, 7 * weekCount)
 
   const [entries, projects, employees, vehicles, weekAbsences] = await Promise.all([
     db.scheduleEntry.findMany({
@@ -183,9 +185,33 @@ export default async function SchedulePage({
     absencesBetween(monday, weekEnd),
   ])
 
+  // One weekend decision for the whole board: two weeks with different column
+  // counts would not line up, and lining up is the point of stacking them.
   const hasWeekendEntries = entries.some((e) => [0, 6].includes(e.date.getUTCDay()))
   const showWeekend = hasWeekendEntries || weekend === '1'
-  const days: string[] = Array.from({ length: showWeekend ? 7 : 5 }, (_, i) => iso(addDays(monday, i)))
+  const weeks = Array.from({ length: weekCount }, (_, w) => {
+    const start = addDays(monday, w * 7)
+    return {
+      number: isoWeek(start),
+      days: Array.from({ length: showWeekend ? 7 : 5 }, (_, i) => iso(addDays(start, i))),
+    }
+  })
+
+  /**
+   * Every link out of the week board keeps the board's own shape: which Monday
+   * it starts on, whether the weekend columns are open, whether the following
+   * week is on it. Hand-written hrefs used to drop one flag or the other, so
+   * stepping a week quietly closed the weekend again.
+   */
+  const weekHref = (
+    change: { monday?: Date; weekend?: boolean; next?: boolean } = {}
+  ): string => {
+    const start = change.monday ?? monday
+    const params = new URLSearchParams({ week: iso(start) })
+    if (change.weekend ?? showWeekend) params.set('weekend', '1')
+    if (change.next ?? weekCount === 2) params.set('next', '1')
+    return `/schedule?${params.toString()}`
+  }
 
   const dateFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
     weekday: 'short',
@@ -262,18 +288,16 @@ export default async function SchedulePage({
 
   return (
     <ScheduleBoard
-      days={days}
       weekendToggle={
         hasWeekendEntries
           ? { href: null, active: true }
-          : showWeekend
-            ? { href: `/schedule?week=${iso(monday)}`, active: true }
-            : { href: `/schedule?week=${iso(monday)}&weekend=1`, active: false }
+          : { href: weekHref({ weekend: !showWeekend }), active: showWeekend }
       }
-      weekNumber={isoWeek(monday)}
-      prevWeekHref={`/schedule?week=${iso(addDays(monday, -7))}`}
-      nextWeekHref={`/schedule?week=${iso(addDays(monday, 7))}`}
-      currentWeekHref="/schedule"
+      followingWeek={{ href: weekHref({ next: weekCount === 1 }), active: weekCount === 2 }}
+      weeks={weeks}
+      prevWeekHref={weekHref({ monday: addDays(monday, -7 * weekCount) })}
+      nextWeekHref={weekHref({ monday: addDays(monday, 7 * weekCount) })}
+      currentWeekHref={weekHref({ monday: mondayOf(new Date()) })}
       monthHref={`/schedule?view=month&week=${iso(monday)}`}
       mapHref={`/schedule/map?date=${iso(monday)}`}
       todayIso={iso(new Date())}

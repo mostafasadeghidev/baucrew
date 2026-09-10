@@ -669,6 +669,10 @@
   "schedule": {
     "title": "Einsatzplanung",
     "weekLabel": "KW {week}",
+    "followingWeek": "Folgewoche",
+    "followingWeekHint": "Die Woche danach unter dieser anzeigen — Karten lassen sich zwischen beiden ziehen.",
+    "weekRange": "KW {from}–{to}",
+    "conflictsTitleTwo": "Konflikte in diesen zwei Wochen",
     "currentWeek": "Aktuelle Woche",
     "current": "Aktuell",
     "weekend": "Wochenende",
