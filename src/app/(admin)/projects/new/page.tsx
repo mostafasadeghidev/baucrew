@@ -93,18 +93,19 @@ export default async function NewProjectPage({
   return (
     <div className="space-y-4">
 
-      {templates.length > 0 && (
-        <TemplatePicker
-          templates={templates.map((tp) => ({ value: tp.id, label: tp.name }))}
-          current={template?.id ?? ''}
-        />
-      )}
-
       <ProjectForm
         key={template?.id ?? 'blank'}
         action={createProject}
         cancelHref="/projects"
         title={t('createTitle')}
+        headExtra={
+          templates.length > 0 ? (
+            <TemplatePicker
+              templates={templates.map((tp) => ({ value: tp.id, label: tp.name }))}
+              current={template?.id ?? ''}
+            />
+          ) : null
+        }
         showPrice={canViewFinancials(user)}
         templateId={template?.id}
         draftId={draft?.id}

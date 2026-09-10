@@ -235,6 +235,7 @@ export function ProjectForm({
   initial,
   cancelHref,
   title,
+  headExtra,
   customers,
   employees,
   vehicles,
@@ -255,6 +256,8 @@ export function ProjectForm({
   cancelHref: string
   /** The page's own name, shown in the bar above the fields. */
   title: string
+  /** A control for the bar, e.g. the template picker on a new project. */
+  headExtra?: ReactNode
   customers: Option[]
   employees: Option[]
   vehicles: Option[]
@@ -389,6 +392,7 @@ export function ProjectForm({
         cancelHref={cancelHref}
         pending={pending}
         className="xl:col-span-2"
+        extra={headExtra}
       />
       {templateId && <input type="hidden" name="templateId" value={templateId} />}
       {draftId && <input type="hidden" name="draftId" value={draftId} />}

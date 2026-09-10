@@ -21,6 +21,7 @@ export function FormHead({
   cancelHref,
   pending = false,
   className = '',
+  extra,
 }: {
   title: string
   saveLabel: string
@@ -29,12 +30,19 @@ export function FormHead({
   pending?: boolean
   /** For a form laid out as a grid: the bar has to span every column. */
   className?: string
+  /**
+   * A control that belongs to the page rather than to a field — the template
+   * picker on a new project. It goes in the bar so that nothing stands above
+   * the bar: a page whose first row is not its own name reads as two pages.
+   */
+  extra?: React.ReactNode
 }) {
   return (
     <StickyHead className={className}>
       <div className={pageToolbar}>
         <h1 className={pageTitle}>{title}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {extra}
           <Link href={cancelHref} className={btn.outlineSm}>
             {cancelLabel}
           </Link>
