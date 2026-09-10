@@ -25,6 +25,19 @@ export type ProjectSectionKey = 'basic' | 'address' | 'planning' | 'assignment' 
 
 /** Fired by the button in the page's bar; opens every card at once. */
 export const PROJECT_EDIT_ALL_EVENT = 'baucrew:project-edit-all'
+/** Fired by that button's "cancel"; puts every field back as it was. */
+export const PROJECT_EDIT_CANCEL_EVENT = 'baucrew:project-edit-cancel'
+/**
+ * Fired by the form after every change of mind, so the button in the bar knows
+ * what to call itself. `all` means the bar opened everything and the bar
+ * therefore carries save and cancel; `card` means one pencil did, and that
+ * card carries them instead.
+ */
+export const PROJECT_EDIT_STATE_EVENT = 'baucrew:project-edit-state'
+export type ProjectEditMode = 'none' | 'card' | 'all'
+
+/** The form's id, so a button outside it can still submit it. */
+export const PROJECT_FORM_ID = 'project-form'
 
 export type Option = { value: string; label: string }
 export type CustomerAddress = {
@@ -93,7 +106,12 @@ function Section({
   view,
   open = true,
   onOpen,
+  onCancel,
+  showActions = false,
   editLabel,
+  saveLabel,
+  cancelLabel,
+  pending = false,
 }: {
   title: string
   children: React.ReactNode
@@ -106,8 +124,18 @@ function Section({
   view?: ReactNode
   open?: boolean
   onOpen?: () => void
+  onCancel?: () => void
+  /**
+   * True when this card was opened on its own. Save and cancel then stand
+   * where the pencil stood — a strip that appears above the cards would push
+   * everything under it down the moment you reach for a field.
+   */
+  showActions?: boolean
   /** The pencil's name for a screen reader. */
   editLabel?: string
+  saveLabel?: string
+  cancelLabel?: string
+  pending?: boolean
 }) {
   const inline = view !== undefined
   return (
@@ -128,6 +156,16 @@ function Section({
           >
             <Pencil className="h-3.5 w-3.5" aria-hidden />
           </button>
+        )}
+        {inline && open && showActions && (
+          <div className="-mr-1 -mt-1 flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={onCancel} className={btn.outlineXs}>
+              {cancelLabel}
+            </button>
+            <button type="submit" disabled={pending} className={`${btn.primarySm} px-2.5 py-1 text-xs`}>
+              {saveLabel}
+            </button>
+          </div>
         )}
       </div>
       {inline && !open && <div className="mt-3">{view}</div>}
@@ -406,25 +444,47 @@ export function ProjectForm({
   /** Which cards are open for editing; every one of them when this is not inline. */
   const [openCards, setOpenCards] = useState<Partial<Record<ProjectSectionKey, boolean>>>({})
   /**
+   * Whether a pencil opened one card or the bar opened them all. It decides
+   * where save and cancel stand: in the card that was opened, or in the bar
+   * that opened everything. Either way they replace the control that was
+   * already there, so nothing on the page moves when editing begins.
+   */
+  const [mode, setMode] = useState<ProjectEditMode>('none')
+  /**
    * Bumped on cancel. It is the form's key, so React builds the fields again
    * from their original values — the only way to take back what was typed into
    * an input that keeps its own value.
    */
   const [formKey, setFormKey] = useState(0)
-  const editing = !inline || Object.values(openCards).some(Boolean)
-  const openCard = (key: ProjectSectionKey) => setOpenCards((o) => ({ ...o, [key]: true }))
+  const openCard = (key: ProjectSectionKey) => {
+    setOpenCards((o) => ({ ...o, [key]: true }))
+    setMode('card')
+  }
 
-  // The button in the page's bar opens all five at once.
+  // The bar tells the form to open or to give up; the form tells the bar what
+  // it should call itself.
   useEffect(() => {
     if (!inline) return
-    const openAll = () =>
+    const openAll = () => {
       setOpenCards({ basic: true, address: true, planning: true, assignment: true, description: true })
+      setMode('all')
+    }
     window.addEventListener(PROJECT_EDIT_ALL_EVENT, openAll)
-    return () => window.removeEventListener(PROJECT_EDIT_ALL_EVENT, openAll)
-  }, [inline])
+    window.addEventListener(PROJECT_EDIT_CANCEL_EVENT, cancelInline)
+    return () => {
+      window.removeEventListener(PROJECT_EDIT_ALL_EVENT, openAll)
+      window.removeEventListener(PROJECT_EDIT_CANCEL_EVENT, cancelInline)
+    }
+  })
+
+  useEffect(() => {
+    if (!inline) return
+    window.dispatchEvent(new CustomEvent(PROJECT_EDIT_STATE_EVENT, { detail: mode }))
+  }, [inline, mode])
 
   function cancelInline() {
     setOpenCards({})
+    setMode('none')
     setVehicleIds(initial.vehicleIds)
     setChecklistIds(initial.checklistIds)
     setDeviceIds(initial.deviceIds)
@@ -448,7 +508,19 @@ export function ProjectForm({
   /** The props every card needs in inline mode, and nothing at all otherwise. */
   const card = (key: ProjectSectionKey) =>
     inline
-      ? { view: inline.views[key], open: !!openCards[key], onOpen: () => openCard(key), editLabel: inline.labels.edit }
+      ? {
+          view: inline.views[key],
+          open: !!openCards[key],
+          onOpen: () => openCard(key),
+          onCancel: cancelInline,
+          // Only a card opened on its own carries the buttons; when the bar
+          // opened all five, the bar carries them once instead of five times.
+          showActions: mode === 'card',
+          editLabel: inline.labels.edit,
+          saveLabel: inline.labels.save,
+          cancelLabel: inline.labels.cancel,
+          pending,
+        }
       : {}
 
   function handleCustomerCreated(customer: {
@@ -491,21 +563,13 @@ export function ProjectForm({
    */
   return (
     <>
-    <form key={formKey} action={formAction} className="grid items-start gap-6 xl:grid-cols-2">
-      {inline ? (
-        // On the project's own page the bar belongs to the page, not to the
-        // form; these two only appear once a card has been opened.
-        editing && (
-          <div className="sticky top-2 z-10 flex items-center justify-end gap-2 rounded-xl border border-border bg-surface px-3 py-2 shadow-sm md:top-0 xl:col-span-2">
-            <button type="button" onClick={cancelInline} className={btn.outlineSm}>
-              {inline.labels.cancel}
-            </button>
-            <button type="submit" disabled={pending} className={btn.primarySm}>
-              {inline.labels.save}
-            </button>
-          </div>
-        )
-      ) : (
+    <form
+      key={formKey}
+      id={inline ? PROJECT_FORM_ID : undefined}
+      action={formAction}
+      className="grid items-start gap-6 xl:grid-cols-2"
+    >
+      {inline ? null : (
       <FormHead
         title={title}
         saveLabel={tc('save')}

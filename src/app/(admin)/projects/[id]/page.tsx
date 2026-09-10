@@ -371,7 +371,7 @@ export default async function ProjectDetailPage({
           >
             {tSheet('title')}
           </Link>
-          <EditAllButton label={tc('edit')} />
+          <EditAllButton label={tc('edit')} saveLabel={tc('save')} cancelLabel={tc('cancel')} />
           {user.role === 'ADMIN' && (
             <>
               <MergeButton
