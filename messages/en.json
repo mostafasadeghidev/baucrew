@@ -1102,6 +1102,7 @@
   "importExcel": {
     "title": "Excel import",
     "hint": "Upload a sheet, map the columns — every row becomes a draft, never a live project.",
+    "settingsLink": "Import projects from Excel",
     "step1": "1. Choose a file (.xlsx or .csv)",
     "chooseFile": "Choose file",
     "rowCount": "{count, plural, one {# row} other {# rows}}",

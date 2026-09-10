@@ -27,7 +27,7 @@
  * two different gestures to learn.
  */
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertDialog } from '@/components/ui/alert-dialog'
@@ -215,6 +215,78 @@ export function ProjectsKanban({
     }
   }
 
+  // ── Moving the board sideways ───────────────────────────────
+  // Nine columns are wider than any window, so getting to the far end has to
+  // be easy with whatever is at hand. A trackpad and a touch screen already
+  // push the strip sideways on their own, once nothing in the way claims the
+  // gesture. A mouse has neither: so the board's own background is a handle —
+  // press anywhere that is not a card and drag — and the wheel pushes it
+  // sideways while there is still board to see, handing the page back its
+  // scroll at either end rather than trapping the reader inside the board.
+  const scroller = useRef<HTMLDivElement | null>(null)
+  const pan = useRef<{ x: number; left: number; pointerId: number } | null>(null)
+  const [panning, setPanning] = useState(false)
+
+  function onBoardPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return
+    const target = e.target as HTMLElement
+    // A card is dragged to move a project; a link is followed. Only the space
+    // around them moves the board.
+    if (target.closest('[data-board-card], a, button, input, select, textarea')) return
+    const box = scroller.current
+    if (!box || box.scrollWidth <= box.clientWidth) return
+    pan.current = { x: e.clientX, left: box.scrollLeft, pointerId: e.pointerId }
+    setPanning(true)
+    try {
+      box.setPointerCapture(e.pointerId)
+    } catch {
+      /* the browser may refuse; the drag still works while the cursor is over the board */
+    }
+  }
+
+  function onBoardPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const state = pan.current
+    const box = scroller.current
+    if (!state || !box) return
+    box.scrollLeft = state.left - (e.clientX - state.x)
+  }
+
+  function onBoardPointerEnd() {
+    const state = pan.current
+    const box = scroller.current
+    if (state && box) {
+      try {
+        box.releasePointerCapture(state.pointerId)
+      } catch {
+        /* already released */
+      }
+    }
+    pan.current = null
+    setPanning(false)
+  }
+
+  // React attaches its own wheel handler passively, where preventDefault does
+  // nothing, so this one is bound by hand.
+  useEffect(() => {
+    const box = scroller.current
+    if (!box) return
+    function onWheel(e: WheelEvent) {
+      const el = scroller.current
+      if (!el) return
+      // A trackpad's sideways swipe and shift+wheel are already horizontal —
+      // leave those to the browser.
+      if (e.deltaX !== 0 || e.shiftKey || e.ctrlKey) return
+      const max = el.scrollWidth - el.clientWidth
+      if (max <= 0) return
+      const next = el.scrollLeft + e.deltaY
+      if (next < 0 || next > max) return // at an end: the page scrolls on
+      e.preventDefault()
+      el.scrollLeft = next
+    }
+    box.addEventListener('wheel', onWheel, { passive: false })
+    return () => box.removeEventListener('wheel', onWheel)
+  }, [])
+
   return (
     <div className="space-y-2">
       {error && (
@@ -223,7 +295,16 @@ export function ProjectsKanban({
         </p>
       )}
 
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <div
+        ref={scroller}
+        onPointerDown={onBoardPointerDown}
+        onPointerMove={onBoardPointerMove}
+        onPointerUp={onBoardPointerEnd}
+        onPointerCancel={onBoardPointerEnd}
+        className={`flex gap-3 overflow-x-auto pb-2 ${
+          panning ? 'cursor-grabbing select-none' : 'cursor-grab'
+        }`}
+      >
         {board.map((column) => (
           <div
             key={column.status}
@@ -267,7 +348,14 @@ export function ProjectsKanban({
                   onPointerMove={onCardPointerMove}
                   onPointerUp={onCardPointerEnd}
                   onPointerCancel={onCardPointerEnd}
-                  style={{ touchAction: 'pan-y' }}
+                  data-board-card
+                  // Both directions: a finger that starts on a card still
+                  // pushes the board sideways or the page down. `pan-y` alone
+                  // meant the board could only be moved by the narrow strips
+                  // between the columns. The long press is unaffected — it
+                  // asks for a quarter second of stillness, and a pan that
+                  // starts cancels it.
+                  style={{ touchAction: 'pan-x pan-y' }}
                   className={`rounded-lg border border-border bg-surface px-2.5 py-2 shadow-sm transition-opacity ${
                     dragging === card.id ? 'opacity-40' : ''
                   }`}

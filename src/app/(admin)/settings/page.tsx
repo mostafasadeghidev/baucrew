@@ -47,7 +47,7 @@ export default async function SettingsPage({
   const tab = ["accounts", "categories", "data"].includes(tabParam ?? "")
     ? (tabParam as string)
     : "";
-  const [t, tNav, tRoles, tc, tImport, tImportPlan, tStatus, tProjects] =
+  const [t, tNav, tRoles, tc, tImport, tImportPlan, tImportExcel, tStatus, tProjects] =
     await Promise.all([
       getTranslations("settings"),
       getTranslations("nav"),
@@ -55,6 +55,7 @@ export default async function SettingsPage({
       getTranslations("common"),
       getTranslations("importTrello"),
       getTranslations("importPlan"),
+      getTranslations("importExcel"),
       getTranslations("status"),
       getTranslations("projects"),
     ]);
@@ -439,6 +440,13 @@ export default async function SettingsPage({
           <Card title={tImport("title")}>
             <Link href="/settings/import-trello" className={btn.outline}>
               {tImport("settingsLink")}
+            </Link>
+          </Card>
+
+          {/* Spreadsheet of projects */}
+          <Card title={tImportExcel("title")} description={tImportExcel("hint")}>
+            <Link href="/settings/import-excel" className={btn.outline}>
+              {tImportExcel("settingsLink")}
             </Link>
           </Card>
 

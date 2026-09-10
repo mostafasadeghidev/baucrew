@@ -58,7 +58,7 @@ export async function saveImportProfile(name: string, mappingJson: string): Prom
     entityId: KEY,
     newValue: trimmed,
   })
-  revalidatePath('/projects/import')
+  revalidatePath('/settings/import-excel')
 }
 
 export async function deleteImportProfile(name: string): Promise<void> {
@@ -73,5 +73,5 @@ export async function deleteImportProfile(name: string): Promise<void> {
     entityId: KEY,
     oldValue: name,
   })
-  revalidatePath('/projects/import')
+  revalidatePath('/settings/import-excel')
 }

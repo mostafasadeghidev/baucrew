@@ -1102,6 +1102,7 @@
   "importExcel": {
     "title": "Excel-Import",
     "hint": "Tabelle hochladen, Spalten zuordnen — jede Zeile wird ein Entwurf, kein fertiges Projekt.",
+    "settingsLink": "Projekte aus Excel importieren",
     "step1": "1. Datei wählen (.xlsx oder .csv)",
     "chooseFile": "Datei wählen",
     "rowCount": "{count, plural, one {# Zeile} other {# Zeilen}}",

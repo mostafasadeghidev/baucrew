@@ -40,7 +40,7 @@ export default async function DraftsPage() {
             <h1 className={`mt-1 ${pageTitle}`}>{t('title')}</h1>
             <p className="mt-1 text-sm text-muted">{t('hint')}</p>
           </div>
-          <Link href="/projects/import" className={btn.outline}>
+          <Link href="/settings/import-excel" className={btn.outline}>
             {t('toImport')}
           </Link>
         </div>

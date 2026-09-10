@@ -1,30 +1,10 @@
-import { getTranslations } from 'next-intl/server'
-import { BackLink } from '@/components/back-link'
-import { requireManagement } from '@/lib/authz'
-import { ImportWizard } from './import-wizard'
-import { getImportProfiles } from './actions'
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { permanentRedirect } from 'next/navigation'
 
-export default async function ImportPage() {
-  await requireManagement()
-  const [t, tProjects] = await Promise.all([
-    getTranslations('importExcel'),
-    getTranslations('projects'),
-  ])
-  const profiles = await getImportProfiles()
-
-  return (
-    <div className="space-y-4">
-      <StickyHead>
-        <div className={pageToolbar}>
-          <div>
-            <BackLink href="/projects" label={tProjects('title')} />
-            <h1 className={`mt-1 ${pageTitle}`}>{t('title')}</h1>
-            <p className="mt-1 text-sm text-muted">{t('hint')}</p>
-          </div>
-        </div>
-      </StickyHead>
-      <ImportWizard profiles={profiles} />
-    </div>
-  )
+/**
+ * The Excel import used to live here, and now sits in Einstellungen → Daten
+ * with the other two importers. Anyone holding the old address — a bookmark,
+ * a link in an e-mail to the office — lands on it instead of a 404.
+ */
+export default function MovedImportPage(): never {
+  permanentRedirect('/settings/import-excel')
 }

@@ -139,15 +139,45 @@ export default async function ProjectsPage({
   })
   const allCount = statusCounts.reduce((sum, s) => sum + s._count._all, 0)
 
+  /** List or board: the same projects, the same search, two ways of drawing
+   *  them. Written once because it sits on a different row in each view. */
+  const viewSwitch = (
+    <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
+      {[
+        { value: '', label: t('viewList') },
+        { value: 'kanban', label: t('viewBoard') },
+      ].map((option) =>
+        (option.value === 'kanban') === kanban ? (
+          <span
+            key={option.value || 'list'}
+            aria-current="page"
+            className="whitespace-nowrap rounded-md bg-surface px-3 py-1.5 text-foreground shadow-sm"
+          >
+            {option.label}
+          </span>
+        ) : (
+          <Link
+            key={option.value || 'list'}
+            href={`/projects${option.value ? '?view=kanban' : ''}${
+              query ? `${option.value ? '&' : '?'}q=${encodeURIComponent(query)}` : ''
+            }`}
+            className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
+          >
+            {option.label}
+          </Link>
+        )
+      )}
+    </div>
+  )
+
   return (
     <div className="space-y-4">
       <StickyHead>
         <div className={pageToolbar}>
           <h1 className={pageTitle}>{t('title')}</h1>
           <div className="flex items-center gap-2">
-            <Link href="/projects/import" className={btn.outline}>
-              {tDrafts('toImport')}
-            </Link>
+            {/* The Excel import lives in Einstellungen → Daten, with the other
+                two importers. It is set up once, not reached for daily. */}
             {draftCount > 0 && (
               <Link href="/projects/drafts" className={`${btn.outline} gap-1.5`}>
                 {tDrafts('title')}
@@ -179,59 +209,62 @@ export default async function ProjectsPage({
       </StickyHead>
 
       <PagePanel>
+        {/*
+          Two choices about the same projects: the status tabs say which are
+          shown, the switch says how they are drawn. The switch rides on the
+          tabs' row — same kind of track, same height — because that is where
+          the eye already is. The board has no status tabs, and rather than
+          leave their row standing empty above the search, the switch drops
+          down and shares the search's row there instead: one row either way.
+        */}
         <div className="space-y-3 border-b border-border p-4">
-          {!kanban && (
-          <StatusTabs
-            allLabel={t('allStatuses')}
-            allCount={allCount}
-            tabs={[
-              ...(prepTab.enabled
-                ? [{ value: 'prep', label: prepTab.label || t('tabPreparation'), count: prepCount }]
-                : []),
-              ...STATUSES.filter((s) => (countByStatus.get(s) ?? 0) > 0 || s === statusFilter).map(
-                (s) => ({
-                  value: s,
-                  label: tStatus(s),
-                  count: countByStatus.get(s) ?? 0,
-                })
-              ),
-            ]}
-          />
+          {kanban ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex max-w-md flex-1">
+                <LiveSearchInput placeholder={t('searchPlaceholder')} />
+              </div>
+              {viewSwitch}
+            </div>
+          ) : (
+            <>
+              {/* Aligned at the top, not the middle: when there are more
+                  status tabs than fit, their strip carries a scrollbar under
+                  them and grows taller than the switch. Centred, that pushes
+                  the switch half a scrollbar down and the two tracks no longer
+                  read as one row. Both are the same height, so starting them
+                  together lines them up either way. */}
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <StatusTabs
+                    allLabel={t('allStatuses')}
+                    allCount={allCount}
+                    tabs={[
+                      ...(prepTab.enabled
+                        ? [
+                            {
+                              value: 'prep',
+                              label: prepTab.label || t('tabPreparation'),
+                              count: prepCount,
+                            },
+                          ]
+                        : []),
+                      ...STATUSES.filter(
+                        (s) => (countByStatus.get(s) ?? 0) > 0 || s === statusFilter
+                      ).map((s) => ({
+                        value: s,
+                        label: tStatus(s),
+                        count: countByStatus.get(s) ?? 0,
+                      })),
+                    ]}
+                  />
+                </div>
+                {viewSwitch}
+              </div>
+              <div className="flex max-w-md">
+                <LiveSearchInput placeholder={t('searchPlaceholder')} />
+              </div>
+            </>
           )}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex max-w-md flex-1">
-              <LiveSearchInput placeholder={t('searchPlaceholder')} />
-            </div>
-            {/* List or board — the same projects, the same search, two ways of
-                looking at them. It sits with the search rather than up with the
-                buttons: it changes what you are looking at, not what you do. */}
-            <div className="ml-auto flex items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
-              {[
-                { value: '', label: t('viewList') },
-                { value: 'kanban', label: t('viewBoard') },
-              ].map((option) =>
-                (option.value === 'kanban') === kanban ? (
-                  <span
-                    key={option.value || 'list'}
-                    aria-current="page"
-                    className="whitespace-nowrap rounded-md bg-surface px-3 py-1 text-foreground shadow-sm"
-                  >
-                    {option.label}
-                  </span>
-                ) : (
-                  <Link
-                    key={option.value || 'list'}
-                    href={`/projects${option.value ? '?view=kanban' : ''}${
-                      query ? `${option.value ? '&' : '?'}q=${encodeURIComponent(query)}` : ''
-                    }`}
-                    className="whitespace-nowrap rounded-md px-3 py-1 text-muted transition-colors hover:text-foreground"
-                  >
-                    {option.label}
-                  </Link>
-                )
-              )}
-            </div>
-          </div>
         </div>
 
         {kanban ? (
