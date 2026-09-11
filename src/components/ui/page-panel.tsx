@@ -139,7 +139,10 @@ export function PageHint({ children, className = '' }: { children: ReactNode; cl
  * line drew a second hard edge a gap's height below the bar, and a strong blur
  * over so thin a band smeared every link and status pill into a coloured blob.
  * A lighter blur that dies away towards the content reads as the content
- * sinking under the bar, not as a band laid across it.
+ * sinking under the bar, not as a band laid across it. It holds at full
+ * strength for the first third of the gap before it starts to fade: faded
+ * from the very top at 8px it was soft enough to miss, and 10px is still well
+ * short of the 12px that smeared.
  */
 export function StickyHead({
   children,
@@ -151,7 +154,7 @@ export function StickyHead({
 }) {
   return (
     <div
-      className={`page-head sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-[var(--page-head-gap)] after:bg-background/40 after:backdrop-blur-sm after:[mask-image:linear-gradient(to_bottom,black,transparent)] after:[-webkit-mask-image:linear-gradient(to_bottom,black,transparent)] md:top-0 print:static print:bg-transparent print:after:hidden ${className}`}
+      className={`page-head sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-[var(--page-head-gap)] after:bg-background/40 after:backdrop-blur-[10px] after:[mask-image:linear-gradient(to_bottom,black_30%,transparent)] after:[-webkit-mask-image:linear-gradient(to_bottom,black_30%,transparent)] md:top-0 print:static print:bg-transparent print:after:hidden ${className}`}
     >
       {children}
     </div>
