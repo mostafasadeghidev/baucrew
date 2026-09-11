@@ -13,6 +13,8 @@ import { MultiCombobox } from '@/components/multi-combobox'
 import { ProjectItemsEditor, type ProjectItemRow } from '../projects/[id]/project-items'
 import { getProjectScheduleDefaults, setProjectManager, type EntryInput } from './actions'
 import { ProjectDevicesEditor, type ProjectDeviceRow } from '../projects/[id]/project-devices'
+import { ChecklistSection } from '../projects/[id]/checklist-section'
+import type { ChecklistRow } from '@/components/checklist'
 import { MAX_RANGE_DAYS, expandDateRange, isWeekendIso, splitRangeDays, weekendDaysInRange } from '@/lib/schedule-range'
 import { assignmentBlock } from '@/lib/schedule-block'
 import { btn } from '@/components/ui/button'
@@ -89,6 +91,7 @@ export function EntryDialog({
   const tSheet = useTranslations('sheet')
   const tVehicles = useTranslations('vehicles')
   const tDevices = useTranslations('devices')
+  const tChecklists = useTranslations('checklists')
   const tEmployees = useTranslations('employees')
   const isEdit = dialog.mode === 'edit'
   const entry = isEdit ? dialog.entry : null
@@ -119,6 +122,8 @@ export function EntryDialog({
     new Set(entry?.employees.map((e) => e.id) ?? [])
   )
   const [items, setItems] = useState<ProjectItemRow[] | null>(null)
+  const [checklists, setChecklists] = useState<ChecklistRow[] | null>(null)
+  const [checklistTemplates, setChecklistTemplates] = useState<Array<{ id: string; name: string }>>([])
 
   // Away on the selected day → the crew list warns before the entry is saved.
   const absentById = useMemo(() => {
@@ -149,6 +154,8 @@ export function EntryDialog({
       setScheduledDays(d.scheduledDays)
       setDevices(d.devices)
       setDeviceOptions(d.deviceOptions)
+      setChecklists(d.checklists)
+      setChecklistTemplates(d.checklistTemplates)
       if (applyAssignments) {
         setSelectedEmployees(new Set(d.employeeIds))
         setVehicleIds(d.vehicleIds)
@@ -176,6 +183,8 @@ export function EntryDialog({
       setScheduledDays(d.scheduledDays)
       setDevices(d.devices)
       setDeviceOptions(d.deviceOptions)
+      setChecklists(d.checklists)
+      setChecklistTemplates(d.checklistTemplates)
       // Editing: the field starts at the last day of this block, so shortening
       // it removes the later days and extending it adds new ones.
       if (isEdit && entryDate) {
@@ -531,6 +540,33 @@ export function EntryDialog({
                   options={deviceOptions}
                   onChanged={() => loadDefaults(projectId, false)}
                 />
+              )}
+            </div>
+          )}
+
+          {/* Site checklists — the same section as on the project page. They
+              belong to the project, so a list added here is on every one of
+              its assignments and on the crew's phones. */}
+          {projectId && (
+            <div className="rounded-lg border border-border">
+              <div className="border-b border-border px-4 py-2">
+                <p className="text-sm font-semibold">{tChecklists('title')}</p>
+                <p className="text-xs text-muted">{t('checklistsInDialogHint')}</p>
+              </div>
+              {checklists === null ? (
+                <p className="px-4 py-3 text-sm text-muted">{tc('loading')}</p>
+              ) : (
+                <div className="px-4 py-3">
+                  <ChecklistSection
+                    // A different project is a different set of lists: start
+                    // the picker afresh rather than keep the last one's choice.
+                    key={projectId}
+                    projectId={projectId}
+                    checklists={checklists}
+                    templates={checklistTemplates}
+                    onChanged={() => loadDefaults(projectId, false)}
+                  />
+                </div>
               )}
             </div>
           )}

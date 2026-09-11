@@ -1,6 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { getLocale } from 'next-intl/server'
+import type { ChecklistRow } from '@/components/checklist'
+import { formatDate } from '@/lib/format'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
@@ -370,6 +373,10 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
   }>
   /** Devices not on the list yet — for the picker. */
   deviceOptions: Array<{ value: string; label: string }>
+  /** The project's checklists, the same rows the project page shows. */
+  checklists: ChecklistRow[]
+  /** Templates a new checklist can be copied from. */
+  checklistTemplates: Array<{ id: string; name: string }>
 } | null> {
   await requireManagement()
   const project = await db.project.findUnique({
@@ -382,6 +389,15 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
         include: { catalogItem: { select: { name: true, unit: true, stockQuantity: true } } },
         orderBy: { catalogItem: { name: 'asc' } },
       },
+      checklists: {
+        orderBy: { createdAt: 'asc' },
+        include: {
+          items: {
+            orderBy: { sortOrder: 'asc' },
+            include: { checkedBy: { select: { firstName: true, lastName: true } } },
+          },
+        },
+      },
     },
   })
   if (!project) return null
@@ -392,6 +408,14 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
     take: 60,
   })
   const { rows: devices, options: deviceOptions } = await getProjectDevices(projectId)
+  const [checklistTemplates, locale] = await Promise.all([
+    db.checklistTemplate.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true },
+    }),
+    getLocale(),
+  ])
 
   const assigned = new Set(project.items.map((i) => i.catalogItemId))
   const catalog = await db.catalogItem.findMany({
@@ -417,6 +441,21 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
     catalogOptions: catalog
       .filter((c) => !assigned.has(c.id))
       .map((c) => ({ value: c.id, label: c.unit ? `${c.name} (${c.unit})` : c.name })),
+    // Shaped exactly as the project page shapes them, so the same section
+    // renders them in both places.
+    checklists: project.checklists.map((c) => ({
+      id: c.id,
+      name: c.name,
+      items: c.items.map((i) => ({
+        id: i.id,
+        text: i.text,
+        ok: i.ok,
+        note: i.note,
+        checkedBy: i.checkedBy ? `${i.checkedBy.firstName} ${i.checkedBy.lastName}`.trim() : null,
+        checkedAt: i.checkedAt ? formatDate(i.checkedAt, locale) : null,
+      })),
+    })),
+    checklistTemplates,
   }
 }
 

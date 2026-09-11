@@ -736,6 +736,7 @@
     "planEntry": "Einsatz planen",
     "prefilledFromProject": "Team und Fahrzeug wurden aus dem Projekt übernommen — für diesen Tag anpassbar.",
     "itemsInDialogHint": "Die Werkzeug-/Materialliste gehört zum Projekt und gilt für alle Einsätze.",
+    "checklistsInDialogHint": "Die Checklisten gehören zum Projekt und gelten für alle Einsätze.",
     "completeProject": "Projekt abschließen",
     "completeProjectConfirm": "Projekt „{project}“ als abgeschlossen markieren? Ende (tatsächlich) wird auf den {date} gesetzt.",
     "completeProjectDone": "Projekt abgeschlossen",

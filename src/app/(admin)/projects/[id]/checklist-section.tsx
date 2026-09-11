@@ -16,10 +16,17 @@ export function ChecklistSection({
   projectId,
   checklists,
   templates,
+  onChanged,
 }: {
   projectId: string
   checklists: ChecklistRow[]
   templates: Array<{ id: string; name: string }>
+  /**
+   * Called once an add or a remove has been saved. The project page does not
+   * need it — the server re-renders the page — but the assignment dialog holds
+   * its own copy of the lists and has to fetch them again.
+   */
+  onChanged?: () => void
 }) {
   const t = useTranslations('checklists')
   const tc = useTranslations('common')
@@ -31,7 +38,10 @@ export function ChecklistSection({
     const payload = templateId ? { templateId } : { name: name.trim() }
     if (!templateId && !name.trim()) return
     setName('')
-    startTransition(async () => void (await addProjectChecklist(projectId, payload)))
+    startTransition(async () => {
+      await addProjectChecklist(projectId, payload)
+      onChanged?.()
+    })
   }
 
   return (
@@ -46,7 +56,12 @@ export function ChecklistSection({
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => startTransition(async () => void (await removeProjectChecklist(c.id)))}
+                onClick={() =>
+                  startTransition(async () => {
+                    await removeProjectChecklist(c.id)
+                    onChanged?.()
+                  })
+                }
                 title={tc('delete')}
                 aria-label={tc('delete')}
                 className="rounded-md border border-border p-1.5 text-muted hover:bg-danger/10 hover:text-danger"

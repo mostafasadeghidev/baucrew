@@ -736,6 +736,7 @@
     "planEntry": "Plan assignment",
     "prefilledFromProject": "Team and vehicle were taken from the project — adjustable for this day.",
     "itemsInDialogHint": "The tool/material list belongs to the project and applies to all its assignments.",
+    "checklistsInDialogHint": "Checklists belong to the project and apply to all its assignments.",
     "completeProject": "Complete project",
     "completeProjectConfirm": "Mark project “{project}” as completed? Actual end will be set to {date}.",
     "completeProjectDone": "Project completed",
