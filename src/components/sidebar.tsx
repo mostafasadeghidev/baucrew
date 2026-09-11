@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
+import { lockPageScroll } from '@/lib/scroll-lock'
 import { useTranslations } from 'next-intl'
 import {
   Building2,
@@ -317,14 +318,13 @@ export function MobileNav({
   // for route changes. Lock scroll + Escape while open.
   useEffect(() => {
     if (!open) return
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlock = lockPageScroll()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => {
-      document.body.style.overflow = previous
+      unlock()
       window.removeEventListener('keydown', onKey)
     }
   }, [open])

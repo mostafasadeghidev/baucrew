@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import { lockPageScroll } from '@/lib/scroll-lock'
 import { useTranslations } from 'next-intl'
 import { createCustomerInline } from '../customers/actions'
 import { CityPicker, type CityValue } from '@/components/city-picker'
@@ -34,14 +35,9 @@ export function NewCustomerModal({
   const [postalCode, setPostalCode] = useState('')
   const [pending, startTransition] = useTransition()
 
-  // Lock background scrolling while the modal is open.
-  useEffect(() => {
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previous
-    }
-  }, [])
+  // Hold the page still behind the modal — on the root, not on body, or the
+  // page bar and the sidebar stop sticking. See lockPageScroll.
+  useEffect(() => lockPageScroll(), [])
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()

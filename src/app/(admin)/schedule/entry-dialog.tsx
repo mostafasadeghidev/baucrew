@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
+import { lockPageScroll } from '@/lib/scroll-lock'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { RotateCcw } from 'lucide-react'
@@ -93,14 +94,9 @@ export function EntryDialog({
   const entry = isEdit ? dialog.entry : null
   const isCompleted = ['COMPLETED', 'INVOICED', 'PAID'].includes(entry?.projectStatus ?? '')
 
-  // Lock background scrolling while the dialog is open.
-  useEffect(() => {
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previous
-    }
-  }, [])
+  // Hold the page still behind the dialog — on the root, not on body, or the
+  // page bar and the sidebar stop sticking. See lockPageScroll.
+  useEffect(() => lockPageScroll(), [])
 
   const [projectId, setProjectId] = useState(
     entry?.projectId ?? (dialog.mode === 'create' ? (dialog.projectId ?? '') : '')
