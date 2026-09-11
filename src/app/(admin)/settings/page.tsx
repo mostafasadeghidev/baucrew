@@ -125,7 +125,14 @@ export default async function SettingsPage({
               </Link>
             </div>
             <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[832px] table-fixed text-sm">
+                <colgroup>
+                  <col />
+                  <col className="w-44" />
+                  <col className="w-48" />
+                  <col className="w-28" />
+                  <col className="w-28" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                     <th className="px-4 py-3 font-medium">{t("username")}</th>
@@ -142,7 +149,7 @@ export default async function SettingsPage({
                 <tbody className="divide-y divide-border">
                   {systemUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-surface-hover">
-                      <td className="px-4 py-3 font-medium">{u.username}</td>
+                      <td className="break-words px-4 py-3 font-medium">{u.username}</td>
                       <td className="px-4 py-3">{tRoles(u.role)}</td>
                       <td className="px-4 py-3">
                         {u.role === "ADMIN" || u.canViewFinancials ? "✓" : "—"}
@@ -180,7 +187,15 @@ export default async function SettingsPage({
               <p className="mt-0.5 text-xs text-muted">{t("privilegedHint")}</p>
             </div>
             <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[940px] table-fixed text-sm">
+                <colgroup>
+                  <col />
+                  <col className="w-[22%]" />
+                  <col className="w-44" />
+                  <col className="w-48" />
+                  <col className="w-24" />
+                  <col className="w-36" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                     <th className="px-4 py-3 font-medium">{t("username")}</th>
@@ -200,8 +215,8 @@ export default async function SettingsPage({
                 <tbody className="divide-y divide-border">
                   {privileged.map((u) => (
                     <tr key={u.id} className="hover:bg-surface-hover">
-                      <td className="px-4 py-3 font-medium">{u.username}</td>
-                      <td className="px-4 py-3 text-muted">
+                      <td className="break-words px-4 py-3 font-medium">{u.username}</td>
+                      <td className="break-words px-4 py-3 text-muted">
                         {u.employee
                           ? `${u.employee.firstName} ${u.employee.lastName}`.trim()
                           : "—"}

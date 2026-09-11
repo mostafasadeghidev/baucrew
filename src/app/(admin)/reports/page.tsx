@@ -778,7 +778,14 @@ export default async function ReportsPage({
               ) : (
                 <div className={`overflow-hidden ${card}`}>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[720px] table-fixed text-sm">
+                      <colgroup>
+                        <col className="w-12" />
+                        <col />
+                        <col className="w-[28%]" />
+                        <col className="w-32" />
+                        <col className="w-24" />
+                      </colgroup>
                       <thead className="border-b border-border bg-subtle">
                         <tr>
                           <th className={`${th} w-10`} />
@@ -792,7 +799,7 @@ export default async function ReportsPage({
                         {topSiteRows.slice(0, TOP_SITES).map((site, i) => (
                           <tr key={site.key} className="hover:bg-surface-hover">
                             <td className={`${tdR} text-muted`}>{i + 1}</td>
-                            <td className={td}>
+                            <td className={`${td} break-words`}>
                               {site.id ? (
                                 <Link href={`/projects/${site.id}`} className="text-accent hover:underline">
                                   {site.name}
@@ -806,7 +813,7 @@ export default async function ReportsPage({
                                 </span>
                               )}
                             </td>
-                            <td className={`${td} text-muted`}>{site.customer || '—'}</td>
+                            <td className={`${td} break-words text-muted`}>{site.customer || '—'}</td>
                             <td className={tdR}>{money(site.total)}</td>
                             <td className={`${tdR} text-muted`}>
                               {periodRevenueTotal > 0
@@ -837,7 +844,14 @@ export default async function ReportsPage({
               ) : (
                 <div className={`overflow-hidden ${card}`}>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[720px] table-fixed text-sm">
+                      <colgroup>
+                        <col />
+                        <col className="w-36" />
+                        <col className="w-36" />
+                        <col className="w-36" />
+                        <col className="w-36" />
+                      </colgroup>
                       <thead className="border-b border-border bg-subtle">
                         <tr>
                           <th className={th}>{t('colMonth')}</th>
@@ -989,7 +1003,17 @@ export default async function ReportsPage({
               <p className="px-3 py-6 text-sm text-muted">{t('noEfficiency')}</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-[13px]">
+                <table className={`w-full table-fixed text-[13px] ${showFinancials ? 'min-w-[820px]' : 'min-w-[700px]'}`}>
+                  <colgroup>
+                    <col />
+                    <col className="w-20" />
+                    <col className="w-20" />
+                    <col className="w-28" />
+                    <col className="w-24" />
+                    {showFinancials && <col className="w-28" />}
+                    {showFinancials && <col className="w-24" />}
+                    <col className="w-24" />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-border">
                       <th className={th}>{t('colProject')}</th>
@@ -1006,10 +1030,10 @@ export default async function ReportsPage({
                     {efficiency.rows.map((r) => (
                       <tr key={r.id} className="hover:bg-surface-hover">
                         <td className={`max-w-[320px] ${td}`}>
-                          <Link href={`/projects/${r.id}`} className="block truncate text-accent hover:underline">
+                          <Link href={`/projects/${r.id}`} className="block break-words text-accent hover:underline">
                             {r.number} — {r.name}
                           </Link>
-                          <span className="block truncate text-[11px] text-muted">{r.customer}</span>
+                          <span className="block break-words text-[11px] text-muted">{r.customer}</span>
                         </td>
                         <td className={tdR}>{r.plannedDays ?? '—'}</td>
                         <td className={`${tdR} ${r.dayDelta != null && r.dayDelta > 0 ? down : ''}`}>{r.actualDays || '—'}</td>
@@ -1095,7 +1119,14 @@ export default async function ReportsPage({
               <p className="px-3 py-6 text-sm text-muted">{t('offersNone')}</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[800px] table-fixed text-sm">
+                  <colgroup>
+                    <col className="w-28" />
+                    <col />
+                    <col className="w-[28%]" />
+                    <col className="w-24" />
+                    <col className="w-32" />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
                       <th className="px-3 py-2 font-medium">{tProjects('number')}</th>
@@ -1108,13 +1139,13 @@ export default async function ReportsPage({
                   <tbody className="divide-y divide-border">
                     {openOffers.offers.map((o) => (
                       <tr key={o.id} className="hover:bg-surface-hover">
-                        <td className="px-3 py-2 tabular-nums text-muted">{o.number}</td>
-                        <td className="px-3 py-2">
+                        <td className="truncate px-3 py-2 tabular-nums text-muted" title={o.number}>{o.number}</td>
+                        <td className="break-words px-3 py-2">
                           <Link href={`/projects/${o.id}`} className="font-medium text-accent hover:underline">
                             {o.name}
                           </Link>
                         </td>
-                        <td className="px-3 py-2 text-muted">{o.customer}</td>
+                        <td className="break-words px-3 py-2 text-muted">{o.customer}</td>
                         <td
                           className={`px-3 py-2 text-right tabular-nums ${
                             o.ageDays >= STALE_OFFER_DAYS ? warn : 'text-muted'
@@ -1146,40 +1177,48 @@ export default async function ReportsPage({
                 <p className="px-3 py-6 text-sm text-muted">{t('noCustomers')}</p>
               ) : (
                 <>
-                  <table className="w-full text-[13px]">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className={th}>{t('colCustomer')}</th>
-                        <th className={th}>{t('colShare')}</th>
-                        <th className={thR}>{t('colProjects')}</th>
-                        <th className={thR}>{t('colRevenue')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {customers.top.map((c) => (
-                        <tr key={c.id} className="hover:bg-surface-hover">
-                          <td className={`${td} max-w-[220px]`}>
-                            <Link href={`/customers/${c.id}`} className="block truncate text-accent hover:underline">
-                              {c.name}
-                            </Link>
-                          </td>
-                          <td className={`${td} w-[38%]`}>
-                            <div className="flex items-center gap-2">
-                              <div className="h-2 flex-1 rounded-sm bg-surface-hover">
-                                <div
-                                  className={`h-2 rounded-sm ${c.share > 30 ? 'bg-amber-500/70' : 'bg-accent/70'}`}
-                                  style={{ width: `${Math.min(100, c.share)}%` }}
-                                />
-                              </div>
-                              <span className="w-10 text-right text-xs tabular-nums text-muted">{c.share} %</span>
-                            </div>
-                          </td>
-                          <td className={tdR}>{c.projects}</td>
-                          <td className={`${tdR} font-medium`}>{money(c.revenue)}</td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[740px] table-fixed text-[13px]">
+                      <colgroup>
+                        <col />
+                        <col className="w-[38%]" />
+                        <col className="w-24" />
+                        <col className="w-32" />
+                      </colgroup>
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className={th}>{t('colCustomer')}</th>
+                          <th className={th}>{t('colShare')}</th>
+                          <th className={thR}>{t('colProjects')}</th>
+                          <th className={thR}>{t('colRevenue')}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {customers.top.map((c) => (
+                          <tr key={c.id} className="hover:bg-surface-hover">
+                            <td className={`${td} max-w-[220px]`}>
+                              <Link href={`/customers/${c.id}`} className="block break-words text-accent hover:underline">
+                                {c.name}
+                              </Link>
+                            </td>
+                            <td className={`${td} w-[38%]`}>
+                              <div className="flex items-center gap-2">
+                                <div className="h-2 flex-1 rounded-sm bg-surface-hover">
+                                  <div
+                                    className={`h-2 rounded-sm ${c.share > 30 ? 'bg-amber-500/70' : 'bg-accent/70'}`}
+                                    style={{ width: `${Math.min(100, c.share)}%` }}
+                                  />
+                                </div>
+                                <span className="w-10 text-right text-xs tabular-nums text-muted">{c.share} %</span>
+                              </div>
+                            </td>
+                            <td className={tdR}>{c.projects}</td>
+                            <td className={`${tdR} font-medium`}>{money(c.revenue)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                   {topCustomer && topCustomer.share > 30 && (
                     <p className={`border-t border-border px-3 py-2 text-[12px] ${warn}`}>
                       ⚠ {t('concentrationWarning', { name: topCustomer.name, share: topCustomer.share })}

@@ -84,7 +84,15 @@ export default async function EmployeesPage({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[1080px] table-fixed text-sm">
+            <colgroup>
+              <col />
+              <col className="w-44" />
+              <col className="w-[24%]" />
+              <col className="w-28" />
+              <col className="w-48" />
+              <col className="w-28" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">{t('name')}</th>
@@ -105,13 +113,15 @@ export default async function EmployeesPage({
               ) : (
                 employees.map((e) => (
                   <tr key={e.id} className="hover:bg-surface-hover">
-                    <td className="px-4 py-3">
+                    <td className="break-words px-4 py-3">
                       <Link href={`/employees/${e.id}`} className="font-medium text-accent hover:underline">
                         {e.firstName} {e.lastName}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted">{e.phone ?? '—'}</td>
-                    <td className="px-4 py-3">
+                    <td className="truncate px-4 py-3 text-muted" title={e.phone ?? undefined}>
+                      {e.phone ?? '—'}
+                    </td>
+                    <td className="break-words px-4 py-3">
                       <span className="flex flex-wrap gap-1">
                         {e.skills.length === 0
                           ? '—'
@@ -138,8 +148,11 @@ export default async function EmployeesPage({
                     </td>
                     <td className="px-4 py-3">
                       {e.user ? (
-                        <span className="inline-flex flex-wrap items-center gap-1">
-                          <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium">
+                        <span className="inline-flex max-w-full flex-wrap items-center gap-1">
+                          <span
+                            className="truncate rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium"
+                            title={e.user.username}
+                          >
                             {e.user.username}
                           </span>
                           {e.user.role !== 'EMPLOYEE' && (

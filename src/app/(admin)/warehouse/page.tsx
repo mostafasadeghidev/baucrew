@@ -96,7 +96,16 @@ export default async function WarehousePage({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[1000px] table-fixed text-sm">
+            <colgroup>
+              <col />
+              <col className="w-32" />
+              <col className="w-[16%]" />
+              <col className="w-28" />
+              <col className="w-28" />
+              <col className="w-40" />
+              <col className="w-24" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">{t('name')}</th>
@@ -118,7 +127,7 @@ export default async function WarehousePage({
               ) : (
                 items.map((item) => (
                   <tr key={item.id} className="hover:bg-surface-hover">
-                    <td className="px-4 py-3">
+                    <td className="break-words px-4 py-3">
                       <Link
                         href={`/warehouse/${item.id}/edit`}
                         className="font-medium text-accent hover:underline"
@@ -139,12 +148,12 @@ export default async function WarehousePage({
                         {kindLabel(item.kind)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-muted">{item.category ?? '—'}</td>
-                    <td className="px-4 py-3 text-muted">{item.unit ?? '—'}</td>
+                    <td className="break-words px-4 py-3 text-muted">{item.category ?? '—'}</td>
+                    <td className="break-words px-4 py-3 text-muted">{item.unit ?? '—'}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-muted">
                       {item.stockQuantity != null ? Number(item.stockQuantity) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-muted">
+                    <td className="break-words px-4 py-3 text-muted">
                       {item.location ?? '—'}
                       {item.videoUrl && (
                         <a

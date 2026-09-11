@@ -154,7 +154,14 @@ export default async function AuditLogPage({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
+          <table className="w-full min-w-[940px] table-fixed text-[13px]">
+            <colgroup>
+              <col className="w-36" />
+              <col className="w-40" />
+              <col className="w-64" />
+              <col className="w-48" />
+              <col />
+            </colgroup>
             <thead>
               <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
                 <th className="px-3 py-2 font-medium">{t('time')}</th>
@@ -177,13 +184,13 @@ export default async function AuditLogPage({
                   return (
                     <tr key={r.id} className="align-top hover:bg-surface-hover">
                       <td className="whitespace-nowrap px-3 py-1.5 tabular-nums text-muted">{fmt.format(r.createdAt)}</td>
-                      <td className="whitespace-nowrap px-3 py-1.5">
+                      <td className="truncate whitespace-nowrap px-3 py-1.5" title={r.user?.username}>
                         {r.user?.username ?? <span className="text-muted">{t('system')}</span>}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-1.5" title={r.action}>
+                      <td className="break-words px-3 py-1.5" title={r.action}>
                         {actionLabel(r.action)}
                       </td>
-                      <td className="px-3 py-1.5">
+                      <td className="break-words px-3 py-1.5">
                         {href ? (
                           <Link href={href} className="text-accent hover:underline" title={t('open')}>
                             {entityLabel(r.entity)} ↗
@@ -193,7 +200,7 @@ export default async function AuditLogPage({
                         )}
                         {r.field && <span className="ml-1 text-xs text-muted">· {fieldLabel(r.field)}</span>}
                       </td>
-                      <td className="max-w-[420px] px-3 py-1.5">
+                      <td className="max-w-[420px] break-words px-3 py-1.5">
                         {r.oldValue && <span className="text-muted line-through">{valueLabel(r.oldValue, r.field)}</span>}
                         {r.oldValue && r.newValue && <span className="mx-1 text-muted">→</span>}
                         {r.newValue && <span>{valueLabel(r.newValue, r.field)}</span>}

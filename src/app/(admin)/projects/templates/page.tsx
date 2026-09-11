@@ -41,7 +41,13 @@ export default async function TemplatesPage() {
 
       <PagePanel>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[640px] table-fixed text-sm">
+            <colgroup>
+              <col />
+              <col className="w-48" />
+              <col className="w-24" />
+              <col className="w-28" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">{t('name')}</th>
@@ -60,7 +66,7 @@ export default async function TemplatesPage() {
               ) : (
                 templates.map((template) => (
                   <tr key={template.id} className="hover:bg-surface-hover">
-                    <td className="px-4 py-3">
+                    <td className="break-words px-4 py-3">
                       <Link
                         href={`/projects/templates/${template.id}`}
                         className="font-medium text-accent hover:underline"
@@ -68,7 +74,7 @@ export default async function TemplatesPage() {
                         {template.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted">
+                    <td className="break-words px-4 py-3 text-muted">
                       {template.workCategory
                         ? locale === 'en'
                           ? template.workCategory.nameEn

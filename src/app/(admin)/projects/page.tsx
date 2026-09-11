@@ -295,7 +295,16 @@ export default async function ProjectsPage({
         ) : (
           <>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className={`w-full table-fixed text-sm ${showPrice ? 'min-w-[1096px]' : 'min-w-[936px]'}`}>
+              <colgroup>
+                <col className="w-28" />
+                <col />
+                <col className="w-[16%]" />
+                <col className="w-40" />
+                <col className="w-40" />
+                <col className="w-40" />
+                {showPrice && <col className="w-36" />}
+              </colgroup>
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3 font-medium">{t('number')}</th>
@@ -317,8 +326,8 @@ export default async function ProjectsPage({
                 ) : (
                   projects.map((p) => (
                     <tr key={p.id} className="hover:bg-surface-hover">
-                      <td className="px-4 py-3 tabular-nums text-muted">{p.number}</td>
-                      <td className="px-4 py-3">
+                      <td className="truncate px-4 py-3 tabular-nums text-muted" title={p.number}>{p.number}</td>
+                      <td className="break-words px-4 py-3">
                         {/* High priority: a red mark in front of the name */}
                         {p.priority === 'HIGH' && (
                           <span
@@ -354,8 +363,8 @@ export default async function ProjectsPage({
                           )
                         })()}
                       </td>
-                      <td className="px-4 py-3 text-muted">{p.customer.name}</td>
-                      <td className="px-4 py-3 text-muted">{p.city ?? '—'}</td>
+                      <td className="break-words px-4 py-3 text-muted">{p.customer.name}</td>
+                      <td className="break-words px-4 py-3 text-muted">{p.city ?? '—'}</td>
                       <td className="px-4 py-3 tabular-nums text-muted">
                         {formatDate(p.plannedStart, locale)}
                       </td>

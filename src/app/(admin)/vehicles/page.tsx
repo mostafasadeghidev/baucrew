@@ -44,7 +44,15 @@ export default async function VehiclesPage({
 
       <PagePanel>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[1020px] table-fixed text-sm">
+            <colgroup>
+              <col />
+              <col className="w-32" />
+              <col className="w-[20%]" />
+              <col className="w-36" />
+              <col className="w-28" />
+              <col className="w-48" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">{t('name')}</th>
@@ -65,13 +73,15 @@ export default async function VehiclesPage({
               ) : (
                 vehicles.map((v) => (
                   <tr key={v.id} className="hover:bg-surface-hover">
-                    <td className="px-4 py-3">
+                    <td className="break-words px-4 py-3">
                       <Link href={`/vehicles/${v.id}`} className="font-medium text-accent hover:underline">
                         {v.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted">{v.licensePlate ?? '—'}</td>
-                    <td className="px-4 py-3 text-muted">{v.type ?? '—'}</td>
+                    <td className="truncate px-4 py-3 text-muted" title={v.licensePlate ?? undefined}>
+                      {v.licensePlate ?? '—'}
+                    </td>
+                    <td className="break-words px-4 py-3 text-muted">{v.type ?? '—'}</td>
                     <td className="px-4 py-3">
                       <VehicleStatusBadge status={v.status} />
                     </td>

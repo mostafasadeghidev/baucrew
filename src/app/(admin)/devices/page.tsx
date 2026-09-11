@@ -64,7 +64,13 @@ export default async function DevicesPage({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[800px] table-fixed text-sm">
+            <colgroup>
+              <col />
+              <col className="w-40" />
+              <col className="w-44" />
+              <col className="w-[28%]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">{t('name')}</th>
@@ -85,7 +91,7 @@ export default async function DevicesPage({
                   const state = deviceState(device.assignments)
                   return (
                     <tr key={device.id} className="hover:bg-surface-hover">
-                      <td className="px-4 py-3">
+                      <td className="break-words px-4 py-3">
                         <Link
                           href={`/devices/${device.id}`}
                           className="font-medium text-accent hover:underline"
@@ -104,9 +110,14 @@ export default async function DevicesPage({
                           <p className="text-xs text-muted">{device.category}</p>
                         )}
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-muted">{device.inventoryNo ?? '—'}</td>
-                      <td className="px-4 py-3 text-muted">{device.storageLocation ?? '—'}</td>
-                      <td className="px-4 py-3">
+                      <td
+                        className="truncate px-4 py-3 tabular-nums text-muted"
+                        title={device.inventoryNo ?? undefined}
+                      >
+                        {device.inventoryNo ?? '—'}
+                      </td>
+                      <td className="break-words px-4 py-3 text-muted">{device.storageLocation ?? '—'}</td>
+                      <td className="break-words px-4 py-3">
                         {state.status === 'free' ? (
                           <span className="font-medium text-emerald-700 dark:text-emerald-400">
                             ● {t('free')}

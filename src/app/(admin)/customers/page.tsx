@@ -63,7 +63,14 @@ export default async function CustomersPage({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[900px] table-fixed text-sm">
+            <colgroup>
+              <col />
+              <col className="w-[22%]" />
+              <col className="w-44" />
+              <col className="w-48" />
+              <col className="w-28" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">{t('name')}</th>
@@ -83,14 +90,16 @@ export default async function CustomersPage({
               ) : (
                 customers.map((c) => (
                   <tr key={c.id} className="hover:bg-surface-hover">
-                    <td className="px-4 py-3">
+                    <td className="break-words px-4 py-3">
                       <Link href={`/customers/${c.id}`} className="font-medium text-accent hover:underline">
                         {c.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted">{c.company ?? '—'}</td>
-                    <td className="px-4 py-3 text-muted">{c.phone ?? '—'}</td>
-                    <td className="px-4 py-3 text-muted">{c.city ?? '—'}</td>
+                    <td className="break-words px-4 py-3 text-muted">{c.company ?? '—'}</td>
+                    <td className="truncate px-4 py-3 text-muted" title={c.phone ?? undefined}>
+                      {c.phone ?? '—'}
+                    </td>
+                    <td className="break-words px-4 py-3 text-muted">{c.city ?? '—'}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{c._count.projects}</td>
                   </tr>
                 ))

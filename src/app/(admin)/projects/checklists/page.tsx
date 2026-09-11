@@ -35,7 +35,13 @@ export default async function ChecklistsPage() {
 
       <PagePanel>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[640px] table-fixed text-sm">
+            <colgroup>
+              <col />
+              <col className="w-44" />
+              <col className="w-32" />
+              <col className="w-24" />
+            </colgroup>
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">{t('templateName')}</th>
@@ -54,7 +60,7 @@ export default async function ChecklistsPage() {
               ) : (
                 checklists.map((list) => (
                   <tr key={list.id} className="hover:bg-surface-hover">
-                    <td className="px-4 py-3">
+                    <td className="break-words px-4 py-3">
                       <Link
                         href={`/projects/checklists/${list.id}`}
                         className="font-medium text-accent hover:underline"

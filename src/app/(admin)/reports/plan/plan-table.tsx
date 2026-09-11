@@ -192,7 +192,14 @@ export function PlanTable({
       )}
 
       <div className="overflow-x-auto rounded-lg border border-border bg-surface shadow-sm">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[940px] table-fixed text-sm">
+          <colgroup>
+            <col className="w-44" />
+            <col />
+            <col className="w-32" />
+            <col className="w-[30%]" />
+            <col className="w-32" />
+          </colgroup>
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-3 py-2 font-medium">{t('colMonth')}</th>
@@ -212,13 +219,16 @@ export function PlanTable({
             ) : (
               rows.map((row) => (
                 <tr key={row.key} className={busy === row.key ? 'opacity-60' : undefined}>
-                  <td className="whitespace-nowrap px-3 py-2 text-muted">
+                  <td
+                    className="truncate whitespace-nowrap px-3 py-2 text-muted"
+                    title={row.months > 1 ? `${row.span} (${t('monthsCount', { count: row.months })})` : row.span}
+                  >
                     {row.span}
                     {row.months > 1 && (
                       <span className="ml-1 text-[11px]">({t('monthsCount', { count: row.months })})</span>
                     )}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="break-words px-3 py-2">
                     {row.name}
                     {row.isSub && (
                       <span className="ml-2 rounded-full bg-subtle px-2 py-0.5 text-[11px] text-muted">
@@ -229,7 +239,7 @@ export function PlanTable({
                   <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-muted">
                     {money(row.amount)}
                   </td>
-                  <td className="min-w-[280px] px-3 py-2">
+                  <td className="min-w-[280px] break-words px-3 py-2">
                     {row.linked ? (
                       <span className="flex flex-wrap items-center gap-2">
                         <Link href={`/projects/${row.linked.id}`} className="text-accent hover:underline">
