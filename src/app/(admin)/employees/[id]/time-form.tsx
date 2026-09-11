@@ -26,18 +26,13 @@ export function TimeForm({
       className="mt-4 space-y-3 border-t border-border pt-4"
       errorLabel={(code) => (code === 'invalidRange' ? t('invalidRange') : tc('saveFailed'))}
     >
-      <div className="grid gap-3 sm:grid-cols-4">
+      {/* Two by two, not four in a row: the card shares its row with the
+          absences, and at half the page four fields left a date too narrow to
+          show its own date. Day and project first, the times under them. */}
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
           {t('date')}
           <input type="date" name="date" required className={inputClass} />
-        </label>
-        <label className="block text-sm">
-          {t('from')}
-          <input type="time" name="from" required className={inputClass} />
-        </label>
-        <label className="block text-sm">
-          {t('to')}
-          <input type="time" name="to" required className={inputClass} />
         </label>
         <label className="block text-sm">
           {t('project')}
@@ -49,6 +44,14 @@ export function TimeForm({
               </option>
             ))}
           </Select>
+        </label>
+        <label className="block text-sm">
+          {t('from')}
+          <input type="time" name="from" required className={inputClass} />
+        </label>
+        <label className="block text-sm">
+          {t('to')}
+          <input type="time" name="to" required className={inputClass} />
         </label>
       </div>
       <div className="flex items-end gap-3">

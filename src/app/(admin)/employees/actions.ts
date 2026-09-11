@@ -12,39 +12,14 @@ import { addExtraSkill, cleanSkill, mergeSkills } from '@/lib/extra-skills'
 import { getExtraSkills, setExtraSkills } from '@/lib/extra-skills-db'
 import { isAbsenceType } from '@/lib/absences'
 import { validInterval } from '@/lib/time-entries'
+import { contactSchema, parseEmployeeContact } from '@/lib/employee-contact'
 
-const optional = z
-  .string()
-  .trim()
-  .max(300)
-  .transform((v) => (v ? v : null))
-
-const employeeSchema = z.object({
+// Phone, e-mail, skills and notes follow the same rules here as on the
+// employee page's contact card, which saves them on their own.
+const employeeSchema = contactSchema.extend({
   firstName: z.string().trim().min(1).max(100),
   lastName: z.string().trim().min(1).max(100),
-  phone: optional,
-  email: z
-    .string()
-    .trim()
-    .max(200)
-    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
-    .transform((v) => (v ? v : null)),
-  skills: z
-    .string()
-    .trim()
-    .max(1000)
-    .transform((v) =>
-      v
-        .split(/[,\u060C]/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-    ),
   active: z.string().transform((v) => v === 'on'),
-  notes: z
-    .string()
-    .trim()
-    .max(5000)
-    .transform((v) => (v ? v : null)),
 })
 
 export type EmployeeFormState = { error?: 'nameRequired' | 'saveFailed' }
@@ -120,6 +95,39 @@ export async function updateEmployee(
   revalidatePath('/employees')
   revalidatePath(`/employees/${id}`)
   redirect(`/employees/${id}`)
+}
+
+export type ContactFormState = { error?: 'saveFailed'; savedAt?: number; failedAt?: number }
+
+/**
+ * Saves only what the contact card on the employee page shows. The full edit
+ * form posts every field and redirects; the card posts four and stays where
+ * it is, so it cannot touch the name or the active flag.
+ */
+export async function updateEmployeeContact(
+  id: string,
+  _prev: ContactFormState,
+  formData: FormData
+): Promise<ContactFormState> {
+  const user = await requireManagement()
+  const parsed = parseEmployeeContact((name) => formData.get(name))
+  if (!parsed.success) return { error: 'saveFailed', failedAt: Date.now() }
+  const before = await db.employee.findUnique({
+    where: { id },
+    select: { firstName: true, lastName: true },
+  })
+  if (!before) return { error: 'saveFailed', failedAt: Date.now() }
+  await db.employee.update({ where: { id }, data: parsed.data })
+  await audit({
+    userId: user.id,
+    action: 'employee.update',
+    entity: 'Employee',
+    entityId: id,
+    newValue: `${before.firstName} ${before.lastName}`,
+  })
+  revalidatePath('/employees')
+  revalidatePath(`/employees/${id}`)
+  return { savedAt: Date.now() }
 }
 
 // ── Employee user account (managed on the employee page) ─────

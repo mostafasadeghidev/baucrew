@@ -6,7 +6,8 @@ import { db } from '@/lib/db'
 import { StatusBadge } from '@/components/status-badge'
 import { DeleteButton } from '@/components/delete-button'
 import { formatDate } from '@/lib/format'
-import { deleteEmployee } from '../actions'
+import { deleteEmployee, listSkills, updateEmployeeContact } from '../actions'
+import { ContactCard } from './contact-card'
 import { requireManagement } from '@/lib/authz'
 import { AccountSection } from './account-section'
 import { AbsencesCard } from './absences-card'
@@ -25,10 +26,11 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params
   const viewer = await requireManagement()
-  const [t, tc, locale] = await Promise.all([
+  const [t, tc, locale, skills] = await Promise.all([
     getTranslations('employees'),
     getTranslations('common'),
     getLocale(),
+    listSkills(),
   ])
 
   const employee = await db.employee.findUnique({
@@ -114,37 +116,16 @@ export default async function EmployeeDetailPage({
       </StickyHead>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-          <h2 className="text-sm font-semibold">{t('contactData')}</h2>
-          <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex gap-2">
-              <dt className="w-36 shrink-0 text-muted">{t('phone')}</dt>
-              <dd>{employee.phone ?? '—'}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-36 shrink-0 text-muted">{t('email')}</dt>
-              <dd>{employee.email ?? '—'}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-36 shrink-0 text-muted">{t('skills')}</dt>
-              <dd className="flex flex-wrap gap-1">
-                {employee.skills.length === 0
-                  ? '—'
-                  : employee.skills.map((s) => (
-                      <span key={s} className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium">
-                        {s}
-                      </span>
-                    ))}
-              </dd>
-            </div>
-          </dl>
-          {employee.notes && (
-            <>
-              <h3 className="mt-4 text-sm font-semibold">{t('notes')}</h3>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{employee.notes}</p>
-            </>
-          )}
-        </section>
+        <ContactCard
+          action={updateEmployeeContact.bind(null, employee.id)}
+          contact={{
+            phone: employee.phone,
+            email: employee.email,
+            skills: employee.skills,
+            notes: employee.notes,
+          }}
+          skillSuggestions={skills.map((s) => s.name)}
+        />
 
         <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
           <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">
@@ -177,13 +158,18 @@ export default async function EmployeeDetailPage({
         </section>
       </div>
 
-      <AbsencesCard employeeId={employee.id} absences={employee.absences} />
+      {/* Absences and booked hours side by side: both are about this person's
+          time, both are a short list with a small form under it, and stacked
+          they stretched two thin lists across the whole width of the page. */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <AbsencesCard employeeId={employee.id} absences={employee.absences} />
 
-      <TimeCard
-        employeeId={employee.id}
-        entries={employee.timeEntries}
-        projects={openProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
-      />
+        <TimeCard
+          employeeId={employee.id}
+          entries={employee.timeEntries}
+          projects={openProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+        />
+      </div>
 
       <AccountSection
         employeeId={employee.id}
