@@ -134,6 +134,12 @@ export function PageHint({ children, className = '' }: { children: ReactNode; cl
  * used to meet edge to edge and look like one thing. The gap is 16px on most
  * pages and 24px on the detail pages and forms; the strip takes its height from
  * `--page-head-gap`, which globals.css sets from the container the bar sits in.
+ *
+ * The frost fades out downwards rather than stopping. A strip that ended in a
+ * line drew a second hard edge a gap's height below the bar, and a strong blur
+ * over so thin a band smeared every link and status pill into a coloured blob.
+ * A lighter blur that dies away towards the content reads as the content
+ * sinking under the bar, not as a band laid across it.
  */
 export function StickyHead({
   children,
@@ -145,7 +151,7 @@ export function StickyHead({
 }) {
   return (
     <div
-      className={`page-head sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-[var(--page-head-gap)] after:bg-background/40 after:backdrop-blur-md md:top-0 print:static print:bg-transparent print:after:hidden ${className}`}
+      className={`page-head sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-[var(--page-head-gap)] after:bg-background/40 after:backdrop-blur-sm after:[mask-image:linear-gradient(to_bottom,black,transparent)] after:[-webkit-mask-image:linear-gradient(to_bottom,black,transparent)] md:top-0 print:static print:bg-transparent print:after:hidden ${className}`}
     >
       {children}
     </div>
