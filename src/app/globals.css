@@ -71,6 +71,18 @@
     overflow-y: scroll;
   }
 
+  /* How tall the frosted strip under a page's bar is: the gap between the bar
+     and the first sheet, which the container the bar sits in decides. Measured
+     on every admin page — 16px under space-y-4 and gap-4, 24px under space-y-6
+     and gap-6. See StickyHead. */
+  .page-head {
+    --page-head-gap: 1rem;
+  }
+  .space-y-6 > .page-head,
+  .gap-6 > .page-head {
+    --page-head-gap: 1.5rem;
+  }
+
   body {
     background-color: var(--background);
     color: var(--foreground);

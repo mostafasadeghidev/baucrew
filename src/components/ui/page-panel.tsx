@@ -125,6 +125,15 @@ export function PageHint({ children, className = '' }: { children: ReactNode; cl
  *
  * `print:static` because a sticky box on paper is a box printed in the wrong
  * place, or on every page.
+ *
+ * Under the bar hangs a strip of frosted glass exactly as tall as the gap
+ * between the bar and the page's first sheet. At rest there is nothing behind
+ * it but the page's own ground, so it cannot be seen. Once the page scrolls,
+ * whatever passes under the bar is blurred for the height of that gap, so the
+ * content reads as going *under* the bar rather than running into it — the two
+ * used to meet edge to edge and look like one thing. The gap is 16px on most
+ * pages and 24px on the detail pages and forms; the strip takes its height from
+ * `--page-head-gap`, which globals.css sets from the container the bar sits in.
  */
 export function StickyHead({
   children,
@@ -136,7 +145,7 @@ export function StickyHead({
 }) {
   return (
     <div
-      className={`sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 md:top-0 print:static print:bg-transparent ${className}`}
+      className={`page-head sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-[var(--page-head-gap)] after:bg-background/40 after:backdrop-blur-md md:top-0 print:static print:bg-transparent print:after:hidden ${className}`}
     >
       {children}
     </div>
