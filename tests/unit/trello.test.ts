@@ -151,4 +151,106 @@ describe('suggestStatus', () => {
   it('reads "Baustellenbeginn" as planned, not as running', () => {
     expect(suggestStatus('Baustellenbeginn')).toBe('PLANNED')
   })
+
+  it('keeps every column of a jobs board where it was', () => {
+    expect(suggestStatus('Aufträge')).toBe('APPROVED')
+    expect(suggestStatus('Ausführung – Warteliste Kleinaufträge')).toBe('APPROVED')
+    expect(suggestStatus('Baustellenbeginn')).toBe('PLANNED')
+    expect(suggestStatus('Baustelle läuft')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Baustellenunterbrechung / Pause')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Fertigstellung')).toBe('COMPLETED')
+    expect(suggestStatus('Rechnungsstellung')).toBe('INVOICED')
+    expect(suggestStatus('Erledigt')).toBe('COMPLETED')
+  })
+
+  it('reads partial bills as work still going on, not as billed or merely ordered', () => {
+    expect(suggestStatus('Abschlagszahlungen')).toBe('IN_PROGRESS')
+  })
+
+  it('keeps the enquiries of a sales board as enquiries', () => {
+    expect(suggestStatus('Neue Anfrage Webseite')).toBe('LEAD')
+    expect(suggestStatus('Neue Anfrage Privatkunde')).toBe('LEAD')
+    expect(suggestStatus('Neue Anfrage Geschäftskunde')).toBe('LEAD')
+    // A first talk is not a planned start, even with an appointment in the name.
+    expect(suggestStatus('Erst Gespräch durchgeführt')).toBe('LEAD')
+    expect(suggestStatus('Termin vereinbart / Erstgespräch geführt')).toBe('LEAD')
+  })
+
+  it('reads every step of writing, sending and chasing an offer as an offer', () => {
+    // "fertig" here is an offer ready to send, not finished work.
+    expect(suggestStatus('Angebot fertig – bereit zum Versand')).toBe('QUOTED')
+    expect(suggestStatus('Angebot erstellen Muster')).toBe('QUOTED')
+    expect(suggestStatus('Rücksprache mit BÜRO')).toBe('QUOTED')
+    expect(suggestStatus('Angebot erstellt und versendet')).toBe('QUOTED')
+    // A site visit before the offer is not the job's start.
+    expect(suggestStatus('Kunde möchte noch Ortstermin')).toBe('QUOTED')
+    expect(suggestStatus('1. Nachfragen nach 4 Tagen')).toBe('QUOTED')
+    expect(suggestStatus('2. Nachfragen nach 10 Tagen')).toBe('QUOTED')
+    expect(suggestStatus('Kunde unentschlossen')).toBe('QUOTED')
+  })
+
+  it('ends a sales board in an order or a cancellation', () => {
+    expect(suggestStatus('Auftrag bestätigt')).toBe('APPROVED')
+    expect(suggestStatus('Angebot angenommen')).toBe('APPROVED')
+    expect(suggestStatus('Abgelehnt / Archiv')).toBe('CANCELLED')
+  })
+
+  it('keeps an unpaid or disputed bill a billing matter', () => {
+    expect(suggestStatus('Rechnung – Nachfragen')).toBe('INVOICED')
+    expect(suggestStatus('Rechnung abgelehnt')).toBe('INVOICED')
+    expect(suggestStatus('Nicht bezahlt')).toBe('INVOICED')
+    expect(suggestStatus('Offene Posten')).toBe('INVOICED')
+    expect(suggestStatus('Mahnung')).toBe('INVOICED')
+  })
+
+  it('reads a no as a no, and waiting for a yes as an offer', () => {
+    expect(suggestStatus('Nicht beauftragt')).toBe('CANCELLED')
+    expect(suggestStatus('Keine Zusage')).toBe('CANCELLED')
+    expect(suggestStatus('Warten auf Zusage')).toBe('QUOTED')
+    expect(suggestStatus('Angebot versendet – warten auf Zusage')).toBe('QUOTED')
+    expect(suggestStatus('Anfrage angenommen')).toBe('LEAD')
+  })
+
+  it('lets a job stage win over a side task named with a sales word', () => {
+    expect(suggestStatus('Baustelle läuft – Material nachfragen')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Pause / Rücksprache mit Kunde')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Baustelle läuft – Nachtragsangebot')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Nachtrag abgelehnt – Baustelle läuft')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Rücksprache Bauleiter')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Abnahme abgelehnt')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Ortstermin Abnahme')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Ortstermin Mängel')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Fertig – Nachkalkulation')).toBe('COMPLETED')
+    expect(suggestStatus('Abgeschlossen / Nachkalkulation')).toBe('COMPLETED')
+    expect(suggestStatus('Erledigt – Kunde nachfragen Bewertung')).toBe('COMPLETED')
+    expect(suggestStatus('Ortstermin Baubeginn')).toBe('PLANNED')
+    expect(suggestStatus('Terminnachfrage')).toBe('PLANNED')
+    expect(suggestStatus('Auftrag – Material nachfragen')).toBe('APPROVED')
+    expect(suggestStatus('Unterbrochen – Rücksprache Kunde')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Nachfragen Material')).toBe('APPROVED')
+    expect(suggestStatus('Nachfragen Lieferant')).toBe('APPROVED')
+    expect(suggestStatus('Material bestellt')).toBe('APPROVED')
+  })
+
+  it('reads a waiting list of offers as offers, and any other waiting list as orders', () => {
+    expect(suggestStatus('Warteliste Angebote')).toBe('QUOTED')
+    expect(suggestStatus('Warteliste')).toBe('APPROVED')
+    expect(suggestStatus('Erstgespräch geführt – Angebot folgt')).toBe('LEAD')
+  })
+
+  it('lets a job stage win over an order word next to it', () => {
+    expect(suggestStatus('Auftrag bestätigt – Termin steht')).toBe('PLANNED')
+    expect(suggestStatus('Zusage erhalten – Baustellenbeginn KW 12')).toBe('PLANNED')
+    expect(suggestStatus('Angenommen & terminiert')).toBe('PLANNED')
+    expect(suggestStatus('Terminzusage Kunde')).toBe('PLANNED')
+    expect(suggestStatus('Beauftragt / in Arbeit')).toBe('IN_PROGRESS')
+    expect(suggestStatus('SUB beauftragt – Baustelle läuft')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Beauftragt & fertig')).toBe('COMPLETED')
+    expect(suggestStatus('Beauftragt')).toBe('APPROVED')
+  })
+
+  it('does not cancel a job because an offer for extra work was turned down', () => {
+    expect(suggestStatus('Nachtragsangebot abgelehnt')).toBe('IN_PROGRESS')
+    expect(suggestStatus('Angebot abgelehnt')).toBe('CANCELLED')
+  })
 })

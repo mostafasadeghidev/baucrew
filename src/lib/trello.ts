@@ -175,18 +175,60 @@ export function splitCardTitle(title: string): CardTitle {
   return { customer: clean(words[0]), project, number, confident: true }
 }
 
-/** Heuristic default status per Trello list name (German column names). */
+/**
+ * Heuristic default status per Trello list name (German column names). Only a
+ * suggestion: the import wizard lets the office change every list's status.
+ *
+ * A company keeps two kinds of board, and their words overlap: "nachfragen",
+ * "Rücksprache", "Ortstermin", "Kalkulation" and "abgelehnt" all turn up on a
+ * jobs board too ("Baustelle läuft – Material nachfragen", "Nachtrag abgelehnt").
+ * So the order is:
+ *
+ * 1. Money words, negations first — an unpaid or disputed bill stays a bill.
+ * 2. The few phrases that name a sales step outright, even next to a job word:
+ *    the first talk with a customer, an offer that is ready.
+ * 3. Job-stage words. Where a name has one, it is a jobs-board column, and the
+ *    sales words in it describe a side task of the job.
+ * 4. Sales words, which decide only when no job word is there.
+ */
 export function suggestStatus(listName: string): string {
   const n = listName.toLowerCase()
+
+  // 1. Money and endings.
+  if (/((nicht|un)\s*bezahlt|offene posten|mahnung)/.test(n)) return 'INVOICED'
+  if (/(nicht\s*beauftragt|keine\s*zusage)/.test(n)) return 'CANCELLED'
   if (/(storn|abgesagt|cancel|verloren)/.test(n)) return 'CANCELLED'
   if (/(bezahlt|paid)/.test(n)) return 'PAID'
   if (/(rechnung|abgerechnet|invoic)/.test(n)) return 'INVOICED'
-  if (/(erledigt|fertigstellung|fertig|abgeschlossen|done|complete)/.test(n)) return 'COMPLETED'
+
+  // 2. Sales steps named outright. "Termin vereinbart / Erstgespräch" is the
+  //    first talk, not a planned start; "Angebot fertig" is an offer ready to
+  //    send, not finished work.
+  if (/erst\s*gespr(ä|ae|a)ch/.test(n)) return 'LEAD'
+  if (/angebot\s*(ist\s*)?fertig/.test(n)) return 'QUOTED'
+
+  // 3. Job stages. A site visit ("Ortstermin") is not by itself a planned
+  //    start, so it only counts as one next to a job word ("Ortstermin Baubeginn").
+  const job = n.replace(/ortstermin/g, ' ')
+  if (/(erledigt|fertigstellung|fertig|abgeschlossen|done|complete)/.test(job)) return 'COMPLETED'
   // "Baustellenbeginn" is a start date, not work in progress — check it first.
-  if (/(beginn|geplant|termin|planned|planung|vorbereit)/.test(n)) return 'PLANNED'
-  if (/(läuft|laufend|in arbeit|progress|aktiv|unterbrech|pause|baustelle)/.test(n)) return 'IN_PROGRESS'
-  if (/(angebot|quote|kalkul)/.test(n)) return 'QUOTED'
-  if (/(auftr[aä]g|beauftragt|approved|zusage|warteliste|abschlag)/.test(n)) return 'APPROVED'
+  if (/(beginn|geplant|termin|planned|planung|vorbereit)/.test(job)) return 'PLANNED'
+  // Partial bills, extra work, acceptance and defects all happen while the job
+  // is still open; billing it in full would count it as money outstanding.
+  if (/(läuft|laufend|in arbeit|progress|aktiv|unterbrech|unterbroch|pause|baustelle|bauleit|abschlag|nachtrag|abnahme|m(ä|ae)ngel)/.test(job))
+    return 'IN_PROGRESS'
+  // Ordering material and chasing a supplier is getting an order ready.
+  if (/(auftr[aä]g|approved|material|lieferant|bestell)/.test(job)) return 'APPROVED'
+
+  // 4. Sales words, where no job word decided.
+  if (/abgelehnt/.test(n)) return 'CANCELLED'
+  if (/angebot\s*angenommen/.test(n)) return 'APPROVED'
+  // Writing, discussing, sending and chasing an offer, and the customer
+  // thinking it over or still wanting a site visit: all of it waits on the offer.
+  if (/(angebot|quote|kalkul|nachfrag|unentschlossen|ortstermin|r(ü|ue)cksprache|warten auf (zusage|antwort|rückmeldung|bestätigung))/.test(n))
+    return 'QUOTED'
+  // A waiting list is orders waiting for a crew — unless it is a list of offers.
+  if (/(beauftragt|zusage|warteliste)/.test(n)) return 'APPROVED'
   if (/(anfrage|lead|neu|eingang|todo|to do|offen)/.test(n)) return 'LEAD'
   return 'LEAD'
 }
