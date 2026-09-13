@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
@@ -14,18 +15,34 @@ import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
+import { opensBoard, projectsViewHref } from '@/lib/projects-view'
+import { ALL_YEARS, belongsToYears, parseProjectYears, projectYearOptions } from '@/lib/project-years'
+import { todayUtc } from '@/lib/dates'
 import { ProjectsKanban, type KanbanColumn } from './kanban'
+import { ProjectYearPicker } from './year-picker'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
 
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; page?: string; view?: string }>
+  searchParams: Promise<{ q?: string; status?: string; page?: string; view?: string; year?: string | string[] }>
 }) {
   const user = await requireManagement()
-  const { q, status, page: pageParam, view } = await searchParams
+  const { q, status, page: pageParam, view, year: yearValue } = await searchParams
+  // A year repeated in the address ("?year=2025&year=2026") comes as a list.
+  const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
   const page = parsePage(pageParam)
+  const kanban = opensBoard({ view, status, page: pageParam })
+  // A list reached by a status link (the dashboard's "in progress", say) is a
+  // list only while that status is in the address. Its own "Alle Status" tab
+  // takes the status away, which would turn it into the board under the
+  // cursor — so the list names itself once it is showing.
+  if (!kanban && view !== 'list') {
+    const params = new URLSearchParams({ view: 'list' })
+    for (const [key, value] of Object.entries({ q, status, page: pageParam, year: yearParam })) if (value) params.set(key, value)
+    redirect(`/projects?${params.toString()}`)
+  }
   const [t, tStatus, tTemplates, tChecklists, tDrafts, tc, locale] = await Promise.all([
     getTranslations('projects'),
     getTranslations('status'),
@@ -36,7 +53,36 @@ export default async function ProjectsPage({
     getLocale(),
   ])
 
-  const [prepTab, board] = await Promise.all([getPrepTabConfig(), getBoardConfig()])
+  const currentYear = todayUtc().getUTCFullYear()
+  const years = parseProjectYears(yearParam, currentYear)
+  const [prepTab, board, dated, statusChanges] = await Promise.all([
+    getPrepTabConfig(),
+    getBoardConfig(),
+    // The dates every project is filed under a year by. The rule is a few lines
+    // of plain code (src/lib/project-years.ts) rather than a query, so it is
+    // tested; the rows it needs are small.
+    db.project.findMany({
+      select: {
+        id: true,
+        status: true,
+        plannedStart: true,
+        plannedEnd: true,
+        actualStart: true,
+        actualEnd: true,
+        sourceCreatedAt: true,
+        createdAt: true,
+      },
+    }),
+    // A card moved this year belongs to this year, whatever its dates say.
+    db.auditLog.findMany({ where: { entity: 'Project', field: 'status' }, select: { entityId: true, createdAt: true } }),
+  ])
+  const changedYears = new Map<string, number[]>()
+  for (const change of statusChanges) {
+    const years = changedYears.get(change.entityId) ?? []
+    years.push(change.createdAt.getUTCFullYear())
+    changedYears.set(change.entityId, years)
+  }
+  const filed = dated.map((p) => ({ ...p, statusChangedYears: changedYears.get(p.id) }))
   const query = q?.trim() ?? ''
   const statusFilter = STATUSES.includes(status as ProjectStatus)
     ? (status as ProjectStatus)
@@ -51,8 +97,10 @@ export default async function ProjectsPage({
   }
 
   const statusWhere: Prisma.ProjectWhereInput = statusFilter ? { status: statusFilter } : prepFilter ? prepWhere : {}
-  const where: Prisma.ProjectWhereInput = {
-    ...statusWhere,
+  // The year picker narrows everything below it — tabs, counts, list and board.
+  const yearWhere: Prisma.ProjectWhereInput =
+    years === ALL_YEARS ? {} : { id: { in: filed.filter((p) => belongsToYears(p, years, currentYear)).map((p) => p.id) } }
+  const searchWhere: Prisma.ProjectWhereInput = {
     ...(query
       ? {
           OR: [
@@ -65,10 +113,11 @@ export default async function ProjectsPage({
         }
       : {}),
   }
+  const where: Prisma.ProjectWhereInput = { ...statusWhere, ...searchWhere, ...yearWhere }
 
   // Tab counts respect the search query but not the status filter itself.
   const { status: _ignored, scheduleEntries: _ignoredEntries, ...whereWithoutStatus } = where
-  const [projects, total, statusCounts, draftCount, prepCount] = await Promise.all([
+  const [projects, total, statusCounts, draftCount, prepCount, searchInAllYears] = await Promise.all([
     db.project.findMany({
       where,
       include: {
@@ -84,6 +133,18 @@ export default async function ProjectsPage({
     db.project.groupBy({ by: ['status'], where: whereWithoutStatus, _count: { _all: true } }),
     db.projectDraft.count({ where: { status: 'open' } }),
     prepTab.enabled ? db.project.count({ where: { ...whereWithoutStatus, ...prepWhere } }) : Promise.resolve(0),
+    // A search for an old job number must not simply come back empty because
+    // the page stands on this year: the other years' hits are counted and
+    // offered — with the same filter the view draws, so the link never
+    // promises rows that page will not show (a status tab on the list, the
+    // configured columns on the board).
+    query && years !== ALL_YEARS
+      ? db.project.count({
+          where: kanban
+            ? { ...searchWhere, status: { in: board.statuses as ProjectStatus[] } }
+            : { ...statusWhere, ...searchWhere },
+        })
+      : Promise.resolve(0),
   ])
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
   /**
@@ -94,7 +155,6 @@ export default async function ProjectsPage({
    * this from the server would mean a round trip to see cards the page is
    * already holding.
    */
-  const kanban = view === 'kanban'
   const boardProjects = kanban
     ? await db.project.findMany({
         where: whereWithoutStatus,
@@ -137,18 +197,59 @@ export default async function ProjectsPage({
     }
   })
   const allCount = statusCounts.reduce((sum, s) => sum + s._count._all, 0)
+  const shownInYear = kanban
+    ? boardProjects.filter((p) => (board.statuses as string[]).includes(p.status)).length
+    : total
+  const otherYearHits = query && years !== ALL_YEARS ? Math.max(0, searchInAllYears - shownInYear) : 0
+  const allYearsHref = (() => {
+    const params = new URLSearchParams()
+    if (view) params.set('view', view)
+    if (status) params.set('status', status)
+    if (query) params.set('q', query)
+    params.set('year', ALL_YEARS)
+    return `/projects?${params.toString()}`
+  })()
 
-  /** List or board: the same projects, the same search, two ways of drawing
+  /** The picker offers every year some project touches (src/lib/project-years.ts). */
+  const yearPicker = (
+    <ProjectYearPicker
+      options={projectYearOptions(filed, currentYear, years === ALL_YEARS ? [] : years)}
+      selected={years}
+      currentYear={currentYear}
+    />
+  )
+  /**
+   * The search box, with the other years' hits hanging under it. The hint sits
+   * in the padding below the row rather than in it: appearing while somebody
+   * types, it must not push the picker and the switch aside or onto a new line.
+   */
+  const search = (
+    <div className="relative flex min-w-0 max-w-md flex-1">
+      <LiveSearchInput placeholder={t('searchPlaceholder')} />
+      {otherYearHits > 0 && (
+        <Link
+          href={allYearsHref}
+          className="absolute left-1 top-full max-w-full truncate text-[11px] leading-[14px] text-accent hover:underline"
+        >
+          {t('otherYearsHits', { count: otherYearHits })} →
+        </Link>
+      )}
+    </div>
+  )
+
+  /** Which year, and list or board: the same projects, two ways of drawing
    *  them. Written once because it sits on a different row in each view. */
   const viewSwitch = (
-    <div className="ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
+    <div className="order-1 ml-auto flex shrink-0 items-center gap-2 lg:order-2">
+    {yearPicker}
+    <div className="flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
       {[
-        { value: '', label: t('viewList') },
-        { value: 'kanban', label: t('viewBoard') },
+        { value: 'list', label: t('viewList') },
+        { value: '', label: t('viewBoard') },
       ].map((option) =>
-        (option.value === 'kanban') === kanban ? (
+        (option.value === '') === kanban ? (
           <span
-            key={option.value || 'list'}
+            key={option.value || 'board'}
             aria-current="page"
             className="whitespace-nowrap rounded-md bg-surface px-3 py-1.5 text-foreground shadow-sm"
           >
@@ -156,16 +257,15 @@ export default async function ProjectsPage({
           </span>
         ) : (
           <Link
-            key={option.value || 'list'}
-            href={`/projects${option.value ? '?view=kanban' : ''}${
-              query ? `${option.value ? '&' : '?'}q=${encodeURIComponent(query)}` : ''
-            }`}
+            key={option.value || 'board'}
+            href={projectsViewHref(option.value ? 'list' : 'board', { q: query, year: yearParam })}
             className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
           >
             {option.label}
           </Link>
         )
       )}
+    </div>
     </div>
   )
 
@@ -180,8 +280,14 @@ export default async function ProjectsPage({
      * the tablet up, which is where the board is actually used; on a phone it
      * goes back to growing with its contents, because a column with its own
      * scroll inside a screen that small is two scrolls fighting each other.
+     *
+     * Its sheet ends where the sidebar's panel ends, eight pixels above the
+     * window's edge: the page starts eight pixels down and is the window less
+     * both eights tall. The main area's bottom padding is wider than that, so
+     * the board gives back the difference — otherwise the page would be a
+     * little taller than the window and scroll for nothing.
      */
-    <div className={kanban ? 'flex flex-col gap-4 md:h-[calc(100vh-3rem)]' : 'space-y-4'}>
+    <div className={kanban ? 'flex flex-col gap-4 md:-mb-4 md:h-[calc(100vh-1rem)]' : 'space-y-4'}>
       <StickyHead>
         <div className={pageToolbar}>
           <h1 className={pageTitle}>{t('title')}</h1>
@@ -221,18 +327,21 @@ export default async function ProjectsPage({
       <PagePanel className={kanban ? 'flex min-h-0 flex-1 flex-col' : ''}>
         {/*
           Two choices about the same projects: the status tabs say which are
-          shown, the switch says how they are drawn. The switch rides on the
-          tabs' row — same kind of track, same height — because that is where
-          the eye already is. The board has no status tabs, and rather than
-          leave their row standing empty above the search, the switch drops
-          down and shares the search's row there instead: one row either way.
+          shown, the year and the switch say which years and how they are
+          drawn. Year and switch ride on the tabs' row — same kind of track,
+          same height — because that is where the eye already is. The board has
+          no status tabs, and rather than leave their row standing empty above
+          the search, they share the search's row there instead: one row
+          either way, and year and switch in the same spot in both views.
+
+          Below lg that row is too narrow for both, and the two views would
+          wrap at different widths — so there year and switch take a line of
+          their own at the top, in both views alike.
         */}
         <div className="space-y-3 border-b border-border p-4">
           {kanban ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex max-w-md flex-1">
-                <LiveSearchInput placeholder={t('searchPlaceholder')} />
-              </div>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="order-2 flex min-w-0 flex-1 lg:order-1">{search}</div>
               {viewSwitch}
             </div>
           ) : (
@@ -243,8 +352,8 @@ export default async function ProjectsPage({
                   the switch half a scrollbar down and the two tracks no longer
                   read as one row. Both are the same height, so starting them
                   together lines them up either way. */}
-              <div className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                <div className="order-2 min-w-0 flex-1 lg:order-1">
                   <StatusTabs
                     allLabel={t('allStatuses')}
                     allCount={allCount}
@@ -258,9 +367,10 @@ export default async function ProjectsPage({
                             },
                           ]
                         : []),
-                      ...STATUSES.filter(
-                        (s) => (countByStatus.get(s) ?? 0) > 0 || s === statusFilter
-                      ).map((s) => ({
+                      // Every status keeps its tab, also at 0: a tab that
+                      // came and went with the year would move the others
+                      // along the strip under the cursor.
+                      ...STATUSES.map((s) => ({
                         value: s,
                         label: tStatus(s),
                         count: countByStatus.get(s) ?? 0,
@@ -270,9 +380,7 @@ export default async function ProjectsPage({
                 </div>
                 {viewSwitch}
               </div>
-              <div className="flex max-w-md">
-                <LiveSearchInput placeholder={t('searchPlaceholder')} />
-              </div>
+              <div className="flex">{search}</div>
             </>
           )}
         </div>

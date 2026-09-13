@@ -11,7 +11,9 @@
  * — the alternative was folding the finished ones away, which hides exactly
  * the end of the road this view exists to show. Which columns there are is
  * chosen in Einstellungen; the order they stand in is chosen here, by dragging
- * a column's head, because that is where you can see what the order does.
+ * a column's grip (the six dots in its head), because that is where you can
+ * see what the order does. The rest of the head is the board's to move: pulled
+ * sideways it slides the board, the way the space around the cards does.
  *
  * Two moves ask first. Finishing a project touches days that are already
  * planned for it, and cancelling one takes it out of every sum on the reports
@@ -36,8 +38,10 @@
  * quarter of a second, the way the scheduling board works, so the two boards
  * are not two gestures to learn.
  *
- * The board is moved sideways by the space around the cards, by its scrollbar,
- * by two fingers, or by holding a card near the edge until it comes to you.
+ * The board is moved sideways by the space around the cards and the column
+ * heads, by the mouse wheel anywhere but over a column's scrolling cards, by
+ * its scrollbar, by two fingers, or by holding a card near the edge until it
+ * comes to you.
  * Nothing is selectable on it, because a press here always means "carry",
  * never "select from here to there".
  */
@@ -57,6 +61,7 @@ import {
   drop as dropGhost,
   lift,
 } from '@/lib/card-lift'
+import { isVerticalWheel, wheelPixels } from '@/lib/wheel-axis'
 import { setBoardOrder, setProjectStatus } from './actions'
 
 export type KanbanCard = {
@@ -217,8 +222,11 @@ export function ProjectsKanban({
   }
 
   // ── One pointer, four meanings ──────────────────────────────
-  // Everything is captured on the board itself, so a gesture that starts on a
-  // card and travels out of it keeps arriving here.
+  // A carried card or column, and a pan, are captured on the board itself, so a
+  // gesture that travels out of it keeps arriving here. A mouse press on a card
+  // is not captured until the card is lifted — a captured pointer sends its
+  // click to the board, not to the project's name under it — and is followed
+  // on the window until then (onCardPointerDown).
 
   function columnAtPoint(x: number, y: number): string | null {
     const column = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-board-column]')
@@ -243,6 +251,12 @@ export function ProjectsKanban({
       setBoard((current) => next.map((s) => current.find((c) => c.status === s)!).filter(Boolean))
     }
   }
+
+  /** The latest trackPointer, for the wheel handler that is bound once. */
+  const track = useRef<(x: number, y: number) => void>(() => {})
+  useEffect(() => {
+    track.current = trackPointer
+  })
 
   // Nine columns are wider than the window, so what is being carried has to be
   // able to reach a column that is not on screen yet. Holding it near either
@@ -313,8 +327,38 @@ export function ProjectsKanban({
     }
     if (e.pointerType === 'mouse') {
       // The first few pixels decide; until then this is still a click on the
-      // project's name, so nothing is captured that would swallow it.
-      capture(e.pointerId)
+      // project's name, so nothing is captured that would swallow it. A
+      // captured pointer sends its click to the board instead of the link
+      // under it, which is how the names stopped opening their projects.
+      //
+      // Uncaptured, the moves stop reaching the board as soon as the mouse is
+      // outside it — a card at the board's edge pulled towards the column
+      // beyond it — and a button let go out there never reaches onPointerUp,
+      // leaving a press behind that a later drag would lift. So until the card
+      // is lifted (and captured) the press is followed on the window, and any
+      // letting go ends it.
+      const onMove = (ev: PointerEvent) => {
+        if (grab.current !== state) return stop()
+        if ((ev.buttons & 1) === 0) {
+          grab.current = null
+          return stop()
+        }
+        if (Math.hypot(ev.clientX - state.x, ev.clientY - state.y) < DRAG_THRESHOLD) return
+        stop()
+        beginCardDrag(card, el, state.x, state.y, state.pointerId)
+      }
+      const onUp = () => {
+        if (grab.current === state) grab.current = null
+        stop()
+      }
+      const stop = () => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onUp)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onUp)
     } else {
       // A finger has no second button and no hover: it says "carry this" by
       // staying still. Anything else is the board being scrolled.
@@ -337,10 +381,10 @@ export function ProjectsKanban({
     setMovingColumn(status)
   }
 
-  function onHeadPointerDown(e: React.PointerEvent<HTMLDivElement>, status: string) {
+  function onHeadPointerDown(e: React.PointerEvent<HTMLElement>, status: string) {
     if (!scroller.current) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
-    // The head is the handle, but what is carried is the whole column.
+    // The grip is the handle, but what is carried is the whole column.
     const el = e.currentTarget.closest<HTMLElement>('[data-board-column]')
     if (!el) return
     const state: Grab = {
@@ -366,12 +410,14 @@ export function ProjectsKanban({
   }
 
   function onBoardPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    // Only the space around the cards and the heads: those have their own
-    // meaning, and a link is followed rather than dragged.
+    // The space around the cards and a column's head, except its grip: cards
+    // and grips have their own meaning, and a link is followed rather than
+    // dragged. (A grip or a card has set `grab` by the time this runs — the
+    // press reaches them first on its way up.)
     if (grab.current) return
     if (e.pointerType !== 'mouse' || e.button !== 0) return
     const target = e.target as HTMLElement
-    if (target.closest('[data-board-card], [data-board-head], a, button, input, select, textarea')) return
+    if (target.closest('[data-board-card], [data-board-grip], a, button, input, select, textarea')) return
     const box = scroller.current
     if (!box || box.scrollWidth <= box.clientWidth) return
     grab.current = { kind: 'pan', pointerId: e.pointerId, x: e.clientX, left: box.scrollLeft }
@@ -385,22 +431,19 @@ export function ProjectsKanban({
     if (!state || !box) return
 
     if (state.kind === 'maybe-card') {
+      // A mouse press is followed on the window (onCardPointerDown); only a
+      // finger waiting out its long press is handled here.
+      if (!state.timer) return
       const dx = e.clientX - state.x
       const dy = e.clientY - state.y
-      if (state.timer) {
-        // A finger, still waiting out the long press: any real movement means
-        // it is scrolling, not picking up.
-        if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) {
-          clearTimeout(state.timer)
-          grab.current = null
-        }
-        return
+      // Still waiting out the long press: any real movement means the finger
+      // is scrolling, not picking up. (A mouse lifts after six pixels in any
+      // direction at all — the column a card is going to is as often to the
+      // side as below.)
+      if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) {
+        clearTimeout(state.timer)
+        grab.current = null
       }
-      // Six pixels in any direction at all. The column a card is going to is
-      // as often to the side as below, so nothing about the direction of the
-      // pull may decide whether the card is picked up.
-      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return
-      beginCardDrag(state.card, state.el, state.x, state.y, state.pointerId)
       return
     }
 
@@ -461,6 +504,9 @@ export function ProjectsKanban({
       return
     }
     if (state.kind === 'column') {
+      // The wheel may have slid the board under a still pointer since the last
+      // move: read where the column was let go, not where it was last moved.
+      trackPointer(e.clientX, e.clientY)
       dropGhost(state.ghost, state.el)
       setMovingColumn(null)
       saveOrder([...order.current])
@@ -470,22 +516,17 @@ export function ProjectsKanban({
   // The wheel keeps to one axis at a time. A trackpad reports a few pixels of
   // sideways movement on almost every downward swipe, and a strip that can
   // scroll sideways takes them: reading down the board slid it left and right
-  // under the eye. So a gesture that is mostly downward moves the page and
-  // nothing else, and only a clearly sideways one — two fingers across, or
-  // shift and the wheel — moves the board.
+  // under the eye. So a clearly sideways gesture — two fingers across, or shift
+  // and the wheel — is left to the browser, and a mostly downward one is sorted
+  // here: over a column's cards that can scroll, that column and nothing else;
+  // anywhere else, the board sideways — unless the page itself can still
+  // scroll (a phone, where the page grows with the board), which keeps it.
   //
   // React binds its own wheel handler passively, where preventDefault does
   // nothing, so this one is bound by hand.
   useEffect(() => {
     const box = scroller.current
     if (!box) return
-
-    /** Firefox counts in lines and pages; everything else in pixels. */
-    function toPixels(delta: number, mode: number, page: number) {
-      if (mode === 1) return delta * 16
-      if (mode === 2) return delta * page
-      return delta
-    }
 
     /** The scrolling box the pointer is in — a column's cards, if any. */
     function hostUnder(target: EventTarget | null, board: HTMLElement) {
@@ -508,21 +549,32 @@ export function ProjectsKanban({
       if (!el) return
       if (el.scrollWidth <= el.clientWidth) return // nothing to drift
       if (e.shiftKey || e.ctrlKey) return // sideways by hand, or zoom
-      const dx = toPixels(e.deltaX, e.deltaMode, el.clientWidth)
-      const dy = toPixels(e.deltaY, e.deltaMode, el.clientHeight)
-      if (dy === 0 || Math.abs(dx) > Math.abs(dy)) return // a real sideways swipe
-      // Downward: hold the board still and move by exactly what the browser
-      // would have moved — the column under the cursor if it still has room,
-      // the page otherwise. The fling keeps sending events, so the momentum of
-      // a trackpad survives.
+      const dx = wheelPixels(e.deltaX, e.deltaMode, el.clientWidth)
+      const dy = wheelPixels(e.deltaY, e.deltaMode, el.clientHeight)
+      if (!isVerticalWheel(dx, dy)) return // a real sideways swipe
+      // Downward, over a column's cards that can scroll: that column moves, and
+      // only that column — reaching its end must not start sliding the board
+      // under the eye. The fling keeps sending events, so the momentum of a
+      // trackpad survives.
       e.preventDefault()
       const host = hostUnder(e.target, el)
       if (host) {
-        const before = host.scrollTop
-        host.scrollTop = before + dy
-        if (host.scrollTop !== before) return
+        host.scrollTop += dy
+        return
       }
-      window.scrollBy(0, dy)
+      // Anywhere else — a head, a sum, a short column, the space between and
+      // below — a mouse wheel moves the board sideways: a mouse has no other
+      // way to reach the columns to the right. Where the board is as tall as
+      // the window the page has nowhere to go anyway. Where the page grows with
+      // the board (a phone, or a large browser font that moves the tablet
+      // layout's breakpoint), the page keeps the wheel. Read from the layout
+      // itself, not a width, so the two can never disagree.
+      const page = document.documentElement
+      if (page.scrollHeight > page.clientHeight + 1) window.scrollBy(0, dy)
+      else el.scrollLeft += dy
+      // A card or column being carried is over a different column now.
+      const held = grab.current
+      if (held?.kind === 'card' || held?.kind === 'column') track.current(e.clientX, e.clientY)
     }
 
     box.addEventListener('wheel', onWheel, { passive: false })
@@ -567,17 +619,26 @@ export function ProjectsKanban({
             >
               {/* The head does not scroll with the cards: which status this is,
                   and how many are in it, is what the column is being read for.
-                  It is also the column's handle — take hold of it and the
-                  column follows, so an office that quotes more than it builds
-                  can put that column first. */}
+                  Its grip is the column's handle — take hold of the six dots
+                  and the column follows, so an office that quotes more than it
+                  builds can put that column first. The rest of the head slides
+                  the board, like the space around the cards: a wide head that
+                  moved its column on every pull made reaching the columns to
+                  the right a matter of rearranging them. */}
               <div
                 data-board-head
-                onPointerDown={(e) => onHeadPointerDown(e, column.status)}
-                title={t('kanbanMoveColumn')}
-                style={{ touchAction: 'pan-x pan-y' }}
                 className="flex shrink-0 cursor-grab items-center gap-1.5 border-b border-border px-2 py-2 active:cursor-grabbing"
               >
-                <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+                <span
+                  data-board-grip
+                  onPointerDown={(e) => onHeadPointerDown(e, column.status)}
+                  title={t('kanbanMoveColumn')}
+                  aria-hidden
+                  style={{ touchAction: 'pan-x pan-y' }}
+                  className="-my-1 -ml-1 flex h-6 w-6 shrink-0 cursor-move items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+                >
+                  <GripVertical className="h-3.5 w-3.5" aria-hidden />
+                </span>
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${column.badgeClass}`}>
                   {column.label}
                 </span>

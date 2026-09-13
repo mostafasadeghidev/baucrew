@@ -6,7 +6,8 @@ import { createPortal } from 'react-dom'
 /**
  * Small dropdown menu in the spirit of shadcn/ui: a trigger you render yourself
  * and a floating panel anchored to it (portal → never clipped). Closes on
- * outside click, Escape and after an item is chosen.
+ * outside click, Escape, Tab and after an item is chosen. The arrow keys, Home
+ * and End walk its items, the way a menu is walked everywhere else.
  */
 export function Menu({
   trigger,
@@ -25,9 +26,16 @@ export function Menu({
   label?: string
 }) {
   const [open, setOpen] = useState(false)
-  const [box, setBox] = useState<{ left: number; top?: number; bottom?: number; width: number } | null>(null)
+  const [box, setBox] = useState<{
+    left: number
+    right: number
+    top?: number
+    bottom?: number
+    width: number
+  } | null>(null)
   const anchorRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const placed = box !== null
 
   useEffect(() => {
     if (!open) return
@@ -35,23 +43,62 @@ export function Menu({
       const el = anchorRef.current
       if (!el) return
       const r = el.getBoundingClientRect()
+      // Measured against the page's width without its scrollbar: a fixed box's
+      // `right` starts at that edge, and the window's width counts the
+      // scrollbar the page always keeps.
+      const right = document.documentElement.clientWidth - r.right
       setBox(
         side === 'top'
-          ? { left: r.left, bottom: window.innerHeight - r.top + 6, width: r.width }
-          : { left: r.left, top: r.bottom + 6, width: r.width }
+          ? { left: r.left, right, bottom: window.innerHeight - r.top + 6, width: r.width }
+          : { left: r.left, right, top: r.bottom + 6, width: r.width }
       )
     }
     place()
-    // Opened from the keyboard, the panel has to be where the keyboard goes
-    // next — it is portalled to the end of the document, so Tab alone would
-    // walk the rest of the page first.
-    panelRef.current
-      ?.querySelector<HTMLElement>('[role^="menuitem"], button, a[href], input, select, textarea')
-      ?.focus()
+    const items = () => [...(panelRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? [])]
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      setOpen(false)
-      anchorRef.current?.focus()
+      if (e.key === 'Escape') {
+        setOpen(false)
+        anchorRef.current?.focus()
+        return
+      }
+      const inside = panelRef.current?.contains(document.activeElement)
+      if (!inside) return
+      // The panel stands at the end of the document, so Tab out of it would
+      // land at the bottom of the page with the menu still open over it.
+      // Inside it Tab walks as usual — a language or theme switch in a row
+      // must still be reachable — and only leaving it closes the menu.
+      if (e.key === 'Tab') {
+        const focusable = [
+          ...(panelRef.current?.querySelectorAll<HTMLElement>(
+            'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          ) ?? []),
+        ]
+        const leaving = e.shiftKey
+          ? document.activeElement === focusable[0]
+          : document.activeElement === focusable[focusable.length - 1]
+        if (!leaving) return
+        e.preventDefault()
+        setOpen(false)
+        anchorRef.current?.focus()
+        return
+      }
+      const list = items()
+      const at = list.indexOf(document.activeElement as HTMLElement)
+      // Arrows belong to a control inside a row (a select) unless focus is on an item.
+      if (at < 0) return
+      const next =
+        e.key === 'ArrowDown'
+          ? list[(at + 1) % list.length]
+          : e.key === 'ArrowUp'
+            ? list[(at - 1 + list.length) % list.length]
+            : e.key === 'Home'
+              ? list[0]
+              : e.key === 'End'
+                ? list[list.length - 1]
+                : null
+      if (!next) return
+      e.preventDefault()
+      next.focus()
     }
     const onClick = (e: MouseEvent) => {
       const t = e.target as Node
@@ -68,6 +115,18 @@ export function Menu({
       document.removeEventListener('mousedown', onClick)
     }
   }, [open, side])
+
+  // Opened from the keyboard, the panel has to be where the keyboard goes
+  // next — it is portalled to the end of the document, so Tab alone would walk
+  // the rest of the page first. It can only take focus once it is drawn, which
+  // on the first opening is one render after `open`; re-placing on scroll or
+  // resize must not pull focus back, hence `placed` rather than the box itself.
+  useEffect(() => {
+    if (!open || !placed) return
+    panelRef.current
+      ?.querySelector<HTMLElement>('[role^="menuitem"], button, a[href], input, select, textarea')
+      ?.focus()
+  }, [open, placed])
 
   return (
     <>
@@ -94,10 +153,9 @@ export function Menu({
             onClick={() => setTimeout(() => setOpen(false), 0)}
             style={{
               position: 'fixed',
-              left: box.left,
               minWidth: Math.max(box.width, 200),
               ...(box.top != null ? { top: box.top } : { bottom: box.bottom }),
-              ...(align === 'end' ? { left: undefined, right: window.innerWidth - box.left - box.width } : {}),
+              ...(align === 'end' ? { right: box.right } : { left: box.left }),
             }}
             className="z-[80] overflow-hidden rounded-lg border border-border bg-surface p-1 shadow-xl"
           >
