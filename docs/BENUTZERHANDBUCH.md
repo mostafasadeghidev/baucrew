@@ -336,8 +336,8 @@ ist unter Einstellungen → Arbeitsbereiche → Anfragequellen anpassbar).
 
 ![Wochenansicht](screenshots/11-einsatzplanung-woche.png)
 
-- Fünf Spalten Montag bis Freitag. Jede **Karte** ist ein Einsatz: Projekt, Nummer, Kunde, Uhrzeit, Fahrzeuge, Team.
-- **Wochenende:** Liegt in einer Woche ein Einsatz auf Samstag oder Sonntag, erscheinen automatisch zwei weitere (gestrichelte) Spalten **Sa** und **So**. Ohne solche Einsätze bleibt es bei fünf Spalten; mit dem Schalter **Wochenende** oben rechts können Sie die beiden Spalten trotzdem öffnen (z. B. um eine Karte auf den Samstag zu ziehen). Liegt bereits ein Einsatz am Wochenende, steht der Schalter fest auf ein — er ist dann blass und lässt sich nicht ausschalten, denn diese Spalten müssen sichtbar bleiben. Wählen Sie im Einsatzfenster ein Wochenend-Datum, weist ein gelber Hinweis darauf hin. Die **Monatsansicht** zeigt Sa und So dagegen immer, auch in Monaten ganz ohne Wochenend-Einsätze.
+- Sieben Spalten Montag bis Sonntag. Jede **Karte** ist ein Einsatz: Projekt, Nummer, Kunde, Uhrzeit, Fahrzeuge, Team.
+- **Wochenende:** Samstag und Sonntag stehen als gestrichelte Spalten **Sa** und **So** am Ende der Woche. Mit dem Schalter **Wochenende** oben rechts blenden Sie die beiden aus, dann bleibt es bei fünf Spalten; die Wahl bleibt beim Blättern und beim Wechsel zu Monat oder Karte erhalten. Liegt in einer Woche ein Einsatz am Wochenende, steht der Schalter fest auf ein — er ist dann blass und lässt sich nicht ausschalten, denn diese Spalten müssen sichtbar bleiben. Wählen Sie im Einsatzfenster ein Wochenend-Datum, weist ein gelber Hinweis darauf hin. Die **Monatsansicht** zeigt Sa und So dagegen immer, auch in Monaten ganz ohne Wochenend-Einsätze.
 - **Folgewoche:** der zweite Schalter oben rechts. Eingeschaltet steht die Woche danach unter der aktuellen — dieselben Spalten, untereinander. Eine Karte lässt sich von jedem Tag auf jeden anderen ziehen, auch über die Wochengrenze hinweg. Die Pfeile blättern dann um zwei Wochen weiter.
 
 ![Woche mit Wochenend-Spalte](screenshots/39-woche-wochenende.png)
@@ -382,6 +382,8 @@ Alle Baustellen **einer Woche** auf einer Landkarte. Jeder Wochentag hat seine e
 Am Bildschirm bleiben die Karte und die Reiter oben stehen; gescrollt wird nur die Tagesliste rechts.
 
 **Ein Tag allein:** Klick auf einen Tagesnamen in der Liste. Die anderen Tage klappen zu einer Zeile zusammen und die Karte zeigt nur noch die Baustellen dieses Tages. **Ganze Woche** oben führt zurück; ein zweiter Klick auf denselben Tag tut es auch.
+
+**Eine Baustelle allein:** Klick auf die farbige Nummer vor einem Eintrag. Die Karte fährt zu dieser Baustelle und öffnet ihre Blase; der Schalter **Ganze Woche** geht dabei aus. Ein Klick darauf zeigt wieder alle Baustellen.
 
 Mit **← Aktuell →** blättern Sie wochenweise; ein Klick auf einen Punkt zeigt Name, Tag und Adresse, ein Klick auf den Projektnamen öffnet das Projekt. Gezoomt wird mit dem **Mausrad** (oder mit + / − links oben), verschoben durch Ziehen der Karte.
 

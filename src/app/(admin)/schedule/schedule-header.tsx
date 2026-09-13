@@ -33,21 +33,32 @@
  *      scrolls inside it rather than pushing anything along.
  */
 
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import Link from 'next/link'
 import { btn } from '@/components/ui/button'
 import { PageBar, StickyHead } from '@/components/ui/page-panel'
+import { ToggleKnob, toggleHover, toggleLook } from './schedule-toggle'
 
 export type ScheduleView = 'week' | 'month' | 'map'
 
-export type ScheduleHeaderToggle = {
-  /** Where it goes; null when it is on and cannot be switched off. */
-  href: string | null
-  label: string
-  active: boolean
-  /** The sentence behind the hover, e.g. why it cannot be switched off. */
-  title?: string
-}
+export type ScheduleHeaderToggle =
+  | {
+      /** Where it goes; null when it is on and cannot be switched off. */
+      href: string | null
+      label: string
+      active: boolean
+      /** The sentence behind the hover, e.g. why it cannot be switched off. */
+      title?: string
+    }
+  | {
+      /**
+       * A toggle that answers to something on the page rather than to the
+       * address — drawn by its own component with the same look
+       * (./schedule-toggle), in the same place in the row.
+       */
+      key: string
+      node: ReactNode
+    }
 
 /** The width of the box that says what the week has to say. */
 export const scheduleStatusBox =
@@ -142,30 +153,11 @@ export function ScheduleControls({
           move the arrows a person is aiming at. */}
       <div className="flex h-9 items-center justify-end gap-2 overflow-x-auto">
         {[...toggles].reverse().map((toggle) => {
+          if ('node' in toggle) return <Fragment key={toggle.key}>{toggle.node}</Fragment>
           const locked = toggle.href === null
           // Same words, same width, whichever way it stands.
-          const look = `inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-            locked ? 'text-foreground opacity-50' : toggle.active ? 'text-foreground' : 'text-muted'
-          }`
-          // A switch that is on but cannot be moved keeps the colour of a
-          // switch that is on — same accent track, same knob on the right — and
-          // only fades. Draining the colour out made it read as off, which is
-          // the one thing it is not; halving it reads as "on, and not yours to
-          // change", which is what it is.
-          const knob = (
-            <span
-              aria-hidden
-              className={`inline-flex h-3.5 w-6 shrink-0 items-center rounded-full border transition-colors ${
-                toggle.active ? 'border-accent bg-accent' : 'border-border bg-subtle'
-              }`}
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  toggle.active ? 'ml-auto mr-0.5 bg-white' : 'ml-0.5 bg-muted'
-                }`}
-              />
-            </span>
-          )
+          const look = toggleLook({ active: toggle.active, locked })
+          const knob = <ToggleKnob active={toggle.active} />
           return locked ? (
             <span
               key={toggle.label}
@@ -185,11 +177,7 @@ export function ScheduleControls({
               title={toggle.title}
               role="switch"
               aria-checked={toggle.active}
-              // Not `surface-hover`: in the light theme that token is the very
-              // colour of the sheet these toggles sit on, so hovering a
-              // switched-on toggle painted it its own background and nothing
-              // moved. The accent is a tint of the switch beside it.
-              className={`${look} hover:bg-accent/10 hover:text-foreground`}
+              className={`${look} ${toggleHover}`}
             >
               {knob}
               {toggle.label}

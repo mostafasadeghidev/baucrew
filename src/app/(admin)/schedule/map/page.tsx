@@ -11,6 +11,8 @@ import { PagePanel } from '@/components/ui/page-panel'
 import { ScheduleControls, ScheduleHeader } from '../schedule-header'
 import { SiteMap, type MapSite } from './site-map'
 import { FocusSiteButton } from './focus-site-button'
+import { WholeWeekToggle } from './whole-week-toggle'
+import { WEEKEND_OFF, weekendSuffix } from '@/lib/schedule-weekend'
 import { spreadOverlapping } from '@/lib/map-spread'
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -45,7 +47,7 @@ const SITE_COLORS = [
 export default async function ScheduleMapPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string; day?: string; date?: string }>
+  searchParams: Promise<{ week?: string; day?: string; date?: string; weekend?: string }>
 }) {
   const [t, locale, sp] = await Promise.all([
     getTranslations('schedule'),
@@ -53,6 +55,8 @@ export default async function ScheduleMapPage({
     searchParams,
   ])
   await requireManagement()
+  // The week board's weekend choice rides along, so going back to it keeps it.
+  const weekendQuery = weekendSuffix(sp.weekend)
 
   // `date` is what the map took before it showed a week; a link or a bookmark
   // carrying one lands on that day, inside its week.
@@ -234,6 +238,7 @@ export default async function ScheduleMapPage({
     const params = new URLSearchParams({ week: iso(start) })
     const day = change.day === undefined ? selectedDay : change.day
     if (day && !change.monday) params.set('day', day)
+    if (sp.weekend === WEEKEND_OFF) params.set('weekend', WEEKEND_OFF)
     return `/schedule/map?${params.toString()}`
   }
   const periodLabel = `${rangeFmt.format(monday)} – ${rangeFmt.format(addDays(monday, 6))}`
@@ -253,7 +258,7 @@ export default async function ScheduleMapPage({
         action={
           // The dialog lives with the week board, which has the projects, the
           // crew and the vehicles loaded; the map hands the click over to it.
-          <Link href={`/schedule?week=${iso(monday)}&new=1`} className={btn.primary}>
+          <Link href={`/schedule?week=${iso(monday)}&new=1${weekendQuery}`} className={btn.primary}>
             {t('planEntry')}
           </Link>
         }
@@ -262,8 +267,8 @@ export default async function ScheduleMapPage({
       <PagePanel className="flex min-h-0 flex-1 flex-col gap-3 p-4">
       <ScheduleControls
         view="map"
-        weekHref={`/schedule?week=${iso(monday)}`}
-        monthHref={`/schedule?view=month&week=${iso(monday)}`}
+        weekHref={`/schedule?week=${iso(monday)}${weekendQuery}`}
+        monthHref={`/schedule?view=month&week=${iso(monday)}${weekendQuery}`}
         mapHref={mapHref()}
         viewLabels={{ week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap') }}
         prevHref={mapHref({ monday: addDays(monday, -7) })}
@@ -274,15 +279,22 @@ export default async function ScheduleMapPage({
         nextLabel={t('nextWeek')}
         toggles={[
           // Always drawn, whichever way it stands: a control that comes and
-          // goes with the selection would move the row it sits in.
-          selectedDay
-            ? {
-                href: mapHref({ day: null }),
-                label: t('mapWholeWeek'),
-                active: false,
-                title: t('mapWholeWeekHint'),
-              }
-            : { href: null, label: t('mapWholeWeek'), active: true, title: t('mapWholeWeekOn') },
+          // goes with the selection would move the row it sits in. It is off
+          // while one day is picked, and while one site fills the map.
+          {
+            key: 'whole-week',
+            node: (
+              <WholeWeekToggle
+                label={t('mapWholeWeek')}
+                dayHref={selectedDay ? mapHref({ day: null }) : null}
+                titles={{
+                  on: t('mapWholeWeekOn'),
+                  backToWeek: t('mapWholeWeekHint'),
+                  backToAll: t('mapShowAllHint'),
+                }}
+              />
+            ),
+          },
         ]}
       >
         <span className="whitespace-nowrap text-sm font-semibold">{periodLabel}</span>

@@ -28,6 +28,19 @@ import 'leaflet/dist/leaflet.css'
  */
 export const FOCUS_SITE_EVENT = 'baucrew:focus-site'
 
+/** Asks the map to show every site of the list again, the way it opened. */
+export const SHOW_ALL_SITES_EVENT = 'baucrew:show-all-sites'
+
+/**
+ * Said by the map whenever what it shows changes kind: `focus` once it has
+ * come to one site, `overview` once every site is in view again. The "Ganze
+ * Woche" switch listens, so it is off while one site fills the map.
+ */
+export const MAP_VIEW_EVENT = 'baucrew:map-view'
+export type MapView = 'focus' | 'overview'
+
+const announce = (view: MapView) => window.dispatchEvent(new CustomEvent<MapView>(MAP_VIEW_EVENT, { detail: view }))
+
 export type MapSite = {
   id: string
   /** Number shown in the marker and in the list beside the map, per day. */
@@ -61,6 +74,12 @@ export function SiteMap({
   const map = useRef<Leaflet.Map | null>(null)
   const markers = useRef<Leaflet.LayerGroup | null>(null)
   const bySite = useRef(new Map<string, Leaflet.Marker>())
+  /**
+   * A bubble waiting for the map to arrive at its site. Kept so that going back
+   * to every site cancels it: otherwise the "arrived" of the way back would
+   * open the bubble of the site just left.
+   */
+  const pendingOpen = useRef<(() => void) | null>(null)
   const [L, setL] = useState<typeof Leaflet | null>(null)
 
   useEffect(() => {
@@ -95,9 +114,19 @@ export function SiteMap({
     const instance = map.current
     const group = markers.current
     if (!L || !instance || !group) return
+    // A bubble still waiting belongs to a marker about to be removed.
+    if (pendingOpen.current) instance.off('moveend', pendingOpen.current)
+    pendingOpen.current = null
     group.clearLayers()
     bySite.current.clear()
-    if (sites.length === 0) return
+    if (sites.length === 0) {
+      // Nothing to show: back to the whole country, not left zoomed in on a
+      // site of the week before — and the switch is on again.
+      instance.closePopup()
+      instance.setView([51.1, 10.4], 6)
+      announce('overview')
+      return
+    }
 
     for (const site of sites) {
       const icon = L.divIcon({
@@ -122,7 +151,26 @@ export function SiteMap({
     instance.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 })
     // Tiles can be laid out before the pane knows its size.
     instance.invalidateSize()
+    announce('overview')
   }, [L, sites, sharedPlaceNote])
+
+  // Every site of the list in view again, as the map opened: the way back
+  // from a single site is one click, not a hunt with the wheel.
+  useEffect(() => {
+    if (!L) return
+    const onShowAll = () => {
+      const instance = map.current
+      if (!instance) return
+      if (pendingOpen.current) instance.off('moveend', pendingOpen.current)
+      pendingOpen.current = null
+      instance.closePopup()
+      const points = [...bySite.current.values()].map((marker) => marker.getLatLng())
+      if (points.length > 0) instance.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 13, animate: true })
+      announce('overview')
+    }
+    window.addEventListener(SHOW_ALL_SITES_EVENT, onShowAll)
+    return () => window.removeEventListener(SHOW_ALL_SITES_EVENT, onShowAll)
+  }, [L])
 
   // The map fills whatever room is left on the page, so its box changes with
   // the window. Leaflet lays its tiles out once and has to be told.
@@ -150,13 +198,19 @@ export function SiteMap({
       // The bubble waits for the map to arrive: opened mid-flight, it works
       // out where to sit from a position the map is about to leave, and ends
       // up hanging over the edge of the pane.
-      const open = () => marker.openPopup()
+      if (pendingOpen.current) instance.off('moveend', pendingOpen.current)
+      const open = () => {
+        pendingOpen.current = null
+        marker.openPopup()
+      }
       const settled = instance.getZoom() === zoom && instance.getCenter().distanceTo(centre) < 1
       if (settled) open()
       else {
+        pendingOpen.current = open
         instance.once('moveend', open)
         instance.setView(centre, zoom, { animate: true })
       }
+      announce('focus')
     }
     window.addEventListener(FOCUS_SITE_EVENT, onFocus)
     return () => window.removeEventListener(FOCUS_SITE_EVENT, onFocus)

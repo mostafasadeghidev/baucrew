@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server'
+import { showsWeekend, weekendParam, weekendSuffix } from '@/lib/schedule-weekend'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflicts'
@@ -82,6 +83,8 @@ export default async function SchedulePage({
       label: absenceLabel(a.type),
     }))
 
+  // The office's weekend choice, carried through every link to another view.
+  const weekendQuery = weekendSuffix(weekend)
   const base =
     week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? utcDate(week) : new Date()
   const monday = mondayOf(base)
@@ -128,11 +131,12 @@ export default async function SchedulePage({
         weekdayLabels={weeks[0].map((d) => weekdayFmt.format(utcDate(d)))}
         weekNumbers={weeks.map((w) => isoWeek(utcDate(w[0])))}
         todayIso={iso(new Date())}
-        prevHref={`/schedule?view=month&week=${iso(addMonths(start, -1))}`}
-        nextHref={`/schedule?view=month&week=${iso(addMonths(start, 1))}`}
-        currentHref="/schedule?view=month"
-        weekHref={`/schedule?week=${iso(monday)}`}
-        mapHref={`/schedule/map?week=${iso(monday)}`}
+        prevHref={`/schedule?view=month&week=${iso(addMonths(start, -1))}${weekendQuery}`}
+        nextHref={`/schedule?view=month&week=${iso(addMonths(start, 1))}${weekendQuery}`}
+        currentHref={`/schedule?view=month${weekendQuery}`}
+        weekHref={`/schedule?week=${iso(monday)}${weekendQuery}`}
+        weekQuery={weekendQuery}
+        mapHref={`/schedule/map?week=${iso(monday)}${weekendQuery}`}
         entries={monthEntries.map((entry) => ({
           id: entry.id,
           date: iso(entry.date),
@@ -156,8 +160,9 @@ export default async function SchedulePage({
     )
   }
 
-  // Always load the full 7-day week; Saturday/Sunday columns are shown only
-  // when an assignment falls on them (or when the user asks via ?weekend=1).
+  // Always load the full 7-day week. Saturday and Sunday are shown unless the
+  // office switched them off (?weekend=0), and always when an assignment falls
+  // on them — see src/lib/schedule-weekend.ts.
   // One week, or two when the office asked for the following one as well.
   const weekCount = next === '1' ? 2 : 1
   const weekEnd = addDays(monday, 7 * weekCount)
@@ -189,7 +194,11 @@ export default async function SchedulePage({
   // One weekend decision for the whole board: two weeks with different column
   // counts would not line up, and lining up is the point of stacking them.
   const hasWeekendEntries = entries.some((e) => [0, 6].includes(e.date.getUTCDay()))
-  const showWeekend = hasWeekendEntries || weekend === '1'
+  const showWeekend = showsWeekend(weekend, hasWeekendEntries)
+  // What the office chose, as opposed to what this week shows: a week with a
+  // Saturday job locks the columns on, and stepping on from it must not turn
+  // that lock into the office's choice for the weeks after.
+  const weekendChoice = showsWeekend(weekend, false)
   const weeks = Array.from({ length: weekCount }, (_, w) => {
     const start = addDays(monday, w * 7)
     return {
@@ -209,7 +218,8 @@ export default async function SchedulePage({
   ): string => {
     const start = change.monday ?? monday
     const params = new URLSearchParams({ week: iso(start) })
-    if (change.weekend ?? showWeekend) params.set('weekend', '1')
+    const weekendValue = weekendParam(change.weekend ?? weekendChoice)
+    if (weekendValue) params.set('weekend', weekendValue)
     if (change.next ?? weekCount === 2) params.set('next', '1')
     return `/schedule?${params.toString()}`
   }
@@ -300,8 +310,8 @@ export default async function SchedulePage({
       prevWeekHref={weekHref({ monday: addDays(monday, -7 * weekCount) })}
       nextWeekHref={weekHref({ monday: addDays(monday, 7 * weekCount) })}
       currentWeekHref={weekHref({ monday: mondayOf(new Date()) })}
-      monthHref={`/schedule?view=month&week=${iso(monday)}`}
-      mapHref={`/schedule/map?week=${iso(monday)}`}
+      monthHref={`/schedule?view=month&week=${iso(monday)}${weekendQuery}`}
+      mapHref={`/schedule/map?week=${iso(monday)}${weekendQuery}`}
       todayIso={iso(new Date())}
       entries={boardEntries}
       conflictMessages={conflictMessages}

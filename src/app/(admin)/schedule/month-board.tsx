@@ -44,6 +44,7 @@ export function MonthBoard({
   nextHref,
   currentHref,
   weekHref,
+  weekQuery = "",
   mapHref,
   projects,
   employees,
@@ -62,6 +63,8 @@ export function MonthBoard({
   nextHref: string;
   currentHref: string;
   weekHref: string;
+  /** Added to every link into a week, e.g. the office's choice to hide the weekend. */
+  weekQuery?: string;
   mapHref: string;
   projects: ComboboxOption[];
   employees: ComboboxOption[];
@@ -261,7 +264,7 @@ export function MonthBoard({
                 >
                   <td className="px-2 py-2 align-top">
                     <Link
-                      href={`/schedule?week=${week[0]}`}
+                      href={`/schedule?week=${week[0]}${weekQuery}`}
                       className="font-semibold text-accent hover:underline"
                     >
                       {weekNumbers[wi]}
@@ -292,7 +295,7 @@ export function MonthBoard({
                       >
                         <div className="mb-1 flex items-center justify-between">
                           <Link
-                            href={`/schedule?week=${week[0]}`}
+                            href={`/schedule?week=${week[0]}${weekQuery}`}
                             className={`inline-block rounded px-1 text-[11px] font-semibold tabular-nums ${
                               day === todayIso
                                 ? "bg-accent text-accent-foreground"
