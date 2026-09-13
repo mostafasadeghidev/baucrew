@@ -155,7 +155,7 @@ describe('getYearRevenue with a planning sheet', () => {
 describe('old data set aside', () => {
   // A year of its own: a test must never reach into another test's rows.
   const year = 2041
-  const NUMBERS = [`${year}-9201`, `${year}-9202`, `${year}-9203`]
+  const NUMBERS = [`${year}-9201`, `${year}-9202`, `${year}-9203`, `${year}-9204`]
   const ids: string[] = []
   let cust = ''
   /** What the installation had set before the test touched it. */
@@ -172,7 +172,7 @@ describe('old data set aside', () => {
     await prisma.customer.deleteMany({ where: { name: `${TAG} Kunde ${year}`, projects: { none: {} } } })
     const c = await prisma.customer.create({ data: { name: `${TAG} Kunde ${year}` } })
     cust = c.id
-    const mk = (n: string, status: 'COMPLETED' | 'PLANNED', actualEnd: Date | null) =>
+    const mk = (n: string, status: 'COMPLETED' | 'PLANNED', actualEnd: Date | null, plannedStart: Date | null = null) =>
       prisma.project.create({
         data: {
           number: `${year}-${n}`,
@@ -180,7 +180,8 @@ describe('old data set aside', () => {
           customerId: cust,
           status,
           actualEnd,
-          // No planned start: these are the "undated" ones.
+          // Without a planned start a project is "undated".
+          plannedStart,
           createdAt: new Date(Date.UTC(year, 5, 1)),
         },
       })
@@ -188,6 +189,8 @@ describe('old data set aside', () => {
       mk('9201', 'COMPLETED', new Date(Date.UTC(year, 0, 31))), // finished, before the cutoff
       mk('9202', 'COMPLETED', new Date(Date.UTC(year, 11, 31))), // finished, after the cutoff
       mk('9203', 'PLANNED', null), // open: never history
+      // Dated, finished before the cutoff: a line of March, settled.
+      mk('9204', 'COMPLETED', new Date(Date.UTC(year, 2, 20)), new Date(Date.UTC(year, 2, 1))),
     ])
     ids.push(...made.map((p) => p.id))
   })
@@ -228,6 +231,28 @@ describe('old data set aside', () => {
     expect(r.undatedHistorical).toBe(1)
     // The year's own figures are untouched by the cutoff.
     expect(r.yearTotal).toBe(0)
+    // Every line carries its project's status; old data's lines are settled.
+    expect(r.months[2].own.find((p) => p.number === `${year}-9204`)).toMatchObject({
+      status: 'COMPLETED',
+      settled: true,
+    })
+    expect(r.undated.find((p) => p.number === `${year}-9202`)).toMatchObject({ status: 'COMPLETED' })
+    expect(r.undated.find((p) => p.number === `${year}-9202`)?.settled).toBeUndefined()
+  })
+
+  it('leaves old data out of the money still to come in', async () => {
+    await prisma.appSetting.upsert({
+      where: { key: 'historyCutoff' },
+      update: { value: `${year}-07-01` },
+      create: { key: 'historyCutoff', value: `${year}-07-01` },
+    })
+    vi.resetModules()
+    const { getOpenMoney } = await import('@/lib/reports')
+    const done = (await getOpenMoney()).done.rows.map((r) => r.number)
+    expect(done).toContain(`${year}-9202`)
+    expect(done).not.toContain(`${year}-9201`)
+    expect(done).not.toContain(`${year}-9204`)
+    expect(done).not.toContain(`${year}-9203`)
   })
 })
 
@@ -262,9 +287,9 @@ describe('what the data-quality report asks for', () => {
   })
 
   it('asks for a date where work is planned or under way, not for an offer nobody has scheduled', async () => {
-    const { getDataQuality } = await import('@/lib/reports')
-    const { issues } = await getDataQuality()
-    const listed = new Set(issues.find((i) => i.key === 'noPlannedStart')!.items.map((i) => i.label.split(' — ')[0]))
+    const { getDataGaps } = await import('@/lib/reports')
+    const { valueOrDate } = await getDataGaps(new Date())
+    const listed = new Set(valueOrDate.filter((r) => r.dateMissing).map((r) => r.project.number))
     expect(listed.has(`${year}-9303`)).toBe(true)
     expect(listed.has(`${year}-9304`)).toBe(true)
     expect(listed.has(`${year}-9301`)).toBe(false)
@@ -272,10 +297,10 @@ describe('what the data-quality report asks for', () => {
   })
 
   it('asks for a town where there are days to warn about, not for an offer', async () => {
-    const { getDataQuality } = await import('@/lib/reports')
-    const { issues } = await getDataQuality()
-    const listed = new Set(issues.find((i) => i.key === 'noCity')!.items.map((i) => i.label.split(' — ')[0]))
-    expect(listed.has(`${year}-9306`)).toBe(true)
-    expect(listed.has(`${year}-9305`)).toBe(false)
+    const { getToday } = await import('@/lib/reports')
+    const { jobs } = await getToday(new Date())
+    const noCity = new Set(jobs.filter((j) => j.noCity).map((j) => j.number))
+    expect(noCity.has(`${year}-9306`)).toBe(true)
+    expect(noCity.has(`${year}-9305`)).toBe(false)
   })
 })

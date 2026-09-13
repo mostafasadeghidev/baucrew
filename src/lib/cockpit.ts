@@ -1,0 +1,167 @@
+/**
+ * The rules behind the CRM's Heute tab: the state of the company today, read
+ * out of what is already entered.
+ *
+ * The office reads its company as a handful of parts, each one number with a
+ * lamp, and it grades what is stuck higher than what is big. Nothing here is a
+ * new field: every figure is a rule over projects, the planning sheet, the
+ * schedule and the site material lists, so none of it can fall out of date the
+ * way a status somebody has to set does.
+ *
+ * One rule per concept. Old data — work finished before the history cutoff in
+ * Settings — never shows up in a lamp or a list; where it is left out, it is
+ * counted in a footnote instead.
+ *
+ * Pure, so the rules are tested without a database.
+ */
+
+import { businessDaysBetween } from './reports-calc'
+
+/** A lamp says whether to look. `none` means there is nothing to judge yet. */
+export type Lamp = 'green' | 'yellow' | 'red' | 'none'
+
+/** More is worse: none of it is green, some of it yellow, a lot of it red. */
+export const lampAbove = (value: number, yellowFrom: number, redFrom: number): Lamp =>
+  value >= redFrom ? 'red' : value >= yellowFrom ? 'yellow' : 'green'
+
+/** The stages of a job that still matter today, in the order the work runs through them. */
+export const STAGES = ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS', 'COMPLETED', 'INVOICED'] as const
+export type Stage = (typeof STAGES)[number]
+
+/** Asked, offered: waiting for a yes. Always shown, even empty — an empty pipeline is news. */
+const ALWAYS_SHOWN: readonly Stage[] = ['LEAD', 'QUOTED']
+/** Ordered and not yet finished. */
+export const ORDERED = ['APPROVED', 'PLANNED', 'IN_PROGRESS'] as const
+
+const isStage = (status: string): status is Stage => (STAGES as readonly string[]).includes(status)
+const isOrdered = (status: string) => (ORDERED as readonly string[]).includes(status)
+
+export type StageProject = { status: string; amount: number | null; historical: boolean }
+
+export type StageRow = { stage: Stage; count: number; total: number; withoutValue: number }
+
+/** What the stage rows leave out, so it is counted rather than silently missing. */
+export type StageFooter = {
+  historicalCount: number
+  historicalTotal: number
+  paidCount: number
+  cancelledCount: number
+}
+
+/**
+ * Every job that still matters today, by the stage it stands in: how many,
+ * what they are worth, and how many have no value at all. Paid and cancelled
+ * work is done with; old data is the office's history. Both are counted in the
+ * footer and nowhere else, so "Abgeschlossen" means finished and not yet billed
+ * — not the last ten years.
+ */
+export function stageRows(projects: StageProject[]): { rows: StageRow[]; footer: StageFooter } {
+  const footer: StageFooter = { historicalCount: 0, historicalTotal: 0, paidCount: 0, cancelledCount: 0 }
+  const byStage = new Map<Stage, StageRow>()
+  for (const p of projects) {
+    if (p.status === 'CANCELLED') {
+      footer.cancelledCount += 1
+      continue
+    }
+    if (p.historical) {
+      footer.historicalCount += 1
+      footer.historicalTotal += p.amount ?? 0
+      continue
+    }
+    if (p.status === 'PAID') {
+      footer.paidCount += 1
+      continue
+    }
+    if (!isStage(p.status)) continue
+    const row = byStage.get(p.status) ?? { stage: p.status, count: 0, total: 0, withoutValue: 0 }
+    row.count += 1
+    row.total += p.amount ?? 0
+    if (p.amount === null) row.withoutValue += 1
+    byStage.set(p.status, row)
+  }
+  const rows = STAGES.map(
+    (stage) => byStage.get(stage) ?? (ALWAYS_SHOWN.includes(stage) ? { stage, count: 0, total: 0, withoutValue: 0 } : null)
+  ).filter((row): row is StageRow => row !== null)
+  return { rows, footer }
+}
+
+const DAY = 86_400_000
+const utcDay = (date: Date) => Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+
+export type Overdue = {
+  /** `end`: the planned end has passed. `start`: the planned start has passed and the work has not begun. */
+  reason: 'end' | 'start'
+  /** Working days since the day that passed — at least one. */
+  workdaysLate: number
+}
+
+/**
+ * Whether ordered work is past its date. Two ways to be late: the planned end
+ * has passed while the job is still open, or the planned start has passed and
+ * the job never began. An enquiry or an offer is never late — its date is a
+ * wish, not a promise. Delays are counted in working days.
+ */
+export function overdueOf(
+  p: { status: string; plannedStart: Date | null; plannedEnd: Date | null },
+  today: Date
+): Overdue | null {
+  if (!isOrdered(p.status)) return null
+  const now = utcDay(today)
+  const late = (due: Date) =>
+    Math.max(1, businessDaysBetween(new Date(utcDay(due) + DAY), new Date(now)) ?? 0)
+  const end = p.plannedEnd ?? p.plannedStart
+  if (end && utcDay(end) < now) return { reason: 'end', workdaysLate: late(end) }
+  if (p.status !== 'IN_PROGRESS' && p.plannedStart && utcDay(p.plannedStart) < now) {
+    return { reason: 'start', workdaysLate: late(p.plannedStart) }
+  }
+  return null
+}
+
+/** Sites that start within this many days count as starting soon. */
+export const SOON_DAYS = 14
+
+export type SiteGroup = 'overdue' | 'running' | 'starting'
+
+/**
+ * Where a job stands in the one Baustellen table, so that every job appears
+ * there once: late first, then what is running within its dates, then what
+ * starts in the next two weeks.
+ */
+export function siteGroupOf(
+  p: { status: string; plannedStart: Date | null; plannedEnd: Date | null },
+  today: Date
+): SiteGroup | null {
+  if (overdueOf(p, today)) return 'overdue'
+  if (p.status === 'IN_PROGRESS') return 'running'
+  if (!isOrdered(p.status) || !p.plannedStart) return null
+  const start = utcDay(p.plannedStart)
+  const now = utcDay(today)
+  return start >= now && start <= now + SOON_DAYS * DAY ? 'starting' : null
+}
+
+export type SiteProgress = {
+  /** Working days the site was planned to take. */
+  plannedDays: number | null
+  /** Working days of it that are behind us. */
+  doneDays: number | null
+  pct: number | null
+}
+
+/**
+ * How much of a running site's planned time has passed, counted in working
+ * days — not in ticked checklist boxes: a fully prepared site has been built
+ * nothing. Days after the planned end do not push it past a hundred; they show
+ * as a job that is late.
+ */
+export function siteProgress(plannedStart: Date | null, plannedEnd: Date | null, today: Date): SiteProgress {
+  if (!plannedStart) return { plannedDays: null, doneDays: null, pct: null }
+  const end = plannedEnd ?? plannedStart
+  const plannedDays = businessDaysBetween(plannedStart, end)
+  const now = utcDay(today)
+  if (now < utcDay(plannedStart)) return { plannedDays, doneDays: 0, pct: plannedDays ? 0 : null }
+  const until = now < utcDay(end) ? new Date(now) : end
+  const doneDays = businessDaysBetween(plannedStart, until)
+  const pct =
+    plannedDays && plannedDays > 0 && doneDays !== null ? Math.min(100, Math.round((doneDays / plannedDays) * 100)) : null
+  return { plannedDays, doneDays, pct }
+}

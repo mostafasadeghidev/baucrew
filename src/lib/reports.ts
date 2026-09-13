@@ -1,11 +1,28 @@
 import 'server-only'
 import { db } from './db'
 import { computeEfficiency, type EfficiencyResult, type MonthRange } from './reports-calc'
-import { geocodeCity } from './geocode'
 import { stockShortage } from './stock'
 import { sumMinutes } from './time-entries'
 import { planTotals, type PlanEntry } from './year-plan-excel'
-import { isHistorical, type HistoryProject } from './history'
+import { isHistorical, projectHistoryDate } from './history'
+import {
+  crewLoadByMonth,
+  crewUsage,
+  openMoneyOf,
+  type CrewMonth,
+  type OpenMoney,
+  type UsageLoad,
+} from './order-situation'
+import {
+  overdueOf,
+  siteGroupOf,
+  stageRows,
+  type Overdue,
+  type SiteGroup,
+  type StageFooter,
+  type StageRow,
+} from './cockpit'
+import { dataGapReport, type GapReport } from './data-gaps'
 import { getHistoryCutoff } from './history-db'
 
 export type RevenueProject = {
@@ -19,6 +36,12 @@ export type RevenueProject = {
   price: number | null
   /** True for a line of the planning sheet that no project is tied to — it has no project page. */
   fromSheet?: boolean
+  /** The customer's id; absent for a sheet line with no project. */
+  customerId?: string
+  /** The status of the project behind the line; absent for a sheet line with none. */
+  status?: string
+  /** True when that project is old data — finished before the history cutoff, nobody's to bill any more. */
+  settled?: boolean
 }
 
 export type MonthRevenue = {
@@ -98,7 +121,21 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       name: true,
       amount: true,
       isSub: true,
-      project: { select: { id: true, number: true, name: true, customer: { select: { name: true } } } },
+      project: {
+        select: {
+          id: true,
+          number: true,
+          name: true,
+          status: true,
+          // The dates that say whether the project is old data.
+          plannedStart: true,
+          plannedEnd: true,
+          actualStart: true,
+          actualEnd: true,
+          sourceCreatedAt: true,
+          customer: { select: { id: true, name: true } },
+        },
+      },
     },
   })
 
@@ -123,7 +160,7 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       actualEnd: true,
       sourceCreatedAt: true,
       createdAt: true,
-      customer: { select: { name: true } },
+      customer: { select: { id: true, name: true } },
       addOns: { select: { amount: true } },
       // The years of the sheet lines tied to the project.
       planEntries: { select: { year: true } },
@@ -158,7 +195,10 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
           number: line.project.number,
           name: line.name,
           customer: line.project.customer.name,
+          customerId: line.project.customer.id,
           price: Number(line.amount),
+          status: line.project.status,
+          ...(isHistorical(line.project, cutoff) ? { settled: true } : {}),
         }
       : {
           key: line.id,
@@ -190,7 +230,10 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       number: p.number,
       name: p.name,
       customer: p.customer.name,
+      customerId: p.customer.id,
       price: orderValue(p.price, p.addOns),
+      status: p.status,
+      ...(isHistorical(p, cutoff) ? { settled: true } : {}),
     }
     if (!p.plannedStart) {
       if (isHistorical(p, cutoff)) undatedHistorical++
@@ -404,49 +447,6 @@ export async function getYearUsage(
   }
 }
 
-// ── Pipeline (open order book by status) ─────────────────────
-
-export type PipelineBucket = {
-  key: 'offers' | 'ordered' | 'inProgress' | 'planned'
-  total: number
-  count: number
-}
-
-/**
- * Open order book (net values), split so the office sees what is still just an
- * offer: "offers" (QUOTED — sent, waiting for confirmation), "ordered"
- * (APPROVED — signed, not started), "in progress" and "planned" (the rest).
- */
-export async function getPipeline(): Promise<PipelineBucket[]> {
-  const projects = await db.project.findMany({
-    where: { status: { in: ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] } },
-    select: { status: true, price: true, addOns: { select: { amount: true } } },
-  })
-  const rows = projects.map((p) => ({
-    status: p.status,
-    total: orderValue(p.price, p.addOns) ?? 0,
-  }))
-  const buckets: Record<PipelineBucket['key'], PipelineBucket> = {
-    offers: { key: 'offers', total: 0, count: 0 },
-    ordered: { key: 'ordered', total: 0, count: 0 },
-    inProgress: { key: 'inProgress', total: 0, count: 0 },
-    planned: { key: 'planned', total: 0, count: 0 },
-  }
-  for (const r of rows) {
-    const key: PipelineBucket['key'] =
-      r.status === 'QUOTED'
-        ? 'offers'
-        : r.status === 'APPROVED'
-          ? 'ordered'
-          : r.status === 'IN_PROGRESS'
-            ? 'inProgress'
-            : 'planned'
-    buckets[key].total += r.total
-    buckets[key].count += 1
-  }
-  return [buckets.offers, buckets.ordered, buckets.inProgress, buckets.planned]
-}
-
 /** One offer that is out and still waiting for the customer's confirmation. */
 export type OpenOffer = {
   id: string
@@ -495,8 +495,198 @@ export async function getOpenOffers(): Promise<{ offers: OpenOffer[]; total: num
   }
 }
 
+// ── Heute: the company today, out of what is already entered ──
+
+/** One job as the Heute tab reads it. */
+export type TodayJob = {
+  id: string
+  number: string
+  name: string
+  customer: string
+  status: string
+  /** Price plus Nachträge; null when neither is entered. */
+  amount: number | null
+  plannedStart: Date | null
+  plannedEnd: Date | null
+  /** Finished before the history cutoff in Settings: the office's history, not today's work. */
+  historical: boolean
+  overdue: Overdue | null
+  group: SiteGroup | null
+  /** The next day the job is on the schedule, from today on. */
+  nextVisit: Date | null
+  /** Catalog items the site still needs and the warehouse has not given out. */
+  missingItems: number
+  checklistOpen: number
+  checklistProblems: number
+  /**
+   * Planned or running work with no town typed in, so the weather warning
+   * cannot look. An accepted offer gets its town when it is scheduled.
+   */
+  noCity: boolean
+  /** Days since the job was entered (on the board it was imported from, if any) — how long an enquiry or offer has waited. */
+  ageDays: number
+}
+
+/** A catalog item missing on ordered jobs, with the jobs it is missing on. */
+export type MissingMaterial = { id: string; name: string; jobs: Array<{ id: string; number: string; name: string }> }
+
+export type Today = {
+  jobs: TodayJob[]
+  stages: { rows: StageRow[]; footer: StageFooter }
+  material: MissingMaterial[]
+  stockShort: StockShortage[]
+  /** Sites and people on today's schedule. */
+  schedule: { sites: number; people: number }
+}
+
+/**
+ * The Heute tab's data. One pass over every job answers most of it — the
+ * stages, what is late, what is running, what starts soon, what material is
+ * missing — by the rules in `src/lib/cockpit.ts`, where they are tested.
+ */
+export async function getToday(today: Date): Promise<Today> {
+  const day = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
+  const [projects, cutoff, entries, stockShort] = await Promise.all([
+    db.project.findMany({
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        status: true,
+        price: true,
+        city: true,
+        plannedStart: true,
+        plannedEnd: true,
+        actualStart: true,
+        actualEnd: true,
+        sourceCreatedAt: true,
+        createdAt: true,
+        customer: { select: { name: true } },
+        addOns: { select: { amount: true } },
+        items: { where: { status: 'MISSING' }, select: { catalogItem: { select: { id: true, name: true } } } },
+        checklists: { select: { items: { select: { ok: true, checkedAt: true } } } },
+        scheduleEntries: {
+          where: { date: { gte: day }, cancelledAt: null },
+          select: { date: true },
+          orderBy: { date: 'asc' },
+          take: 1,
+        },
+      },
+      orderBy: { number: 'desc' },
+    }),
+    getHistoryCutoff(),
+    db.scheduleEntry.findMany({
+      where: { date: day, cancelledAt: null },
+      select: { projectId: true, employees: { select: { employeeId: true } } },
+    }),
+    getStockShortages(),
+  ])
+
+  const jobs: TodayJob[] = projects.map((p) => {
+    const points = p.checklists.flatMap((c) => c.items)
+    const dates = { status: p.status as string, plannedStart: p.plannedStart, plannedEnd: p.plannedEnd }
+    return {
+      id: p.id,
+      number: p.number,
+      name: p.name,
+      customer: p.customer.name,
+      status: p.status,
+      amount: orderValue(p.price, p.addOns),
+      plannedStart: p.plannedStart,
+      plannedEnd: p.plannedEnd,
+      historical: isHistorical(p, cutoff),
+      overdue: overdueOf(dates, day),
+      group: siteGroupOf(dates, day),
+      nextVisit: p.scheduleEntries[0]?.date ?? null,
+      missingItems: p.items.length,
+      checklistOpen: points.filter((i) => i.checkedAt === null).length,
+      checklistProblems: points.filter((i) => i.ok === false).length,
+      noCity: (p.status === 'PLANNED' || p.status === 'IN_PROGRESS') && !p.city?.trim(),
+      // An imported card keeps the day it was made on the board, not the day of the import.
+      ageDays: Math.max(0, Math.floor((day.getTime() - (p.sourceCreatedAt ?? p.createdAt).getTime()) / 86_400_000)),
+    }
+  })
+
+  // Missing material only matters where the work is still ahead.
+  const material = new Map<string, MissingMaterial>()
+  for (const p of projects) {
+    if (p.status !== 'APPROVED' && p.status !== 'PLANNED' && p.status !== 'IN_PROGRESS') continue
+    for (const item of p.items) {
+      const row = material.get(item.catalogItem.id) ?? { id: item.catalogItem.id, name: item.catalogItem.name, jobs: [] }
+      row.jobs.push({ id: p.id, number: p.number, name: p.name })
+      material.set(item.catalogItem.id, row)
+    }
+  }
+
+  return {
+    jobs,
+    stages: stageRows(jobs),
+    material: [...material.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    stockShort,
+    schedule: {
+      sites: new Set(entries.map((e) => e.projectId)).size,
+      people: new Set(entries.flatMap((e) => e.employees.map((x) => x.employeeId))).size,
+    },
+  }
+}
+
 /** An offer older than this without an answer is worth chasing. */
 export const STALE_OFFER_DAYS = 21
+
+// ── Money earned and not yet in ──────────────────────────────
+
+/** Finished work not billed and bills not paid — the rules are `openMoneyOf`'s. */
+export async function getOpenMoney(): Promise<OpenMoney> {
+  const [projects, cutoff] = await Promise.all([
+    db.project.findMany({
+      where: { status: { in: ['COMPLETED', 'INVOICED'] } },
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        status: true,
+        price: true,
+        plannedStart: true,
+        plannedEnd: true,
+        actualStart: true,
+        actualEnd: true,
+        sourceCreatedAt: true,
+        customer: { select: { name: true } },
+        addOns: { select: { amount: true } },
+      },
+    }),
+    getHistoryCutoff(),
+  ])
+  return openMoneyOf(
+    projects.map(({ customer, price, addOns, ...p }) => ({
+      ...p,
+      customer: customer.name,
+      amount: orderValue(price, addOns),
+    })),
+    cutoff
+  )
+}
+
+/** The crew's days on the schedule and days away, month by month, for the order situation. */
+export async function getCrewLoad(year: number): Promise<CrewMonth[]> {
+  const start = new Date(Date.UTC(year, 0, 1))
+  const end = new Date(Date.UTC(year + 1, 0, 1))
+  const [bookings, absences] = await Promise.all([
+    db.scheduleEntryEmployee.findMany({
+      where: { scheduleEntry: { date: { gte: start, lt: end }, cancelledAt: null } },
+      select: { employeeId: true, scheduleEntry: { select: { date: true } } },
+    }),
+    db.absence.findMany({
+      where: { startDate: { lt: end }, endDate: { gte: start } },
+      select: { employeeId: true, startDate: true, endDate: true },
+    }),
+  ])
+  return crewLoadByMonth(
+    year,
+    bookings.map((b) => ({ employeeId: b.employeeId, date: b.scheduleEntry.date })),
+    absences
+  )
+}
 
 // ── Project efficiency: plan vs. actual for finished projects ─
 
@@ -513,9 +703,13 @@ export type EfficiencyRow = EfficiencyResult & {
 }
 
 /**
- * Finished projects (COMPLETED / INVOICED / PAID) whose planned start (or, if
- * missing, creation) falls into the year, with planned vs. actual days from
- * the schedule and revenue per person-day.
+ * Finished jobs of a period, with planned against actual days from the
+ * schedule and the order value per person-day.
+ *
+ * A job belongs to the period it was finished in — when it ended, or was meant
+ * to — not to the day it was typed in, which for an import is the day of the
+ * import. Old data before the history cutoff is left out and counted, so the
+ * table shows the office's recent work rather than its archive.
  */
 export async function getProjectEfficiency(
   year: number,
@@ -523,35 +717,48 @@ export async function getProjectEfficiency(
 ): Promise<{
   rows: EfficiencyRow[]
   avg: { plannedDays: number | null; actualDays: number | null; revenuePerPersonDay: number | null; delayDays: number | null }
+  /** Finished jobs of the period from before the history cutoff, left out of the rows. */
+  hiddenHistorical: number
+  /** Finished jobs with no date at all: they belong to no period, so they are counted instead. */
+  undated: number
 }> {
   const { start, end } = periodRange(year, range)
-  const projects = await db.project.findMany({
-    where: {
-      status: { in: ['COMPLETED', 'INVOICED', 'PAID'] },
-      OR: [
-        { plannedStart: { gte: start, lt: end } },
-        { plannedStart: null, createdAt: { gte: start, lt: end } },
-      ],
-    },
-    select: {
-      id: true,
-      number: true,
-      name: true,
-      price: true,
-      plannedStart: true,
-      plannedEnd: true,
-      actualStart: true,
-      actualEnd: true,
-      customer: { select: { name: true } },
-      addOns: { select: { amount: true } },
-      scheduleEntries: { select: { date: true, _count: { select: { employees: true } } } },
-      timeEntries: {
-        where: { endedAt: { not: null } },
-        select: { startedAt: true, endedAt: true },
+  const [finished, cutoff] = await Promise.all([
+    db.project.findMany({
+      where: { status: { in: ['COMPLETED', 'INVOICED', 'PAID'] } },
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        status: true,
+        price: true,
+        plannedStart: true,
+        plannedEnd: true,
+        actualStart: true,
+        actualEnd: true,
+        sourceCreatedAt: true,
+        customer: { select: { name: true } },
+        addOns: { select: { amount: true } },
+        scheduleEntries: {
+          where: { cancelledAt: null },
+          select: { date: true, _count: { select: { employees: true } } },
+        },
+        timeEntries: {
+          where: { endedAt: { not: null } },
+          select: { startedAt: true, endedAt: true },
+        },
       },
-    },
-    orderBy: { number: 'desc' },
+      orderBy: { number: 'desc' },
+    }),
+    getHistoryCutoff(),
+  ])
+  const inPeriod = finished.filter((p) => {
+    const filed = projectHistoryDate(p)
+    return filed !== null && filed >= start && filed < end
   })
+  const projects = inPeriod.filter((p) => !isHistorical(p, cutoff))
+  const hiddenHistorical = inPeriod.length - projects.length
+  const undated = finished.filter((p) => projectHistoryDate(p) === null).length
 
   const rows: EfficiencyRow[] = projects.map((p) => {
     const price = orderValue(p.price, p.addOns)
@@ -593,6 +800,8 @@ export async function getProjectEfficiency(
       })(),
       delayDays: avgOf(rows.map((r) => r.delayDays)),
     },
+    hiddenHistorical,
+    undated,
   }
 }
 
@@ -699,159 +908,118 @@ export async function getStockShortages(): Promise<StockShortage[]> {
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
-// ── Data quality: things that make the numbers wrong ─────────────
+// ── Datenlücken: what makes a figure wrong or incomplete ──────────
 
-/** The fields `isHistorical` reads, for a Prisma select. */
-const historySelect = {
-  status: true,
-  plannedStart: true,
-  plannedEnd: true,
-  actualStart: true,
-  actualEnd: true,
-  sourceCreatedAt: true,
-} as const
-
-export type QualityIssue = {
-  key:
-    | 'noPlannedStart'
-    | 'inProgressNoSchedule'
-    | 'finishedNoPrice'
-    | 'noCity'
-    | 'cityNotFound'
-    | 'missingItems'
-    | 'stockShort'
-    | 'staleOffers'
-  count: number
-  items: Array<{ id: string; label: string }>
-}
-
-export type DataQuality = {
-  issues: QualityIssue[]
-  /**
-   * Finished projects from before the cutoff in Settings that are therefore
-   * not asked about. Named on the page, so nothing looks swept away.
-   */
-  historical: number
-}
-
-export async function getDataQuality(): Promise<DataQuality> {
-  const cutoff = await getHistoryCutoff()
-  const today = new Date()
-  const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
-  const in14 = new Date(todayUtc.getTime() + 14 * 86_400_000)
-  const [noPlannedStart, inProgressNoSchedule, finishedNoPrice, noCity, missing, cityCandidates, stockShort] = await Promise.all([
-    // Without a planned start a project belongs to no month in any report.
-    // Only asked of work that is planned, under way or done: an accepted
-    // offer that nobody has scheduled yet has no date to give, and saying so
-    // every day would make this list impossible to finish. Such projects are
-    // still listed on the revenue tab under "Ohne Termin".
+/**
+ * The Datenlücken tab's data, and the one count shown wherever data gaps are
+ * counted. The rules are in `src/lib/data-gaps.ts`, where they are tested.
+ */
+export async function getDataGaps(today: Date): Promise<GapReport> {
+  const [projects, loose, sheetYears, cutoff] = await Promise.all([
     db.project.findMany({
-      where: { status: { in: ['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'INVOICED', 'PAID'] }, plannedStart: null },
-      select: { ...historySelect, id: true, number: true, name: true },
-      orderBy: { number: 'asc' },
-    }),
-    db.project.findMany({
-      where: { status: 'IN_PROGRESS', scheduleEntries: { none: { date: { gte: todayUtc, lte: in14 }, cancelledAt: null } } },
-      select: { id: true, number: true, name: true },
-      orderBy: { number: 'asc' },
-    }),
-    db.project.findMany({
-      where: { status: { in: ['COMPLETED', 'INVOICED', 'PAID'] }, price: null, addOns: { none: {} } },
-      select: { ...historySelect, id: true, number: true, name: true },
-      orderBy: { number: 'asc' },
-    }),
-    // The town is what the weather warning needs, and only work that is
-    // planned or under way has days to warn about — an accepted offer gets
-    // its town when it is scheduled.
-    db.project.findMany({
-      where: {
-        status: { in: ['PLANNED', 'IN_PROGRESS'] },
-        OR: [{ city: null }, { city: '' }],
+      where: { status: { not: 'CANCELLED' } },
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        status: true,
+        price: true,
+        isSub: true,
+        plannedStart: true,
+        plannedEnd: true,
+        actualStart: true,
+        actualEnd: true,
+        sourceCreatedAt: true,
+        customer: { select: { name: true } },
+        addOns: { select: { amount: true } },
+        planEntries: { select: { year: true, amount: true, isSub: true } },
       },
-      select: { id: true, number: true, name: true },
-      orderBy: { number: 'asc' },
+      orderBy: { number: 'desc' },
     }),
-    db.projectItem.groupBy({
-      by: ['catalogItemId'],
-      where: { status: 'MISSING', project: { status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] } } },
-      _count: { _all: true },
+    // A line belongs to no job when none is tied, or the one tied was cancelled.
+    db.planEntry.findMany({
+      where: { OR: [{ projectId: null }, { project: { status: 'CANCELLED' } }] },
+      select: { id: true, year: true, month: true, name: true, amount: true },
+      orderBy: [{ year: 'asc' }, { month: 'asc' }, { name: 'asc' }],
     }),
-    // Active projects with a typed city but no stored coordinates: try to geocode
-    // (cached 24 h); those that fail cannot get weather warnings.
-    db.project.findMany({
-      where: {
-        status: { notIn: ['COMPLETED', 'INVOICED', 'PAID', 'CANCELLED'] },
-        city: { not: null },
-        latitude: null,
-      },
-      select: { id: true, number: true, name: true, city: true },
-      orderBy: { number: 'asc' },
-      take: 40,
-    }),
-    getStockShortages(),
+    // A year the sheet covers month by month.
+    db.planEntry.groupBy({ by: ['year'], where: { month: { not: null } } }),
+    getHistoryCutoff(),
   ])
-  // Offers that have been waiting too long for an answer.
-  const staleOffers = (await getOpenOffers()).offers.filter((o) => o.ageDays >= STALE_OFFER_DAYS)
-  const cityCache = new Map<string, boolean>()
-  const cityNotFound: Array<{ id: string; number: string; name: string; city: string | null }> = []
-  for (const p of cityCandidates) {
-    const city = (p.city ?? '').trim()
-    if (!city) continue
-    let ok = cityCache.get(city)
-    if (ok == null) {
-      ok = (await geocodeCity(city)) != null
-      cityCache.set(city, ok)
-    }
-    if (!ok) cityNotFound.push(p)
+
+  return dataGapReport(
+    projects.map((p) => ({
+      id: p.id,
+      number: p.number,
+      name: p.name,
+      customer: p.customer.name,
+      status: p.status,
+      amount: orderValue(p.price, p.addOns),
+      plannedStart: p.plannedStart,
+      isSub: p.isSub,
+      historical: isHistorical(p, cutoff),
+      lines: p.planEntries.map((l) => ({ year: l.year, amount: Number(l.amount), isSub: l.isSub })),
+    })),
+    loose.map((l) => ({ id: l.id, year: l.year, month: l.month, name: l.name, amount: Number(l.amount) })),
+    {
+      sheetYears: sheetYears.map((g) => g.year),
+      currentYear: today.getUTCFullYear(),
+      runningMonth: today.getUTCMonth(),
+    },
+  )
+}
+
+// ── Auslastung: how booked the crew and the vehicles are ─────────
+
+export type NamedUsage = UsageLoad & { name: string }
+
+/**
+ * The Auslastung tab's data: the crew's planned share month by month, and each
+ * person and vehicle over the chosen period. The rules are `crewLoadByMonth`
+ * and `crewUsage` in `src/lib/order-situation.ts`.
+ */
+export async function getCrewUsage(
+  year: number,
+  range: MonthRange | null
+): Promise<{ covered: number[]; months: CrewMonth[]; people: NamedUsage[]; vehicles: NamedUsage[] }> {
+  const start = new Date(Date.UTC(year, 0, 1))
+  const end = new Date(Date.UTC(year + 1, 0, 1))
+  const onSchedule = { scheduleEntry: { date: { gte: start, lt: end }, cancelledAt: null } }
+  const [bookings, vehicleBookings, absences, employees, vehicles] = await Promise.all([
+    db.scheduleEntryEmployee.findMany({
+      where: onSchedule,
+      select: { employeeId: true, scheduleEntry: { select: { date: true } } },
+    }),
+    db.scheduleEntryVehicle.findMany({
+      where: onSchedule,
+      select: { vehicleId: true, scheduleEntry: { select: { date: true } } },
+    }),
+    db.absence.findMany({
+      where: { startDate: { lt: end }, endDate: { gte: start } },
+      select: { employeeId: true, startDate: true, endDate: true },
+    }),
+    db.employee.findMany({ select: { id: true, firstName: true, lastName: true } }),
+    db.vehicle.findMany({ select: { id: true, name: true } }),
+  ])
+
+  const months = range
+    ? Array.from({ length: range.to - range.from + 1 }, (_, i) => range.from + i)
+    : Array.from({ length: 12 }, (_, i) => i)
+  const people = bookings.map((b) => ({ employeeId: b.employeeId, date: b.scheduleEntry.date }))
+  const usage = crewUsage(
+    year,
+    months,
+    people,
+    absences,
+    vehicleBookings.map((b) => ({ vehicleId: b.vehicleId, date: b.scheduleEntry.date }))
+  )
+  const personName = new Map(employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`.trim()]))
+  const vehicleName = new Map(vehicles.map((v) => [v.id, v.name]))
+  const byName = (a: NamedUsage, b: NamedUsage) => (b.pct ?? -1) - (a.pct ?? -1) || a.name.localeCompare(b.name)
+  return {
+    covered: usage.covered,
+    months: crewLoadByMonth(year, people, absences),
+    people: usage.people.map((u) => ({ ...u, name: personName.get(u.id) ?? '' })).sort(byName),
+    vehicles: usage.vehicles.map((u) => ({ ...u, name: vehicleName.get(u.id) ?? '' })).sort(byName),
   }
-  const missingIds = missing.filter((m) => m._count._all >= 2).map((m) => m.catalogItemId)
-  const missingItems = missingIds.length
-    ? await db.catalogItem.findMany({ where: { id: { in: missingIds } }, select: { id: true, name: true } })
-    : []
-  const countFor = new Map(missing.map((m) => [m.catalogItemId, m._count._all]))
-  const proj = (rows: Array<{ id: string; number: string; name: string }>) =>
-    rows.map((r) => ({ id: r.id, label: `${r.number} — ${r.name}` }))
-
-  // Old data is set aside, not asked about; the same project may fail both
-  // checks, so it is counted once.
-  const historicalIds = new Set<string>()
-  const current = <T extends { id: string } & HistoryProject>(rows: T[]): T[] =>
-    rows.filter((r) => {
-      if (!isHistorical(r, cutoff)) return true
-      historicalIds.add(r.id)
-      return false
-    })
-  const openNoPlannedStart = current(noPlannedStart)
-  const openFinishedNoPrice = current(finishedNoPrice)
-
-  const issues: QualityIssue[] = [
-    { key: 'noPlannedStart', count: openNoPlannedStart.length, items: proj(openNoPlannedStart) },
-    { key: 'inProgressNoSchedule', count: inProgressNoSchedule.length, items: proj(inProgressNoSchedule) },
-    { key: 'finishedNoPrice', count: openFinishedNoPrice.length, items: proj(openFinishedNoPrice) },
-    { key: 'noCity', count: noCity.length, items: proj(noCity) },
-    {
-      key: 'cityNotFound',
-      count: cityNotFound.length,
-      items: cityNotFound.map((r) => ({ id: r.id, label: `${r.number} — ${r.name} (${r.city})` })),
-    },
-    {
-      key: 'missingItems',
-      count: missingItems.length,
-      items: missingItems.map((i) => ({ id: i.id, label: `${i.name} (${countFor.get(i.id) ?? 0}×)` })),
-    },
-    {
-      key: 'staleOffers',
-      count: staleOffers.length,
-      items: staleOffers.map((o) => ({ id: o.id, label: `${o.number} — ${o.name} (${o.ageDays} T.)` })),
-    },
-    {
-      key: 'stockShort',
-      count: stockShort.length,
-      items: stockShort.map((i) => ({
-        id: i.id,
-        label: `${i.name} — ${i.stock}${i.unit ? ' ' + i.unit : ''} / ${i.need}${i.unit ? ' ' + i.unit : ''}`,
-      })),
-    },
-  ]
-  return { issues, historical: historicalIds.size }
 }

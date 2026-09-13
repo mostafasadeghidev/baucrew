@@ -13,10 +13,13 @@ export function ParamTabs({
   tabs,
   param = 'tab',
   ariaLabel,
+  clears = [],
 }: {
   tabs: ParamTab[]
   param?: string
   ariaLabel?: string
+  /** Params that belong to one tab only and are dropped when another tab is chosen. */
+  clears?: string[]
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -27,6 +30,7 @@ export function ParamTabs({
     if (value) params.set(param, value)
     else params.delete(param)
     params.delete('page')
+    if (value !== current) for (const key of clears) params.delete(key)
     const qs = params.toString()
     return qs ? `${pathname}?${qs}` : pathname
   }

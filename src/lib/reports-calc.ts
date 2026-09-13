@@ -254,7 +254,7 @@ export function topSites(months: SiteMonth[], range: MonthRange | null): TopSite
   for (const month of months) {
     if (range && (month.month < range.from || month.month > range.to)) continue
     for (const row of [...month.own, ...month.sub]) {
-      const key = row.fromSheet ? `sheet:${row.name.trim().toLowerCase()}` : `project:${row.id}`
+      const key = siteKey(row)
       const found = byKey.get(key)
       if (found) {
         found.total += row.price ?? 0
@@ -273,6 +273,108 @@ export function topSites(months: SiteMonth[], range: MonthRange | null): TopSite
     }
   }
   return [...byKey.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+}
+
+/**
+ * The key a site folds on, wherever sites are folded: a project on its id, and
+ * a sheet line with no project on its name — two lines of the same name are
+ * the same site.
+ */
+export const siteKey = (row: SiteRow): string =>
+  row.fromSheet ? `sheet:${row.name.trim().toLowerCase()}` : `project:${row.id}`
+
+/** How many sites stand in a month, own and SUB together — a site once, however many lines it has. */
+export const monthSiteCount = (month: Pick<SiteMonth, 'own' | 'sub'>): number =>
+  new Set([...month.own, ...month.sub].map(siteKey)).size
+
+/** What one site brought in one month, split by who did the work. */
+export type SiteCell = { own: number; sub: number }
+
+export type SiteMonthRow = {
+  key: string
+  /** The project to open, or null when only the sheet knows this site. */
+  id: string | null
+  number: string
+  name: string
+  customer: string
+  /** By month (0–11); a month the site does not stand in has no entry. */
+  cells: Record<number, SiteCell>
+  /** The months it stands in, in the order the months are shown. */
+  span: number[]
+  total: number
+}
+
+/**
+ * Every site of the shown months against those months: the rows of the year
+ * matrix, and the span the lanes print on each tile ("month 2 of 3").
+ *
+ * Sites fold as in `topSites`. `order` is the months as the tab shows them —
+ * the period and the chosen direction already applied — and a month outside it
+ * is not counted. Rows run the way the months are read: by the first month a
+ * site stands in, and within one month the bigger site first, so a year of
+ * jobs reads as a staircase.
+ */
+export function siteMonthRows(months: SiteMonth[], order: number[]): SiteMonthRow[] {
+  const position = new Map(order.map((month, i) => [month, i]))
+  const byKey = new Map<string, SiteMonthRow>()
+
+  const add = (month: number, row: SiteRow, who: keyof SiteCell) => {
+    const key = siteKey(row)
+    let site = byKey.get(key)
+    if (!site) {
+      site = {
+        key,
+        id: row.fromSheet ? null : row.id,
+        number: row.number,
+        name: row.name,
+        customer: row.customer,
+        cells: {},
+        span: [],
+        total: 0,
+      }
+      byKey.set(key, site)
+    }
+    const cell = (site.cells[month] ??= { own: 0, sub: 0 })
+    cell[who] += row.price ?? 0
+    site.total += row.price ?? 0
+  }
+
+  for (const month of months) {
+    if (!position.has(month.month)) continue
+    for (const row of month.own) add(month.month, row, 'own')
+    for (const row of month.sub) add(month.month, row, 'sub')
+  }
+
+  const rows = [...byKey.values()]
+  for (const row of rows) row.span = order.filter((month) => month in row.cells)
+  const start = (row: SiteMonthRow) => position.get(row.span[0]) ?? 0
+  return rows.sort((a, b) => start(a) - start(b) || b.total - a.total || a.name.localeCompare(b.name))
+}
+
+/**
+ * How strongly a cell of the matrix is shaded, from 0 to `steps` − 1. By the
+ * square root of its share of the biggest cell, so a small month still reads
+ * as more than nothing beside a big one.
+ */
+export function heatLevel(value: number, max: number, steps: number): number {
+  if (value <= 0 || max <= 0) return 0
+  return Math.min(steps - 1, Math.floor(Math.sqrt(Math.min(value / max, 1)) * steps))
+}
+
+/**
+ * Actual against plan, as the difference is written. The plan counts as
+ * reached when the actual is at least the plan — or when the shortfall is too
+ * small to show in the figures it is written in: "−0 €" on a card of whole
+ * euros would be a warning about nothing.
+ */
+export function planReached(
+  actual: number,
+  planned: number,
+  format: (v: number) => string
+): { reached: boolean; diff: number; label: string } {
+  const diff = actual - planned
+  const reached = diff >= 0 || format(Math.abs(diff)) === format(0)
+  return { reached, diff, label: `${reached ? '+' : '−'}${format(Math.abs(diff))}` }
 }
 
 export type CumulativeRow = {
@@ -347,4 +449,63 @@ export function parseCompareYears(
       .map((part) => Number(part.trim()))
       .filter((n) => Number.isInteger(n))
   )
+}
+
+/** A line of the revenue tab as the customer split reads it. */
+export type CustomerLine = {
+  id: string
+  customerId?: string | null
+  customer: string
+  price: number | null
+  fromSheet?: boolean
+}
+
+export type CustomerTotal = {
+  /** Null for the row of lines that belong to no job, and so to no customer. */
+  id: string | null
+  name: string
+  total: number
+  /** Distinct jobs behind the total. */
+  jobs: number
+  share: number
+}
+
+/**
+ * The Planumsatz of a period split by customer — the same lines and the same
+ * total as the months above it, so the shares add up to the figure the tab
+ * opens with. A sheet line with no job belongs to no customer and gets a row of
+ * its own rather than dropping out of the sum.
+ */
+export function customerTotals(
+  months: Array<{ month: number; own: CustomerLine[]; sub: CustomerLine[] }>,
+  range: MonthRange | null
+): { rows: CustomerTotal[]; total: number } {
+  const byCustomer = new Map<string | null, { row: CustomerTotal; jobs: Set<string> }>()
+  let total = 0
+  for (const month of months) {
+    if (range && (month.month < range.from || month.month > range.to)) continue
+    for (const line of [...month.own, ...month.sub]) {
+      const key = line.fromSheet || !line.customerId ? null : line.customerId
+      const entry = byCustomer.get(key) ?? {
+        row: { id: key, name: key === null ? '' : line.customer, total: 0, jobs: 0, share: 0 },
+        jobs: new Set<string>(),
+      }
+      entry.row.total += line.price ?? 0
+      entry.jobs.add(key === null ? line.customer || line.id : line.id)
+      total += line.price ?? 0
+      byCustomer.set(key, entry)
+    }
+  }
+  const rows = [...byCustomer.values()]
+    .map(({ row, jobs }) => ({ ...row, jobs: jobs.size, share: total > 0 ? Math.round((row.total / total) * 100) : 0 }))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+  return { rows, total }
+}
+
+/** Customers of the same period a year earlier with nothing in this one, the biggest first. */
+export function lostCustomers(current: CustomerTotal[], previous: CustomerTotal[]): CustomerTotal[] {
+  const stillHere = new Set(current.filter((r) => r.id !== null && r.total > 0).map((r) => r.id))
+  return previous
+    .filter((r) => r.id !== null && r.total > 0 && !stillHere.has(r.id))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
 }

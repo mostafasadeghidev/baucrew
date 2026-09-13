@@ -3,9 +3,15 @@ import {
   businessDaysBetween,
   computeEfficiency,
   cumulativeMonths,
+  customerTotals,
   daysDiff,
+  heatLevel,
+  lostCustomers,
+  monthSiteCount,
   parseCompareYears,
   percentChange,
+  planReached,
+  siteMonthRows,
   splitPlanGaps,
   sumThroughMonth,
   topSites,
@@ -192,6 +198,116 @@ describe('topSites', () => {
   })
 })
 
+describe('siteMonthRows', () => {
+  const months = [
+    { month: 0, own: [site('a', 'Musterhof', 30_000)], sub: [] },
+    {
+      month: 1,
+      own: [site('a', 'Musterhof', 20_000), site('b', 'Beispielweg 3', 5_000)],
+      sub: [site('c', 'Musterstraße 7', 8_000)],
+    },
+    { month: 2, own: [], sub: [site('b', 'Beispielweg 3', 2_000)] },
+  ]
+
+  it('gives every site its months, split by who did the work', () => {
+    const b = siteMonthRows(months as never, [0, 1, 2]).find((r) => r.name === 'Beispielweg 3')
+    expect(b?.cells).toEqual({ 1: { own: 5_000, sub: 0 }, 2: { own: 0, sub: 2_000 } })
+    expect(b?.total).toBe(7_000)
+    expect(b?.span).toEqual([1, 2])
+  })
+
+  it('reads as a staircase: by the first month, then the bigger site first', () => {
+    expect(siteMonthRows(months as never, [0, 1, 2]).map((r) => r.name)).toEqual([
+      'Musterhof',
+      'Musterstraße 7',
+      'Beispielweg 3',
+    ])
+  })
+
+  it('follows the order the months are shown in, and counts only those', () => {
+    expect(siteMonthRows(months as never, [2, 1]).map((r) => [r.name, r.span, r.total])).toEqual([
+      ['Beispielweg 3', [2, 1], 7_000],
+      ['Musterhof', [1], 20_000],
+      ['Musterstraße 7', [1], 8_000],
+    ])
+  })
+
+  it('folds sheet-only lines by name, and gives them no project to open', () => {
+    const rows = siteMonthRows(
+      [
+        { month: 3, own: [site('l1', ' Musterbau ', 10_000, true)], sub: [] },
+        { month: 4, own: [site('l2', 'musterbau', 4_000, true)], sub: [] },
+      ] as never,
+      [3, 4]
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ id: null, total: 14_000, span: [3, 4] })
+  })
+
+  it('agrees with topSites on what one site is', () => {
+    const matrix = siteMonthRows(months as never, [0, 1, 2]).map((r) => r.key).sort()
+    expect(matrix).toEqual(topSites(months as never, null).map((s) => s.key).sort())
+  })
+})
+
+describe('monthSiteCount', () => {
+  it('counts a site once, however many lines it has and in whichever lane', () => {
+    expect(
+      monthSiteCount({
+        own: [site('a', 'Musterhof', 1_000), site('a', 'Musterhof', 2_000)],
+        sub: [site('a', 'Musterhof', 3_000)],
+      } as never)
+    ).toBe(1)
+  })
+
+  it('takes two sheet lines of one name for one site, and two names for two', () => {
+    expect(
+      monthSiteCount({ own: [site('l1', ' Musterbau ', 1, true)], sub: [site('l2', 'musterbau', 2, true)] } as never)
+    ).toBe(1)
+    expect(
+      monthSiteCount({ own: [site('l1', 'Musterbau', 1, true), site('l2', 'Beispielhaus', 1, true)], sub: [] } as never)
+    ).toBe(2)
+  })
+})
+
+describe('heatLevel', () => {
+  it('shades the biggest cell darkest, and nothing for nothing', () => {
+    expect(heatLevel(50_000, 50_000, 4)).toBe(3)
+    expect(heatLevel(0, 50_000, 4)).toBe(0)
+    expect(heatLevel(-100, 50_000, 4)).toBe(0)
+  })
+
+  it('lifts a small cell by the square root of its share', () => {
+    // A quarter of the biggest is half-way up the scale, not a quarter of the way.
+    expect(heatLevel(12_500, 50_000, 4)).toBe(2)
+    expect(heatLevel(1_000, 50_000, 4)).toBe(0)
+  })
+
+  it('never goes past the last step', () => {
+    expect(heatLevel(80_000, 50_000, 4)).toBe(3)
+  })
+})
+
+describe('planReached', () => {
+  const euros = (v: number) => `${Math.round(v)} €`
+  const cents = (v: number) => `${v.toFixed(2)} €`
+
+  it('reaches the plan at the plan and above it', () => {
+    expect(planReached(10_000, 10_000, cents)).toEqual({ reached: true, diff: 0, label: '+0.00 €' })
+    expect(planReached(10_500, 10_000, euros)).toMatchObject({ reached: true, label: '+500 €' })
+  })
+
+  it('counts a shortfall too small for the figures it is written in as reached', () => {
+    expect(planReached(9_999.6, 10_000, euros)).toMatchObject({ reached: true, label: '+0 €' })
+    expect(planReached(9_999.6, 10_000, cents)).toMatchObject({ reached: false, label: '−0.40 €' })
+    expect(planReached(0.3, 0.1 + 0.2, cents)).toMatchObject({ reached: true, label: '+0.00 €' })
+  })
+
+  it('falls short where the figures show it', () => {
+    expect(planReached(9_000, 10_000, euros)).toMatchObject({ reached: false, diff: -1_000, label: '−1000 €' })
+  })
+})
+
 describe('cumulativeMonths', () => {
   const months = Array.from({ length: 12 }, (_, month) => ({ month, total: (month + 1) * 1_000 }))
   const previous = Array.from({ length: 12 }, (_, month) => ({ month, total: 500 }))
@@ -255,5 +371,44 @@ describe('parseCompareYears', () => {
 
   it('offers no comparison when the year before is not on the list', () => {
     expect(parseCompareYears(undefined, 2022, allowed)).toEqual([])
+  })
+})
+
+describe('customerTotals', () => {
+  const line = (id: string, customerId: string | null, customer: string, price: number, fromSheet = false) => ({
+    id,
+    customerId,
+    customer,
+    price,
+    ...(fromSheet ? { fromSheet: true } : {}),
+  })
+  const months = [
+    { month: 0, own: [line('a', 'c1', 'Muster GmbH', 30_000), line('b', 'c2', 'Beispiel AG', 10_000)], sub: [] },
+    { month: 1, own: [line('a', 'c1', 'Muster GmbH', 20_000)], sub: [line('s', null, 'Musterweg', 40_000, true)] },
+  ]
+
+  it('splits the same total the months add up to, jobs counted once', () => {
+    const { rows, total } = customerTotals(months, null)
+    expect(total).toBe(100_000)
+    expect(rows).toEqual([
+      { id: 'c1', name: 'Muster GmbH', total: 50_000, jobs: 1, share: 50 },
+      { id: null, name: '', total: 40_000, jobs: 1, share: 40 },
+      { id: 'c2', name: 'Beispiel AG', total: 10_000, jobs: 1, share: 10 },
+    ])
+  })
+
+  it('honours the period', () => {
+    expect(customerTotals(months, { from: 1, to: 1 }).total).toBe(60_000)
+  })
+})
+
+describe('lostCustomers', () => {
+  it('names last year’s customers with nothing this year, the biggest first', () => {
+    const row = (id: string | null, total: number) => ({ id, name: id ?? '', total, jobs: 1, share: 0 })
+    expect(
+      lostCustomers([row('c1', 5_000)], [row('c1', 1_000), row('c2', 2_000), row('c3', 9_000), row(null, 50_000)]).map(
+        (r) => r.id
+      )
+    ).toEqual(['c3', 'c2'])
   })
 })

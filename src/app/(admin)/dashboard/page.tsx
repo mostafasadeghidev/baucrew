@@ -544,7 +544,7 @@ export default async function DashboardPage({
       <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">{t('openOffersTitle')}</h2>
-          <Link href="/reports?tab=offers" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+          <Link href="/reports?open=offers#stand" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
             {t('openReports')} <span aria-hidden>→</span>
           </Link>
         </div>
@@ -585,7 +585,7 @@ export default async function DashboardPage({
       <section className="rounded-lg border border-border bg-surface p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">{t('revenueThisMonth')}</h2>
-          <Link href="/reports" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+          <Link href="/reports?tab=revenue" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
             {t('openReports')} <span aria-hidden>→</span>
           </Link>
         </div>

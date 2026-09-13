@@ -109,7 +109,7 @@ export async function ProjectTimeSummary({
 
       <p className="border-t border-border px-5 py-2 text-xs text-muted">
         {t('projectHint')}{' '}
-        <Link href="/reports?tab=projects" className="text-accent hover:underline">
+        <Link href="/reports?tab=utilization#plan-ist" className="text-accent hover:underline">
           {t('projectReportLink')}
         </Link>
       </p>
