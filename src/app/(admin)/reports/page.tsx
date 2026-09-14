@@ -150,7 +150,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     qyear: quarterYearParam,
     layout: layoutParam,
     per: perParam,
-    open: openParam,
     sites: sitesParam,
   } = params
   const [t, locale, cookieStore] = await Promise.all([getTranslations('reports'), getLocale(), cookies()])
@@ -195,9 +194,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   ] = await Promise.all([
     // Every tab carries the Datenlücken count on its tab.
     getDataGaps(today),
-    onToday || onJobs || onGaps ? getHistoryCutoff() : null,
+    onToday || onGaps ? getHistoryCutoff() : null,
     onToday || onJobs ? getToday(today) : null,
-    (onToday || onJobs) && showFinancials ? getOpenMoney() : null,
+    onToday && showFinancials ? getOpenMoney() : null,
     // Heute reads the running year whatever year the pickers stand on.
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear) : null,
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear - 1) : null,
@@ -857,13 +856,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       {onJobs && todayData && (
         <JobsView
           data={todayData}
-          money={openMoney}
           showFinancials={showFinancials}
           locale={locale}
           today={today}
-          open={openParam}
           sitesView={sitesParam === 'kanban' ? 'kanban' : 'cards'}
-          cutoff={cutoff}
         />
       )}
 

@@ -24,66 +24,10 @@ export type Lamp = 'green' | 'yellow' | 'red' | 'none'
 export const lampAbove = (value: number, yellowFrom: number, redFrom: number): Lamp =>
   value >= redFrom ? 'red' : value >= yellowFrom ? 'yellow' : 'green'
 
-/** The stages of a job that still matter today, in the order the work runs through them. */
-export const STAGES = ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS', 'COMPLETED', 'INVOICED'] as const
-export type Stage = (typeof STAGES)[number]
-
-/** Asked, offered: waiting for a yes. Always shown, even empty — an empty pipeline is news. */
-const ALWAYS_SHOWN: readonly Stage[] = ['LEAD', 'QUOTED']
 /** Ordered and not yet finished. */
 export const ORDERED = ['APPROVED', 'PLANNED', 'IN_PROGRESS'] as const
 
-const isStage = (status: string): status is Stage => (STAGES as readonly string[]).includes(status)
 const isOrdered = (status: string) => (ORDERED as readonly string[]).includes(status)
-
-export type StageProject = { status: string; amount: number | null; historical: boolean }
-
-export type StageRow = { stage: Stage; count: number; total: number; withoutValue: number }
-
-/** What the stage rows leave out, so it is counted rather than silently missing. */
-export type StageFooter = {
-  historicalCount: number
-  historicalTotal: number
-  paidCount: number
-  cancelledCount: number
-}
-
-/**
- * Every job that still matters today, by the stage it stands in: how many,
- * what they are worth, and how many have no value at all. Paid and cancelled
- * work is done with; old data is the office's history. Both are counted in the
- * footer and nowhere else, so "Abgeschlossen" means finished and not yet billed
- * — not the last ten years.
- */
-export function stageRows(projects: StageProject[]): { rows: StageRow[]; footer: StageFooter } {
-  const footer: StageFooter = { historicalCount: 0, historicalTotal: 0, paidCount: 0, cancelledCount: 0 }
-  const byStage = new Map<Stage, StageRow>()
-  for (const p of projects) {
-    if (p.status === 'CANCELLED') {
-      footer.cancelledCount += 1
-      continue
-    }
-    if (p.historical) {
-      footer.historicalCount += 1
-      footer.historicalTotal += p.amount ?? 0
-      continue
-    }
-    if (p.status === 'PAID') {
-      footer.paidCount += 1
-      continue
-    }
-    if (!isStage(p.status)) continue
-    const row = byStage.get(p.status) ?? { stage: p.status, count: 0, total: 0, withoutValue: 0 }
-    row.count += 1
-    row.total += p.amount ?? 0
-    if (p.amount === null) row.withoutValue += 1
-    byStage.set(p.status, row)
-  }
-  const rows = STAGES.map(
-    (stage) => byStage.get(stage) ?? (ALWAYS_SHOWN.includes(stage) ? { stage, count: 0, total: 0, withoutValue: 0 } : null)
-  ).filter((row): row is StageRow => row !== null)
-  return { rows, footer }
-}
 
 const DAY = 86_400_000
 const utcDay = (date: Date) => Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())

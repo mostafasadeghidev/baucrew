@@ -474,10 +474,7 @@ export async function TodayView({
   )
 
   // ── The tiles ───────────────────────────────────────────────
-  const toJobs = (anchor: string, openRows?: string) => ({
-    href: `/reports?tab=jobs${openRows ? `&open=${openRows}` : ''}#${anchor}`,
-    label: t('panelMoreJobs'),
-  })
+  const toSites = { href: '/reports?tab=jobs#baustellen', label: t('panelMoreJobs') }
   const tiles: BoardTile[] = [
     ...(monthPlan
       ? [
@@ -519,7 +516,7 @@ export async function TodayView({
               .join(' · '),
             lamp: moneyLamp,
             panel: moneyPanel,
-            more: toJobs('stand', 'money'),
+            more: null,
           },
         ]
       : []),
@@ -536,7 +533,7 @@ export async function TodayView({
           .join(' · ') || null,
       lamp: offersLamp,
       panel: offersPanel,
-      more: toJobs('stand', 'offers'),
+      more: null,
     },
     {
       key: 'overdue',
@@ -551,7 +548,7 @@ export async function TodayView({
           .join(' · ') || null,
       lamp: lampAbove(overdue.length, 1, 5),
       panel: overduePanel,
-      more: toJobs('baustellen'),
+      more: toSites,
     },
     {
       key: 'team',
@@ -572,7 +569,7 @@ export async function TodayView({
       }),
       lamp: lampAbove(withMaterialMissing.length, 1, 5),
       panel: <MaterialLists data={data} />,
-      more: toJobs('material'),
+      more: null,
     },
     {
       key: 'gaps',

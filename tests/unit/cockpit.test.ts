@@ -6,7 +6,6 @@ import {
   siteGroupOf,
   siteProgress,
   sitesToday,
-  stageRows,
   todayCrewLamp,
   usualCrew,
 } from '@/lib/cockpit'
@@ -20,37 +19,6 @@ describe('lampAbove', () => {
     expect(lampAbove(0, 1, 5)).toBe('green')
     expect(lampAbove(3, 1, 5)).toBe('yellow')
     expect(lampAbove(5, 1, 5)).toBe('red')
-  })
-})
-
-describe('stageRows', () => {
-  const p = (status: string, amount: number | null, historical = false) => ({ status, amount, historical })
-
-  it('adds up what still matters today, in the order the work runs, with the jobs that have no value', () => {
-    const { rows } = stageRows([
-      p('IN_PROGRESS', 30_000),
-      p('APPROVED', 10_000),
-      p('APPROVED', null),
-      p('COMPLETED', 8_000),
-    ])
-    expect(rows).toEqual([
-      { stage: 'LEAD', count: 0, total: 0, withoutValue: 0 },
-      { stage: 'QUOTED', count: 0, total: 0, withoutValue: 0 },
-      { stage: 'APPROVED', count: 2, total: 10_000, withoutValue: 1 },
-      { stage: 'IN_PROGRESS', count: 1, total: 30_000, withoutValue: 0 },
-      { stage: 'COMPLETED', count: 1, total: 8_000, withoutValue: 0 },
-    ])
-  })
-
-  it('leaves old data, paid and cancelled work out of the rows and counts them in the footer', () => {
-    const { rows, footer } = stageRows([
-      p('COMPLETED', 3_000_000, true),
-      p('INVOICED', 212_000, true),
-      p('PAID', 9_000),
-      p('CANCELLED', 99_000),
-    ])
-    expect(rows.map((r) => r.stage)).toEqual(['LEAD', 'QUOTED'])
-    expect(footer).toEqual({ historicalCount: 2, historicalTotal: 3_212_000, paidCount: 1, cancelledCount: 1 })
   })
 })
 

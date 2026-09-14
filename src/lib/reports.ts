@@ -18,13 +18,10 @@ import {
   overdueOf,
   siteGroupOf,
   sitesToday,
-  stageRows,
   type CrewDay,
   type Overdue,
   type SiteCrew,
   type SiteGroup,
-  type StageFooter,
-  type StageRow,
 } from './cockpit'
 import { dataGapReport, type GapReport } from './data-gaps'
 import { getHistoryCutoff } from './history-db'
@@ -536,7 +533,6 @@ export type MissingMaterial = { id: string; name: string; jobs: Array<{ id: stri
 
 export type Today = {
   jobs: TodayJob[]
-  stages: { rows: StageRow[]; footer: StageFooter }
   material: MissingMaterial[]
   stockShort: StockShortage[]
   /** Who is on which site today. */
@@ -638,7 +634,6 @@ export async function getToday(today: Date): Promise<Today> {
 
   return {
     jobs,
-    stages: stageRows(jobs),
     material: [...material.values()].sort((a, b) => a.name.localeCompare(b.name)),
     stockShort,
     schedule: { today: crew.sites, people: crew.people },

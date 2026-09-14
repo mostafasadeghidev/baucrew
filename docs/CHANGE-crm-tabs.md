@@ -12,7 +12,7 @@ most tabs. It now has six tabs, each answering one question with one time rule:
 | --- | --- | --- |
 | **Heute** (default) | Where must I look today? Eight tiles with traffic lights; a click on a tile opens its short version right under the tiles (`?open=<tile>`), with a link to the whole of it. | Stand heute — pickers hidden |
 | **Vergleich** (`tab=compare`) | How does the year compare with other years? Chart by month, quarter card, year bars, running sum. | Every figure follows Jahr/Zeitraum |
-| **Aufträge & Baustellen** (`tab=jobs`) | The long lists behind the tiles: jobs by stage (`?open=offers\|ordered\|money` unfolds rows), the sites as cards in groups or as a kanban with a column per group (`?sites=kanban`), material. | Stand heute — pickers hidden |
+| **Aufträge & Baustellen** (`tab=jobs`) | The sites behind the tiles: late, running and starting soon, as cards in groups or as a kanban with a column per group (`?sites=kanban`). The list of jobs by stage and the material box were taken off again; the Heute sheets show those lists in full. | Stand heute — pickers hidden |
 | **Planumsatz** (`tab=revenue`) | What is the year/period worth by month, how sure is it, who carries it? Views: Monate · Baustellen · Kunden. | Every figure follows Jahr/Zeitraum |
 | **Auslastung** (`tab=utilization`) | Is the crew planned, who and what is idle, how long did finished jobs take? | Every figure follows Jahr/Zeitraum |
 | **Datenlücken** (`tab=quality`) | What makes a figure wrong or incomplete, and where is it fixed? | Stand heute |
@@ -59,7 +59,7 @@ with a 307, keeping `year` and `period`:
 - `src/app/(admin)/reports/gaps-view.tsx` — new (Datenlücken)
 - `src/app/(admin)/reports/order-situation.tsx` — four classes, no money/backlog tiles, no crew row
 - `src/lib/reports.ts` — `getToday` (incl. who is on which site today), `getDataGaps`, `getCrewUsage` added; `getPipeline`, `getCockpit`, `getDataQuality` removed; `getProjectEfficiency` files jobs by their end and leaves Altbestand out
-- `src/lib/cockpit.ts` — stage rows, overdue rule, site groups
+- `src/lib/cockpit.ts` — overdue rule, site groups (the stage rows went with the stage list)
 - `src/lib/data-gaps.ts` — new
 - `src/lib/order-situation.ts` — `crewUsage`, `classTotals`
 - `src/lib/reports-calc.ts` — `customerTotals`, `lostCustomers`
