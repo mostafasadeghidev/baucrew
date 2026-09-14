@@ -11,6 +11,7 @@ import { ReopenButton } from './reopen-button'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { DeleteButton } from '@/components/delete-button'
 import { formatCurrency, formatDate, toDateInputValue } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import { deleteProject, setProjectStatus, updateProject } from '../actions'
 import { ProjectForm } from '../project-form'
 import { ProjectBarActions } from './edit-all-button'
@@ -46,6 +47,7 @@ export default async function ProjectDetailPage({
     getLocale(),
     getOptionLists(),
   ])
+  const hidePrices = await pricesHidden()
 
   const project = await db.project.findUnique({
     where: { id },
@@ -249,13 +251,13 @@ export default async function ProjectDetailPage({
               <div className="flex gap-2">
                 <dt className="w-44 shrink-0 text-muted">{t('price')}</dt>
                 <dd className="font-medium tabular-nums">
-                  {formatCurrency(project.price ? Number(project.price) : null, locale)}
+                  {formatCurrency(project.price ? Number(project.price) : null, locale, { hidden: hidePrices })}
                   {/* Follow-on offers raise the order value — show both. */}
                   {addOnTotal > 0 && (
                     <span className="ml-2 text-xs font-normal text-muted">
-                      + {formatCurrency(addOnTotal, locale)} {t('addOnsShort')} ={' '}
+                      + {formatCurrency(addOnTotal, locale, { hidden: hidePrices })} {t('addOnsShort')} ={' '}
                       <span className="font-medium text-foreground">
-                        {formatCurrency(orderValue(project.price, project.addOns), locale)}
+                        {formatCurrency(orderValue(project.price, project.addOns), locale, { hidden: hidePrices })}
                       </span>
                     </span>
                   )}
@@ -266,7 +268,7 @@ export default async function ProjectDetailPage({
               <div className="flex gap-2">
                 <dt className="w-44 shrink-0 text-muted">{t('plannedRevenue')}</dt>
                 <dd className="tabular-nums">
-                  {formatCurrency(plannedTotal, locale)}
+                  {formatCurrency(plannedTotal, locale, { hidden: hidePrices })}
                   <span className="ml-1 text-xs font-normal text-muted">
                     ({project.planEntries.map((e) => e.year).join(', ')})
                   </span>
@@ -279,7 +281,7 @@ export default async function ProjectDetailPage({
                       }`}
                     >
                       {orderTotal >= plannedTotal ? '+' : '−'}
-                      {formatCurrency(Math.abs(orderTotal - plannedTotal), locale)}
+                      {formatCurrency(Math.abs(orderTotal - plannedTotal), locale, { hidden: hidePrices })}
                     </span>
                   )}
                 </dd>
@@ -460,12 +462,12 @@ export default async function ProjectDetailPage({
         {showPrice && (
           <ProjectAddOns
             projectId={project.id}
-            totalLabel={formatCurrency(addOnTotal, locale)}
+            totalLabel={formatCurrency(addOnTotal, locale, { hidden: hidePrices })}
             addOns={project.addOns.map((a) => ({
               id: a.id,
               label: a.label,
               amount: Number(a.amount),
-              amountLabel: formatCurrency(Number(a.amount), locale),
+              amountLabel: formatCurrency(Number(a.amount), locale, { hidden: hidePrices }),
               dateLabel: formatDate(a.date, locale),
             }))}
           />

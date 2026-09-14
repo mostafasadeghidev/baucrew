@@ -18,6 +18,13 @@ describe('formatCurrency', () => {
     expect(formatCurrency(null, 'de')).toBe('—')
     expect(formatCurrency(undefined, 'de', { whole: true })).toBe('—')
   })
+
+  it('puts asterisks in place of an amount while prices are hidden, the same whatever its size', () => {
+    expect(formatCurrency(12600.4, 'de', { hidden: true })).toBe(`****${nbsp}€`)
+    expect(formatCurrency(3, 'de', { whole: true, hidden: true })).toBe(`****${nbsp}€`)
+    expect(formatCurrency(12600.4, 'en', { hidden: true })).toBe('€****')
+    expect(formatCurrency(null, 'de', { hidden: true })).toBe('—')
+  })
 })
 
 describe('formatThousands', () => {
@@ -30,5 +37,10 @@ describe('formatThousands', () => {
 
   it('and the English way', () => {
     expect(formatThousands(12_600, 'en')).toBe('€12.6k')
+  })
+
+  it('hides the figure behind asterisks while prices are hidden', () => {
+    expect(formatThousands(12_600, 'de', true)).toBe(`****${nbsp}T€`)
+    expect(formatThousands(12_600, 'en', true)).toBe('€****k')
   })
 })

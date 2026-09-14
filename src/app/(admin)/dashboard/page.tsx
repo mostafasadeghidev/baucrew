@@ -10,6 +10,7 @@ import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { canViewFinancials, requireManagement } from '@/lib/authz'
 import { allowedLayout, parseLayout, type DashboardWidget } from '@/lib/dashboard-layout'
 import { formatCurrency } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import { getOpenOffers, getStockShortages, getYearRevenueOrHistory, STALE_OFFER_DAYS } from '@/lib/reports'
 import { WidgetFrame } from './widget-frame'
 import { WidgetGrid } from './widget-grid'
@@ -214,7 +215,8 @@ export default async function DashboardPage({
       : (revenueYear?.months[monthIndex - 1]?.total ?? 0)
   const revenueChange =
     prevMonthRevenue > 0 ? Math.round(((thisMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100) : null
-  const money = (value: number | null | undefined) => formatCurrency(value, locale)
+  const hidePrices = await pricesHidden()
+  const money = (value: number | null | undefined) => formatCurrency(value, locale, { hidden: hidePrices })
   const monthFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { month: 'long', timeZone: 'UTC' })
   const weekDayFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
     weekday: 'short',

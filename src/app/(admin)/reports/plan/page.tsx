@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import { orderValue } from '@/lib/reports'
 import { formatCurrency } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import {
   groupPlanJobs,
   matchProjectsToJobs,
@@ -212,7 +213,8 @@ export default async function PlanMatchPage({
   const openRows = rows.filter((r) => !r.linked)
   const openTotal = lines.filter((l) => !l.project).reduce((s, l) => s + Number(l.amount), 0)
   const sureCount = openRows.filter((r) => r.suggestions.some((s) => s.sure)).length
-  const money = (v: number) => formatCurrency(v, locale)
+  const hidePrices = await pricesHidden()
+  const money = (v: number) => formatCurrency(v, locale, { hidden: hidePrices })
   const yearOptions = years.map((y) => ({ value: String(y.year), label: String(y.year) }))
 
   return (

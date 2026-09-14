@@ -16,6 +16,7 @@ import type { ProjectStatus } from '@/generated/prisma/enums'
 import { ParamTabs } from '@/components/param-tabs'
 import { StatusBadge } from '@/components/status-badge'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import { siteProgress, SOON_DAYS } from '@/lib/cockpit'
 import type { Today, TodayJob } from '@/lib/reports'
 
@@ -51,7 +52,8 @@ export async function JobsView({
   sitesView: 'cards' | 'kanban'
 }) {
   const t = await getTranslations('reports')
-  const whole = (v: number) => formatCurrency(v, locale, { whole: true })
+  const hidePrices = await pricesHidden()
+  const whole = (v: number) => formatCurrency(v, locale, { whole: true, hidden: hidePrices })
   const date = (d: Date) => formatDate(d, locale)
   const day = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
 

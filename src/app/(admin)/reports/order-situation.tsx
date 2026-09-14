@@ -16,6 +16,7 @@ import { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { InfoHint } from '@/components/ui/info-hint'
 import { formatCurrency, formatThousands } from '@/lib/format'
+import { usePricesHidden } from '@/components/price-visibility'
 import type { MonthRange } from '@/lib/reports-calc'
 import { CLASSES, CLASS_OF, classTotals, type MonthSituation, type PlanClass as Class } from '@/lib/order-situation'
 
@@ -71,7 +72,8 @@ export function OrderSituation({
 }) {
   const t = useTranslations('reports')
   const locale = useLocale()
-  const whole = (v: number) => formatCurrency(v, locale, { whole: true })
+  const hidePrices = usePricesHidden()
+  const whole = (v: number) => formatCurrency(v, locale, { whole: true, hidden: hidePrices })
   const inRange = (month: number) => !range || (month >= range.from && month <= range.to)
   // The running month is open to begin with, when it is in the period; another year opens with nothing.
   const [selected, setSelected] = useState<number | null>(
@@ -214,7 +216,7 @@ export function OrderSituation({
                   {monthNames.short[m.month]}
                 </span>
                 <span className="h-5 whitespace-nowrap text-center text-[11px] tabular-nums">
-                  {m.total > 0 ? formatThousands(m.total, locale) : '—'}
+                  {m.total > 0 ? formatThousands(m.total, locale, hidePrices) : '—'}
                 </span>
               </button>
             )

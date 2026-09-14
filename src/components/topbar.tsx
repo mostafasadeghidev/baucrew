@@ -10,16 +10,26 @@ export async function Topbar({
   isAdmin,
   brandName,
   hasLogo,
+  priceSwitch,
 }: {
   username: string
   role: string
   isAdmin: boolean
   brandName: string
   hasLogo: boolean
+  /** Whether the user menu offers to hide prices — only for somebody who sees them. */
+  priceSwitch: boolean
 }) {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center border-b border-border bg-surface px-3 md:hidden print:hidden">
-      <MobileNav isAdmin={isAdmin} brandName={brandName} hasLogo={hasLogo} username={username} role={role} />
+      <MobileNav
+        isAdmin={isAdmin}
+        brandName={brandName}
+        hasLogo={hasLogo}
+        username={username}
+        role={role}
+        priceSwitch={priceSwitch}
+      />
     </header>
   )
 }

@@ -74,6 +74,7 @@ Sie bleiben 30 Tage angemeldet. **Abmelden** ganz unten in der Menüleiste (link
 
 - **Links das Menü** mit Symbolen, in zwei Gruppen: **Betrieb** (Übersicht, Projekte, Einsatzplanung, CRM) und **Stammdaten** (Kunden, Mitarbeiter, Fahrzeuge, Lager). Es bleibt beim Blättern stehen; **ganz unten** steht Ihr Benutzername — ein Klick darauf öffnet ein kleines Menü mit **Einstellungen** (nur Administrator) und **Abmelden**. Am Handy versteckt sich das Menü hinter dem Symbol **☰** oben links.
 - **Sprache (DE | EN) und Design** (hell / dunkel / wie das Gerät) stehen im Menü, das sich beim Klick auf Ihren Benutzernamen ganz unten in der Menüleiste öffnet — zusammen mit **Einstellungen** und **Abmelden**.
+- **Preise ausblenden** (im selben Menü, nur für Benutzer, die Beträge sehen dürfen): Ist der Schalter an, steht überall, wo sonst ein Betrag steht, **\*\*\*\* €** — auf der Übersicht, in den Projekten und im CRM, auch in Diagrammen und beim Drucken. Praktisch, wenn jemand auf den Bildschirm schaut. Die Einstellung gilt für dieses Gerät und bleibt, bis der Schalter wieder aus ist. Eingabefelder zum Bearbeiten eines Preises zeigen weiter den echten Wert, und der Excel-Export enthält die echten Zahlen.
 - **In der Mitte:** der aktuelle Bereich.
 
 ### 2.3 Fünf Dinge, die überall gleich funktionieren

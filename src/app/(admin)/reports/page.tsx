@@ -35,6 +35,7 @@ import {
 } from '@/lib/reports-calc'
 import { REPORT_TABS, TAB_CHOICES, resolveReportsUrl, type ReportTab } from '@/lib/reports-url'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import { addDays, todayUtc } from '@/lib/dates'
 import { usualCrew, USUAL_CREW_DAYS } from '@/lib/cockpit'
 import { RevenueChart } from '@/components/revenue-chart'
@@ -224,8 +225,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     short: shortMonths,
     narrow: Array.from({ length: 12 }, (_, m) => narrowMonthFmt.format(new Date(Date.UTC(2000, m, 1)))),
   }
-  const money = (v: number | null | undefined) => formatCurrency(v, locale)
-  const whole = (v: number) => formatCurrency(v, locale, { whole: true })
+  const hidePrices = await pricesHidden()
+  const money = (v: number | null | undefined) => formatCurrency(v, locale, { hidden: hidePrices })
+  const whole = (v: number) => formatCurrency(v, locale, { whole: true, hidden: hidePrices })
   /** "Mai" or "Jan–Aug". */
   const monthSpan = (from: number, to: number) => (from === to ? monthName(from) : `${shortMonths[from]}–${shortMonths[to]}`)
 

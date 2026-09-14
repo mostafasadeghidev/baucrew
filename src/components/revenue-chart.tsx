@@ -56,7 +56,8 @@
  */
 
 import { Fragment, useId, useState, useEffect, useRef } from 'react'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency, PRICE_MASK } from '@/lib/format'
+import { usePricesHidden } from '@/components/price-visibility'
 import { linePath, monthRuns } from '@/lib/chart-path'
 
 /**
@@ -289,7 +290,8 @@ export function RevenueChart({
   const plotW = W - padL - padR
   const plotH = H - padT - padB
 
-  const money = (v: number) => formatCurrency(v, locale)
+  const hidePrices = usePricesHidden()
+  const money = (v: number) => formatCurrency(v, locale, { hidden: hidePrices })
   const series = compare.slice(0, COMPARE_OWN.length)
   /**
    * From two compared years on, a bar answers for itself. A curve cannot: it
@@ -596,7 +598,7 @@ export function RevenueChart({
               strokeDasharray={t === 0 ? undefined : '3 4'}
             />
             <text x={padL - 6} y={y(t) + 4} textAnchor="end" className="fill-muted" fontSize={10}>
-              {fmtShort(t)}
+              {hidePrices ? PRICE_MASK : fmtShort(t)}
             </text>
           </g>
         ))}

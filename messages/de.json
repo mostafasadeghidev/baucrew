@@ -59,6 +59,7 @@
     "groupData": "Stammdaten",
     "language": "Sprache",
     "theme": "Design",
+    "hidePrices": "Preise ausblenden",
     "devices": "Geräte"
   },
   "theme": {

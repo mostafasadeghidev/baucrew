@@ -59,6 +59,7 @@
     "groupData": "Master data",
     "language": "Language",
     "theme": "Theme",
+    "hidePrices": "Hide prices",
     "devices": "Devices"
   },
   "theme": {

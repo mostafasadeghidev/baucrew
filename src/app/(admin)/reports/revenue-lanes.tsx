@@ -17,6 +17,7 @@ import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { PanBox } from '@/components/pan-box'
 import { formatCurrency, formatThousands } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import type { MonthRevenue, RevenueProject } from '@/lib/reports'
 import { siteKey } from '@/lib/reports-calc'
 import type { LanesDensity } from '@/lib/revenue-layout'
@@ -52,9 +53,10 @@ export async function RevenueLanes({
   const t = await getTranslations('reports')
   const inView = Math.max(1, Math.min(Number(density), months.length))
   const size: TileSize = inView <= 3 ? 'wide' : inView <= 6 ? 'compact' : 'mini'
-  const exact = (v: number | null) => formatCurrency(v, locale)
+  const hidePrices = await pricesHidden()
+  const exact = (v: number | null) => formatCurrency(v, locale, { hidden: hidePrices })
   const amount = (v: number) =>
-    size === 'mini' ? formatThousands(v, locale) : formatCurrency(v, locale, { whole: true })
+    size === 'mini' ? formatThousands(v, locale, hidePrices) : formatCurrency(v, locale, { whole: true, hidden: hidePrices })
   const biggest = Math.max(1, ...months.flatMap((m) => [...m.own, ...m.sub, ...m.extra].map((p) => p.price ?? 0)))
   const between = (i: number) => (i > 0 ? 'border-l' : '')
   const side = 'sticky left-0 z-10 border-r border-t border-border px-3 py-2 text-xs'

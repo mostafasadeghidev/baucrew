@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { formatCurrency } from '@/lib/format'
+import { usePricesHidden } from '@/components/price-visibility'
 import { btn } from '@/components/ui/button'
 import {
   clearPlanLinks,
@@ -51,7 +52,8 @@ export function PlanTable({
   const tc = useTranslations('common')
   const locale = useLocale()
   const router = useRouter()
-  const money = (v: number | null) => formatCurrency(v, locale)
+  const hidePrices = usePricesHidden()
+  const money = (v: number | null) => formatCurrency(v, locale, { hidden: hidePrices })
   const [pending, startTransition] = useTransition()
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState(false)

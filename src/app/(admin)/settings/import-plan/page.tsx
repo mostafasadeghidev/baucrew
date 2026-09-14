@@ -3,6 +3,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { requireAdmin } from '@/lib/authz'
 import { getPlanYears } from '@/lib/reports'
 import { formatCurrency } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import { db } from '@/lib/db'
 import { ImportWizard } from './import-wizard'
 import { clearPlanYear } from './actions'
@@ -17,6 +18,7 @@ export default async function ImportPlanPage() {
     getLocale(),
     getPlanYears(),
   ])
+  const hidePrices = await pricesHidden()
 
   const sums = years.length
     ? await db.planEntry.groupBy({
@@ -44,7 +46,7 @@ export default async function ImportPlanPage() {
                 <span className="font-medium tabular-nums">{y.year}</span>
                 <span className="text-muted">{t('storedEntries', { count: y.entries })}</span>
                 <span className="ml-auto font-semibold tabular-nums">
-                  {formatCurrency(totalByYear.get(y.year) ?? 0, locale)}
+                  {formatCurrency(totalByYear.get(y.year) ?? 0, locale, { hidden: hidePrices })}
                 </span>
                 <DeleteButton
                   action={clearPlanYear.bind(null, y.year)}

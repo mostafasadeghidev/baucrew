@@ -26,6 +26,7 @@ import { logout } from '@/app/actions'
 import { Menu, MenuLabel, MenuRow, MenuSeparator, menuItemClass } from './ui/menu'
 import { LanguageSwitcher } from './language-switcher'
 import { ThemeToggle } from './theme-toggle'
+import { HidePricesToggle } from './price-visibility'
 import { RailTip } from './ui/rail-tip'
 import { SIDEBAR_COOKIE, SIDEBAR_COOKIE_MAX_AGE, sidebarCookieValue } from '@/lib/sidebar'
 
@@ -126,11 +127,14 @@ function UserMenu({
   username,
   role,
   isAdmin,
+  priceSwitch,
   collapsed = false,
 }: {
   username: string
   role: string
   isAdmin: boolean
+  /** Offer to hide prices — only to somebody who sees them. */
+  priceSwitch: boolean
   collapsed?: boolean
 }) {
   const t = useTranslations('nav')
@@ -171,6 +175,11 @@ function UserMenu({
         <MenuRow label={t('theme')}>
           <ThemeToggle withLabel />
         </MenuRow>
+        {priceSwitch && (
+          <MenuRow label={t('hidePrices')}>
+            <HidePricesToggle label={t('hidePrices')} />
+          </MenuRow>
+        )}
         <MenuSeparator />
         {isAdmin && (
           <Link href="/settings" className={menuItemClass} role="menuitem">
@@ -201,6 +210,7 @@ export function Sidebar({
   username,
   role,
   defaultCollapsed = false,
+  priceSwitch,
 }: {
   isAdmin: boolean
   brandName: string
@@ -208,6 +218,7 @@ export function Sidebar({
   username: string
   role: string
   defaultCollapsed?: boolean
+  priceSwitch: boolean
 }) {
   const pathname = usePathname()
   const t = useTranslations('nav')
@@ -290,7 +301,7 @@ export function Sidebar({
           </RailTip>
         </div>
         <NavLinks pathname={pathname} collapsed={collapsed} />
-        <UserMenu username={username} role={role} isAdmin={isAdmin} collapsed={collapsed} />
+        <UserMenu username={username} role={role} isAdmin={isAdmin} priceSwitch={priceSwitch} collapsed={collapsed} />
       </div>
     </aside>
   )
@@ -303,12 +314,14 @@ export function MobileNav({
   hasLogo,
   username,
   role,
+  priceSwitch,
 }: {
   isAdmin: boolean
   brandName: string
   hasLogo: boolean
   username: string
   role: string
+  priceSwitch: boolean
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -367,7 +380,7 @@ export function MobileNav({
               </button>
             </div>
             <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
-            <UserMenu username={username} role={role} isAdmin={isAdmin} />
+            <UserMenu username={username} role={role} isAdmin={isAdmin} priceSwitch={priceSwitch} />
           </aside>
         </div>
       )}

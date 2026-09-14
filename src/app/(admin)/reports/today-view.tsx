@@ -21,6 +21,7 @@ import { getTranslations } from 'next-intl/server'
 import type { ProjectStatus } from '@/generated/prisma/enums'
 import { StatusBadge } from '@/components/status-badge'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import { isWorkday, lampAbove, SOON_DAYS, todayCrewLamp } from '@/lib/cockpit'
 import type { GapReport } from '@/lib/data-gaps'
 import { CLASSES, type OpenMoney, type OpenMoneyRow, type PlanClass } from '@/lib/order-situation'
@@ -93,7 +94,8 @@ export async function TodayView({
   cutoff: Date | null
 }) {
   const t = await getTranslations('reports')
-  const whole = (v: number) => formatCurrency(v, locale, { whole: true })
+  const hidePrices = await pricesHidden()
+  const whole = (v: number) => formatCurrency(v, locale, { whole: true, hidden: hidePrices })
   const date = (d: Date) => formatDate(d, locale)
   const day = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
 

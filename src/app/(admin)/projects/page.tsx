@@ -13,6 +13,7 @@ import type { Prisma } from '@/generated/prisma/client'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
 import { opensBoard, projectsViewHref } from '@/lib/projects-view'
@@ -52,6 +53,7 @@ export default async function ProjectsPage({
     getTranslations('common'),
     getLocale(),
   ])
+  const hidePrices = await pricesHidden()
 
   const currentYear = todayUtc().getUTCFullYear()
   const years = parseProjectYears(yearParam, currentYear)
@@ -181,7 +183,7 @@ export default async function ProjectsPage({
       status: value,
       label: tStatus(value),
       count: own.length,
-      sum: showPrice && sum > 0 ? formatCurrency(sum, locale) : null,
+      sum: showPrice && sum > 0 ? formatCurrency(sum, locale, { hidden: hidePrices }) : null,
       badgeClass: STATUS_STYLES[value],
       cards: own.map((p) => ({
         id: p.id,
@@ -190,7 +192,7 @@ export default async function ProjectsPage({
         customer: p.customer.name,
         city: p.city,
         start: p.plannedStart ? formatDate(p.plannedStart, locale) : null,
-        price: showPrice ? formatCurrency(p.price ? Number(p.price) : null, locale) : null,
+        price: showPrice ? formatCurrency(p.price ? Number(p.price) : null, locale, { hidden: hidePrices }) : null,
         urgent: p.priority === 'HIGH',
         status: p.status,
       })),
@@ -481,7 +483,7 @@ export default async function ProjectsPage({
                       </td>
                       {showPrice && (
                         <td className="px-4 py-3 text-right tabular-nums">
-                          {formatCurrency(p.price ? Number(p.price) : null, locale)}
+                          {formatCurrency(p.price ? Number(p.price) : null, locale, { hidden: hidePrices })}
                         </td>
                       )}
                     </tr>

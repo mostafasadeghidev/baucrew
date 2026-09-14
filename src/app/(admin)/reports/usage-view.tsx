@@ -11,6 +11,7 @@
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { formatCurrency } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import { formatMinutes } from '@/lib/time-entries'
 import type { CrewMonth } from '@/lib/order-situation'
 import type { EfficiencyRow, NamedUsage } from '@/lib/reports'
@@ -64,7 +65,8 @@ export async function UsageView({
 }) {
   const t = await getTranslations('reports')
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
-  const money = (v: number | null) => formatCurrency(v, locale)
+  const hidePrices = await pricesHidden()
+  const money = (v: number | null) => formatCurrency(v, locale, { hidden: hidePrices })
   const fmtNum = (n: number | null) => (n == null ? '—' : n.toLocaleString(intl, { maximumFractionDigits: 1 }))
   const fmtDelay = (d: number | null) =>
     d == null ? '—' : d === 0 ? t('onTime') : `${d > 0 ? '+' : ''}${t('daysShort', { count: fmtNum(d) })}`

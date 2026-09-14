@@ -14,6 +14,7 @@ import { getTranslations } from 'next-intl/server'
 import type { ProjectStatus } from '@/generated/prisma/enums'
 import { StatusBadge } from '@/components/status-badge'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import type { GapProject, GapReport } from '@/lib/data-gaps'
 
 const card = 'rounded-xl border border-border bg-surface shadow-sm'
@@ -34,7 +35,8 @@ export async function GapsView({
   monthNames: string[]
 }) {
   const t = await getTranslations('reports')
-  const whole = (v: number) => formatCurrency(v, locale, { whole: true })
+  const hidePrices = await pricesHidden()
+  const whole = (v: number) => formatCurrency(v, locale, { whole: true, hidden: hidePrices })
   const signed = (v: number) => `${v >= 0 ? '+' : '−'}${whole(Math.abs(v))}`
 
   const job = (p: GapProject) => (

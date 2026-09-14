@@ -5,6 +5,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { db } from '@/lib/db'
 import { canViewFinancials, requireManagement } from '@/lib/authz'
 import { formatCurrency } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import { btn } from '@/components/ui/button'
 import { dismissDraft } from './actions'
 import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
@@ -17,6 +18,7 @@ export default async function DraftsPage() {
     getTranslations('projects'),
     getLocale(),
   ])
+  const hidePrices = await pricesHidden()
   const showMoney = canViewFinancials(user)
 
   const drafts = await db.projectDraft.findMany({
@@ -82,7 +84,7 @@ export default async function DraftsPage() {
                         ? `${t('plannedStart')}: ${dateFmt.format(draft.plannedStart)}`
                         : null,
                       showMoney && draft.price != null
-                        ? formatCurrency(Number(draft.price), locale)
+                        ? formatCurrency(Number(draft.price), locale, { hidden: hidePrices })
                         : null,
                     ]
                       .filter(Boolean)

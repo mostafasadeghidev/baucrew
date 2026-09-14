@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import { formatCurrency } from '@/lib/format'
+import { usePricesHidden } from '@/components/price-visibility'
 import { btn } from '@/components/ui/button'
 import { planImportWizard, type PlanImportState } from './actions'
 
@@ -11,7 +12,8 @@ export function ImportWizard() {
   const t = useTranslations('importPlan')
   const tc = useTranslations('common')
   const locale = useLocale()
-  const money = (v: number) => formatCurrency(v, locale)
+  const hidePrices = usePricesHidden()
+  const money = (v: number) => formatCurrency(v, locale, { hidden: hidePrices })
 
   // One action drives all three phases; the parsed rows travel in the state
   // between preview and import, so the file is read exactly once.

@@ -17,6 +17,7 @@ import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { PanBox } from '@/components/pan-box'
 import { formatCurrency, formatThousands } from '@/lib/format'
+import { pricesHidden } from '@/lib/price-visibility'
 import type { MonthRevenue } from '@/lib/reports'
 import { heatLevel, type SiteMonthRow } from '@/lib/reports-calc'
 import type { MatrixDensity } from '@/lib/revenue-layout'
@@ -53,9 +54,10 @@ export async function RevenueMatrix({
 }) {
   const t = await getTranslations('reports')
   const order = months.map((m) => m.month)
-  const exact = (v: number) => formatCurrency(v, locale)
-  const whole = (v: number) => formatCurrency(v, locale, { whole: true })
-  const figure = (v: number) => (density === 'full' ? whole(v) : formatThousands(v, locale))
+  const hidePrices = await pricesHidden()
+  const exact = (v: number) => formatCurrency(v, locale, { hidden: hidePrices })
+  const whole = (v: number) => formatCurrency(v, locale, { whole: true, hidden: hidePrices })
+  const figure = (v: number) => (density === 'full' ? whole(v) : formatThousands(v, locale, hidePrices))
   const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
   const biggest = Math.max(1, ...rows.flatMap((r) => Object.values(r.cells).map((c) => c.own + c.sub)))
   const yearTotal = sum(months.map((m) => m.total))
