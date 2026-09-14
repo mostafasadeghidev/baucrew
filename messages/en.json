@@ -698,7 +698,6 @@
     "panelLargestLines": "Every line this month, largest first",
     "panelBacklogHint": "Ordered, planned and running work from the year plan, month by month over the next twelve months.",
     "panelOffersNone": "No open enquiries or offers.",
-    "panelTeamUsualHint": "Usually: on average {count, plural, one {# person} other {# people}} on the working days with bookings in the last three months. Anyone away does not count.",
     "panelTeamPeople": "People today",
     "panelTeamSites": "Sites today",
     "panelTeamAwayOne": "away",

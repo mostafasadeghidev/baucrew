@@ -698,7 +698,6 @@
     "panelLargestLines": "Alle Zeilen dieses Monats, die größten zuerst",
     "panelBacklogHint": "Beauftragte, geplante und laufende Arbeit aus der Jahresplanung, Monat für Monat über die nächsten zwölf Monate.",
     "panelOffersNone": "Keine offenen Anfragen oder Angebote.",
-    "panelTeamUsualHint": "Üblich: im Durchschnitt {count, plural, one {# Person} other {# Personen}} an den Arbeitstagen mit Einsätzen der letzten drei Monate. Wer abwesend ist, zählt nicht mit.",
     "panelTeamPeople": "Personen heute",
     "panelTeamSites": "Baustellen heute",
     "panelTeamAwayOne": "abwesend",

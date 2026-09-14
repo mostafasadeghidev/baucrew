@@ -379,7 +379,6 @@ export async function TodayView({
           </ul>
         )}
       </div>
-      {usualCrew !== null && <p className="text-[11px] text-muted">{t('panelTeamUsualHint', { count: usualCrew })}</p>}
     </div>
   )
 
