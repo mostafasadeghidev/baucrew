@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   crewDays,
-  crewLamp,
   crewSpan,
   lampAbove,
   overdueOf,
   siteGroupOf,
   siteProgress,
   stageRows,
+  todayCrewLamp,
   usualCrew,
 } from '@/lib/cockpit'
 
@@ -122,13 +122,13 @@ describe('siteProgress', () => {
 })
 
 describe('crewDays', () => {
-  it('lists every weekday of the span with its people, each once a day and never on a day away', () => {
+  it('lists every day of the span with its people, each once a day and never on a day away', () => {
     const bookings = [
       { employeeId: 'm1', date: d('2026-09-14') },
       { employeeId: 'm1', date: d('2026-09-14') }, // a second site the same day
       { employeeId: 'm2', date: d('2026-09-14') },
       { employeeId: 'm2', date: d('2026-09-15') }, // away that day
-      { employeeId: 'm1', date: d('2026-09-19') }, // a Saturday
+      { employeeId: 'm1', date: d('2026-09-19') }, // a Saturday on site
       { employeeId: 'm1', date: d('2026-09-21') }, // after the span
     ]
     const away = [{ employeeId: 'm2', startDate: d('2026-09-15'), endDate: d('2026-09-16') }]
@@ -139,44 +139,46 @@ describe('crewDays', () => {
       ['2026-09-16', 0],
       ['2026-09-17', 0],
       ['2026-09-18', 0],
+      ['2026-09-19', 1],
+      ['2026-09-20', 0],
     ])
-  })
-
-  it('has no day on a weekend alone', () => {
-    expect(crewDays([], [], d('2026-10-31'), d('2026-11-01'))).toEqual([])
   })
 })
 
 describe('crewSpan and usualCrew', () => {
   const day = (date: string, people: number) => ({ date: d(date), people })
 
-  it('spreads the people over every weekday ahead, the empty ones included, to one decimal', () => {
-    const span = crewSpan([day('2026-09-14', 7), day('2026-09-15', 7), day('2026-09-16', 0)])
+  it('spreads the people over the working days, the empty ones included, to one decimal', () => {
+    // Monday to Wednesday, then a Saturday that is not a working day.
+    const span = crewSpan([day('2026-09-14', 7), day('2026-09-15', 7), day('2026-09-16', 0), day('2026-09-19', 3)])
     expect(span).toMatchObject({ perDay: 4.7, staffed: 2 })
-    expect(crewSpan([])).toEqual({ days: [], perDay: null, staffed: 0 })
+    expect(span.days).toHaveLength(3)
+    expect(crewSpan([day('2026-09-19', 3)])).toEqual({ days: [], perDay: null, staffed: 0 })
   })
 
-  it('reads the usual crew from the days anybody worked, not from the empty ones', () => {
-    expect(usualCrew([day('2026-08-03', 6), day('2026-08-04', 7), day('2026-08-05', 0)])).toBe(6.5)
-    expect(usualCrew([day('2026-08-05', 0)])).toBeNull()
+  it('reads the usual crew from the working days anybody worked, not from empty days or weekends', () => {
+    expect(usualCrew([day('2026-08-03', 6), day('2026-08-04', 7), day('2026-08-05', 0), day('2026-08-08', 2)])).toBe(6.5)
+    expect(usualCrew([day('2026-08-05', 0), day('2026-08-08', 2)])).toBeNull()
   })
 })
 
-describe('crewLamp', () => {
-  const span = (...people: number[]) =>
-    crewSpan(people.map((n, i) => ({ date: new Date(Date.UTC(2026, 8, 14 + i)), people: n })))
+describe('todayCrewLamp', () => {
+  // Monday 14 and Saturday 19 September 2026.
+  const monday = (people: number) => ({ date: d('2026-09-14'), people })
 
-  it('has nothing to judge when no weekday is left', () => {
-    expect(crewLamp(crewSpan([]), 7)).toBe('none')
+  it('has nothing to judge on a weekend, whoever works', () => {
+    expect(todayCrewLamp({ date: d('2026-09-19'), people: 0 }, 7)).toBe('none')
+    expect(todayCrewLamp({ date: d('2026-09-19'), people: 3 }, 7)).toBe('none')
   })
 
-  it('warns of a day with nobody on it, or of less than three quarters of the usual crew', () => {
-    expect(crewLamp(span(7, 0, 7), 7)).toBe('yellow')
-    expect(crewLamp(span(5, 5, 5), 7)).toBe('yellow')
-    expect(crewLamp(span(6, 6, 6), 7)).toBe('green')
+  it('warns on a working day with nobody on site, or with a quarter of the usual crew or more without a site', () => {
+    expect(todayCrewLamp(monday(0), 7)).toBe('yellow')
+    expect(todayCrewLamp(monday(5), 7)).toBe('yellow')
+    expect(todayCrewLamp(monday(6), 7)).toBe('green')
   })
 
-  it('is green with every day staffed and nothing usual to hold it against', () => {
-    expect(crewLamp(span(2, 3), null)).toBe('green')
+  it('is green with anybody on site and nothing usual to hold it against', () => {
+    expect(todayCrewLamp(monday(2), null)).toBe('green')
+    expect(todayCrewLamp(monday(0), null)).toBe('yellow')
   })
 })

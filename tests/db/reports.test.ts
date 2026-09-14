@@ -115,7 +115,7 @@ describe('getCrewDays', () => {
     await prisma.employee.deleteMany({ where: { id: { in: employeeIds } } })
   })
 
-  it('counts each person once a weekday, never on a day away or a day taken out of the plan', async () => {
+  it('counts each person once a day, never on a day away or a day taken out of the plan', async () => {
     const { getCrewDays } = await import('@/lib/reports')
     const days = await getCrewDays(day(6), day(12))
     expect(days.map((d) => [d.date.toISOString().slice(0, 10), d.people])).toEqual([
@@ -124,6 +124,8 @@ describe('getCrewDays', () => {
       ['2031-01-08', 0],
       ['2031-01-09', 0],
       ['2031-01-10', 0],
+      ['2031-01-11', 1],
+      ['2031-01-12', 0],
     ])
   })
 })

@@ -537,10 +537,8 @@ export type Today = {
   stages: { rows: StageRow[]; footer: StageFooter }
   material: MissingMaterial[]
   stockShort: StockShortage[]
-  /** Sites and people on today's schedule, and who is where. */
+  /** Who is on which site today. */
   schedule: {
-    sites: number
-    people: number
     /** One row per site on today's schedule, with everybody booked on it. */
     today: Array<{ projectId: string; number: string; name: string; people: string[] }>
   }
@@ -637,8 +635,6 @@ export async function getToday(today: Date): Promise<Today> {
     material: [...material.values()].sort((a, b) => a.name.localeCompare(b.name)),
     stockShort,
     schedule: {
-      sites: new Set(entries.map((e) => e.projectId)).size,
-      people: new Set(entries.flatMap((e) => e.employees.map((x) => x.employeeId))).size,
       // A site booked twice today (morning and afternoon crew) is one row.
       today: [
         ...entries

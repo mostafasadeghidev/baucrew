@@ -36,7 +36,7 @@ import {
 import { REPORT_TABS, TAB_CHOICES, resolveReportsUrl, type ReportTab } from '@/lib/reports-url'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { addDays, todayUtc } from '@/lib/dates'
-import { crewSpan, usualCrew, USUAL_CREW_DAYS } from '@/lib/cockpit'
+import { CREW_AHEAD_DAYS, crewSpan, usualCrew, USUAL_CREW_DAYS } from '@/lib/cockpit'
 import { RevenueChart } from '@/components/revenue-chart'
 import { ParamTabs } from '@/components/param-tabs'
 import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
@@ -165,11 +165,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const onRevenue = tab === 'revenue' && showFinancials
   const onUsage = tab === 'utilization'
   const onGaps = tab === 'quality'
-  // The team tile reads the schedule day by day: the working days before today
-  // say what is usual, then what is left of this month and the whole next one.
-  const monthEnd = new Date(Date.UTC(currentYear, todayMonth + 1, 0))
-  const nextMonthEnd = new Date(Date.UTC(currentYear, todayMonth + 2, 0))
+  // The team tile reads the schedule day by day: today, the working days before
+  // it that say what is usual, and the two weeks ahead for its sheet.
   const usualFrom = addDays(today, -USUAL_CREW_DAYS)
+  const aheadTo = addDays(today, CREW_AHEAD_DAYS - 1)
 
   const [
     gaps,
@@ -198,7 +197,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear - 1) : null,
     // The backlog runs twelve months, so it reaches into the next year.
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear + 1) : null,
-    onToday ? getCrewDays(usualFrom, nextMonthEnd) : null,
+    onToday ? getCrewDays(usualFrom, aheadTo) : null,
     onRevenue ? getYearRevenueOrHistory(year) : null,
     onRevenue ? getYearRevenueOrHistory(year - 1) : null,
     onRevenue ? getYearTotals(comparisonYears) : null,
@@ -297,7 +296,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         : null
     const crewBetween = (from: Date, to: Date) =>
       (crewDayList ?? []).filter((day) => day.date.getTime() >= from.getTime() && day.date.getTime() <= to.getTime())
-    const crewNextLabel = todayMonth < 11 ? monthName(todayMonth + 1) : `${monthName(0)} ${currentYear + 1}`
+    const crewAhead = crewSpan(crewBetween(today, aheadTo))
     // The twelve months the backlog runs over, each with its ordered work: this
     // year's from the running month on, then next year's before it.
     const orderedOf = (months: typeof thisYear) =>
@@ -319,10 +318,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         ? { label: monthName(todayMonth), amount: summary.backlog ?? 0, weeks: summary.weeks, months: backlogMonths }
         : null,
       crew: {
-        label: monthName(todayMonth),
-        span: dayRangeFmt.formatRange(today, monthEnd),
-        rest: crewSpan(crewBetween(today, monthEnd)),
-        next: { label: crewNextLabel, ...crewSpan(crewBetween(addDays(monthEnd, 1), nextMonthEnd)) },
+        today: crewBetween(today, today)[0] ?? { date: today, people: 0 },
+        ahead: crewAhead,
+        // The first and the last working day ahead, "14.–25. September".
+        span:
+          crewAhead.days.length > 0
+            ? dayRangeFmt.formatRange(crewAhead.days[0].date, crewAhead.days[crewAhead.days.length - 1].date)
+            : '',
         usual: usualCrew(crewBetween(usualFrom, addDays(today, -1))),
       },
     }

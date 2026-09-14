@@ -21,7 +21,7 @@ import { getTranslations } from 'next-intl/server'
 import type { ProjectStatus } from '@/generated/prisma/enums'
 import { StatusBadge } from '@/components/status-badge'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { crewLamp, lampAbove, SOON_DAYS, type CrewSpan } from '@/lib/cockpit'
+import { isWorkday, lampAbove, SOON_DAYS, todayCrewLamp, type CrewDay, type CrewSpan } from '@/lib/cockpit'
 import type { GapReport } from '@/lib/data-gaps'
 import { CLASSES, type OpenMoney, type OpenMoneyRow, type PlanClass } from '@/lib/order-situation'
 import { STALE_OFFER_DAYS, type Today, type TodayJob } from '@/lib/reports'
@@ -79,16 +79,15 @@ export async function TodayView({
   /** Ordered work of the next twelve months; null without money rights. */
   backlog: { label: string; amount: number; weeks: number | null; months: Array<{ label: string; amount: number }> } | null
   /**
-   * The people on the schedule per working day: what is left of the running
-   * month (today to its last day) and the whole next month (in December,
-   * January of the next year), against the people an ordinary working day had.
+   * The people on the schedule today, against the people an ordinary working
+   * day had, and the two weeks ahead day by day.
    */
   crew: {
-    label: string
-    /** Today to the month's last day, "14.–30. September". */
+    today: CrewDay
+    /** The working days of the next two weeks, today first. */
+    ahead: CrewSpan
+    /** Their first to their last day, "14.–25. September". */
     span: string
-    rest: CrewSpan
-    next: CrewSpan & { label: string }
     /** People on an ordinary working day of the last three months; null without one. */
     usual: number | null
   }
@@ -136,11 +135,15 @@ export async function TodayView({
   const moneyLamp: TileLamp =
     outstanding >= 100_000 ? 'red' : outstanding > 0 || moneyWithoutValue > 0 ? 'yellow' : 'green'
   const offersLamp: TileLamp = offers.length === 0 ? 'none' : toChase > 0 ? 'yellow' : 'green'
-  const teamLamp: TileLamp = crewLamp(crew.rest, crew.usual)
-  /** "7 Personen / Tag"; null when no weekday is left to plan. */
-  const perDay = (span: CrewSpan) =>
-    span.days.length === 0 ? null : span.staffed === 0 ? t('tileTeamNone') : t('teamPerDay', { count: span.perDay ?? 0 })
-  const emptyDays = crew.rest.days.length - crew.rest.staffed
+  const teamLamp: TileLamp = todayCrewLamp(crew.today, crew.usual)
+  /** "7 Personen"; on a weekend nobody works, only that it is the weekend. */
+  const peopleToday =
+    crew.today.people > 0
+      ? t('teamPeople', { count: crew.today.people })
+      : isWorkday(crew.today)
+        ? t('tileTeamNone')
+        : t('teamWeekend')
+  const teamUsual = crew.usual !== null ? t('teamUsual', { count: crew.usual }) : null
 
   // ── Pieces the sheets share ─────────────────────────────────
   const amount = (value: number | null) =>
@@ -336,28 +339,31 @@ export async function TodayView({
       </div>
     )
 
-  const teamStat = (title: string, span: CrewSpan) => (
-    <div className={stat}>
-      <p className={label}>{title}</p>
-      <p className="mt-0.5 text-base font-semibold tabular-nums">{perDay(span) ?? t('panelTeamNoDaysLeft')}</p>
-      {span.days.length > 0 && (
-        <p className="text-[11px] text-muted">{t('panelTeamStaffed', { staffed: span.staffed, days: span.days.length })}</p>
-      )}
-    </div>
-  )
   // One scale for every bar, wide enough for the fullest day and for what is usual.
-  const dayScale = Math.max(1, crew.usual ?? 0, ...crew.rest.days.map((day) => day.people))
+  const dayScale = Math.max(1, crew.usual ?? 0, ...crew.ahead.days.map((day) => day.people))
   const teamPanel = (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        {teamStat(t('panelTeamRest', { span: crew.span }), crew.rest)}
-        {teamStat(t('panelTeamThis', { month: crew.next.label }), crew.next)}
+        <div className={stat}>
+          <p className={label}>{t('panelTeamNow')}</p>
+          <p className="mt-0.5 text-base font-semibold tabular-nums">{peopleToday}</p>
+          {teamUsual && <p className="text-[11px] text-muted">{teamUsual}</p>}
+        </div>
+        <div className={stat}>
+          <p className={label}>{t('panelTeamAhead', { span: crew.span })}</p>
+          <p className="mt-0.5 text-base font-semibold tabular-nums">
+            {crew.ahead.staffed === 0 ? t('tileTeamNone') : t('teamPerDay', { count: crew.ahead.perDay ?? 0 })}
+          </p>
+          <p className="text-[11px] text-muted">
+            {t('panelTeamStaffed', { staffed: crew.ahead.staffed, days: crew.ahead.days.length })}
+          </p>
+        </div>
       </div>
-      {crew.rest.days.length > 0 && (
+      {crew.ahead.days.length > 0 && (
         <div>
           <h3 className={label}>{t('panelTeamDays')}</h3>
           <ol className="mt-1 gap-x-8 sm:columns-2">
-            {crew.rest.days.map((day) => (
+            {crew.ahead.days.map((day) => (
               <li
                 key={day.date.toISOString()}
                 className="grid break-inside-avoid grid-cols-[5.5rem_minmax(0,1fr)_1.5rem] items-center gap-2 py-0.5 text-[12px]"
@@ -385,15 +391,7 @@ export async function TodayView({
         </div>
       )}
       <div>
-        <h3 className={label}>
-          {t('panelTeamToday')}
-          {data.schedule.today.length > 0 && (
-            <span className="normal-case tracking-normal">
-              {' · '}
-              {t('panelTeamTodayCount', { sites: data.schedule.sites, people: data.schedule.people })}
-            </span>
-          )}
-        </h3>
+        <h3 className={label}>{t('panelTeamToday')}</h3>
         {data.schedule.today.length === 0 ? (
           empty(t('panelTeamTodayNone'))
         ) : (
@@ -531,15 +529,9 @@ export async function TodayView({
     },
     {
       key: 'team',
-      label: t('tileTeam', { month: crew.label }),
-      value: perDay(crew.rest) ?? '—',
-      caption:
-        [
-          crew.usual !== null ? t('teamUsual', { count: crew.usual }) : null,
-          emptyDays > 0 ? t('teamEmptyDays', { count: emptyDays }) : null,
-        ]
-          .filter(Boolean)
-          .join(' · ') || null,
+      label: t('tileTeamToday'),
+      value: peopleToday,
+      caption: teamUsual,
       lamp: teamLamp,
       panel: teamPanel,
       more: { href: '/reports?tab=utilization', label: t('panelMoreUsage') },
