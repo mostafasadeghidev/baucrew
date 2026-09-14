@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { entryMinutes, formatMinutes, sumMinutes, type TimeInterval } from '@/lib/time-entries'
 
@@ -108,10 +107,7 @@ export async function ProjectTimeSummary({
       )}
 
       <p className="border-t border-border px-5 py-2 text-xs text-muted">
-        {t('projectHint')}{' '}
-        <Link href="/reports?tab=utilization#plan-ist" className="text-accent hover:underline">
-          {t('projectReportLink')}
-        </Link>
+        {t('projectHint')}
       </p>
     </section>
   )

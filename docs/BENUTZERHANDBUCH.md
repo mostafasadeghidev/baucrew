@@ -699,7 +699,7 @@ Die Reiter:
   Projekt), und das andere wird gelöscht. Ein Einsatz an einem Tag, den das behaltene Projekt
   schon hat, bleibt außen vor und wird gemeldet.
 
-- **Projekte:** *Abgeschlossene Projekte — Plan vs. Ist* — geplante Arbeitstage gegen tatsächliche Einsatztage, Personentage und **€ pro Personentag** (Auftragswert ÷ Personentage — zeigt ohne jede Kostenerfassung, welche Projekte sich lohnen). *Verzug (Ende)* nur, wenn „Ende (tatsächlich)“ eingetragen ist.
+- **Plan vs. Ist** der abgeschlossenen Aufträge — geplante Arbeitstage gegen tatsächliche Einsatztage, Personentage und **€ pro Personentag** (Auftragswert ÷ Personentage) — steht nicht mehr im CRM, sondern nur noch im **Excel-Export** (Blatt „Plan vs Ist“).
 
 ![CRM — Kunden](screenshots/27-berichte-kunden.png)
 

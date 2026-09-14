@@ -10,7 +10,6 @@ import {
   getDataGaps,
   getOpenMoney,
   getOpenOffers,
-  getProjectEfficiency,
   getToday,
   getYearPlan,
   getYearRevenueOrHistory,
@@ -129,7 +128,7 @@ type Params = {
  * - Aufträge & Baustellen — the long lists behind the Heute tiles. Stand heute.
  * - Planumsatz — what the year or period is worth month by month, and below
  *   the months how sure it is. Every figure follows Jahr/Zeitraum.
- * - Auslastung — is the crew planned, and how long finished jobs took.
+ * - Auslastung — is the crew planned, and who and what stands idle.
  *   Every figure follows Jahr/Zeitraum.
  * - Datenlücken — what makes a figure wrong or incomplete. Stand heute.
  *
@@ -194,7 +193,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     plan,
     openOffers,
     usage,
-    efficiency,
   ] = await Promise.all([
     // Every tab carries the Datenlücken count on its tab.
     getDataGaps(today),
@@ -214,7 +212,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     onRevenue || onCompare ? getYearPlan(year) : null,
     onRevenue ? getOpenOffers() : null,
     onUsage ? getCrewUsage(year, range) : null,
-    onUsage ? getProjectEfficiency(year, range) : null,
   ])
 
   // ── Formatting helpers ───────────────────────────────────
@@ -956,7 +953,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       )}
 
       {/* ── Auslastung ───────────────────────────────────── */}
-      {onUsage && usage && efficiency && (
+      {onUsage && usage && (
         <UsageView
           year={year}
           range={range}
@@ -965,9 +962,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           covered={usage.covered}
           people={usage.people}
           vehicles={usage.vehicles}
-          efficiency={efficiency}
-          showFinancials={showFinancials}
-          locale={locale}
           monthNames={{ long: monthNames.long, short: monthNames.short }}
           frameLabel={frameLabel}
         />
