@@ -4,12 +4,15 @@
  * below — with each lane's sum under it. The project board, turned to money:
  * a month is read down its column, a lane across the year.
  *
- * The zoom is how many months one screen holds. With three a tile has room for
- * its site's name, its amount and its place in a job that runs over several
- * months ("Monat 2 von 3"); with six it keeps name and amount; with twelve the
- * tiles become blocks as tall as their amount — the shape of the year, with
- * name and figure on hover. A period with fewer months than the zoom shares
- * the width among the months it has, and sizes its tiles for that.
+ * The zoom is how many months one screen holds. With three or six a tile is
+ * one line — the site's name, and beside it its amount and, for a job that runs
+ * over several months, which of them it is ("2/3", in words on hover) — so a
+ * busy month stays short; with twelve the tiles become blocks as tall as their
+ * amount — the shape of the year, with name and figure on hover. A period with
+ * fewer months than the zoom shares the width among the months it has, and
+ * sizes its tiles for that.
+ *
+ * The box is as tall as its tiles: the page scrolls, not the box.
  */
 
 import Link from 'next/link'
@@ -93,21 +96,21 @@ export async function RevenueLanes({
       <div
         key={p.key}
         title={title}
-        className={`rounded-lg border bg-background px-2 py-1.5 ${
+        className={`flex items-center justify-between gap-2 rounded-md border bg-background px-2 py-1 ${
           lane === 'extra' ? 'border-dashed border-border text-muted' : 'border-border'
         } ${size === 'wide' ? 'text-[13px]' : 'text-xs'}`}
       >
         {p.fromSheet ? (
-          <span className="block truncate">{p.name}</span>
+          <span className="min-w-0 truncate">{p.name}</span>
         ) : (
-          <Link href={`/projects/${p.id}`} className="block truncate text-accent hover:underline">
+          <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-accent hover:underline">
             {p.name}
           </Link>
         )}
-        <div className="mt-0.5 flex items-center justify-between gap-2 text-[11px] tabular-nums text-muted">
+        <span className="flex shrink-0 items-center gap-1.5 text-[11px] tabular-nums text-muted">
+          {span.length > 1 && <span>{`${at}/${span.length}`}</span>}
           <span>{p.price == null ? '—' : amount(p.price)}</span>
-          {span.length > 1 && <span className="shrink-0">{size === 'wide' ? place : `${at}/${span.length}`}</span>}
-        </div>
+        </span>
       </div>
     )
   }
@@ -153,7 +156,7 @@ export async function RevenueLanes({
     ...months.map((m, i) => (
       <div
         key={`${key}-${m.month}`}
-        className={`flex min-w-0 flex-col border-t border-border ${size === 'mini' ? 'gap-1 p-1' : 'gap-1.5 p-1.5'} ${between(i)}`}
+        className={`flex min-w-0 flex-col gap-1 border-t border-border ${size === 'mini' ? 'p-1' : 'p-1.5'} ${between(i)}`}
       >
         {m[key].map((p) => tile(p, key, m.month))}
       </div>
@@ -188,11 +191,9 @@ export async function RevenueLanes({
       runningMonth={runningMonth}
       columns={`8rem repeat(${months.length}, max(${MIN_WIDTH[size]}, calc((100% - 8rem) / ${inView})))`}
       printColumns={`8rem repeat(${months.length}, minmax(0, 1fr))`}
-      // No taller than the window less the page's pinned bar and tabs (about
-      // nine rem) and the gap under them, so its head and its foot are on
-      // screen together. Keyboard focus scrolls a tile clear of the pinned
-      // month heads and lane names.
-      className="max-h-[calc(100vh-11.5rem)] scroll-pl-32 scroll-pt-16 rounded-xl border border-border bg-surface shadow-sm"
+      // As tall as its tiles, so nothing scrolls inside it but the months
+      // sideways. Keyboard focus scrolls a tile clear of the lane names.
+      className="scroll-pl-32 scroll-pt-16 rounded-xl border border-border bg-surface shadow-sm"
     >
       {header}
       {lane(

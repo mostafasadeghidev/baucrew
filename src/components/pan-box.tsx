@@ -3,12 +3,14 @@
 /**
  * A grid that scrolls both ways, for the revenue tab's lanes and year matrix.
  *
- * Twelve months are wider than the page and a year of sites is taller than the
- * window, so the box holds its own scroll and pins its edges the way a
+ * Twelve months are wider than the page and a year of sites can be taller than
+ * the window, so the box holds its own scroll and pins its edges the way a
  * spreadsheet does — the month heads along the top, the lane or site names down
- * the left. It is never taller than the window, so both pinned edges are on
- * screen at once. Its pinned cells are layered inside it and nowhere else: they
- * slide under each other, never over the page's own bar.
+ * the left. How tall it may get is the page's to say: the year matrix is no
+ * taller than the window, so both pinned edges are on screen at once; the lanes
+ * are as tall as their tiles, and the page scrolls instead. Its pinned cells are
+ * layered inside it and nowhere else: they slide under each other, never over
+ * the page's own bar.
  *
  * It moves like the project board: by its scrollbars, by two fingers, by shift
  * and the wheel, or by pulling the space inside it with the mouse. A swipe that
