@@ -3,7 +3,7 @@ import {
   DEFAULT_REVENUE_LAYOUT,
   parseRevenueLayoutCookie,
   resolveRevenueLayout,
-  revenueCardSummary,
+  revenueCardsDense,
   revenueDensity,
   revenueLayoutCookieValue,
   withDensity,
@@ -70,10 +70,10 @@ describe('withDensity', () => {
   })
 })
 
-describe('revenueCardSummary', () => {
-  it('drops the site lines only from a grid of six', () => {
-    expect(revenueCardSummary({ ...DEFAULT_REVENUE_LAYOUT, grid: '6' })).toBe(true)
-    expect(revenueCardSummary({ ...DEFAULT_REVENUE_LAYOUT, grid: '4' })).toBe(false)
-    expect(revenueCardSummary({ ...DEFAULT_REVENUE_LAYOUT, layout: 'lanes', grid: '6' })).toBe(false)
+describe('revenueCardsDense', () => {
+  it('draws only a grid of six dense', () => {
+    expect(revenueCardsDense({ ...DEFAULT_REVENUE_LAYOUT, grid: '6' })).toBe(true)
+    expect(revenueCardsDense({ ...DEFAULT_REVENUE_LAYOUT, grid: '4' })).toBe(false)
+    expect(revenueCardsDense({ ...DEFAULT_REVENUE_LAYOUT, layout: 'lanes', grid: '6' })).toBe(false)
   })
 })

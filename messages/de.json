@@ -710,7 +710,6 @@
     "situationNothing": "In diesem Monat ist nichts offen.",
     "situationMoneySince": "seit {date}",
     "situationMoneyNone": "Nichts ausstehend.",
-    "monthSites": "{count, plural, one {# Baustelle} other {# Baustellen}}",
     "year": "Jahr",
     "ownPeople": "Eigene Leute",
     "sub": "SUB",

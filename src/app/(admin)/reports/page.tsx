@@ -25,7 +25,6 @@ import {
   parseCompareYears,
   quarterBreakdown,
   bestQuarter,
-  monthSiteCount,
   siteMonthRows,
   type MonthRange,
 } from '@/lib/reports-calc'
@@ -51,7 +50,7 @@ import {
   REVENUE_LAYOUT_COOKIE,
   parseRevenueLayoutCookie,
   resolveRevenueLayout,
-  revenueCardSummary,
+  revenueCardsDense,
   type GridDensity,
 } from '@/lib/revenue-layout'
 import {
@@ -220,7 +219,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   }
   const hidePrices = await pricesHidden()
   const money = (v: number | null | undefined) => formatCurrency(v, locale, { hidden: hidePrices })
-  const whole = (v: number) => formatCurrency(v, locale, { whole: true, hidden: hidePrices })
+  const whole = (v: number | null | undefined) => formatCurrency(v, locale, { whole: true, hidden: hidePrices })
 
   /** Human label of the selected period ("August", "3. Quartal", "1. Halbjahr"). */
   const periodLabel = (() => {
@@ -346,7 +345,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     layoutParam,
     perParam
   )
-  const summaryCards = revenueCardSummary(monthsLayout)
+  const denseCards = revenueCardsDense(monthsLayout)
   // The ⓘ bubbles hang below their mark and open to the right, about as wide as
   // a card of three. From four to a row the right-hand card's run off the
   // window, so there the labels stand on their own.
@@ -371,13 +370,33 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           offers: openOffers?.offers ?? [],
         })
       : null
-  const cardPad = summaryCards ? 'px-2' : 'px-3'
-  const cardInset = summaryCards ? 'mx-2' : 'mx-3'
-  const cardText = summaryCards ? 'text-xs' : 'text-[13px]'
-  const cardWrap = summaryCards ? 'flex-wrap gap-x-2' : ''
-  /** Whole euros on a summary card — the cents do not fit — with the exact figure on hover. */
-  const cardMoney = (v: number) => (summaryCards ? whole(v) : money(v))
-  const exact = (v: number) => (summaryCards ? money(v) : undefined)
+  const cardPad = denseCards ? 'px-2' : 'px-3'
+  const cardInset = denseCards ? 'mx-2' : 'mx-3'
+  const cardText = denseCards ? 'text-xs' : 'text-[13px]'
+  const cardWrap = denseCards ? 'flex-wrap gap-x-2' : ''
+  /** Whole euros on a dense card — the cents do not fit — with the exact figure on hover. */
+  const cardMoney = (v: number | null) => (denseCards ? whole(v) : money(v))
+  const exact = (v: number | null) => (denseCards ? money(v) : undefined)
+  /** A site's line on a month card: its name, cut short with the whole of it on hover, and its amount. */
+  const siteLine = (
+    p: { key: string; id: string; name: string; price: number | null; fromSheet?: boolean },
+    amountTone = 'text-muted'
+  ) => (
+    <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
+      {p.fromSheet ? (
+        <span className="truncate" title={p.name}>
+          {p.name}
+        </span>
+      ) : (
+        <Link href={`/projects/${p.id}`} title={p.name} className="truncate text-accent hover:underline">
+          {p.name}
+        </Link>
+      )}
+      <span className={`shrink-0 tabular-nums ${amountTone}`} title={exact(p.price)}>
+        {cardMoney(p.price)}
+      </span>
+    </div>
+  )
   /** Actual against plan: green once the plan is reached (see planReached), amber below it. */
   const planDelta = (actual: number, planned: number, format: (v: number) => string = money) => {
     const { reached, label } = planReached(actual, planned, format)
@@ -829,7 +848,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <div key={m.month} className={`grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid row-span-6 ${card}`}>
                   <div
                     className={`flex items-center justify-between border-b border-border ${
-                      summaryCards ? 'flex-wrap gap-x-2 px-2 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'
+                      denseCards ? 'flex-wrap gap-x-2 px-2 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'
                     }`}
                   >
                     <h3 className="font-semibold">{monthName(m.month)}</h3>
@@ -837,37 +856,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                       {cardMoney(m.total)}
                     </span>
                   </div>
-                  {summaryCards ? (
-                    <div className="px-2 pt-2 text-[11px] text-muted">
-                      {m.total > 0 && (
-                        <div aria-hidden className="flex h-1.5 overflow-hidden rounded-full bg-subtle">
-                          <span className="bg-accent" style={{ width: `${(Math.max(m.ownTotal, 0) / m.total) * 100}%` }} />
-                          <span className="bg-accent/40" style={{ width: `${(Math.max(m.subTotal, 0) / m.total) * 100}%` }} />
-                        </div>
-                      )}
-                      <p className="mt-1">{t('monthSites', { count: monthSiteCount(m) })}</p>
-                    </div>
-                  ) : (
-                    <div className="px-3 pt-1.5 text-[13px]">
-                      {m.own.map((p) => (
-                        <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
-                          {p.fromSheet ? (
-                            <span className="truncate">{p.name}</span>
-                          ) : (
-                            <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
-                              {p.name}
-                            </Link>
-                          )}
-                          <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className={`${cardPad} pt-1.5 ${cardText}`}>{m.own.map((p) => siteLine(p))}</div>
                   <div
                     className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap}`}
                   >
                     <span className="flex items-center gap-1.5 italic">
-                      {summaryCards && <span aria-hidden className="h-2 w-2 shrink-0 rounded-[3px] bg-accent" />}
                       {t('ownPeople')}
                       {hints && <InfoHint text={t(sheetLed ? 'hintOwnPeopleSheet' : 'hintOwnPeople')} />}
                     </span>
@@ -875,28 +868,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                       {cardMoney(m.ownTotal)}
                     </span>
                   </div>
-                  <div className={`px-3 text-[13px] ${m.sub.length > 0 && !summaryCards ? 'pt-1' : ''}`}>
-                    {!summaryCards &&
-                      m.sub.map((p) => (
-                        <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
-                          {p.fromSheet ? (
-                            <span className="truncate">{p.name}</span>
-                          ) : (
-                            <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
-                              {p.name}
-                            </Link>
-                          )}
-                          <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
-                        </div>
-                      ))}
-                  </div>
+                  <div className={`${cardPad} ${cardText} ${m.sub.length > 0 ? 'pt-1' : ''}`}>{m.sub.map((p) => siteLine(p))}</div>
                   <div
                     className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap} ${
                       m.sub.length === 0 ? 'text-muted' : ''
                     }`}
                   >
                     <span className="flex items-center gap-1.5 italic">
-                      {summaryCards && <span aria-hidden className="h-2 w-2 shrink-0 rounded-[3px] bg-accent/40" />}
                       {t('sub')}
                       {hints && <InfoHint text={t(sheetLed ? 'hintSubSheet' : 'hintSub')} />}
                     </span>
@@ -912,7 +890,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                           {hints && <InfoHint text={t('hintPlan')} />}
                         </span>
                         <span className="ml-auto flex items-center gap-2 tabular-nums">
-                          {!summaryCards && <span className="text-muted">{money(plan!.months[m.month].total)}</span>}
+                          {!denseCards && <span className="text-muted">{money(plan!.months[m.month].total)}</span>}
                           <span
                             className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}
                             title={exact(plan!.months[m.month].total)}
@@ -933,15 +911,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                             {cardMoney(m.extraTotal)}
                           </span>
                         </div>
-                        {!summaryCards &&
-                          m.extra.map((p) => (
-                            <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
-                              <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
-                                {p.name}
-                              </Link>
-                              <span className="shrink-0 tabular-nums">{money(p.price)}</span>
-                            </div>
-                          ))}
+                        {m.extra.map((p) => siteLine(p, ''))}
                       </div>
                     )}
                   </div>

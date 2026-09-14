@@ -710,7 +710,6 @@
     "situationNothing": "Nothing is open in this month.",
     "situationMoneySince": "since {date}",
     "situationMoneyNone": "Nothing outstanding.",
-    "monthSites": "{count, plural, one {# site} other {# sites}}",
     "year": "Year",
     "ownPeople": "Own crew",
     "sub": "SUB",

@@ -104,9 +104,9 @@ export const withDensity = (choice: RevenueLayoutChoice, value: string): Revenue
   resolveRevenueLayout(choice, choice.layout, value)
 
 /**
- * Six to a row, a grid card shows the month's sums and not its site lines: at
- * that width a site's name is a few letters and an ellipsis, and whoever chose
- * so many cards wants to see the year, not read it.
+ * Six to a row, a grid card is drawn dense: smaller type, whole euros with the
+ * exact figure on hover, and each site's name cut short with the whole of it on
+ * hover. It used to drop the site lines altogether, and the office missed them.
  */
-export const revenueCardSummary = (choice: RevenueLayoutChoice): boolean =>
+export const revenueCardsDense = (choice: RevenueLayoutChoice): boolean =>
   choice.layout === 'grid' && choice.grid === '6'
