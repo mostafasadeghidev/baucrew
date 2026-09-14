@@ -12,7 +12,7 @@ most tabs. It now has six tabs, each answering one question with one time rule:
 | --- | --- | --- |
 | **Heute** (default) | Where must I look today? Eight tiles with traffic lights; a click on a tile opens its short version right under the tiles (`?open=<tile>`), with a link to the whole of it. | Stand heute — pickers hidden |
 | **Vergleich** (`tab=compare`) | How does the year compare with other years? Chart by month, quarter card, year bars, running sum. | Every figure follows Jahr/Zeitraum |
-| **Aufträge & Baustellen** (`tab=jobs`) | The long lists behind the tiles: jobs by stage (`?open=offers\|ordered\|money` unfolds rows), one site table, material. | Stand heute — pickers hidden |
+| **Aufträge & Baustellen** (`tab=jobs`) | The long lists behind the tiles: jobs by stage (`?open=offers\|ordered\|money` unfolds rows), the sites as cards in groups or as a kanban with a column per group (`?sites=kanban`), material. | Stand heute — pickers hidden |
 | **Planumsatz** (`tab=revenue`) | What is the year/period worth by month, how sure is it, who carries it? Views: Monate · Baustellen · Kunden. | Every figure follows Jahr/Zeitraum |
 | **Auslastung** (`tab=utilization`) | Is the crew planned, who and what is idle, how long did finished jobs take? | Every figure follows Jahr/Zeitraum |
 | **Datenlücken** (`tab=quality`) | What makes a figure wrong or incomplete, and where is it fixed? | Stand heute |

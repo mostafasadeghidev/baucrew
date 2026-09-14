@@ -14,12 +14,15 @@ export function ParamTabs({
   param = 'tab',
   ariaLabel,
   clears = [],
+  scroll = true,
 }: {
   tabs: ParamTab[]
   param?: string
   ariaLabel?: string
   /** Params that belong to one tab only and are dropped when another tab is chosen. */
   clears?: string[]
+  /** False keeps the page where it is when a tab is chosen — see `TabLink`. */
+  scroll?: boolean
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -44,6 +47,7 @@ export function ParamTabs({
           active={tab.value === current}
           label={tab.label}
           count={tab.count}
+          scroll={scroll}
         />
       ))}
     </TabsList>

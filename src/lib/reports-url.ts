@@ -28,7 +28,10 @@ const COMPARE = ['compare', 'chart', 'qyear', 'qcompare']
  * address without a tab that still carries the comparison's choices can only
  * be an old overview link.
  */
-export const TAB_CHOICES = ['view', 'open', ...REVENUE_CHOICES, ...COMPARE]
+/** The Aufträge & Baustellen tab's own choice: the sites as cards or as a kanban. */
+const JOBS_CHOICES = ['sites']
+
+export const TAB_CHOICES = ['view', 'open', ...REVENUE_CHOICES, ...COMPARE, ...JOBS_CHOICES]
 
 export function resolveReportsUrl(params: Record<string, string | undefined>): string | null {
   const tab = params.tab ?? ''

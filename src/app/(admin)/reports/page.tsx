@@ -113,6 +113,7 @@ type Params = {
   layout?: string
   per?: string
   open?: string
+  sites?: string
 }
 
 /**
@@ -150,6 +151,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     layout: layoutParam,
     per: perParam,
     open: openParam,
+    sites: sitesParam,
   } = params
   const [t, locale, cookieStore] = await Promise.all([getTranslations('reports'), getLocale(), cookies()])
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
@@ -860,6 +862,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           locale={locale}
           today={today}
           open={openParam}
+          sitesView={sitesParam === 'kanban' ? 'kanban' : 'cards'}
           cutoff={cutoff}
         />
       )}

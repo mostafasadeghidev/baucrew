@@ -2,7 +2,8 @@
  * The CRM's "Aufträge & Baustellen" tab: the long lists behind the Heute tiles.
  *
  * Every job that still matters, by the stage it stands in; the sites — late,
- * running, starting soon — as one card each, every job once; and
+ * running, starting soon — as one card each, every job once, in groups or as a
+ * kanban with a column for each group; and
  * the material that is missing. Heute keeps the tiles and opens a short version
  * of each under them; this is where the whole of it is read.
  *
@@ -15,6 +16,7 @@ import Link from 'next/link'
 import { Fragment } from 'react'
 import { getTranslations } from 'next-intl/server'
 import type { ProjectStatus } from '@/generated/prisma/enums'
+import { ParamTabs } from '@/components/param-tabs'
 import { StatusBadge } from '@/components/status-badge'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { siteProgress, SOON_DAYS, type Stage } from '@/lib/cockpit'
@@ -27,6 +29,13 @@ const warn = 'text-amber-700 dark:text-amber-400'
 const danger = 'text-red-700 dark:text-red-400'
 
 const DAY = 86_400_000
+
+/** The edge on top of each kanban column. Literal, so Tailwind finds them. */
+const COLUMN_EDGE = {
+  overdue: 'border-t-red-500',
+  running: 'border-t-accent',
+  starting: 'border-t-sky-500',
+} as const
 
 /** Which stage rows a `?open=` value unfolds — a link from Heute, the old offers tab. */
 const OPENS: Record<string, readonly Stage[]> = {
@@ -45,6 +54,7 @@ export async function JobsView({
   locale,
   today,
   open,
+  sitesView,
   cutoff,
 }: {
   data: Today
@@ -55,6 +65,8 @@ export async function JobsView({
   today: Date
   /** Stage rows to unfold, from `?open=`. */
   open: string | undefined
+  /** The sites in groups of cards, or as a kanban with a column for each group (`?sites=kanban`). */
+  sitesView: 'cards' | 'kanban'
   cutoff: Date | null
 }) {
   const t = await getTranslations('reports')
@@ -127,110 +139,114 @@ export async function JobsView({
     )
   }
 
-  /** One group of sites: its name and count, then a card for each site in it. */
-  const siteCards = (group: 'overdue' | 'running' | 'starting', jobs: TodayJob[], title: string) => {
-    if (jobs.length === 0) return null
-    const sorted = [...jobs].sort((a, b) =>
-      group === 'overdue'
+  /** The three groups of sites, each in its order: the latest first, then by start. */
+  const siteGroups = (
+    [
+      ['overdue', t('groupOverdue'), overdue],
+      ['running', t('groupRunning'), running],
+      ['starting', t('groupStarting'), starting],
+    ] as const
+  ).map(([key, title, jobs]) => ({
+    key,
+    title,
+    jobs: [...jobs].sort((a, b) =>
+      key === 'overdue'
         ? (b.overdue?.workdaysLate ?? 0) - (a.overdue?.workdaysLate ?? 0)
         : (a.plannedStart?.getTime() ?? 0) - (b.plannedStart?.getTime() ?? 0)
-    )
+    ),
+  }))
+
+  /**
+   * A site as a card, the same in both views: the job on top, then its dates,
+   * where it stands, the next day on site, what is missing and its value. On
+   * the kanban it stands out from its column.
+   */
+  const siteCard = (job: TodayJob, late: boolean, onBoard: boolean) => {
+    const notes = [
+      job.missingItems > 0
+        ? { key: 'material', text: `${t('colMaterial')}: ${t('materialMissingCount', { count: job.missingItems })}`, tone: warn }
+        : null,
+      job.checklistProblems > 0 || job.checklistOpen > 0
+        ? {
+            key: 'checklist',
+            text: `${t('colChecklist')}: ${[
+              job.checklistProblems > 0 ? t('cockpitProblems', { count: job.checklistProblems }) : null,
+              job.checklistOpen > 0 ? t('cockpitOpenPoints', { count: job.checklistOpen }) : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}`,
+            tone: job.checklistProblems > 0 ? warn : 'text-muted',
+          }
+        : null,
+      job.noCity ? { key: 'city', text: t('placeMissing'), tone: warn } : null,
+    ].filter((note) => note !== null)
     return (
-      <div key={group}>
-        <h3 className={`${label} ${group === 'overdue' ? danger : ''}`}>
-          {title} · {jobs.length}
-        </h3>
-        <ul className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {sorted.map((job) => {
-            const notes = [
-              job.missingItems > 0
-                ? { key: 'material', text: `${t('colMaterial')}: ${t('materialMissingCount', { count: job.missingItems })}`, tone: warn }
-                : null,
-              job.checklistProblems > 0 || job.checklistOpen > 0
-                ? {
-                    key: 'checklist',
-                    text: `${t('colChecklist')}: ${[
-                      job.checklistProblems > 0 ? t('cockpitProblems', { count: job.checklistProblems }) : null,
-                      job.checklistOpen > 0 ? t('cockpitOpenPoints', { count: job.checklistOpen }) : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}`,
-                    tone: job.checklistProblems > 0 ? warn : 'text-muted',
-                  }
-                : null,
-              job.noCity ? { key: 'city', text: t('placeMissing'), tone: warn } : null,
-            ].filter((note) => note !== null)
-            return (
-              <li
-                key={job.id}
-                className={`overflow-hidden rounded-lg border bg-subtle/40 ${
-                  group === 'overdue' ? 'border-red-300 dark:border-red-500/40' : 'border-border'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3 border-b border-border px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-[11px] tabular-nums text-muted">{job.number}</p>
-                    <Link
-                      href={`/projects/${job.id}`}
-                      title={job.name}
-                      className="block truncate text-[13px] font-medium text-accent hover:underline"
-                    >
-                      {job.name}
-                    </Link>
-                    <p className="truncate text-[11px] text-muted" title={job.customer}>
-                      {job.customer}
-                    </p>
-                  </div>
-                  <span className="shrink-0">
-                    <StatusBadge status={job.status as ProjectStatus} />
-                  </span>
-                </div>
-                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 px-3 py-2 text-[12px]">
-                  <dt className="text-muted">{t('colPeriod')}</dt>
-                  <dd className="tabular-nums">
-                    {job.plannedStart
-                      ? `${date(job.plannedStart)}${job.plannedEnd ? ` – ${date(job.plannedEnd)}` : ''}`
-                      : job.plannedEnd
-                        ? t('periodUntil', { date: date(job.plannedEnd) })
-                        : '—'}
-                  </dd>
-                  <dt className="text-muted">{t('colSituation')}</dt>
-                  <dd>{situation(job)}</dd>
-                  <dt className="text-muted">{t('colNextVisit')}</dt>
-                  <dd>
-                    <NextVisit
-                      job={job}
-                      day={day}
-                      locale={locale}
-                      labels={{ none: t('noVisit14', { days: SOON_DAYS }), later: (d) => t('nextVisitLater', { date: d }) }}
-                    />
-                  </dd>
-                  <dt className="text-muted">{t('colNotes')}</dt>
-                  <dd>
-                    {notes.length === 0 ? (
-                      <span className="text-muted">—</span>
-                    ) : (
-                      notes.map((note) => (
-                        <span key={note.key} className={`block ${note.tone}`}>
-                          {note.text}
-                        </span>
-                      ))
-                    )}
-                  </dd>
-                  {showFinancials && (
-                    <>
-                      <dt className="text-muted">{t('colOrderValue')}</dt>
-                      <dd className="font-medium tabular-nums">
-                        {job.amount === null ? <span className={warn}>{t('valueMissing')}</span> : whole(job.amount)}
-                      </dd>
-                    </>
-                  )}
-                </dl>
-              </li>
-            )
-          })}
-        </ul>
-      </div>
+      <li
+        key={job.id}
+        className={`overflow-hidden rounded-lg border ${onBoard ? 'bg-surface shadow-sm' : 'bg-subtle/40'} ${
+          late ? 'border-red-300 dark:border-red-500/40' : 'border-border'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-border px-3 py-2">
+          <div className="min-w-0">
+            <p className="text-[11px] tabular-nums text-muted">{job.number}</p>
+            <Link
+              href={`/projects/${job.id}`}
+              title={job.name}
+              className="block truncate text-[13px] font-medium text-accent hover:underline"
+            >
+              {job.name}
+            </Link>
+            <p className="truncate text-[11px] text-muted" title={job.customer}>
+              {job.customer}
+            </p>
+          </div>
+          <span className="shrink-0">
+            <StatusBadge status={job.status as ProjectStatus} />
+          </span>
+        </div>
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 px-3 py-2 text-[12px]">
+          <dt className="text-muted">{t('colPeriod')}</dt>
+          <dd className="tabular-nums">
+            {job.plannedStart
+              ? `${date(job.plannedStart)}${job.plannedEnd ? ` – ${date(job.plannedEnd)}` : ''}`
+              : job.plannedEnd
+                ? t('periodUntil', { date: date(job.plannedEnd) })
+                : '—'}
+          </dd>
+          <dt className="text-muted">{t('colSituation')}</dt>
+          <dd>{situation(job)}</dd>
+          <dt className="text-muted">{t('colNextVisit')}</dt>
+          <dd>
+            <NextVisit
+              job={job}
+              day={day}
+              locale={locale}
+              labels={{ none: t('noVisit14', { days: SOON_DAYS }), later: (d) => t('nextVisitLater', { date: d }) }}
+            />
+          </dd>
+          <dt className="text-muted">{t('colNotes')}</dt>
+          <dd>
+            {notes.length === 0 ? (
+              <span className="text-muted">—</span>
+            ) : (
+              notes.map((note) => (
+                <span key={note.key} className={`block ${note.tone}`}>
+                  {note.text}
+                </span>
+              ))
+            )}
+          </dd>
+          {showFinancials && (
+            <>
+              <dt className="text-muted">{t('colOrderValue')}</dt>
+              <dd className="font-medium tabular-nums">
+                {job.amount === null ? <span className={warn}>{t('valueMissing')}</span> : whole(job.amount)}
+              </dd>
+            </>
+          )}
+        </dl>
+      </li>
     )
   }
 
@@ -324,19 +340,66 @@ export async function JobsView({
       </div>
 
       <div id="baustellen" className={`scroll-mt-40 overflow-hidden ${card}`}>
-        <div className="border-b border-border px-3 py-2.5">
-          <h2 className="text-sm font-semibold">{t('sitesTitle')}</h2>
-          <p className="mt-0.5 text-[11px] text-muted">
-            {t('sitesSummary', { overdue: overdue.length, running: running.length, starting: starting.length })}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2.5">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold">{t('sitesTitle')}</h2>
+            <p className="mt-0.5 text-[11px] text-muted">
+              {t('sitesSummary', { overdue: overdue.length, running: running.length, starting: starting.length })}
+            </p>
+          </div>
+          {/* The switch sits far down the page: choosing leaves the page where it is. */}
+          <ParamTabs
+            param="sites"
+            ariaLabel={t('sitesTitle')}
+            scroll={false}
+            tabs={[
+              { value: '', label: t('sitesViewCards') },
+              { value: 'kanban', label: t('sitesViewKanban') },
+            ]}
+          />
         </div>
         {overdue.length + running.length + starting.length === 0 ? (
           <p className="px-3 py-6 text-sm text-muted">{t('cockpitNoSites')}</p>
+        ) : sitesView === 'kanban' ? (
+          // A column for each group, all three always there; a column scrolls on
+          // its own. No card is dragged: a site's column follows from its dates.
+          <div className="grid auto-cols-[minmax(17rem,1fr)] grid-flow-col gap-3 overflow-x-auto p-3">
+            {siteGroups.map((group) => (
+              <section
+                key={group.key}
+                aria-label={group.title}
+                className={`flex min-w-0 flex-col rounded-lg border-t-2 bg-subtle ${COLUMN_EDGE[group.key]}`}
+              >
+                <h3
+                  className={`flex items-center justify-between gap-2 px-3 py-2 ${label} ${group.key === 'overdue' ? danger : ''}`}
+                >
+                  <span>{group.title}</span>
+                  <span className="tabular-nums">{group.jobs.length}</span>
+                </h3>
+                {group.jobs.length === 0 ? (
+                  <p className="px-3 pb-3 text-[12px] text-muted">{t('sitesColumnEmpty')}</p>
+                ) : (
+                  <ul className="max-h-[calc(100vh-14rem)] space-y-2 overflow-y-auto px-2 pb-2">
+                    {group.jobs.map((job) => siteCard(job, group.key === 'overdue', true))}
+                  </ul>
+                )}
+              </section>
+            ))}
+          </div>
         ) : (
           <div className="space-y-5 p-3">
-            {siteCards('overdue', overdue, t('groupOverdue'))}
-            {siteCards('running', running, t('groupRunning'))}
-            {siteCards('starting', starting, t('groupStarting'))}
+            {siteGroups
+              .filter((group) => group.jobs.length > 0)
+              .map((group) => (
+                <div key={group.key}>
+                  <h3 className={`${label} ${group.key === 'overdue' ? danger : ''}`}>
+                    {group.title} · {group.jobs.length}
+                  </h3>
+                  <ul className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    {group.jobs.map((job) => siteCard(job, group.key === 'overdue', false))}
+                  </ul>
+                </div>
+              ))}
           </div>
         )}
       </div>

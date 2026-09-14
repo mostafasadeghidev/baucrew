@@ -27,15 +27,19 @@ export function TabLink({
   active,
   label,
   count,
+  scroll = true,
 }: {
   href: string
   active: boolean
   label: string
   count?: number
+  /** False for a switch far down a page: the page stays where it is instead of jumping to the top. */
+  scroll?: boolean
 }) {
   return (
     <Link
       href={href}
+      scroll={scroll}
       // A tab is another view of the same page, not a place of its own: it
       // replaces the entry so the browser's back gesture leaves the page
       // instead of walking back through every tab that was looked at.
