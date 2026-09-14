@@ -487,7 +487,7 @@ export async function TodayView({
             caption: monthPlan.average !== null ? t('tileMonthPlanAvg', { amount: whole(monthPlan.average) }) : null,
             lamp: planLamp,
             panel: planPanel,
-            more: { href: '/reports?tab=revenue', label: t('panelMorePlan') },
+            more: null,
           },
         ]
       : []),
