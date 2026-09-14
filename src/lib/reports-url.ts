@@ -11,7 +11,7 @@
  */
 
 /** The current tabs; the empty value is Heute. */
-export const REPORT_TABS = ['', 'revenue', 'utilization', 'quality'] as const
+export const REPORT_TABS = ['', 'jobs', 'revenue', 'utilization', 'quality'] as const
 export type ReportTab = (typeof REPORT_TABS)[number]
 
 /** The time frame travels with every redirect. */
@@ -57,6 +57,7 @@ export function resolveReportsUrl(params: Record<string, string | undefined>): s
       // The overview used to be the tab without a name; its comparison links
       // carried the chart's choices and no view.
       return hadComparison && params.view === undefined ? toComparison() : null
+    case 'jobs':
     case 'utilization':
     case 'quality':
       return null

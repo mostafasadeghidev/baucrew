@@ -57,7 +57,10 @@ import {
   type GridDensity,
 } from '@/lib/revenue-layout'
 import {
+  CLASS_OF,
+  certaintyOf,
   certaintyTotals,
+  classTotals,
   monthSituations,
   monthlyAverage,
   situationSummary,
@@ -67,6 +70,7 @@ import { RevenueLanes } from './revenue-lanes'
 import { RevenueMatrix } from './revenue-matrix'
 import { OrderSituation } from './order-situation'
 import { TodayView } from './today-view'
+import { JobsView } from './jobs-view'
 import { UsageView } from './usage-view'
 import { GapsView } from './gaps-view'
 
@@ -156,6 +160,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   // every year in the chart can be opened from it.
   const comparisonYears = Array.from({ length: 6 }, (_, i) => currentYear + 1 - i)
   const onToday = tab === ''
+  const onJobs = tab === 'jobs'
   const onRevenue = tab === 'revenue' && showFinancials
   const onUsage = tab === 'utilization'
   const onGaps = tab === 'quality'
@@ -169,6 +174,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     lastYear,
     nextYear,
     crewLoad,
+    crewLoadNextYear,
     revenue,
     prevRevenue,
     yearTotals,
@@ -179,15 +185,17 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   ] = await Promise.all([
     // Every tab carries the Datenlücken count on its tab.
     getDataGaps(today),
-    onToday || onGaps ? getHistoryCutoff() : null,
-    onToday ? getToday(today) : null,
-    onToday && showFinancials ? getOpenMoney() : null,
+    onToday || onJobs || onGaps ? getHistoryCutoff() : null,
+    onToday || onJobs ? getToday(today) : null,
+    (onToday || onJobs) && showFinancials ? getOpenMoney() : null,
     // Heute reads the running year whatever year the pickers stand on.
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear) : null,
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear - 1) : null,
     // The backlog runs twelve months, so it reaches into the next year.
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear + 1) : null,
     onToday ? getCrewLoad(currentYear) : null,
+    // In December the month after is January of the next year.
+    onToday && todayMonth === 11 ? getCrewLoad(currentYear + 1) : null,
     onRevenue ? getYearRevenueOrHistory(year) : null,
     onRevenue ? getYearRevenueOrHistory(year - 1) : null,
     onRevenue ? getYearTotals(comparisonYears) : null,
@@ -251,13 +259,28 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     if (!onToday) return null
     const totals = thisYear ? thisYear.months.map((m) => m.total) : null
     const lastTotals = lastYear && lastYear.yearTotal > 0 ? lastYear.months.map((m) => m.total) : null
-    const monthPlan = totals
-      ? {
-          label: monthName(todayMonth),
-          total: totals[todayMonth],
-          average: monthlyAverage(totals, lastTotals, todayMonth),
-        }
-      : null
+    const running = thisYear?.months[todayMonth]
+    const monthPlan =
+      totals && running
+        ? {
+            label: monthName(todayMonth),
+            total: totals[todayMonth],
+            average: monthlyAverage(totals, lastTotals, todayMonth),
+            lastYear: lastTotals ? { year: currentYear - 1, total: lastTotals[todayMonth] } : null,
+            classes: classTotals(certaintyTotals([...running.own, ...running.sub])),
+            // The month's lines, the biggest first, each with where its money stands.
+            lines: [...running.own, ...running.sub]
+              .map((line) => ({
+                key: line.key,
+                id: line.fromSheet ? null : line.id,
+                name: line.name,
+                customer: line.customer,
+                amount: line.price,
+                cls: CLASS_OF[certaintyOf(line.fromSheet ? undefined : line.status, line.settled)],
+              }))
+              .sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0)),
+          }
+        : null
     const summary =
       thisYear && totals
         ? situationSummary(
@@ -268,10 +291,37 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           )
         : null
     const crewMonth = crewLoad?.[todayMonth]
+    const crewNext = todayMonth < 11 ? crewLoad?.[todayMonth + 1] : crewLoadNextYear?.[0]
+    const crewNextLabel = todayMonth < 11 ? monthName(todayMonth + 1) : `${monthName(0)} ${currentYear + 1}`
+    // The twelve months the backlog runs over, each with its ordered work: this
+    // year's from the running month on, then next year's before it.
+    const orderedOf = (months: typeof thisYear) =>
+      months ? months.months.map((m) => certaintyTotals([...m.own, ...m.sub]).ordered) : null
+    const orderedThis = orderedOf(thisYear)
+    const orderedNext = orderedOf(nextYear)
+    const backlogMonths = Array.from({ length: 12 }, (_, i) => {
+      const index = todayMonth + i
+      const inNext = index > 11
+      const month = index % 12
+      return {
+        label: `${shortMonths[month]} ${inNext ? currentYear + 1 : currentYear}`,
+        amount: (inNext ? orderedNext?.[month] : orderedThis?.[month]) ?? 0,
+      }
+    })
     return {
       monthPlan,
-      backlog: summary ? { label: monthName(todayMonth), amount: summary.backlog ?? 0, weeks: summary.weeks } : null,
-      crew: { label: monthName(todayMonth), pct: crewMonth?.pct ?? null, booked: crewMonth?.booked ?? 0 },
+      backlog: summary
+        ? { label: monthName(todayMonth), amount: summary.backlog ?? 0, weeks: summary.weeks, months: backlogMonths }
+        : null,
+      crew: {
+        label: monthName(todayMonth),
+        pct: crewMonth?.pct ?? null,
+        booked: crewMonth?.booked ?? 0,
+        available: crewMonth?.available ?? 0,
+        next: crewNext
+          ? { label: crewNextLabel, pct: crewNext.pct, booked: crewNext.booked, available: crewNext.available }
+          : null,
+      },
     }
   })()
 
@@ -541,6 +591,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   const tabs = [
     { value: '', label: t('tabToday') },
+    { value: 'jobs', label: t('tabJobs') },
     ...(showFinancials ? [{ value: 'revenue', label: t('tabPlan') }] : []),
     { value: 'utilization', label: t('tabUtilization') },
     { value: 'quality', label: t('tabGaps'), count: gaps.count },
@@ -548,7 +599,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const tabLabel = tabs.find((x) => x.value === tab)?.label ?? t('tabPlan')
   const intro = onToday
     ? t('introToday')
-    : tab === 'revenue'
+    : onJobs
+      ? t('introJobs')
+      : tab === 'revenue'
       ? t('introPlan')
       : onUsage
         ? t('introUsage')
@@ -622,11 +675,23 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           showFinancials={showFinancials}
           locale={locale}
           today={today}
-          open={openParam}
           monthPlan={todayTiles.monthPlan}
           backlog={todayTiles.backlog}
           crew={todayTiles.crew}
-          gapCount={gaps.count}
+          gaps={gaps}
+          cutoff={cutoff}
+        />
+      )}
+
+      {/* ── Aufträge & Baustellen ──────────────────────────── */}
+      {onJobs && todayData && (
+        <JobsView
+          data={todayData}
+          money={openMoney}
+          showFinancials={showFinancials}
+          locale={locale}
+          today={today}
+          open={openParam}
           cutoff={cutoff}
         />
       )}

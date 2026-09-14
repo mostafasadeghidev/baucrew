@@ -1,4 +1,4 @@
-# CHANGE: CRM page — eight tabs become four
+# CHANGE: CRM page — eight tabs become five
 
 ## What changed
 
@@ -6,11 +6,12 @@ The CRM page (`/reports`) had eight tabs — Übersicht, Cockpit, Umsatz,
 Angebote, Projekte, Kunden, Auslastung, Datenqualität. They showed the same
 jobs through different groupings and different time rules, so one status could
 carry two sums on one screen, and the year/period pickers only half-applied on
-most tabs. It now has four tabs, each answering one question with one time rule:
+most tabs. It now has five tabs, each answering one question with one time rule:
 
 | Tab | Question | Time rule |
 | --- | --- | --- |
-| **Heute** (default) | Where must I look today? Tiles with traffic lights, jobs by stage, one site table, material. | Stand heute — pickers hidden |
+| **Heute** (default) | Where must I look today? Eight tiles with traffic lights; a click on a tile opens its short version right under the tiles (`?open=<tile>`), with a link to the whole of it. | Stand heute — pickers hidden |
+| **Aufträge & Baustellen** (`tab=jobs`) | The long lists behind the tiles: jobs by stage (`?open=offers\|ordered\|money` unfolds rows), one site table, material. | Stand heute — pickers hidden |
 | **Planumsatz** (`tab=revenue`) | What is the year/period worth by month, how sure is it, who carries it, how does it compare? Views: Monate · Baustellen · Kunden · Vergleich. | Every figure follows Jahr/Zeitraum |
 | **Auslastung** (`tab=utilization`) | Is the crew planned, who and what is idle, how long did finished jobs take? | Every figure follows Jahr/Zeitraum |
 | **Datenlücken** (`tab=quality`) | What makes a figure wrong or incomplete, and where is it fixed? | Stand heute |
@@ -40,7 +41,7 @@ with a 307, keeping `year` and `period`:
 | --- | --- |
 | `tab=overview`, or no tab and no view | `/reports` — or `tab=revenue&view=compare` when `compare`/`chart`/`qyear`/`qcompare` is set (the old overview had no tab) |
 | `tab=cockpit`, unknown tab | `/reports` |
-| `tab=offers` | `/reports?open=offers` |
+| `tab=offers` | `/reports?open=offers` (the offers tile's sheet on Heute) |
 | `tab=projects` | `/reports?tab=utilization` |
 | `tab=customers` | `/reports?tab=revenue&view=customers` |
 | `tab=revenue&view=cumulative` | `/reports?tab=revenue&view=compare` |
@@ -48,11 +49,13 @@ with a 307, keeping `year` and `period`:
 ## Touched files
 
 - `src/app/(admin)/reports/page.tsx` — rewritten around the four tabs
-- `src/app/(admin)/reports/today-view.tsx` — new (Heute)
+- `src/app/(admin)/reports/today-view.tsx` — new (Heute: tiles and their sheets)
+- `src/app/(admin)/reports/tile-board.tsx` — new (client: which tile's sheet is open)
+- `src/app/(admin)/reports/jobs-view.tsx` — new (Aufträge & Baustellen)
 - `src/app/(admin)/reports/usage-view.tsx` — new (Auslastung)
 - `src/app/(admin)/reports/gaps-view.tsx` — new (Datenlücken)
 - `src/app/(admin)/reports/order-situation.tsx` — four classes, no money/backlog tiles, no crew row
-- `src/lib/reports.ts` — `getToday`, `getDataGaps`, `getCrewUsage` added; `getPipeline`, `getCockpit`, `getDataQuality` removed; `getProjectEfficiency` files jobs by their end and leaves Altbestand out
+- `src/lib/reports.ts` — `getToday` (incl. who is on which site today), `getDataGaps`, `getCrewUsage` added; `getPipeline`, `getCockpit`, `getDataQuality` removed; `getProjectEfficiency` files jobs by their end and leaves Altbestand out
 - `src/lib/cockpit.ts` — stage rows, overdue rule, site groups
 - `src/lib/data-gaps.ts` — new
 - `src/lib/order-situation.ts` — `crewUsage`, `classTotals`
@@ -70,7 +73,7 @@ with a 307, keeping `year` and `period`:
    `src/app/(admin)/reports/page.tsx`, `src/lib/reports.ts`,
    `src/lib/cockpit.ts`, `src/app/(admin)/reports/order-situation.tsx`,
    `messages/*.json` and the tests from the commit before it).
-2. Delete `src/lib/reports-url.ts`, `src/lib/data-gaps.ts`, the three
-   `*-view.tsx` files and their tests.
+2. Delete `src/lib/reports-url.ts`, `src/lib/data-gaps.ts`, the four
+   `*-view.tsx` files, `tile-board.tsx` and their tests.
 3. Restore the old links in the dashboard (`/reports?tab=offers`) and the time
    summary (`/reports?tab=projects`).

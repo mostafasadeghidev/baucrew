@@ -535,8 +535,13 @@ export type Today = {
   stages: { rows: StageRow[]; footer: StageFooter }
   material: MissingMaterial[]
   stockShort: StockShortage[]
-  /** Sites and people on today's schedule. */
-  schedule: { sites: number; people: number }
+  /** Sites and people on today's schedule, and who is where. */
+  schedule: {
+    sites: number
+    people: number
+    /** One row per site on today's schedule, with everybody booked on it. */
+    today: Array<{ projectId: string; number: string; name: string; people: string[] }>
+  }
 }
 
 /**
@@ -577,7 +582,13 @@ export async function getToday(today: Date): Promise<Today> {
     getHistoryCutoff(),
     db.scheduleEntry.findMany({
       where: { date: day, cancelledAt: null },
-      select: { projectId: true, employees: { select: { employeeId: true } } },
+      select: {
+        projectId: true,
+        startTime: true,
+        project: { select: { number: true, name: true } },
+        employees: { select: { employeeId: true, employee: { select: { firstName: true, lastName: true } } } },
+      },
+      orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
     }),
     getStockShortages(),
   ])
@@ -626,6 +637,24 @@ export async function getToday(today: Date): Promise<Today> {
     schedule: {
       sites: new Set(entries.map((e) => e.projectId)).size,
       people: new Set(entries.flatMap((e) => e.employees.map((x) => x.employeeId))).size,
+      // A site booked twice today (morning and afternoon crew) is one row.
+      today: [
+        ...entries
+          .reduce((bySite, entry) => {
+            const row = bySite.get(entry.projectId) ?? {
+              projectId: entry.projectId,
+              number: entry.project.number,
+              name: entry.project.name,
+              people: [] as string[],
+            }
+            for (const { employee } of entry.employees) {
+              const name = `${employee.firstName} ${employee.lastName}`.trim()
+              if (!row.people.includes(name)) row.people.push(name)
+            }
+            return bySite.set(entry.projectId, row)
+          }, new Map<string, { projectId: string; number: string; name: string; people: string[] }>())
+          .values(),
+      ],
     },
   }
 }

@@ -7,6 +7,7 @@ describe('resolveReportsUrl', () => {
     expect(resolveReportsUrl({ tab: 'revenue', year: '2025', view: 'sites' })).toBeNull()
     expect(resolveReportsUrl({ tab: 'utilization', period: 'q2' })).toBeNull()
     expect(resolveReportsUrl({ tab: 'quality' })).toBeNull()
+    expect(resolveReportsUrl({ tab: 'jobs', open: 'money' })).toBeNull()
   })
 
   it('opens Heute for the old overview and cockpit, keeping the time frame', () => {
