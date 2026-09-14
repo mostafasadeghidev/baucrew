@@ -519,6 +519,7 @@
     "siteSpan": "Monat {n} von {count}",
     "matrixSite": "Baustelle",
     "matrixTotal": "Summe",
+    "lanesLegend": "Farbe = Stand:",
     "laneOwnTotal": "Summe eigene Leute",
     "tabCockpit": "Cockpit",
     "cockpitHint": "Alles hier ist aus vorhandenen Daten gerechnet — nichts davon wird zusätzlich erfasst.",

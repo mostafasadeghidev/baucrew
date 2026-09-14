@@ -519,6 +519,7 @@
     "siteSpan": "Month {n} of {count}",
     "matrixSite": "Site",
     "matrixTotal": "Total",
+    "lanesLegend": "Colour = status:",
     "laneOwnTotal": "Own crew total",
     "tabCockpit": "Cockpit",
     "cockpitHint": "Everything here is derived from data already entered — none of it is recorded twice.",

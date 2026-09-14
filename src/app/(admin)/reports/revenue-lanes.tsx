@@ -14,6 +14,12 @@
  * the zoom shares the width among the months it has, and sizes its tiles for
  * that.
  *
+ * A tile's colour is where its money stands — finished, ordered, offered, or
+ * only in the plan — the four states of "Planumsatz nach Stand", and the bar
+ * under each month's head splits the month the same way. Own people and SUB
+ * are told apart by their lanes. A job that runs over several months lights up
+ * in all of them while the pointer is on one (`HoverGroups`).
+ *
  * The box is as tall as its tiles: the page scrolls, not the box.
  */
 
@@ -21,9 +27,18 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { PanBox } from '@/components/pan-box'
+import { HoverGroups } from '@/components/ui/hover-groups'
 import { HoverTips } from '@/components/ui/hover-tips'
 import { formatCurrency, formatThousands } from '@/lib/format'
 import { pricesHidden } from '@/lib/price-visibility'
+import {
+  CLASSES,
+  CLASS_OF,
+  certaintyOf,
+  certaintyTotals,
+  classTotals,
+  type PlanClass,
+} from '@/lib/order-situation'
 import type { MonthRevenue, RevenueProject } from '@/lib/reports'
 import { siteKey } from '@/lib/reports-calc'
 import type { LanesDensity } from '@/lib/revenue-layout'
@@ -34,7 +49,32 @@ type TileSize = 'wide' | 'compact' | 'mini'
 /** The narrowest a month may get at each tile size; below it the box scrolls further. */
 const MIN_WIDTH: Record<TileSize, string> = { wide: '15rem', compact: '9.5rem', mini: '4.5rem' }
 
-const dot = (color: string) => <span aria-hidden className={`h-2 w-2 shrink-0 rounded-[3px] ${color}`} />
+/** The colours of "Planumsatz nach Stand". Literal, so Tailwind finds them. */
+const FILL: Record<PlanClass, string> = {
+  finished: 'bg-emerald-600',
+  ordered: 'bg-accent',
+  offered: 'bg-accent/35',
+  sheet: 'border border-dashed border-muted',
+}
+/** A block filled with that colour, and writing that stays legible on it. */
+const BLOCK: Record<PlanClass, string> = {
+  finished: 'bg-emerald-600 text-white',
+  ordered: 'bg-accent text-white',
+  offered: 'bg-accent/35 text-foreground',
+  sheet: 'border border-dashed border-muted text-muted',
+}
+const LABEL = {
+  finished: 'classFinished',
+  ordered: 'certaintyOrdered',
+  offered: 'certaintyOffered',
+  sheet: 'classSheet',
+} as const
+
+/** While one job is lit, every other tile steps back; the lit ones are ringed. */
+const LIGHTING =
+  'transition-opacity [[data-lighting]_&:not([data-lit])]:opacity-35 data-[lit]:ring-2 data-[lit]:ring-foreground/70 data-[lit]:ring-offset-1 data-[lit]:ring-offset-surface'
+
+const swatch = (cls: PlanClass) => <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${FILL[cls]}`} />
 
 export async function RevenueLanes({
   months,
@@ -73,19 +113,19 @@ export async function RevenueLanes({
     // second month is its second month read backwards too.
     const at = [...span].sort((a, b) => a - b).indexOf(month) + 1
     const place = span.length > 1 ? t('siteSpan', { n: at, count: span.length }) : null
-    // The tip's lines: the name first, then who it is for, what it is worth and which month of the job.
-    const tip = [p.name, p.customer, exact(p.price), place].filter(Boolean).join('\n')
+    const cls = CLASS_OF[certaintyOf(p.fromSheet ? undefined : p.status, p.settled)]
+    // The tip's lines: the name first, then who it is for, where its money stands,
+    // what it is worth and which month of the job.
+    const tip = [p.name, p.customer, t(LABEL[cls]), exact(p.price), place].filter(Boolean).join('\n')
+    // The lines outside the sheet are a lane apart; a job lights up within its own kind of lane.
+    const group = `${lane === 'extra' ? 'extra' : 'sheet'}:${siteKey(p)}`
 
     if (size === 'mini') {
       // As tall as its amount, and never too short for the name written in it.
       const block = (
         <span
           className={`flex overflow-hidden rounded-sm px-1 text-[10px] leading-4 ${
-            lane === 'own'
-              ? 'bg-accent/70 text-white'
-              : lane === 'sub'
-                ? 'bg-accent/35 text-foreground'
-                : 'border border-dashed border-muted text-muted'
+            lane === 'extra' ? 'border border-dashed border-muted text-muted' : BLOCK[cls]
           }`}
           style={{ height: Math.round(16 + (40 * Math.max(p.price ?? 0, 0)) / biggest) }}
         >
@@ -93,11 +133,18 @@ export async function RevenueLanes({
         </span>
       )
       return p.fromSheet ? (
-        <div key={p.key} data-tip={tip}>
+        <div key={p.key} data-tip={tip} data-group={group} className={`rounded-sm ${LIGHTING}`}>
           {block}
         </div>
       ) : (
-        <Link key={p.key} href={`/projects/${p.id}`} data-tip={tip} aria-label={p.name} className="block">
+        <Link
+          key={p.key}
+          href={`/projects/${p.id}`}
+          data-tip={tip}
+          data-group={group}
+          aria-label={p.name}
+          className={`block rounded-sm ${LIGHTING}`}
+        >
           {block}
         </Link>
       )
@@ -107,17 +154,21 @@ export async function RevenueLanes({
       <div
         key={p.key}
         data-tip={tip}
-        className={`flex items-center justify-between gap-2 rounded-md border bg-background px-2 py-1 ${
+        data-group={group}
+        className={`flex items-center justify-between gap-2 rounded-md border bg-background px-2 py-1 ${LIGHTING} ${
           lane === 'extra' ? 'border-dashed border-border text-muted' : 'border-border'
         } ${size === 'wide' ? 'text-[13px]' : 'text-xs'}`}
       >
-        {p.fromSheet ? (
-          <span className="min-w-0 truncate">{p.name}</span>
-        ) : (
-          <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-accent hover:underline">
-            {p.name}
-          </Link>
-        )}
+        <span className="flex min-w-0 items-center gap-1.5">
+          {lane !== 'extra' && swatch(cls)}
+          {p.fromSheet ? (
+            <span className="min-w-0 truncate">{p.name}</span>
+          ) : (
+            <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-accent hover:underline">
+              {p.name}
+            </Link>
+          )}
+        </span>
         <span className="flex shrink-0 items-center gap-1.5 text-[11px] tabular-nums text-muted">
           {span.length > 1 && <span>{`${at}/${span.length}`}</span>}
           <span>{p.price == null ? '—' : amount(p.price)}</span>
@@ -150,9 +201,18 @@ export async function RevenueLanes({
             </span>
           </div>
           {m.total > 0 && (
+            // The month split by where its money stands, surest first.
             <div aria-hidden className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-subtle">
-              <span className="bg-accent" style={{ width: `${(Math.max(m.ownTotal, 0) / m.total) * 100}%` }} />
-              <span className="bg-accent/40" style={{ width: `${(Math.max(m.subTotal, 0) / m.total) * 100}%` }} />
+              {(() => {
+                const classes = classTotals(certaintyTotals([...m.own, ...m.sub]))
+                return CLASSES.filter((cls) => cls !== 'sheet').map((cls) => (
+                  <span
+                    key={cls}
+                    className={FILL[cls]}
+                    style={{ width: `${(Math.max(classes[cls], 0) / m.total) * 100}%` }}
+                  />
+                ))
+              })()}
             </div>
           )}
         </div>
@@ -196,37 +256,39 @@ export async function RevenueLanes({
   ]
 
   return (
-    <HoverTips>
-      <PanBox
-        label={t('revenueTitle')}
-        zoom={density}
-        runningMonth={runningMonth}
-        columns={`8rem repeat(${months.length}, max(${MIN_WIDTH[size]}, calc((100% - 8rem) / ${inView})))`}
-        printColumns={`8rem repeat(${months.length}, minmax(0, 1fr))`}
-        // As tall as its tiles, so nothing scrolls inside it but the months
-        // sideways. Keyboard focus scrolls a tile clear of the lane names.
-        className="scroll-pl-32 scroll-pt-16 rounded-xl border border-border bg-surface shadow-sm"
-      >
-        {header}
-        {lane(
-          'own',
-          <span className="flex items-center gap-1.5 font-medium">
-            {dot('bg-accent')}
-            {t('ownPeople')}
+    <div className="space-y-2">
+      {/* What the colours say, over the box. */}
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
+        <span>{t('lanesLegend')}</span>
+        {CLASSES.map((cls) => (
+          <span key={cls} className="flex items-center gap-1.5">
+            {swatch(cls)}
+            {t(LABEL[cls])}
           </span>
-        )}
-        {sums('own', t('laneOwnTotal'))}
-        {lane(
-          'sub',
-          <span className="flex items-center gap-1.5 font-medium">
-            {dot('bg-accent/40')}
-            {t('sub')}
-          </span>
-        )}
-        {sums('sub', t('laneSubTotal'))}
-        {months.some((m) => m.extra.length > 0) &&
-          lane('extra', <span className="italic text-muted">{t('extraTitle')}</span>)}
-      </PanBox>
-    </HoverTips>
+        ))}
+      </p>
+      <HoverGroups>
+        <HoverTips>
+          <PanBox
+            label={t('revenueTitle')}
+            zoom={density}
+            runningMonth={runningMonth}
+            columns={`8rem repeat(${months.length}, max(${MIN_WIDTH[size]}, calc((100% - 8rem) / ${inView})))`}
+            printColumns={`8rem repeat(${months.length}, minmax(0, 1fr))`}
+            // As tall as its tiles, so nothing scrolls inside it but the months
+            // sideways. Keyboard focus scrolls a tile clear of the lane names.
+            className="scroll-pl-32 scroll-pt-16 rounded-xl border border-border bg-surface shadow-sm"
+          >
+            {header}
+            {lane('own', <span className="font-medium">{t('ownPeople')}</span>)}
+            {sums('own', t('laneOwnTotal'))}
+            {lane('sub', <span className="font-medium">{t('sub')}</span>)}
+            {sums('sub', t('laneSubTotal'))}
+            {months.some((m) => m.extra.length > 0) &&
+              lane('extra', <span className="italic text-muted">{t('extraTitle')}</span>)}
+          </PanBox>
+        </HoverTips>
+      </HoverGroups>
+    </div>
   )
 }
