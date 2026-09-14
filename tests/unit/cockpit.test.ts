@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { lampAbove, overdueOf, siteGroupOf, siteProgress, stageRows } from '@/lib/cockpit'
+import {
+  crewDays,
+  crewLamp,
+  crewSpan,
+  lampAbove,
+  overdueOf,
+  siteGroupOf,
+  siteProgress,
+  stageRows,
+  usualCrew,
+} from '@/lib/cockpit'
 
 const d = (s: string) => new Date(`${s}T00:00:00.000Z`)
 // A Friday.
@@ -108,5 +118,65 @@ describe('siteProgress', () => {
 
   it('has nothing to say without a planned start', () => {
     expect(siteProgress(null, d('2026-09-18'), today)).toEqual({ plannedDays: null, doneDays: null, pct: null })
+  })
+})
+
+describe('crewDays', () => {
+  it('lists every weekday of the span with its people, each once a day and never on a day away', () => {
+    const bookings = [
+      { employeeId: 'm1', date: d('2026-09-14') },
+      { employeeId: 'm1', date: d('2026-09-14') }, // a second site the same day
+      { employeeId: 'm2', date: d('2026-09-14') },
+      { employeeId: 'm2', date: d('2026-09-15') }, // away that day
+      { employeeId: 'm1', date: d('2026-09-19') }, // a Saturday
+      { employeeId: 'm1', date: d('2026-09-21') }, // after the span
+    ]
+    const away = [{ employeeId: 'm2', startDate: d('2026-09-15'), endDate: d('2026-09-16') }]
+    const days = crewDays(bookings, away, d('2026-09-14'), d('2026-09-20'))
+    expect(days.map((day) => [day.date.toISOString().slice(0, 10), day.people])).toEqual([
+      ['2026-09-14', 2],
+      ['2026-09-15', 0],
+      ['2026-09-16', 0],
+      ['2026-09-17', 0],
+      ['2026-09-18', 0],
+    ])
+  })
+
+  it('has no day on a weekend alone', () => {
+    expect(crewDays([], [], d('2026-10-31'), d('2026-11-01'))).toEqual([])
+  })
+})
+
+describe('crewSpan and usualCrew', () => {
+  const day = (date: string, people: number) => ({ date: d(date), people })
+
+  it('spreads the people over every weekday ahead, the empty ones included, to one decimal', () => {
+    const span = crewSpan([day('2026-09-14', 7), day('2026-09-15', 7), day('2026-09-16', 0)])
+    expect(span).toMatchObject({ perDay: 4.7, staffed: 2 })
+    expect(crewSpan([])).toEqual({ days: [], perDay: null, staffed: 0 })
+  })
+
+  it('reads the usual crew from the days anybody worked, not from the empty ones', () => {
+    expect(usualCrew([day('2026-08-03', 6), day('2026-08-04', 7), day('2026-08-05', 0)])).toBe(6.5)
+    expect(usualCrew([day('2026-08-05', 0)])).toBeNull()
+  })
+})
+
+describe('crewLamp', () => {
+  const span = (...people: number[]) =>
+    crewSpan(people.map((n, i) => ({ date: new Date(Date.UTC(2026, 8, 14 + i)), people: n })))
+
+  it('has nothing to judge when no weekday is left', () => {
+    expect(crewLamp(crewSpan([]), 7)).toBe('none')
+  })
+
+  it('warns of a day with nobody on it, or of less than three quarters of the usual crew', () => {
+    expect(crewLamp(span(7, 0, 7), 7)).toBe('yellow')
+    expect(crewLamp(span(5, 5, 5), 7)).toBe('yellow')
+    expect(crewLamp(span(6, 6, 6), 7)).toBe('green')
+  })
+
+  it('is green with every day staffed and nothing usual to hold it against', () => {
+    expect(crewLamp(span(2, 3), null)).toBe('green')
   })
 })

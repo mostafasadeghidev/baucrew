@@ -14,9 +14,11 @@ import {
   type UsageLoad,
 } from './order-situation'
 import {
+  crewDays,
   overdueOf,
   siteGroupOf,
   stageRows,
+  type CrewDay,
   type Overdue,
   type SiteGroup,
   type StageFooter,
@@ -696,28 +698,23 @@ export async function getOpenMoney(): Promise<OpenMoney> {
   )
 }
 
-/**
- * The crew's days on the schedule and days away, month by month. With `from`,
- * only the days from then on count — see `crewLoadByMonth`.
- */
-export async function getCrewLoad(year: number, from: Date | null = null): Promise<CrewMonth[]> {
-  const start = new Date(Date.UTC(year, 0, 1))
-  const end = new Date(Date.UTC(year + 1, 0, 1))
+/** The weekdays from `start` to `end`, each with the people on the schedule — the rules are `crewDays`. */
+export async function getCrewDays(start: Date, end: Date): Promise<CrewDay[]> {
   const [bookings, absences] = await Promise.all([
     db.scheduleEntryEmployee.findMany({
-      where: { scheduleEntry: { date: { gte: start, lt: end }, cancelledAt: null } },
+      where: { scheduleEntry: { date: { gte: start, lte: end }, cancelledAt: null } },
       select: { employeeId: true, scheduleEntry: { select: { date: true } } },
     }),
     db.absence.findMany({
-      where: { startDate: { lt: end }, endDate: { gte: start } },
+      where: { startDate: { lte: end }, endDate: { gte: start } },
       select: { employeeId: true, startDate: true, endDate: true },
     }),
   ])
-  return crewLoadByMonth(
-    year,
+  return crewDays(
     bookings.map((b) => ({ employeeId: b.employeeId, date: b.scheduleEntry.date })),
     absences,
-    from
+    start,
+    end
   )
 }
 

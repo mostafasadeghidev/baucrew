@@ -126,30 +126,22 @@ export type CrewMonth = {
  * on the schedule during a holiday, would otherwise push the share past what
  * there is. Public holidays are not taken off, as the utilisation tab does not
  * take them off either.
- *
- * With `from`, the days before it are over: they can no longer be planned, so
- * they count on neither side, and the running month is what is left of it. A
- * first half nobody put on the schedule would otherwise hold the share down for
- * the rest of the month. A month wholly before `from` has nothing left to plan.
- * The crew stays everybody on the schedule that year.
  */
 export function crewLoadByMonth(
   year: number,
   bookings: Array<{ employeeId: string; date: Date }>,
-  absences: Array<{ employeeId: string; startDate: Date; endDate: Date }>,
-  from: Date | null = null
+  absences: Array<{ employeeId: string; startDate: Date; endDate: Date }>
 ): CrewMonth[] {
   const inYear = bookings.filter((b) => b.date.getUTCFullYear() === year)
   const crew = new Set(inYear.map((b) => b.employeeId))
   const weekday = (day: Date) => day.getUTCDay() !== 0 && day.getUTCDay() !== 6
   const dayKey = (employeeId: string, day: Date) => `${employeeId}|${day.toISOString().slice(0, 10)}`
-  const open = from ? Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()) : Number.NEGATIVE_INFINITY
 
   const away = Array.from({ length: 12 }, () => new Set<string>())
   for (const a of absences) {
     if (!crew.has(a.employeeId)) continue
     const last = Math.min(a.endDate.getTime(), Date.UTC(year, 11, 31))
-    for (let t = Math.max(a.startDate.getTime(), Date.UTC(year, 0, 1), open); t <= last; t += 86_400_000) {
+    for (let t = Math.max(a.startDate.getTime(), Date.UTC(year, 0, 1)); t <= last; t += 86_400_000) {
       const day = new Date(t)
       if (weekday(day)) away[day.getUTCMonth()].add(dayKey(a.employeeId, day))
     }
@@ -157,16 +149,14 @@ export function crewLoadByMonth(
 
   const booked = Array.from({ length: 12 }, () => new Set<string>())
   for (const b of inYear) {
-    if (b.date.getTime() < open) continue
     const key = dayKey(b.employeeId, b.date)
     const month = b.date.getUTCMonth()
     if (weekday(b.date) && !away[month].has(key)) booked[month].add(key)
   }
 
   return booked.map((days, month) => {
-    // Null when the whole month lies before `from`: nothing left to plan.
     const weekdays =
-      businessDaysBetween(new Date(Math.max(Date.UTC(year, month, 1), open)), new Date(Date.UTC(year, month + 1, 0))) ?? 0
+      businessDaysBetween(new Date(Date.UTC(year, month, 1)), new Date(Date.UTC(year, month + 1, 0))) ?? 0
     const available = Math.max(0, crew.size * weekdays - away[month].size)
     return {
       booked: days.size,

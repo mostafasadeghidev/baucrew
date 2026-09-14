@@ -165,3 +165,91 @@ export function siteProgress(plannedStart: Date | null, plannedEnd: Date | null,
     plannedDays && plannedDays > 0 && doneDays !== null ? Math.min(100, Math.round((doneDays / plannedDays) * 100)) : null
   return { plannedDays, doneDays, pct }
 }
+
+// ── The crew, day by day ────────────────────────────────────
+
+/** A weekday on the schedule and how many people stand on it. */
+export type CrewDay = { date: Date; people: number }
+
+/**
+ * Every weekday from `start` to `end`, each with the people planned on it. A
+ * person counts once a day however many sites they go to, and not on a day
+ * they are away: they will not be on site. Saturdays and Sundays are no
+ * working days here, as nowhere else in the reports; public holidays are not
+ * known to the app and stand as ordinary days.
+ *
+ * People are counted as they are planned, never as a crew size times days: a
+ * helper on the schedule twice a year is not a person missing work every day.
+ */
+export function crewDays(
+  bookings: Array<{ employeeId: string; date: Date }>,
+  absences: Array<{ employeeId: string; startDate: Date; endDate: Date }>,
+  start: Date,
+  end: Date
+): CrewDay[] {
+  const first = utcDay(start)
+  const last = utcDay(end)
+  const away = new Map<string, Array<[number, number]>>()
+  for (const a of absences) {
+    away.set(a.employeeId, [...(away.get(a.employeeId) ?? []), [utcDay(a.startDate), utcDay(a.endDate)]])
+  }
+  const people = new Map<number, Set<string>>()
+  for (const b of bookings) {
+    const day = utcDay(b.date)
+    if (day < first || day > last) continue
+    if (away.get(b.employeeId)?.some(([from, to]) => from <= day && day <= to)) continue
+    people.set(day, (people.get(day) ?? new Set<string>()).add(b.employeeId))
+  }
+  const days: CrewDay[] = []
+  for (let day = first; day <= last; day += DAY) {
+    const weekday = new Date(day).getUTCDay()
+    if (weekday !== 0 && weekday !== 6) days.push({ date: new Date(day), people: people.get(day)?.size ?? 0 })
+  }
+  return days
+}
+
+const toTenth = (value: number) => Math.round(value * 10) / 10
+
+export type CrewSpan = {
+  days: CrewDay[]
+  /** People per weekday, the days with nobody included, to one decimal; null without a weekday. */
+  perDay: number | null
+  /** Weekdays with somebody on the schedule. */
+  staffed: number
+}
+
+export function crewSpan(days: CrewDay[]): CrewSpan {
+  const people = days.reduce((sum, day) => sum + day.people, 0)
+  return {
+    days,
+    perDay: days.length > 0 ? toTenth(people / days.length) : null,
+    staffed: days.filter((day) => day.people > 0).length,
+  }
+}
+
+/** How far back the usual crew is read: thirteen weeks, about three months. */
+export const USUAL_CREW_DAYS = 91
+
+/**
+ * How many people an ordinary working day has: the average of the days
+ * anybody was planned. A day with nobody on the schedule is a holiday, a week
+ * the company was closed, or a time before the schedule was kept here; none
+ * of them says how big the crew is. Null without such a day.
+ */
+export function usualCrew(days: CrewDay[]): number | null {
+  const staffed = days.filter((day) => day.people > 0)
+  if (staffed.length === 0) return null
+  return toTenth(staffed.reduce((sum, day) => sum + day.people, 0) / staffed.length)
+}
+
+/**
+ * The team lamp. Nothing to judge when no weekday is left. Yellow while a day
+ * ahead has nobody on it, or the days ahead hold less than three quarters of
+ * the usual crew, since that many people have nothing planned; green otherwise.
+ */
+export function crewLamp(span: CrewSpan, usual: number | null): Lamp {
+  if (span.days.length === 0) return 'none'
+  if (span.staffed < span.days.length) return 'yellow'
+  if (usual !== null && span.perDay !== null && span.perDay < usual * 0.75) return 'yellow'
+  return 'green'
+}

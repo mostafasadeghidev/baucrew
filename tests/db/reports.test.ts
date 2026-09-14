@@ -81,6 +81,53 @@ describe('getYearRevenue', () => {
   })
 })
 
+describe('getCrewDays', () => {
+  const employeeIds: string[] = []
+  const day = (date: number) => new Date(Date.UTC(2031, 0, date))
+
+  beforeAll(async () => {
+    const [first, second] = await Promise.all([
+      prisma.employee.create({ data: { firstName: TAG, lastName: 'Eins' } }),
+      prisma.employee.create({ data: { firstName: TAG, lastName: 'Zwei' } }),
+    ])
+    employeeIds.push(first.id, second.id)
+    const entry = (projectId: string, date: number, people: string[], cancelled = false) =>
+      prisma.scheduleEntry.create({
+        data: {
+          projectId,
+          date: day(date),
+          cancelledAt: cancelled ? new Date() : null,
+          employees: { create: people.map((employeeId) => ({ employeeId })) },
+        },
+      })
+    // Monday 6 to Sunday 12 January 2031.
+    await Promise.all([
+      entry(projectIds[0], 6, [first.id, second.id]),
+      entry(projectIds[1], 6, [first.id]), // a second site the same day
+      entry(projectIds[0], 7, [second.id]), // on a day away
+      entry(projectIds[0], 8, [first.id], true), // taken out of the plan
+      entry(projectIds[0], 11, [first.id]), // a Saturday
+    ])
+    await prisma.absence.create({ data: { employeeId: second.id, startDate: day(7), endDate: day(7), type: 'SICK' } })
+  })
+
+  afterAll(async () => {
+    await prisma.employee.deleteMany({ where: { id: { in: employeeIds } } })
+  })
+
+  it('counts each person once a weekday, never on a day away or a day taken out of the plan', async () => {
+    const { getCrewDays } = await import('@/lib/reports')
+    const days = await getCrewDays(day(6), day(12))
+    expect(days.map((d) => [d.date.toISOString().slice(0, 10), d.people])).toEqual([
+      ['2031-01-06', 2],
+      ['2031-01-07', 0],
+      ['2031-01-08', 0],
+      ['2031-01-09', 0],
+      ['2031-01-10', 0],
+    ])
+  })
+})
+
 describe('getYearRevenue with a planning sheet', () => {
   const year = 2032
   const ids: string[] = []

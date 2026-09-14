@@ -5,7 +5,7 @@ import { CalendarRange } from 'lucide-react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
 import {
-  getCrewLoad,
+  getCrewDays,
   getCrewUsage,
   getDataGaps,
   getOpenMoney,
@@ -27,7 +27,6 @@ import {
   parseCompareYears,
   quarterBreakdown,
   bestQuarter,
-  businessDaysBetween,
   sumRange,
   monthSiteCount,
   siteMonthRows,
@@ -36,7 +35,8 @@ import {
 } from '@/lib/reports-calc'
 import { REPORT_TABS, TAB_CHOICES, resolveReportsUrl, type ReportTab } from '@/lib/reports-url'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { todayUtc } from '@/lib/dates'
+import { addDays, todayUtc } from '@/lib/dates'
+import { crewSpan, usualCrew, USUAL_CREW_DAYS } from '@/lib/cockpit'
 import { RevenueChart } from '@/components/revenue-chart'
 import { ParamTabs } from '@/components/param-tabs'
 import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
@@ -165,6 +165,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const onRevenue = tab === 'revenue' && showFinancials
   const onUsage = tab === 'utilization'
   const onGaps = tab === 'quality'
+  // The team tile reads the schedule day by day: the working days before today
+  // say what is usual, then what is left of this month and the whole next one.
+  const monthEnd = new Date(Date.UTC(currentYear, todayMonth + 1, 0))
+  const nextMonthEnd = new Date(Date.UTC(currentYear, todayMonth + 2, 0))
+  const usualFrom = addDays(today, -USUAL_CREW_DAYS)
 
   const [
     gaps,
@@ -174,8 +179,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     thisYear,
     lastYear,
     nextYear,
-    crewLoad,
-    crewLoadNextYear,
+    crewDayList,
     revenue,
     prevRevenue,
     yearTotals,
@@ -194,10 +198,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear - 1) : null,
     // The backlog runs twelve months, so it reaches into the next year.
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear + 1) : null,
-    // The running month from today on: the days that are over can no longer be planned.
-    onToday ? getCrewLoad(currentYear, today) : null,
-    // In December the month after is January of the next year.
-    onToday && todayMonth === 11 ? getCrewLoad(currentYear + 1) : null,
+    onToday ? getCrewDays(usualFrom, nextMonthEnd) : null,
     onRevenue ? getYearRevenueOrHistory(year) : null,
     onRevenue ? getYearRevenueOrHistory(year - 1) : null,
     onRevenue ? getYearTotals(comparisonYears) : null,
@@ -294,9 +295,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             nextYear ? nextYear.months.map((m) => certaintyTotals([...m.own, ...m.sub]).ordered) : null
           )
         : null
-    const crewMonth = crewLoad?.[todayMonth]
-    const monthEnd = new Date(Date.UTC(currentYear, todayMonth + 1, 0))
-    const crewNext = todayMonth < 11 ? crewLoad?.[todayMonth + 1] : crewLoadNextYear?.[0]
+    const crewBetween = (from: Date, to: Date) =>
+      (crewDayList ?? []).filter((day) => day.date.getTime() >= from.getTime() && day.date.getTime() <= to.getTime())
     const crewNextLabel = todayMonth < 11 ? monthName(todayMonth + 1) : `${monthName(0)} ${currentYear + 1}`
     // The twelve months the backlog runs over, each with its ordered work: this
     // year's from the running month on, then next year's before it.
@@ -321,13 +321,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       crew: {
         label: monthName(todayMonth),
         span: dayRangeFmt.formatRange(today, monthEnd),
-        daysLeft: businessDaysBetween(today, monthEnd) ?? 0,
-        pct: crewMonth?.pct ?? null,
-        booked: crewMonth?.booked ?? 0,
-        available: crewMonth?.available ?? 0,
-        next: crewNext
-          ? { label: crewNextLabel, pct: crewNext.pct, booked: crewNext.booked, available: crewNext.available }
-          : null,
+        rest: crewSpan(crewBetween(today, monthEnd)),
+        next: { label: crewNextLabel, ...crewSpan(crewBetween(addDays(monthEnd, 1), nextMonthEnd)) },
+        usual: usualCrew(crewBetween(usualFrom, addDays(today, -1))),
       },
     }
   })()
