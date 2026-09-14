@@ -619,40 +619,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         {t('title')} · {tabLabel}
         <span className="ml-2 text-base font-normal text-muted">{timeTab ? frameLabel : standLabel}</span>
       </p>
+      {/* Only the bar with the page's name stays at the top; the tabs scroll away
+          with the page. */}
       <StickyHead>
         <div className={pageToolbar}>
           <h1 className={pageTitle}>{t('title')}</h1>
           <div className="flex flex-wrap items-center gap-2 print:hidden">
-            {timeTab ? (
-              // Year and period belong together, and only where every figure follows them.
-              <div className="flex items-center gap-1.5 rounded-lg border border-border bg-subtle px-2 py-1">
-                <CalendarRange className="h-4 w-4 shrink-0 text-muted" aria-hidden />
-                <LiveSelect
-                  param="year"
-                  ariaLabel={t('year')}
-                  className="min-w-20"
-                  compact
-                  clears={['qyear']}
-                  options={yearOptions.map((y) => ({ value: y === String(currentYear) ? '' : y, label: y }))}
-                />
-                <LiveSelect
-                  param="period"
-                  ariaLabel={t('period')}
-                  allLabel={t('allMonths')}
-                  className="min-w-40"
-                  compact
-                  options={periodOptions}
-                />
-              </div>
-            ) : (
-              <span
-                className="flex items-center gap-1.5 rounded-lg border border-border bg-subtle px-2.5 py-1.5 text-xs text-muted"
-                title={t('standHint')}
-              >
-                <CalendarRange className="h-4 w-4 shrink-0" aria-hidden />
-                {standLabel}
-              </span>
-            )}
             <PrintButton label={t('print')} />
             {showFinancials && timeTab && (
               <a href={exportHref} className={btn.outlineSm}>
@@ -661,11 +633,46 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             )}
           </div>
         </div>
-
-        <div className="rounded-xl border border-border bg-surface px-4 py-2 shadow-sm print:hidden">
-          <ParamTabs ariaLabel={t('title')} tabs={tabs} clears={TAB_CHOICES} />
-        </div>
       </StickyHead>
+
+      {/* The tabs, and beside them the time the tab stands for: year and period
+          where every figure follows them, the day otherwise. The two share one
+          slot of one width and height, so the box keeps its size, and wraps at
+          the same point, whichever tab is open. */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface px-4 py-2 shadow-sm print:hidden">
+        <ParamTabs ariaLabel={t('title')} tabs={tabs} clears={TAB_CHOICES} />
+        <div className="flex min-h-9 items-center justify-end sm:min-w-[19rem]">
+          {timeTab ? (
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-subtle px-2 py-1">
+              <CalendarRange className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+              <LiveSelect
+                param="year"
+                ariaLabel={t('year')}
+                className="min-w-20"
+                compact
+                clears={['qyear']}
+                options={yearOptions.map((y) => ({ value: y === String(currentYear) ? '' : y, label: y }))}
+              />
+              <LiveSelect
+                param="period"
+                ariaLabel={t('period')}
+                allLabel={t('allMonths')}
+                className="min-w-40"
+                compact
+                options={periodOptions}
+              />
+            </div>
+          ) : (
+            <span
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-subtle px-2.5 py-1.5 text-xs text-muted"
+              title={t('standHint')}
+            >
+              <CalendarRange className="h-4 w-4 shrink-0" aria-hidden />
+              {standLabel}
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* What the tab answers and how to read it, in one sentence. */}
       <p className="text-[13px] text-muted print:hidden">{intro}</p>
