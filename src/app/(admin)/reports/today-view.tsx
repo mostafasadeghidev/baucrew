@@ -175,42 +175,58 @@ export async function TodayView({
           </p>
         </div>
       </div>
-      <p className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
-        {CLASSES.map((cls) => (
-          <span key={cls} className="flex items-center gap-1.5">
-            <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${CLASS_FILL[cls]}`} />
-            {t(CLASS_LABEL[cls])}
-            <span className="tabular-nums text-foreground">{whole(monthPlan.classes[cls])}</span>
-          </span>
-        ))}
-      </p>
-      <div>
-        <h3 className={label}>{t('panelLargestLines')}</h3>
-        {monthPlan.lines.length === 0 ? (
-          empty(t('noRevenueInPeriod'))
-        ) : (
-          <ul className="mt-1 divide-y divide-border">
-            {monthPlan.lines.map((line) => (
-              <li key={line.key} className={row}>
-                <span className="flex min-w-0 items-center gap-2">
-                  <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${CLASS_FILL[line.cls]}`} />
-                  <span className="min-w-0">
-                    {line.id ? (
-                      <Link href={`/projects/${line.id}`} className="block truncate text-accent hover:underline">
-                        {line.name}
-                      </Link>
-                    ) : (
-                      <span className="block truncate">{line.name}</span>
-                    )}
-                    {line.customer && <span className="block truncate text-[11px] text-muted">{line.customer}</span>}
-                  </span>
-                </span>
-                <span className="shrink-0 tabular-nums">{line.amount === null ? '—' : whole(line.amount)}</span>
+      {monthPlan.lines.length === 0 ? (
+        empty(t('noRevenueInPeriod'))
+      ) : (
+        // One card per state of the money, surest first: its total on top, then
+        // the month's lines in that state, the biggest first.
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {CLASSES.map((cls) => {
+            const lines = monthPlan.lines.filter((line) => line.cls === cls)
+            return (
+              <li key={cls} className="overflow-hidden rounded-lg border border-border bg-subtle/40">
+                <div className="flex items-start justify-between gap-3 border-b border-border px-3 py-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${CLASS_FILL[cls]}`} />
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-medium">{t(CLASS_LABEL[cls])}</p>
+                      <p className="text-[11px] text-muted">{t('panelPlanLines', { count: lines.length })}</p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[13px] font-semibold tabular-nums">{whole(monthPlan.classes[cls])}</span>
+                </div>
+                {lines.length === 0 ? (
+                  <p className="px-3 py-2 text-[12px] text-muted">{t('panelPlanClassEmpty')}</p>
+                ) : (
+                  <ul className="divide-y divide-border px-3">
+                    {lines.map((line) => (
+                      <li key={line.key} className="flex items-start justify-between gap-3 py-1.5 text-[13px]">
+                        <span className="min-w-0">
+                          {line.id ? (
+                            <Link
+                              href={`/projects/${line.id}`}
+                              title={line.name}
+                              className="block truncate text-accent hover:underline"
+                            >
+                              {line.name}
+                            </Link>
+                          ) : (
+                            <span className="block truncate" title={line.name}>
+                              {line.name}
+                            </span>
+                          )}
+                          {line.customer && <span className="block truncate text-[11px] text-muted">{line.customer}</span>}
+                        </span>
+                        <span className="shrink-0 tabular-nums">{line.amount === null ? '—' : whole(line.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
-            ))}
-          </ul>
-        )}
-      </div>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 
