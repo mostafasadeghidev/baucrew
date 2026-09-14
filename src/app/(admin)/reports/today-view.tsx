@@ -179,8 +179,9 @@ export async function TodayView({
         empty(t('noRevenueInPeriod'))
       ) : (
         // One card per state of the money, surest first: its total on top, then
-        // the month's lines in that state, the biggest first.
-        <ul className="grid gap-3 sm:grid-cols-2">
+        // the month's lines in that state, the biggest first. Four side by side
+        // where the page is wide enough, the surest on the left.
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {CLASSES.map((cls) => {
             const lines = monthPlan.lines.filter((line) => line.cls === cls)
             return (
