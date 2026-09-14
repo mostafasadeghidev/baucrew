@@ -471,7 +471,8 @@ export default async function ProjectDetailPage({
           />
         )}
 
-        <section className="rounded-xl border border-border bg-surface shadow-sm">
+        {/* `#material`: the CRM's missing-material lists link straight here. */}
+        <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
           </div>

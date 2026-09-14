@@ -12,6 +12,7 @@
  */
 
 import Link from 'next/link'
+import { Fragment } from 'react'
 import { getTranslations } from 'next-intl/server'
 import type { ProjectStatus } from '@/generated/prisma/enums'
 import { StatusBadge } from '@/components/status-badge'
@@ -371,7 +372,14 @@ export function NextVisit({
   )
 }
 
-/** What is missing on the sites and what the warehouse is short of — on this tab and in the Heute tile. */
+/**
+ * What is missing on the sites and what the warehouse is short of — on this tab
+ * and in the Heute tile.
+ *
+ * An article links to the article in the warehouse; the jobs under it link to
+ * their own list of tools and materials, because that is where "missing" was
+ * marked and where it is set right again.
+ */
 export async function MaterialLists({ data }: { data: Today }) {
   const t = await getTranslations('reports')
   if (data.material.length === 0 && data.stockShort.length === 0) {
@@ -387,7 +395,16 @@ export async function MaterialLists({ data }: { data: Today }) {
               <Link href={`/warehouse/${item.id}/edit`} className="text-accent hover:underline">
                 {item.name}
               </Link>
-              <span className="block text-[11px] text-muted">{item.jobs.map((j) => `${j.number} — ${j.name}`).join(' · ')}</span>
+              <span className="block text-[11px] text-muted">
+                {item.jobs.map((job, index) => (
+                  <Fragment key={job.id}>
+                    {index > 0 && ' · '}
+                    <Link href={`/projects/${job.id}#material`} className="text-accent hover:underline">
+                      {job.number} — {job.name}
+                    </Link>
+                  </Fragment>
+                ))}
+              </span>
             </li>
           ))}
           {data.material.length === 0 && <li className="py-1.5 text-muted">—</li>}
