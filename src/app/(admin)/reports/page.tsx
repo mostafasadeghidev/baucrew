@@ -36,7 +36,7 @@ import {
 import { REPORT_TABS, TAB_CHOICES, resolveReportsUrl, type ReportTab } from '@/lib/reports-url'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { addDays, todayUtc } from '@/lib/dates'
-import { CREW_AHEAD_DAYS, crewSpan, usualCrew, USUAL_CREW_DAYS } from '@/lib/cockpit'
+import { usualCrew, USUAL_CREW_DAYS } from '@/lib/cockpit'
 import { RevenueChart } from '@/components/revenue-chart'
 import { ParamTabs } from '@/components/param-tabs'
 import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
@@ -165,10 +165,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const onRevenue = tab === 'revenue' && showFinancials
   const onUsage = tab === 'utilization'
   const onGaps = tab === 'quality'
-  // The team tile reads the schedule day by day: today, the working days before
-  // it that say what is usual, and the two weeks ahead for its sheet.
+  // The team tile holds today's crew against the usual one, read from the
+  // working days of the last three months.
   const usualFrom = addDays(today, -USUAL_CREW_DAYS)
-  const aheadTo = addDays(today, CREW_AHEAD_DAYS - 1)
 
   const [
     gaps,
@@ -197,7 +196,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear - 1) : null,
     // The backlog runs twelve months, so it reaches into the next year.
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear + 1) : null,
-    onToday ? getCrewDays(usualFrom, aheadTo) : null,
+    onToday ? getCrewDays(usualFrom, addDays(today, -1)) : null,
     onRevenue ? getYearRevenueOrHistory(year) : null,
     onRevenue ? getYearRevenueOrHistory(year - 1) : null,
     onRevenue ? getYearTotals(comparisonYears) : null,
@@ -212,8 +211,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const shortMonthFmt = new Intl.DateTimeFormat(intl, { month: 'short', timeZone: 'UTC' })
   const narrowMonthFmt = new Intl.DateTimeFormat(intl, { month: 'narrow', timeZone: 'UTC' })
   const monthName = (m: number) => monthFmt.format(new Date(Date.UTC(2000, m, 1)))
-  /** "14.–30. September". */
-  const dayRangeFmt = new Intl.DateTimeFormat(intl, { day: 'numeric', month: 'long', timeZone: 'UTC' })
   const shortMonths = Array.from({ length: 12 }, (_, m) => shortMonthFmt.format(new Date(Date.UTC(2000, m, 1))))
   const monthNames = {
     long: Array.from({ length: 12 }, (_, m) => monthName(m)),
@@ -294,9 +291,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             nextYear ? nextYear.months.map((m) => certaintyTotals([...m.own, ...m.sub]).ordered) : null
           )
         : null
-    const crewBetween = (from: Date, to: Date) =>
-      (crewDayList ?? []).filter((day) => day.date.getTime() >= from.getTime() && day.date.getTime() <= to.getTime())
-    const crewAhead = crewSpan(crewBetween(today, aheadTo))
     // The twelve months the backlog runs over, each with its ordered work: this
     // year's from the running month on, then next year's before it.
     const orderedOf = (months: typeof thisYear) =>
@@ -317,16 +311,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       backlog: summary
         ? { label: monthName(todayMonth), amount: summary.backlog ?? 0, weeks: summary.weeks, months: backlogMonths }
         : null,
-      crew: {
-        today: crewBetween(today, today)[0] ?? { date: today, people: 0 },
-        ahead: crewAhead,
-        // The first and the last working day ahead, "14.–25. September".
-        span:
-          crewAhead.days.length > 0
-            ? dayRangeFmt.formatRange(crewAhead.days[0].date, crewAhead.days[crewAhead.days.length - 1].date)
-            : '',
-        usual: usualCrew(crewBetween(usualFrom, addDays(today, -1))),
-      },
+      usualCrew: usualCrew(crewDayList ?? []),
     }
   })()
 
@@ -682,7 +667,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           today={today}
           monthPlan={todayTiles.monthPlan}
           backlog={todayTiles.backlog}
-          crew={todayTiles.crew}
+          usualCrew={todayTiles.usualCrew}
           gaps={gaps}
           cutoff={cutoff}
         />

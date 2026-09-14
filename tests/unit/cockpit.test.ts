@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   crewDays,
-  crewSpan,
   lampAbove,
   overdueOf,
   siteGroupOf,
   siteProgress,
+  sitesToday,
   stageRows,
   todayCrewLamp,
   usualCrew,
@@ -145,20 +145,42 @@ describe('crewDays', () => {
   })
 })
 
-describe('crewSpan and usualCrew', () => {
+describe('usualCrew', () => {
   const day = (date: string, people: number) => ({ date: d(date), people })
 
-  it('spreads the people over the working days, the empty ones included, to one decimal', () => {
-    // Monday to Wednesday, then a Saturday that is not a working day.
-    const span = crewSpan([day('2026-09-14', 7), day('2026-09-15', 7), day('2026-09-16', 0), day('2026-09-19', 3)])
-    expect(span).toMatchObject({ perDay: 4.7, staffed: 2 })
-    expect(span.days).toHaveLength(3)
-    expect(crewSpan([day('2026-09-19', 3)])).toEqual({ days: [], perDay: null, staffed: 0 })
+  it('reads the usual crew from the working days anybody worked, not from empty days or weekends', () => {
+    // Monday 3 to Wednesday 5 August 2026, and Saturday the 8th.
+    expect(usualCrew([day('2026-08-03', 6), day('2026-08-04', 7), day('2026-08-05', 0), day('2026-08-08', 2)])).toBe(6.5)
+    expect(usualCrew([day('2026-08-03', 6), day('2026-08-04', 7), day('2026-08-06', 7)])).toBe(6.7)
+    expect(usualCrew([day('2026-08-05', 0), day('2026-08-08', 2)])).toBeNull()
+  })
+})
+
+describe('sitesToday', () => {
+  const entry = (projectId: string, people: string[]) => ({
+    projectId,
+    project: { number: `2041-${projectId}`, name: `Musterbaustelle ${projectId}` },
+    employees: people.map((id) => ({ employeeId: id, employee: { firstName: 'Muster', lastName: id } })),
   })
 
-  it('reads the usual crew from the working days anybody worked, not from empty days or weekends', () => {
-    expect(usualCrew([day('2026-08-03', 6), day('2026-08-04', 7), day('2026-08-05', 0), day('2026-08-08', 2)])).toBe(6.5)
-    expect(usualCrew([day('2026-08-05', 0), day('2026-08-08', 2)])).toBeNull()
+  it('lists every site with its people, the fullest first, and counts a person on two sites once', () => {
+    const { sites, people } = sitesToday([entry('a', ['Eins']), entry('b', ['Eins', 'Zwei', 'Drei'])], new Set())
+    expect(sites.map((site) => [site.projectId, site.people])).toEqual([
+      ['b', ['Muster Eins', 'Muster Zwei', 'Muster Drei']],
+      ['a', ['Muster Eins']],
+    ])
+    expect(people).toBe(3)
+  })
+
+  it('names who is booked but away apart, and does not count them', () => {
+    const { sites, people } = sitesToday([entry('a', ['Eins', 'Zwei']), entry('b', ['Zwei'])], new Set(['Zwei']))
+    expect(sites[0]).toMatchObject({ projectId: 'a', people: ['Muster Eins'], away: ['Muster Zwei'] })
+    expect(sites[1]).toMatchObject({ projectId: 'b', people: [], away: ['Muster Zwei'] })
+    expect(people).toBe(1)
+  })
+
+  it('has no site and nobody on a day without a schedule', () => {
+    expect(sitesToday([], new Set())).toEqual({ sites: [], people: 0 })
   })
 })
 

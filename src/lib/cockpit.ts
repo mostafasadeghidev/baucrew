@@ -206,30 +206,7 @@ export function crewDays(
   return days
 }
 
-/** How far the team sheet looks ahead, today included: two full weeks, so always ten working days. */
-export const CREW_AHEAD_DAYS = 14
-
 const toTenth = (value: number) => Math.round(value * 10) / 10
-
-export type CrewSpan = {
-  /** The working days of the span. */
-  days: CrewDay[]
-  /** People per working day, the days with nobody included, to one decimal; null without a working day. */
-  perDay: number | null
-  /** Working days with somebody on the schedule. */
-  staffed: number
-}
-
-/** The working days among `days`: how many people each has on average, and how many have anybody. */
-export function crewSpan(days: CrewDay[]): CrewSpan {
-  const workdays = days.filter(isWorkday)
-  const people = workdays.reduce((sum, day) => sum + day.people, 0)
-  return {
-    days: workdays,
-    perDay: workdays.length > 0 ? toTenth(people / workdays.length) : null,
-    staffed: workdays.filter((day) => day.people > 0).length,
-  }
-}
 
 /** How far back the usual crew is read: thirteen weeks, about three months. */
 export const USUAL_CREW_DAYS = 91
@@ -257,4 +234,47 @@ export function todayCrewLamp(today: CrewDay, usual: number | null): Lamp {
   if (today.people === 0) return 'yellow'
   if (usual !== null && today.people < usual * 0.75) return 'yellow'
   return 'green'
+}
+
+/** A site on today's schedule: who is on it, and who is booked on it but away today. */
+export type SiteCrew = { projectId: string; number: string; name: string; people: string[]; away: string[] }
+
+/**
+ * Today's schedule by site, the sites with the most people first. Somebody
+ * booked on a site but away today will not come: they are named apart and not
+ * counted. `people` counts everybody on a site today once, however many sites
+ * they are booked on — the same rule as `crewDays`.
+ */
+export function sitesToday(
+  entries: Array<{
+    projectId: string
+    project: { number: string; name: string }
+    employees: Array<{ employeeId: string; employee: { firstName: string; lastName: string } }>
+  }>,
+  awayIds: ReadonlySet<string>
+): { sites: SiteCrew[]; people: number } {
+  const sites = new Map<string, { site: SiteCrew; ids: Set<string> }>()
+  const onSite = new Set<string>()
+  for (const entry of entries) {
+    const row = sites.get(entry.projectId) ?? {
+      site: { projectId: entry.projectId, number: entry.project.number, name: entry.project.name, people: [], away: [] },
+      ids: new Set<string>(),
+    }
+    for (const { employeeId, employee } of entry.employees) {
+      if (row.ids.has(employeeId)) continue
+      row.ids.add(employeeId)
+      const name = `${employee.firstName} ${employee.lastName}`.trim()
+      if (awayIds.has(employeeId)) {
+        row.site.away.push(name)
+      } else {
+        row.site.people.push(name)
+        onSite.add(employeeId)
+      }
+    }
+    sites.set(entry.projectId, row)
+  }
+  return {
+    sites: [...sites.values()].map((row) => row.site).sort((a, b) => b.people.length - a.people.length),
+    people: onSite.size,
+  }
 }

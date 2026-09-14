@@ -17,9 +17,11 @@ import {
   crewDays,
   overdueOf,
   siteGroupOf,
+  sitesToday,
   stageRows,
   type CrewDay,
   type Overdue,
+  type SiteCrew,
   type SiteGroup,
   type StageFooter,
   type StageRow,
@@ -539,8 +541,10 @@ export type Today = {
   stockShort: StockShortage[]
   /** Who is on which site today. */
   schedule: {
-    /** One row per site on today's schedule, with everybody booked on it. */
-    today: Array<{ projectId: string; number: string; name: string; people: string[] }>
+    /** One row per site on today's schedule, the most people first — see `sitesToday`. */
+    today: SiteCrew[]
+    /** Different people on a site today, the ones away left out. */
+    people: number
   }
 }
 
@@ -551,7 +555,7 @@ export type Today = {
  */
 export async function getToday(today: Date): Promise<Today> {
   const day = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
-  const [projects, cutoff, entries, stockShort] = await Promise.all([
+  const [projects, cutoff, entries, stockShort, awayToday] = await Promise.all([
     db.project.findMany({
       select: {
         id: true,
@@ -591,6 +595,7 @@ export async function getToday(today: Date): Promise<Today> {
       orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
     }),
     getStockShortages(),
+    db.absence.findMany({ where: { startDate: { lte: day }, endDate: { gte: day } }, select: { employeeId: true } }),
   ])
 
   const jobs: TodayJob[] = projects.map((p) => {
@@ -629,31 +634,14 @@ export async function getToday(today: Date): Promise<Today> {
     }
   }
 
+  const crew = sitesToday(entries, new Set(awayToday.map((a) => a.employeeId)))
+
   return {
     jobs,
     stages: stageRows(jobs),
     material: [...material.values()].sort((a, b) => a.name.localeCompare(b.name)),
     stockShort,
-    schedule: {
-      // A site booked twice today (morning and afternoon crew) is one row.
-      today: [
-        ...entries
-          .reduce((bySite, entry) => {
-            const row = bySite.get(entry.projectId) ?? {
-              projectId: entry.projectId,
-              number: entry.project.number,
-              name: entry.project.name,
-              people: [] as string[],
-            }
-            for (const { employee } of entry.employees) {
-              const name = `${employee.firstName} ${employee.lastName}`.trim()
-              if (!row.people.includes(name)) row.people.push(name)
-            }
-            return bySite.set(entry.projectId, row)
-          }, new Map<string, { projectId: string; number: string; name: string; people: string[] }>())
-          .values(),
-      ],
-    },
+    schedule: { today: crew.sites, people: crew.people },
   }
 }
 

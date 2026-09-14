@@ -21,7 +21,7 @@ import { getTranslations } from 'next-intl/server'
 import type { ProjectStatus } from '@/generated/prisma/enums'
 import { StatusBadge } from '@/components/status-badge'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { isWorkday, lampAbove, SOON_DAYS, todayCrewLamp, type CrewDay, type CrewSpan } from '@/lib/cockpit'
+import { isWorkday, lampAbove, SOON_DAYS, todayCrewLamp } from '@/lib/cockpit'
 import type { GapReport } from '@/lib/data-gaps'
 import { CLASSES, type OpenMoney, type OpenMoneyRow, type PlanClass } from '@/lib/order-situation'
 import { STALE_OFFER_DAYS, type Today, type TodayJob } from '@/lib/reports'
@@ -57,7 +57,7 @@ export async function TodayView({
   today,
   monthPlan,
   backlog,
-  crew,
+  usualCrew,
   gaps,
   cutoff,
 }: {
@@ -78,29 +78,12 @@ export async function TodayView({
   } | null
   /** Ordered work of the next twelve months; null without money rights. */
   backlog: { label: string; amount: number; weeks: number | null; months: Array<{ label: string; amount: number }> } | null
-  /**
-   * The people on the schedule today, against the people an ordinary working
-   * day had, and the two weeks ahead day by day.
-   */
-  crew: {
-    today: CrewDay
-    /** The working days of the next two weeks, today first. */
-    ahead: CrewSpan
-    /** Their first to their last day, "14.–25. September". */
-    span: string
-    /** People on an ordinary working day of the last three months; null without one. */
-    usual: number | null
-  }
+  /** People on an ordinary working day of the last three months, to hold today's crew against; null without one. */
+  usualCrew: number | null
   gaps: GapReport
   cutoff: Date | null
 }) {
   const t = await getTranslations('reports')
-  const weekdayFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: 'UTC',
-  })
   const whole = (v: number) => formatCurrency(v, locale, { whole: true })
   const date = (d: Date) => formatDate(d, locale)
   const day = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
@@ -135,15 +118,16 @@ export async function TodayView({
   const moneyLamp: TileLamp =
     outstanding >= 100_000 ? 'red' : outstanding > 0 || moneyWithoutValue > 0 ? 'yellow' : 'green'
   const offersLamp: TileLamp = offers.length === 0 ? 'none' : toChase > 0 ? 'yellow' : 'green'
-  const teamLamp: TileLamp = todayCrewLamp(crew.today, crew.usual)
+  const crewToday = { date: today, people: data.schedule.people }
+  const teamLamp: TileLamp = todayCrewLamp(crewToday, usualCrew)
   /** "7 Personen"; on a weekend nobody works, only that it is the weekend. */
   const peopleToday =
-    crew.today.people > 0
-      ? t('teamPeople', { count: crew.today.people })
-      : isWorkday(crew.today)
+    crewToday.people > 0
+      ? t('teamPeople', { count: crewToday.people })
+      : isWorkday(crewToday)
         ? t('tileTeamNone')
         : t('teamWeekend')
-  const teamUsual = crew.usual !== null ? t('teamUsual', { count: crew.usual }) : null
+  const teamUsual = usualCrew !== null ? t('teamUsual', { count: usualCrew }) : null
 
   // ── Pieces the sheets share ─────────────────────────────────
   const amount = (value: number | null) =>
@@ -339,57 +323,19 @@ export async function TodayView({
       </div>
     )
 
-  // One scale for every bar, wide enough for the fullest day and for what is usual.
-  const dayScale = Math.max(1, crew.usual ?? 0, ...crew.ahead.days.map((day) => day.people))
   const teamPanel = (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className={stat}>
-          <p className={label}>{t('panelTeamNow')}</p>
+          <p className={label}>{t('panelTeamPeople')}</p>
           <p className="mt-0.5 text-base font-semibold tabular-nums">{peopleToday}</p>
           {teamUsual && <p className="text-[11px] text-muted">{teamUsual}</p>}
         </div>
         <div className={stat}>
-          <p className={label}>{t('panelTeamAhead', { span: crew.span })}</p>
-          <p className="mt-0.5 text-base font-semibold tabular-nums">
-            {crew.ahead.staffed === 0 ? t('tileTeamNone') : t('teamPerDay', { count: crew.ahead.perDay ?? 0 })}
-          </p>
-          <p className="text-[11px] text-muted">
-            {t('panelTeamStaffed', { staffed: crew.ahead.staffed, days: crew.ahead.days.length })}
-          </p>
+          <p className={label}>{t('panelTeamSites')}</p>
+          <p className="mt-0.5 text-base font-semibold tabular-nums">{data.schedule.today.length}</p>
         </div>
       </div>
-      {crew.ahead.days.length > 0 && (
-        <div>
-          <h3 className={label}>{t('panelTeamDays')}</h3>
-          <ol className="mt-1 gap-x-8 sm:columns-2">
-            {crew.ahead.days.map((day) => (
-              <li
-                key={day.date.toISOString()}
-                className="grid break-inside-avoid grid-cols-[5.5rem_minmax(0,1fr)_1.5rem] items-center gap-2 py-0.5 text-[12px]"
-              >
-                <span className="tabular-nums text-muted">{weekdayFmt.format(day.date)}</span>
-                <span aria-hidden className="relative h-2 rounded-sm bg-surface-hover">
-                  <span
-                    className="absolute inset-y-0 left-0 rounded-sm bg-accent/70"
-                    style={{ width: `${(day.people / dayScale) * 100}%` }}
-                  />
-                  {crew.usual !== null && (
-                    <span
-                      className="absolute -inset-y-0.5 w-px bg-foreground/50"
-                      style={{ left: `${(crew.usual / dayScale) * 100}%` }}
-                    />
-                  )}
-                </span>
-                <span className={`text-right font-semibold tabular-nums ${day.people === 0 ? warn : ''}`}>{day.people}</span>
-              </li>
-            ))}
-          </ol>
-          {crew.usual !== null && (
-            <p className="mt-2 text-[11px] text-muted">{t('panelTeamUsualHint', { count: crew.usual })}</p>
-          )}
-        </div>
-      )}
       <div>
         <h3 className={label}>{t('panelTeamToday')}</h3>
         {data.schedule.today.length === 0 ? (
@@ -397,14 +343,25 @@ export async function TodayView({
         ) : (
           <ul className="mt-1 divide-y divide-border">
             {data.schedule.today.map((site) => (
-              <li key={site.projectId} className={row}>
-                {jobName({ id: site.projectId, number: site.number, name: site.name })}
-                <span className="min-w-0 max-w-[55%] text-right text-[11px] text-muted">{site.people.join(', ') || '—'}</span>
+              <li key={site.projectId} className="py-2 text-[13px]">
+                <div className="flex items-baseline justify-between gap-3">
+                  {jobName({ id: site.projectId, number: site.number, name: site.name })}
+                  <span className="shrink-0 font-semibold tabular-nums">
+                    {t('teamPeople', { count: site.people.length })}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[11px] text-muted">
+                  {site.people.length > 0 ? site.people.join(', ') : site.away.length === 0 ? '—' : null}
+                  {site.people.length > 0 && site.away.length > 0 && ' · '}
+                  {/* Booked but away today: named, not counted. */}
+                  {site.away.length > 0 && <span className={warn}>{t('panelTeamAway', { names: site.away.join(', ') })}</span>}
+                </p>
               </li>
             ))}
           </ul>
         )}
       </div>
+      {usualCrew !== null && <p className="text-[11px] text-muted">{t('panelTeamUsualHint', { count: usualCrew })}</p>}
     </div>
   )
 
