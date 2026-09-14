@@ -133,7 +133,7 @@ export async function UsageView({
           {pct !== null && (
             <p className="text-xs text-muted">
               <span className={`text-base font-semibold tabular-nums ${tone(pct)}`}>{pct} %</span>{' '}
-              {t('usageDaysOf', { booked, available })}
+              {t('usagePersonDaysOf', { booked, available })}
             </p>
           )}
         </div>

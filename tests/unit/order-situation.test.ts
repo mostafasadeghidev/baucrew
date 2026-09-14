@@ -121,6 +121,39 @@ describe('crewLoadByMonth', () => {
   it('has nothing to plan in a year nobody stands on the schedule', () => {
     expect(crewLoadByMonth(2026, [], [])[0]).toEqual({ booked: 0, available: 0, pct: null })
   })
+
+  describe('from a given day', () => {
+    // Monday 14 September 2026: thirteen weekdays are left to the 30th.
+    const from = d('2026-09-14')
+    const crew = [
+      { employeeId: 'm1', date: d('2026-09-01') }, // over: neither planned nor still to plan
+      { employeeId: 'm1', date: d('2026-09-14') },
+      { employeeId: 'm1', date: d('2026-09-19') }, // a Saturday
+      { employeeId: 'm2', date: d('2026-09-15') },
+      { employeeId: 'm2', date: d('2026-08-03') }, // still crew, though the month is over
+    ]
+
+    it('counts only what is left of the month, on both sides', () => {
+      const months = crewLoadByMonth(2026, crew, [], from)
+      expect(months[8]).toEqual({ booked: 2, available: 26, pct: 8 })
+      expect(months[7]).toEqual({ booked: 0, available: 0, pct: null })
+      // October 2026 has 22 weekdays, all of them still ahead.
+      expect(months[9]).toEqual({ booked: 0, available: 44, pct: 0 })
+    })
+
+    it('takes off only the days away that are still ahead', () => {
+      // Five weekdays away, three of them from the 14th on; m2's day on site falls in them.
+      const away = [{ employeeId: 'm2', startDate: d('2026-09-10'), endDate: d('2026-09-16') }]
+      expect(crewLoadByMonth(2026, crew, away, from)[8]).toEqual({ booked: 1, available: 23, pct: 4 })
+    })
+
+    it('has nothing left to plan on the last weekend of a month', () => {
+      // Saturday 31 October 2026; November has 21 weekdays.
+      const months = crewLoadByMonth(2026, [{ employeeId: 'm1', date: d('2026-10-30') }], [], d('2026-10-31'))
+      expect(months[9]).toEqual({ booked: 0, available: 0, pct: null })
+      expect(months[10]).toEqual({ booked: 0, available: 21, pct: 0 })
+    })
+  })
 })
 
 describe('weeklyTurnover', () => {

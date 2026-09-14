@@ -78,9 +78,17 @@ export async function TodayView({
   } | null
   /** Ordered work of the next twelve months; null without money rights. */
   backlog: { label: string; amount: number; weeks: number | null; months: Array<{ label: string; amount: number }> } | null
-  /** The crew's planned share of the running month, and of the next (in December, January of the next year). */
+  /**
+   * The crew's planned share of what is left of the running month — today to
+   * its last day — and of the whole next month (in December, January of the
+   * next year).
+   */
   crew: {
     label: string
+    /** Today to the month's last day, "14.–30. September". */
+    span: string
+    /** Weekdays from today to the month's end; none on its last weekend. */
+    daysLeft: number
     pct: number | null
     booked: number
     available: number
@@ -124,7 +132,11 @@ export async function TodayView({
   const moneyLamp: TileLamp =
     outstanding >= 100_000 ? 'red' : outstanding > 0 || moneyWithoutValue > 0 ? 'yellow' : 'green'
   const offersLamp: TileLamp = offers.length === 0 ? 'none' : toChase > 0 ? 'yellow' : 'green'
-  const crewLamp: TileLamp = crew.booked === 0 || crew.pct === null || crew.pct < 50 ? 'yellow' : 'green'
+  // With no weekday left in the month there is nothing to plan, and nothing to warn about.
+  const crewLamp: TileLamp =
+    crew.daysLeft === 0 ? 'none' : crew.booked === 0 || crew.pct === null || crew.pct < 50 ? 'yellow' : 'green'
+  const crewValue =
+    crew.daysLeft === 0 ? null : crew.booked > 0 && crew.pct !== null ? `${crew.pct} %` : t('tileTeamNone')
 
   // ── Pieces the sheets share ─────────────────────────────────
   const amount = (value: number | null) =>
@@ -324,12 +336,12 @@ export async function TodayView({
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className={stat}>
-          <p className={label}>{t('panelTeamThis', { month: crew.label })}</p>
-          <p className="mt-0.5 text-base font-semibold tabular-nums">
-            {crew.booked > 0 && crew.pct !== null ? `${crew.pct} %` : t('tileTeamNone')}
-          </p>
+          <p className={label}>{t('panelTeamRest', { span: crew.span })}</p>
+          <p className="mt-0.5 text-base font-semibold tabular-nums">{crewValue ?? t('panelTeamNoDaysLeft')}</p>
           {crew.booked > 0 && (
-            <p className="text-[11px] text-muted">{t('usageDaysOf', { booked: crew.booked, available: crew.available })}</p>
+            <p className="text-[11px] text-muted">
+              {t('usagePersonDaysOf', { booked: crew.booked, available: crew.available })}
+            </p>
           )}
         </div>
         {crew.next && (
@@ -340,7 +352,7 @@ export async function TodayView({
             </p>
             {crew.next.booked > 0 && (
               <p className="text-[11px] text-muted">
-                {t('usageDaysOf', { booked: crew.next.booked, available: crew.next.available })}
+                {t('usagePersonDaysOf', { booked: crew.next.booked, available: crew.next.available })}
               </p>
             )}
           </div>
@@ -486,7 +498,7 @@ export async function TodayView({
     {
       key: 'team',
       label: t('tileTeam', { month: crew.label }),
-      value: crew.booked > 0 && crew.pct !== null ? `${crew.pct} %` : t('tileTeamNone'),
+      value: crewValue ?? '—',
       caption: t('tileTeamCaption', { sites: data.schedule.sites, people: data.schedule.people }),
       lamp: crewLamp,
       panel: teamPanel,

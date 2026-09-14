@@ -696,8 +696,11 @@ export async function getOpenMoney(): Promise<OpenMoney> {
   )
 }
 
-/** The crew's days on the schedule and days away, month by month, for the order situation. */
-export async function getCrewLoad(year: number): Promise<CrewMonth[]> {
+/**
+ * The crew's days on the schedule and days away, month by month. With `from`,
+ * only the days from then on count — see `crewLoadByMonth`.
+ */
+export async function getCrewLoad(year: number, from: Date | null = null): Promise<CrewMonth[]> {
   const start = new Date(Date.UTC(year, 0, 1))
   const end = new Date(Date.UTC(year + 1, 0, 1))
   const [bookings, absences] = await Promise.all([
@@ -713,7 +716,8 @@ export async function getCrewLoad(year: number): Promise<CrewMonth[]> {
   return crewLoadByMonth(
     year,
     bookings.map((b) => ({ employeeId: b.employeeId, date: b.scheduleEntry.date })),
-    absences
+    absences,
+    from
   )
 }
 

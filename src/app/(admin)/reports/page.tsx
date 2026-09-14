@@ -27,6 +27,7 @@ import {
   parseCompareYears,
   quarterBreakdown,
   bestQuarter,
+  businessDaysBetween,
   sumRange,
   monthSiteCount,
   siteMonthRows,
@@ -193,7 +194,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear - 1) : null,
     // The backlog runs twelve months, so it reaches into the next year.
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear + 1) : null,
-    onToday ? getCrewLoad(currentYear) : null,
+    // The running month from today on: the days that are over can no longer be planned.
+    onToday ? getCrewLoad(currentYear, today) : null,
     // In December the month after is January of the next year.
     onToday && todayMonth === 11 ? getCrewLoad(currentYear + 1) : null,
     onRevenue ? getYearRevenueOrHistory(year) : null,
@@ -210,6 +212,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const shortMonthFmt = new Intl.DateTimeFormat(intl, { month: 'short', timeZone: 'UTC' })
   const narrowMonthFmt = new Intl.DateTimeFormat(intl, { month: 'narrow', timeZone: 'UTC' })
   const monthName = (m: number) => monthFmt.format(new Date(Date.UTC(2000, m, 1)))
+  /** "14.–30. September". */
+  const dayRangeFmt = new Intl.DateTimeFormat(intl, { day: 'numeric', month: 'long', timeZone: 'UTC' })
   const shortMonths = Array.from({ length: 12 }, (_, m) => shortMonthFmt.format(new Date(Date.UTC(2000, m, 1))))
   const monthNames = {
     long: Array.from({ length: 12 }, (_, m) => monthName(m)),
@@ -291,6 +295,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           )
         : null
     const crewMonth = crewLoad?.[todayMonth]
+    const monthEnd = new Date(Date.UTC(currentYear, todayMonth + 1, 0))
     const crewNext = todayMonth < 11 ? crewLoad?.[todayMonth + 1] : crewLoadNextYear?.[0]
     const crewNextLabel = todayMonth < 11 ? monthName(todayMonth + 1) : `${monthName(0)} ${currentYear + 1}`
     // The twelve months the backlog runs over, each with its ordered work: this
@@ -315,6 +320,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         : null,
       crew: {
         label: monthName(todayMonth),
+        span: dayRangeFmt.formatRange(today, monthEnd),
+        daysLeft: businessDaysBetween(today, monthEnd) ?? 0,
         pct: crewMonth?.pct ?? null,
         booked: crewMonth?.booked ?? 0,
         available: crewMonth?.available ?? 0,
