@@ -4,7 +4,7 @@ import { resolveReportsUrl } from '@/lib/reports-url'
 describe('resolveReportsUrl', () => {
   it('leaves the current addresses alone', () => {
     expect(resolveReportsUrl({})).toBeNull()
-    expect(resolveReportsUrl({ tab: 'revenue', year: '2025', view: 'sites' })).toBeNull()
+    expect(resolveReportsUrl({ tab: 'revenue', year: '2025', layout: 'lanes' })).toBeNull()
     expect(resolveReportsUrl({ tab: 'utilization', period: 'q2' })).toBeNull()
     expect(resolveReportsUrl({ tab: 'quality' })).toBeNull()
     expect(resolveReportsUrl({ tab: 'jobs', open: 'money' })).toBeNull()
@@ -41,7 +41,14 @@ describe('resolveReportsUrl', () => {
 
   it('moves projects to Auslastung and customers to Planumsatz', () => {
     expect(resolveReportsUrl({ tab: 'projects', year: '2026' })).toBe('/reports?tab=utilization&year=2026')
-    expect(resolveReportsUrl({ tab: 'customers', period: 'h1' })).toBe('/reports?tab=revenue&view=customers&period=h1')
+    expect(resolveReportsUrl({ tab: 'customers', period: 'h1' })).toBe('/reports?tab=revenue&period=h1')
+  })
+
+  it('opens the months of Planumsatz for its old Baustellen and Kunden views, keeping how the months are drawn', () => {
+    expect(resolveReportsUrl({ tab: 'revenue', view: 'sites', year: '2025', layout: 'matrix' })).toBe(
+      '/reports?tab=revenue&year=2025&layout=matrix'
+    )
+    expect(resolveReportsUrl({ tab: 'revenue', view: 'customers', period: 'q1' })).toBe('/reports?tab=revenue&period=q1')
   })
 
   it('moves the comparison out of Planumsatz into its own tab, with its choices and not the months layout', () => {

@@ -22,15 +22,11 @@ import {
   percentChange,
   planReached,
   cumulativeMonths,
-  customerTotals,
-  lostCustomers,
   parseCompareYears,
   quarterBreakdown,
   bestQuarter,
-  sumRange,
   monthSiteCount,
   siteMonthRows,
-  topSites,
   type MonthRange,
 } from '@/lib/reports-calc'
 import { REPORT_TABS, TAB_CHOICES, resolveReportsUrl, type ReportTab } from '@/lib/reports-url'
@@ -98,9 +94,6 @@ const GRID_COLUMNS: Record<GridDensity, string> = {
   '6': 'sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6',
 }
 
-/** Customers listed before the rest is summed into one row. */
-const TOP_CUSTOMERS = 12
-
 type Params = {
   year?: string
   period?: string
@@ -124,8 +117,8 @@ type Params = {
  * - Vergleich — the year against other years: by month, by quarter, year by
  *   year and as a running sum. Every figure follows Jahr/Zeitraum.
  * - Aufträge & Baustellen — the long lists behind the Heute tiles. Stand heute.
- * - Planumsatz — what the year or period is worth by month, how sure it is and
- *   who carries it. Every figure follows Jahr/Zeitraum.
+ * - Planumsatz — what the year or period is worth month by month, and below
+ *   the months how sure it is. Every figure follows Jahr/Zeitraum.
  * - Auslastung — is the crew planned, and how long finished jobs took.
  *   Every figure follows Jahr/Zeitraum.
  * - Datenlücken — what makes a figure wrong or incomplete. Stand heute.
@@ -228,8 +221,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const hidePrices = await pricesHidden()
   const money = (v: number | null | undefined) => formatCurrency(v, locale, { hidden: hidePrices })
   const whole = (v: number) => formatCurrency(v, locale, { whole: true, hidden: hidePrices })
-  /** "Mai" or "Jan–Aug". */
-  const monthSpan = (from: number, to: number) => (from === to ? monthName(from) : `${shortMonths[from]}–${shortMonths[to]}`)
 
   /** Human label of the selected period ("August", "3. Quartal", "1. Halbjahr"). */
   const periodLabel = (() => {
@@ -331,98 +322,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   })()
 
   // ── Planumsatz ───────────────────────────────────────────
-  const revenueView: '' | 'sites' | 'customers' = viewParam === 'sites' || viewParam === 'customers' ? viewParam : ''
   const runningMonth = year === currentYear ? todayMonth : -1
   const fromSheet = revenue?.fromSheet ?? false
   const sheetLed = revenue?.sheetLed ?? false
-  /** Where a year's figures come from, shown as the ⓘ beside the heading. */
-  const sheetNote = fromSheet ? t('fromSheetYear', { year }) : sheetLed ? t('sheetLedYear', { year }) : null
   const hasPlan = plan?.hasPlan ?? false
   const planComparable = hasPlan && !fromSheet && !sheetLed && (plan?.yearTotal ?? 0) > 0
   const monthTotals = revenue ? revenue.months.map((m) => m.total) : []
   const prevTotals = prevRevenue ? prevRevenue.months.map((m) => m.total) : null
-  const periodRevenueTotal = revenue ? sumRange(monthTotals, range) : 0
-  const periodSubTotal = revenue ? sumRange(revenue.months.map((m) => m.subTotal), range) : 0
-  const periodPlanTotal = plan ? sumRange(plan.months.map((m) => m.total), range) : 0
-  const frame = range ?? { from: 0, to: 11 }
-  const sumMonths = (values: number[] | null, from: number, to: number) =>
-    values ? values.slice(from, to + 1).reduce((a, b) => a + b, 0) : 0
-
-  /**
-   * The one year-on-year figure on the tab. In the running year only months
-   * that are over are compared — the running month and the ones ahead are
-   * named with what is planned in them, never counted as done.
-   */
-  const comparison: Array<{ text: string; tone: string }> = (() => {
-    if (!revenue) return []
-    const change = (cur: number, prev: number) => {
-      const pct = percentChange(cur, prev)
-      return pct === null ? null : { label: `${pct >= 0 ? '+' : '−'}${Math.abs(pct)} %`, tone: pct >= 0 ? up : down }
-    }
-    if (year > currentYear || (year === currentYear && frame.from >= todayMonth)) {
-      const parts = [{ text: t('compareNoClosedMonth'), tone: 'text-muted' }]
-      if (year === currentYear && frame.from === todayMonth)
-        parts.push({ text: t('compareRunning', { month: monthName(todayMonth), amount: whole(monthTotals[todayMonth]) }), tone: '' })
-      if (year === currentYear && frame.to > todayMonth)
-        parts.push({
-          text: t('comparePlanned', {
-            months: monthSpan(Math.max(frame.from, todayMonth + 1), frame.to),
-            amount: whole(sumMonths(monthTotals, Math.max(frame.from, todayMonth + 1), frame.to)),
-          }),
-          tone: '',
-        })
-      return parts
-    }
-    const closedTo = year === currentYear ? Math.min(frame.to, todayMonth - 1) : frame.to
-    const cur = sumMonths(monthTotals, frame.from, closedTo)
-    const prev = sumMonths(prevTotals, frame.from, closedTo)
-    const delta = prevTotals && prev > 0 ? change(cur, prev) : null
-    const parts: Array<{ text: string; tone: string }> = [
-      {
-        text:
-          year === currentYear
-            ? t('compareUntil', { month: monthName(closedTo), amount: whole(cur) })
-            : t('compareFrame', { frame: frameLabel, amount: whole(cur) }),
-        tone: 'font-medium text-foreground',
-      },
-      delta
-        ? {
-            text: t('compareAgainst', {
-              change: delta.label,
-              months: monthSpan(frame.from, closedTo),
-              year: year - 1,
-              amount: whole(prev),
-            }),
-            tone: delta.tone,
-          }
-        : { text: t('noPrevYear'), tone: 'text-muted' },
-    ]
-    if (year === currentYear && frame.to >= todayMonth) {
-      parts.push({ text: t('compareRunning', { month: monthName(todayMonth), amount: whole(monthTotals[todayMonth]) }), tone: '' })
-      if (frame.to > todayMonth)
-        parts.push({
-          text: t('comparePlanned', {
-            months: monthSpan(todayMonth + 1, frame.to),
-            amount: whole(sumMonths(monthTotals, todayMonth + 1, frame.to)),
-          }),
-          tone: '',
-        })
-    }
-    return parts
-  })()
-
-  // What the Planumsatz leaves out, said next to it rather than on another page.
-  const extraInFrame = revenue
-    ? revenue.months.filter((m) => m.month >= frame.from && m.month <= frame.to).reduce((n, m) => n + m.extra.length, 0)
-    : 0
-  const withoutMonth = !range && plan ? plan.open : 0
-  const gapParts = [
-    gaps.valueOrDate.length > 0 ? t('signValueOrDate', { count: gaps.valueOrDate.length }) : null,
-    gaps.valueVsPlan.length > 0 ? t('signValueVsPlan', { count: gaps.valueVsPlan.length }) : null,
-    gaps.subConflict.length > 0 ? t('signSub', { count: gaps.subConflict.length }) : null,
-    gaps.notInPlan.length > 0 ? t('signNotInPlan', { count: gaps.notInPlan.length }) : null,
-    gaps.looseLines.length > 0 ? t('signLooseLines', { count: gaps.looseLines.length }) : null,
-  ].filter((part): part is string => part !== null)
 
   const visibleMonths = revenue
     ? revenue.months.filter(
@@ -431,9 +337,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           (m.own.length > 0 || m.sub.length > 0 || m.extra.length > 0 || (plan?.months[m.month].total ?? 0) > 0)
       )
     : []
-  const topSiteRows = revenue ? topSites(revenue.months, range) : []
-  const TOP_SITES = 30
-  const topSitesRest = topSiteRows.slice(TOP_SITES).reduce((sum, site) => sum + site.total, 0)
   const monthsDescending = orderParam === 'desc'
   const orderedMonths = monthsDescending ? [...visibleMonths].reverse() : visibleMonths
   // The months as a grid of cards, as lanes or as the year matrix, and each
@@ -449,7 +352,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   // window, so there the labels stand on their own.
   const hints = monthsLayout.grid === '2' || monthsLayout.grid === '3'
   const monthOrder = orderedMonths.map((m) => m.month)
-  const foldSites = onRevenue && revenue !== null && revenueView === '' && monthsLayout.layout !== 'grid'
+  const foldSites = onRevenue && revenue !== null && monthsLayout.layout !== 'grid'
   const siteRows = foldSites ? siteMonthRows(revenue.months, monthOrder) : []
   const extraSiteRows = foldSites
     ? siteMonthRows(
@@ -459,7 +362,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     : []
   const lastYearMonths = prevRevenue && prevRevenue.yearTotal > 0 ? prevTotals : null
   const situationMonths =
-    onRevenue && revenue && revenueView === '' && !revenue.fromSheet
+    onRevenue && revenue && !revenue.fromSheet
       ? monthSituations({
           year,
           months: revenue.months,
@@ -480,12 +383,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     const { reached, label } = planReached(actual, planned, format)
     return { tone: reached ? up : warn, label }
   }
-
-  // Customers: the same lines and total as the months, split by who they are for.
-  const customers = revenue && revenueView === 'customers' ? customerTotals(revenue.months, range) : null
-  const customersBefore = prevRevenue && revenueView === 'customers' ? customerTotals(prevRevenue.months, range) : null
-  const lost = customers && customersBefore ? lostCustomers(customers.rows, customersBefore.rows) : []
-  const topNamed = customers?.rows.find((r) => r.id !== null)
 
   // Vergleich: the chart, the quarters, the years and the running sum.
   const MAX_COMPARE = 5
@@ -871,114 +768,190 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       )}
       {onRevenue && revenue && (
         <section className="space-y-3">
-          <div className={`${card} space-y-2 p-4`}>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                {t('planHeader', { frame: frameLabel })}
-                {range && (
-                  <Link
-                    href={reportHref({ period: null })}
-                    className="rounded-full border border-border px-2 py-0.5 text-[11px] font-normal text-muted hover:bg-surface-hover print:hidden"
-                    title={t('clearPeriod')}
-                  >
-                    {periodLabel} ×
-                  </Link>
-                )}
-                {sheetNote && <InfoHint text={sheetNote} wide />}
-              </h2>
-              <p className="text-xs text-muted">
-                <span className="text-lg font-semibold tabular-nums text-foreground">{whole(periodRevenueTotal)}</span>
-                {periodRevenueTotal > 0 && (
-                  <span className="ml-3">
-                    {t('planSub', {
-                      amount: whole(periodSubTotal),
-                      pct: Math.round((periodSubTotal / periodRevenueTotal) * 100),
-                    })}
-                  </span>
-                )}
-                {planComparable && (
-                  <span className="ml-3">
-                    {t('planned')}: <span className="tabular-nums">{money(periodPlanTotal)}</span>{' '}
-                    <span className={`font-medium tabular-nums ${planDelta(periodRevenueTotal, periodPlanTotal).tone}`}>
-                      {planDelta(periodRevenueTotal, periodPlanTotal).label}
-                    </span>
-                  </span>
-                )}
-              </p>
-            </div>
-            <p className="flex flex-wrap gap-x-2 text-[13px] text-muted">
-              {comparison.map((part, i) => (
-                <span key={part.text} className={part.tone}>
-                  {i > 0 && <span className="mr-2 text-muted">·</span>}
-                  {part.text}
-                </span>
-              ))}
-            </p>
-            {(withoutMonth > 0 || extraInFrame > 0 || gaps.count > 0) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-2 text-[11px] text-muted">
-                {(withoutMonth > 0 || extraInFrame > 0) && (
-                  <span>
-                    {t('notCounted')}{' '}
-                    {[
-                      withoutMonth > 0 ? t('notCountedNoMonth', { amount: whole(withoutMonth) }) : null,
-                      extraInFrame > 0 ? t('notCountedExtra', { count: extraInFrame }) : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </span>
-                )}
-                {gaps.count > 0 && (
-                  <Link href="/reports?tab=quality" className={`${warn} hover:underline print:hidden`}>
-                    {t('signpost', { count: gaps.count })}
-                    {gapParts.length > 0 && ` — ${gapParts.join(' · ')}`} →
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* What the tab shows on the left, how the months are drawn on the
-              right: one row, the way the projects page pairs its status tabs
-              with the list/board switch. */}
-          <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
-            <div className="min-w-0">
-              <ParamTabs
-                param="view"
-                ariaLabel={t('planHeader', { frame: frameLabel })}
-                tabs={[
-                  { value: '', label: t('viewMonths') },
-                  { value: 'sites', label: t('viewSitesPlan'), count: topSiteRows.length },
-                  { value: 'customers', label: t('viewCustomers') },
+          {/* How the months are drawn, on the right above them. */}
+          {orderedMonths.length > 0 && (
+            <div className="flex flex-wrap items-center justify-end gap-2 print:hidden">
+              <LiveSelect
+                param="order"
+                ariaLabel={t('monthOrder')}
+                className="min-w-44"
+                compact
+                options={[
+                  { value: '', label: t('monthOrderAsc') },
+                  { value: 'desc', label: t('monthOrderDesc') },
                 ]}
               />
+              <RevenueLayoutPicker
+                choice={monthsLayout}
+                labels={{
+                  layout: t('monthLayout'),
+                  layouts: { grid: t('layoutGrid'), lanes: t('layoutLanes'), matrix: t('layoutMatrix') },
+                  zoom: { grid: t('layoutPerRow'), lanes: t('layoutInView'), matrix: t('layoutCells') },
+                  cells: { color: t('cellsColor'), short: t('cellsShort'), full: t('cellsFull') },
+                }}
+              />
             </div>
-            {revenueView === '' && orderedMonths.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <LiveSelect
-                  param="order"
-                  ariaLabel={t('monthOrder')}
-                  className="min-w-44"
-                  compact
-                  options={[
-                    { value: '', label: t('monthOrderAsc') },
-                    { value: 'desc', label: t('monthOrderDesc') },
-                  ]}
-                />
-                <RevenueLayoutPicker
-                  choice={monthsLayout}
-                  labels={{
-                    layout: t('monthLayout'),
-                    layouts: { grid: t('layoutGrid'), lanes: t('layoutLanes'), matrix: t('layoutMatrix') },
-                    zoom: { grid: t('layoutPerRow'), lanes: t('layoutInView'), matrix: t('layoutCells') },
-                    cells: { color: t('cellsColor'), short: t('cellsShort'), full: t('cellsFull') },
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          )}
 
           {/* ── Monate ── */}
-          {revenueView === '' && situationMonths && (
+          {orderedMonths.length === 0 ? (
+            <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
+          ) : monthsLayout.layout === 'lanes' ? (
+            <RevenueLanes
+              // Another year, period, order or layout opens the box on the
+              // running month again, not wherever the last one was left.
+              key={`lanes|${year}|${periodParam ?? ''}|${monthsDescending ? 'desc' : 'asc'}`}
+              months={orderedMonths}
+              density={monthsLayout.lanes}
+              runningMonth={runningMonth}
+              spans={new Map(siteRows.map((r) => [r.key, r.span]))}
+              extraSpans={new Map(extraSiteRows.map((r) => [r.key, r.span]))}
+              monthNames={monthNames}
+              locale={locale}
+            />
+          ) : monthsLayout.layout === 'matrix' ? (
+            <RevenueMatrix
+              key={`matrix|${year}|${periodParam ?? ''}|${monthsDescending ? 'desc' : 'asc'}`}
+              rows={siteRows}
+              extraRows={extraSiteRows}
+              months={orderedMonths}
+              density={monthsLayout.matrix}
+              runningMonth={runningMonth}
+              monthNames={monthNames}
+              locale={locale}
+            />
+          ) : (
+            <div className={`grid grid-cols-1 gap-3 ${GRID_COLUMNS[monthsLayout.grid]}`}>
+              {/* Cards in one row share their rows (subgrid): the "Eigene Leute"
+                  line, the SUB line and the rest sit at the same height in every
+                  card beside each other, however long the lists above them are. */}
+              {orderedMonths.map((m) => (
+                <div key={m.month} className={`grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid row-span-6 ${card}`}>
+                  <div
+                    className={`flex items-center justify-between border-b border-border ${
+                      summaryCards ? 'flex-wrap gap-x-2 px-2 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'
+                    }`}
+                  >
+                    <h3 className="font-semibold">{monthName(m.month)}</h3>
+                    <span className="ml-auto font-semibold tabular-nums" title={exact(m.total)}>
+                      {cardMoney(m.total)}
+                    </span>
+                  </div>
+                  {summaryCards ? (
+                    <div className="px-2 pt-2 text-[11px] text-muted">
+                      {m.total > 0 && (
+                        <div aria-hidden className="flex h-1.5 overflow-hidden rounded-full bg-subtle">
+                          <span className="bg-accent" style={{ width: `${(Math.max(m.ownTotal, 0) / m.total) * 100}%` }} />
+                          <span className="bg-accent/40" style={{ width: `${(Math.max(m.subTotal, 0) / m.total) * 100}%` }} />
+                        </div>
+                      )}
+                      <p className="mt-1">{t('monthSites', { count: monthSiteCount(m) })}</p>
+                    </div>
+                  ) : (
+                    <div className="px-3 pt-1.5 text-[13px]">
+                      {m.own.map((p) => (
+                        <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
+                          {p.fromSheet ? (
+                            <span className="truncate">{p.name}</span>
+                          ) : (
+                            <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
+                              {p.name}
+                            </Link>
+                          )}
+                          <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div
+                    className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap}`}
+                  >
+                    <span className="flex items-center gap-1.5 italic">
+                      {summaryCards && <span aria-hidden className="h-2 w-2 shrink-0 rounded-[3px] bg-accent" />}
+                      {t('ownPeople')}
+                      {hints && <InfoHint text={t(sheetLed ? 'hintOwnPeopleSheet' : 'hintOwnPeople')} />}
+                    </span>
+                    <span className="ml-auto tabular-nums" title={exact(m.ownTotal)}>
+                      {cardMoney(m.ownTotal)}
+                    </span>
+                  </div>
+                  <div className={`px-3 text-[13px] ${m.sub.length > 0 && !summaryCards ? 'pt-1' : ''}`}>
+                    {!summaryCards &&
+                      m.sub.map((p) => (
+                        <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
+                          {p.fromSheet ? (
+                            <span className="truncate">{p.name}</span>
+                          ) : (
+                            <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
+                              {p.name}
+                            </Link>
+                          )}
+                          <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
+                        </div>
+                      ))}
+                  </div>
+                  <div
+                    className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap} ${
+                      m.sub.length === 0 ? 'text-muted' : ''
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 italic">
+                      {summaryCards && <span aria-hidden className="h-2 w-2 shrink-0 rounded-[3px] bg-accent/40" />}
+                      {t('sub')}
+                      {hints && <InfoHint text={t(sheetLed ? 'hintSubSheet' : 'hintSub')} />}
+                    </span>
+                    <span className="ml-auto tabular-nums" title={m.sub.length > 0 ? exact(m.subTotal) : undefined}>
+                      {m.sub.length > 0 ? cardMoney(m.subTotal) : '—'}
+                    </span>
+                  </div>
+                  <div className={`${cardPad} pb-1.5 text-[13px] empty:p-0`}>
+                    {planComparable && (
+                      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 border-t border-border pt-1 text-xs">
+                        <span className="flex items-center gap-1.5 text-muted">
+                          {t('planned')}
+                          {hints && <InfoHint text={t('hintPlan')} />}
+                        </span>
+                        <span className="ml-auto flex items-center gap-2 tabular-nums">
+                          {!summaryCards && <span className="text-muted">{money(plan!.months[m.month].total)}</span>}
+                          <span
+                            className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}
+                            title={exact(plan!.months[m.month].total)}
+                          >
+                            {planDelta(m.total, plan!.months[m.month].total, cardMoney).label}
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                    {m.extra.length > 0 && (
+                      <div className="mt-1 border-t border-dashed border-border pt-1 text-xs text-muted">
+                        <div className={`flex items-center justify-between font-medium ${cardWrap}`}>
+                          <span className="flex items-center gap-1.5 italic">
+                            {t('extraTitle')}
+                            {hints && <InfoHint text={t('hintExtra')} />}
+                          </span>
+                          <span className="ml-auto tabular-nums" title={exact(m.extraTotal)}>
+                            {cardMoney(m.extraTotal)}
+                          </span>
+                        </div>
+                        {!summaryCards &&
+                          m.extra.map((p) => (
+                            <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
+                              <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
+                                {p.name}
+                              </Link>
+                              <span className="shrink-0 tabular-nums">{money(p.price)}</span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Planumsatz nach Stand, under the months for now ── */}
+          {situationMonths && (
             <OrderSituation
               // Another year opens fresh, on its own running month or on none.
               key={`situation|${year}|${periodParam ?? ''}`}
@@ -991,333 +964,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               monthNames={{ long: monthNames.long, short: monthNames.short }}
             />
           )}
-          {revenueView === '' &&
-            (orderedMonths.length === 0 ? (
-              <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
-            ) : monthsLayout.layout === 'lanes' ? (
-              <RevenueLanes
-                // Another year, period, order or layout opens the box on the
-                // running month again, not wherever the last one was left.
-                key={`lanes|${year}|${periodParam ?? ''}|${monthsDescending ? 'desc' : 'asc'}`}
-                months={orderedMonths}
-                density={monthsLayout.lanes}
-                runningMonth={runningMonth}
-                spans={new Map(siteRows.map((r) => [r.key, r.span]))}
-                extraSpans={new Map(extraSiteRows.map((r) => [r.key, r.span]))}
-                monthNames={monthNames}
-                locale={locale}
-              />
-            ) : monthsLayout.layout === 'matrix' ? (
-              <RevenueMatrix
-                key={`matrix|${year}|${periodParam ?? ''}|${monthsDescending ? 'desc' : 'asc'}`}
-                rows={siteRows}
-                extraRows={extraSiteRows}
-                months={orderedMonths}
-                density={monthsLayout.matrix}
-                runningMonth={runningMonth}
-                monthNames={monthNames}
-                locale={locale}
-              />
-            ) : (
-              <div className={`grid grid-cols-1 gap-3 ${GRID_COLUMNS[monthsLayout.grid]}`}>
-                {/* Cards in one row share their rows (subgrid): the "Eigene Leute"
-                    line, the SUB line and the rest sit at the same height in every
-                    card beside each other, however long the lists above them are. */}
-                {orderedMonths.map((m) => (
-                  <div key={m.month} className={`grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid row-span-6 ${card}`}>
-                    <div
-                      className={`flex items-center justify-between border-b border-border ${
-                        summaryCards ? 'flex-wrap gap-x-2 px-2 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'
-                      }`}
-                    >
-                      <h3 className="font-semibold">{monthName(m.month)}</h3>
-                      <span className="ml-auto font-semibold tabular-nums" title={exact(m.total)}>
-                        {cardMoney(m.total)}
-                      </span>
-                    </div>
-                    {summaryCards ? (
-                      <div className="px-2 pt-2 text-[11px] text-muted">
-                        {m.total > 0 && (
-                          <div aria-hidden className="flex h-1.5 overflow-hidden rounded-full bg-subtle">
-                            <span className="bg-accent" style={{ width: `${(Math.max(m.ownTotal, 0) / m.total) * 100}%` }} />
-                            <span className="bg-accent/40" style={{ width: `${(Math.max(m.subTotal, 0) / m.total) * 100}%` }} />
-                          </div>
-                        )}
-                        <p className="mt-1">{t('monthSites', { count: monthSiteCount(m) })}</p>
-                      </div>
-                    ) : (
-                      <div className="px-3 pt-1.5 text-[13px]">
-                        {m.own.map((p) => (
-                          <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
-                            {p.fromSheet ? (
-                              <span className="truncate">{p.name}</span>
-                            ) : (
-                              <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
-                                {p.name}
-                              </Link>
-                            )}
-                            <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div
-                      className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap}`}
-                    >
-                      <span className="flex items-center gap-1.5 italic">
-                        {summaryCards && <span aria-hidden className="h-2 w-2 shrink-0 rounded-[3px] bg-accent" />}
-                        {t('ownPeople')}
-                        {hints && <InfoHint text={t(sheetLed ? 'hintOwnPeopleSheet' : 'hintOwnPeople')} />}
-                      </span>
-                      <span className="ml-auto tabular-nums" title={exact(m.ownTotal)}>
-                        {cardMoney(m.ownTotal)}
-                      </span>
-                    </div>
-                    <div className={`px-3 text-[13px] ${m.sub.length > 0 && !summaryCards ? 'pt-1' : ''}`}>
-                      {!summaryCards &&
-                        m.sub.map((p) => (
-                          <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
-                            {p.fromSheet ? (
-                              <span className="truncate">{p.name}</span>
-                            ) : (
-                              <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
-                                {p.name}
-                              </Link>
-                            )}
-                            <span className="shrink-0 tabular-nums text-muted">{money(p.price)}</span>
-                          </div>
-                        ))}
-                    </div>
-                    <div
-                      className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap} ${
-                        m.sub.length === 0 ? 'text-muted' : ''
-                      }`}
-                    >
-                      <span className="flex items-center gap-1.5 italic">
-                        {summaryCards && <span aria-hidden className="h-2 w-2 shrink-0 rounded-[3px] bg-accent/40" />}
-                        {t('sub')}
-                        {hints && <InfoHint text={t(sheetLed ? 'hintSubSheet' : 'hintSub')} />}
-                      </span>
-                      <span className="ml-auto tabular-nums" title={m.sub.length > 0 ? exact(m.subTotal) : undefined}>
-                        {m.sub.length > 0 ? cardMoney(m.subTotal) : '—'}
-                      </span>
-                    </div>
-                    <div className={`${cardPad} pb-1.5 text-[13px] empty:p-0`}>
-                      {planComparable && (
-                        <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 border-t border-border pt-1 text-xs">
-                          <span className="flex items-center gap-1.5 text-muted">
-                            {t('planned')}
-                            {hints && <InfoHint text={t('hintPlan')} />}
-                          </span>
-                          <span className="ml-auto flex items-center gap-2 tabular-nums">
-                            {!summaryCards && <span className="text-muted">{money(plan!.months[m.month].total)}</span>}
-                            <span
-                              className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}
-                              title={exact(plan!.months[m.month].total)}
-                            >
-                              {planDelta(m.total, plan!.months[m.month].total, cardMoney).label}
-                            </span>
-                          </span>
-                        </div>
-                      )}
-                      {m.extra.length > 0 && (
-                        <div className="mt-1 border-t border-dashed border-border pt-1 text-xs text-muted">
-                          <div className={`flex items-center justify-between font-medium ${cardWrap}`}>
-                            <span className="flex items-center gap-1.5 italic">
-                              {t('extraTitle')}
-                              {hints && <InfoHint text={t('hintExtra')} />}
-                            </span>
-                            <span className="ml-auto tabular-nums" title={exact(m.extraTotal)}>
-                              {cardMoney(m.extraTotal)}
-                            </span>
-                          </div>
-                          {!summaryCards &&
-                            m.extra.map((p) => (
-                              <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
-                                <Link href={`/projects/${p.id}`} className="truncate text-accent hover:underline">
-                                  {p.name}
-                                </Link>
-                                <span className="shrink-0 tabular-nums">{money(p.price)}</span>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-
-          {/* ── Baustellen: the period's biggest sites ── */}
-          {revenueView === 'sites' &&
-            (topSiteRows.length === 0 ? (
-              <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
-            ) : (
-              <div className={`overflow-hidden ${card}`}>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[720px] table-fixed text-sm">
-                    <colgroup>
-                      <col className="w-12" />
-                      <col />
-                      <col className="w-[28%]" />
-                      <col className="w-32" />
-                      <col className="w-24" />
-                    </colgroup>
-                    <thead className="border-b border-border bg-subtle">
-                      <tr>
-                        <th className={`${th} w-10`} />
-                        <th className={th}>{t('colProject')}</th>
-                        <th className={th}>{t('colCustomer')}</th>
-                        <th className={thR}>{t('colPlanRevenue')}</th>
-                        <th className={thR}>{t('colShare')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {topSiteRows.slice(0, TOP_SITES).map((site, i) => (
-                        <tr key={site.key} className="hover:bg-surface-hover">
-                          <td className={`${tdR} text-muted`}>{i + 1}</td>
-                          <td className={`${td} break-words`}>
-                            {site.id ? (
-                              <Link href={`/projects/${site.id}`} className="text-accent hover:underline">
-                                {site.name}
-                              </Link>
-                            ) : (
-                              site.name
-                            )}
-                            {site.lines > 1 && (
-                              <span className="ml-2 text-xs text-muted">{t('sitesMonths', { count: site.lines })}</span>
-                            )}
-                          </td>
-                          <td className={`${td} break-words text-muted`}>{site.customer || '—'}</td>
-                          <td className={tdR}>{money(site.total)}</td>
-                          <td className={`${tdR} text-muted`}>
-                            {periodRevenueTotal > 0 ? `${Math.round((site.total / periodRevenueTotal) * 100)} %` : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {topSiteRows.length > TOP_SITES && (
-                  <p className="border-t border-border px-3 py-2 text-xs text-muted">
-                    {t('sitesMore', { count: topSiteRows.length - TOP_SITES, amount: money(topSitesRest) })}
-                  </p>
-                )}
-              </div>
-            ))}
-
-          {/* ── Kunden: who the period's Planumsatz is for ── */}
-          {customers && (
-            <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-              <section className={`overflow-hidden ${card}`}>
-                <div className="border-b border-border px-3 py-2.5">
-                  <h2 className="text-sm font-semibold">{t('customersPlanTitle', { frame: frameLabel })}</h2>
-                  <p className="mt-0.5 text-[11px] text-muted">{t('customersPlanHint')}</p>
-                </div>
-                {customers.rows.length === 0 ? (
-                  <p className="px-3 py-6 text-sm text-muted">{t('noRevenueInPeriod')}</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[640px] table-fixed text-[13px]">
-                      <colgroup>
-                        <col />
-                        <col className="w-[34%]" />
-                        <col className="w-20" />
-                        <col className="w-32" />
-                      </colgroup>
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className={th}>{t('colCustomer')}</th>
-                          <th className={th}>{t('colShare')}</th>
-                          <th className={thR}>{t('colJobs')}</th>
-                          <th className={thR}>{t('colPlanRevenue')}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {customers.rows.slice(0, TOP_CUSTOMERS).map((c) => (
-                          <tr key={c.id ?? '__none'} className="hover:bg-surface-hover">
-                            <td className={`${td} break-words`}>
-                              {c.id ? (
-                                <Link href={`/customers/${c.id}`} className="text-accent hover:underline">
-                                  {c.name}
-                                </Link>
-                              ) : (
-                                <span className="italic text-muted">{t('customerNone')}</span>
-                              )}
-                            </td>
-                            <td className={td}>
-                              <div className="flex items-center gap-2">
-                                <div className="h-2 flex-1 rounded-sm bg-surface-hover">
-                                  <div
-                                    className={`h-2 rounded-sm ${c.id && c.share > 30 ? 'bg-amber-500/70' : c.id ? 'bg-accent/70' : 'bg-muted/40'}`}
-                                    style={{ width: `${Math.min(100, c.share)}%` }}
-                                  />
-                                </div>
-                                <span className="w-10 text-right text-xs tabular-nums text-muted">{c.share} %</span>
-                              </div>
-                            </td>
-                            <td className={tdR}>{c.jobs}</td>
-                            <td className={`${tdR} font-medium`}>{whole(c.total)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      {customers.rows.length > TOP_CUSTOMERS && (
-                        <tfoot>
-                          <tr className="border-t border-border text-muted">
-                            <td className={td} colSpan={3}>
-                              {t('customersRest', { count: customers.rows.length - TOP_CUSTOMERS })}
-                            </td>
-                            <td className={tdR}>
-                              {whole(customers.rows.slice(TOP_CUSTOMERS).reduce((sum, c) => sum + c.total, 0))}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      )}
-                    </table>
-                  </div>
-                )}
-                {topNamed && topNamed.share > 30 && (
-                  <p className={`border-t border-border px-3 py-2 text-[12px] ${warn}`}>
-                    ⚠ {t('concentrationPlan', { name: topNamed.name, share: topNamed.share })}
-                  </p>
-                )}
-              </section>
-
-              <section className={`self-start overflow-hidden ${card}`}>
-                <div className="border-b border-border px-3 py-2.5">
-                  <h2 className="text-sm font-semibold">
-                    {t('lostTitle')}{' '}
-                    <span className="ml-1 rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium tabular-nums">
-                      {lost.length}
-                    </span>
-                  </h2>
-                  <p className="mt-0.5 text-[11px] text-muted">
-                    {t('lostHint', { before: `${periodLabel ?? ''} ${year - 1}`.trim(), now: frameLabel })}
-                  </p>
-                </div>
-                {lost.length === 0 ? (
-                  <p className="px-3 py-4 text-[13px] text-muted">{t('lostNone')}</p>
-                ) : (
-                  <ul className="divide-y divide-border">
-                    {lost.slice(0, TOP_CUSTOMERS).map((c) => (
-                      <li key={c.id} className="flex items-center justify-between gap-2 px-3 py-1.5 text-[13px]">
-                        <Link href={`/customers/${c.id}`} className="truncate text-accent hover:underline">
-                          {c.name}
-                        </Link>
-                        <span className="shrink-0 text-[11px] tabular-nums text-muted">{whole(c.total)}</span>
-                      </li>
-                    ))}
-                    {lost.length > TOP_CUSTOMERS && (
-                      <li className="px-3 py-1.5 text-[11px] text-muted">
-                        {t('customersRest', { count: lost.length - TOP_CUSTOMERS })}
-                      </li>
-                    )}
-                  </ul>
-                )}
-              </section>
-            </div>
-          )}
-
         </section>
       )}
 

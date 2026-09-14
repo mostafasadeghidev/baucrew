@@ -68,7 +68,12 @@ export function resolveReportsUrl(params: Record<string, string | undefined>): s
     case 'revenue':
       // The comparison was a view of Planumsatz, and the running sum one before
       // it; both are the Vergleich tab now. The months' layout stays behind.
-      return params.view === 'compare' || params.view === 'cumulative' ? toComparison() : null
+      if (params.view === 'compare' || params.view === 'cumulative') return toComparison()
+      if (params.view === undefined) return null
+      // Baustellen and Kunden were views of Planumsatz too; the months are what is left.
+      set('tab', 'revenue')
+      keep([...TIME, ...REVENUE_CHOICES])
+      return address()
     case 'overview':
       // Somebody who had set up the comparison chart wants the comparison.
       if (hadComparison) return toComparison()
@@ -84,7 +89,6 @@ export function resolveReportsUrl(params: Record<string, string | undefined>): s
       return address()
     case 'customers':
       set('tab', 'revenue')
-      set('view', 'customers')
       keep(TIME)
       return address()
     // 'cockpit' and anything unknown open Heute.
