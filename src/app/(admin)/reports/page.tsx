@@ -25,8 +25,10 @@ import {
   parseCompareYears,
   quarterBreakdown,
   bestQuarter,
+  siteKey,
   siteMonthRows,
   type MonthRange,
+  type SiteRow,
 } from '@/lib/reports-calc'
 import { REPORT_TABS, TAB_CHOICES, resolveReportsUrl, type ReportTab } from '@/lib/reports-url'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -45,6 +47,7 @@ import { YearComparePicker } from '@/components/year-compare-picker'
 import { ParamPicker } from '@/components/param-picker'
 import { ChartModePicker } from '@/components/chart-mode-picker'
 import { InfoHint } from '@/components/ui/info-hint'
+import { HoverGroups } from '@/components/ui/hover-groups'
 import { RevenueLayoutPicker } from '@/components/revenue-layout-picker'
 import {
   REVENUE_LAYOUT_COOKIE,
@@ -92,6 +95,14 @@ const GRID_COLUMNS: Record<GridDensity, string> = {
   '4': 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
   '6': 'sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6',
 }
+
+/**
+ * A site's lines on the month cards while one of them is under the pointer: all
+ * its months lit, every other line stepped back — the same as on the lanes.
+ * Literal, so Tailwind finds it.
+ */
+const LINE_LIGHTING =
+  'transition-opacity [[data-lighting]_&:not([data-lit])]:opacity-35 data-[lit]:bg-accent/15 data-[lit]:outline data-[lit]:outline-1 data-[lit]:outline-offset-1 data-[lit]:outline-accent/50'
 
 type Params = {
   year?: string
@@ -377,12 +388,17 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   /** Whole euros on a dense card — the cents do not fit — with the exact figure on hover. */
   const cardMoney = (v: number | null) => (denseCards ? whole(v) : money(v))
   const exact = (v: number | null) => (denseCards ? money(v) : undefined)
-  /** A site's line on a month card: its name, cut short with the whole of it on hover, and its amount. */
-  const siteLine = (
-    p: { key: string; id: string; name: string; price: number | null; fromSheet?: boolean },
-    amountTone = 'text-muted'
-  ) => (
-    <div key={p.key} className="flex items-center justify-between gap-2 py-0.5">
+  /**
+   * A site's line on a month card: its name, cut short with the whole of it on
+   * hover, and its amount. A job over several months lights up in all of them
+   * (`HoverGroups`); the lines outside the sheet light up among themselves.
+   */
+  const siteLine = (p: SiteRow & { key: string }, extra = false) => (
+    <div
+      key={p.key}
+      data-group={`${extra ? 'extra' : 'sheet'}:${siteKey(p)}`}
+      className={`flex items-center justify-between gap-2 rounded-sm py-0.5 ${LINE_LIGHTING}`}
+    >
       {p.fromSheet ? (
         <span className="truncate" title={p.name}>
           {p.name}
@@ -392,7 +408,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           {p.name}
         </Link>
       )}
-      <span className={`shrink-0 tabular-nums ${amountTone}`} title={exact(p.price)}>
+      <span className={`shrink-0 tabular-nums ${extra ? '' : 'text-muted'}`} title={exact(p.price)}>
         {cardMoney(p.price)}
       </span>
     </div>
@@ -840,84 +856,86 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               locale={locale}
             />
           ) : (
-            <div className={`grid grid-cols-1 gap-3 ${GRID_COLUMNS[monthsLayout.grid]}`}>
-              {/* Cards in one row share their rows (subgrid): the "Eigene Leute"
-                  line, the SUB line and the rest sit at the same height in every
-                  card beside each other, however long the lists above them are. */}
-              {orderedMonths.map((m) => (
-                <div key={m.month} className={`grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid row-span-6 ${card}`}>
-                  <div
-                    className={`flex items-center justify-between border-b border-border ${
-                      denseCards ? 'flex-wrap gap-x-2 px-2 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'
-                    }`}
-                  >
-                    <h3 className="font-semibold">{monthName(m.month)}</h3>
-                    <span className="ml-auto font-semibold tabular-nums" title={exact(m.total)}>
-                      {cardMoney(m.total)}
-                    </span>
-                  </div>
-                  <div className={`${cardPad} pt-1.5 ${cardText}`}>{m.own.map((p) => siteLine(p))}</div>
-                  <div
-                    className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap}`}
-                  >
-                    <span className="flex items-center gap-1.5 italic">
-                      {t('ownPeople')}
-                      {hints && <InfoHint text={t(sheetLed ? 'hintOwnPeopleSheet' : 'hintOwnPeople')} />}
-                    </span>
-                    <span className="ml-auto tabular-nums" title={exact(m.ownTotal)}>
-                      {cardMoney(m.ownTotal)}
-                    </span>
-                  </div>
-                  <div className={`${cardPad} ${cardText} ${m.sub.length > 0 ? 'pt-1' : ''}`}>{m.sub.map((p) => siteLine(p))}</div>
-                  <div
-                    className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap} ${
-                      m.sub.length === 0 ? 'text-muted' : ''
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5 italic">
-                      {t('sub')}
-                      {hints && <InfoHint text={t(sheetLed ? 'hintSubSheet' : 'hintSub')} />}
-                    </span>
-                    <span className="ml-auto tabular-nums" title={m.sub.length > 0 ? exact(m.subTotal) : undefined}>
-                      {m.sub.length > 0 ? cardMoney(m.subTotal) : '—'}
-                    </span>
-                  </div>
-                  <div className={`${cardPad} pb-1.5 text-[13px] empty:p-0`}>
-                    {planComparable && (
-                      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 border-t border-border pt-1 text-xs">
-                        <span className="flex items-center gap-1.5 text-muted">
-                          {t('planned')}
-                          {hints && <InfoHint text={t('hintPlan')} />}
-                        </span>
-                        <span className="ml-auto flex items-center gap-2 tabular-nums">
-                          {!denseCards && <span className="text-muted">{money(plan!.months[m.month].total)}</span>}
-                          <span
-                            className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}
-                            title={exact(plan!.months[m.month].total)}
-                          >
-                            {planDelta(m.total, plan!.months[m.month].total, cardMoney).label}
+            <HoverGroups>
+              <div className={`grid grid-cols-1 gap-3 ${GRID_COLUMNS[monthsLayout.grid]}`}>
+                {/* Cards in one row share their rows (subgrid): the "Eigene Leute"
+                    line, the SUB line and the rest sit at the same height in every
+                    card beside each other, however long the lists above them are. */}
+                {orderedMonths.map((m) => (
+                  <div key={m.month} className={`grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid row-span-6 ${card}`}>
+                    <div
+                      className={`flex items-center justify-between border-b border-border ${
+                        denseCards ? 'flex-wrap gap-x-2 px-2 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'
+                      }`}
+                    >
+                      <h3 className="font-semibold">{monthName(m.month)}</h3>
+                      <span className="ml-auto font-semibold tabular-nums" title={exact(m.total)}>
+                        {cardMoney(m.total)}
+                      </span>
+                    </div>
+                    <div className={`${cardPad} pt-1.5 ${cardText}`}>{m.own.map((p) => siteLine(p))}</div>
+                    <div
+                      className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap}`}
+                    >
+                      <span className="flex items-center gap-1.5 italic">
+                        {t('ownPeople')}
+                        {hints && <InfoHint text={t(sheetLed ? 'hintOwnPeopleSheet' : 'hintOwnPeople')} />}
+                      </span>
+                      <span className="ml-auto tabular-nums" title={exact(m.ownTotal)}>
+                        {cardMoney(m.ownTotal)}
+                      </span>
+                    </div>
+                    <div className={`${cardPad} ${cardText} ${m.sub.length > 0 ? 'pt-1' : ''}`}>{m.sub.map((p) => siteLine(p))}</div>
+                    <div
+                      className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap} ${
+                        m.sub.length === 0 ? 'text-muted' : ''
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5 italic">
+                        {t('sub')}
+                        {hints && <InfoHint text={t(sheetLed ? 'hintSubSheet' : 'hintSub')} />}
+                      </span>
+                      <span className="ml-auto tabular-nums" title={m.sub.length > 0 ? exact(m.subTotal) : undefined}>
+                        {m.sub.length > 0 ? cardMoney(m.subTotal) : '—'}
+                      </span>
+                    </div>
+                    <div className={`${cardPad} pb-1.5 text-[13px] empty:p-0`}>
+                      {planComparable && (
+                        <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 border-t border-border pt-1 text-xs">
+                          <span className="flex items-center gap-1.5 text-muted">
+                            {t('planned')}
+                            {hints && <InfoHint text={t('hintPlan')} />}
                           </span>
-                        </span>
-                      </div>
-                    )}
-                    {m.extra.length > 0 && (
-                      <div className="mt-1 border-t border-dashed border-border pt-1 text-xs text-muted">
-                        <div className={`flex items-center justify-between font-medium ${cardWrap}`}>
-                          <span className="flex items-center gap-1.5 italic">
-                            {t('extraTitle')}
-                            {hints && <InfoHint text={t('hintExtra')} />}
-                          </span>
-                          <span className="ml-auto tabular-nums" title={exact(m.extraTotal)}>
-                            {cardMoney(m.extraTotal)}
+                          <span className="ml-auto flex items-center gap-2 tabular-nums">
+                            {!denseCards && <span className="text-muted">{money(plan!.months[m.month].total)}</span>}
+                            <span
+                              className={`font-medium ${planDelta(m.total, plan!.months[m.month].total).tone}`}
+                              title={exact(plan!.months[m.month].total)}
+                            >
+                              {planDelta(m.total, plan!.months[m.month].total, cardMoney).label}
+                            </span>
                           </span>
                         </div>
-                        {m.extra.map((p) => siteLine(p, ''))}
-                      </div>
-                    )}
+                      )}
+                      {m.extra.length > 0 && (
+                        <div className="mt-1 border-t border-dashed border-border pt-1 text-xs text-muted">
+                          <div className={`flex items-center justify-between font-medium ${cardWrap}`}>
+                            <span className="flex items-center gap-1.5 italic">
+                              {t('extraTitle')}
+                              {hints && <InfoHint text={t('hintExtra')} />}
+                            </span>
+                            <span className="ml-auto tabular-nums" title={exact(m.extraTotal)}>
+                              {cardMoney(m.extraTotal)}
+                            </span>
+                          </div>
+                          {m.extra.map((p) => siteLine(p, true))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </HoverGroups>
           )}
 
           {/* ── Planumsatz nach Stand, under the months for now ── */}
