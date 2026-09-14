@@ -1,8 +1,9 @@
 /**
  * Where an old address of the CRM page belongs now.
  *
- * The page had eight tabs and has four: Heute, Planumsatz, Auslastung and
- * Datenlücken. A bookmark, a link on the dashboard or an address somebody sent
+ * The page had eight tabs and has six: Heute, Vergleich, Aufträge & Baustellen,
+ * Planumsatz, Auslastung and Datenlücken. A bookmark, a link on the dashboard or
+ * an address somebody sent
  * must still land on the tab that took over the old one's content — not on an
  * empty page, and not on the wrong year. Returns the new address, or null when
  * the address is already a current one.
@@ -10,15 +11,15 @@
  * Pure, so the mapping is tested without a request.
  */
 
-/** The current tabs; the empty value is Heute. */
-export const REPORT_TABS = ['', 'jobs', 'revenue', 'utilization', 'quality'] as const
+/** The current tabs, in the order they stand; the empty value is Heute. */
+export const REPORT_TABS = ['', 'compare', 'jobs', 'revenue', 'utilization', 'quality'] as const
 export type ReportTab = (typeof REPORT_TABS)[number]
 
 /** The time frame travels with every redirect. */
 const TIME = ['year', 'period']
 /** The revenue tab's own choices, kept when an old address already pointed at it. */
 const REVENUE_CHOICES = ['order', 'layout', 'per']
-/** The comparison chart's choices, which moved from the overview into Planumsatz → Vergleich. */
+/** The Vergleich tab's choices: the chart, the years it holds and the quarter card. */
 const COMPARE = ['compare', 'chart', 'qyear', 'qcompare']
 
 /**
@@ -46,8 +47,7 @@ export function resolveReportsUrl(params: Record<string, string | undefined>): s
   }
   const hadComparison = COMPARE.some((key) => params[key] !== undefined)
   const toComparison = () => {
-    set('tab', 'revenue')
-    set('view', 'compare')
+    set('tab', 'compare')
     keep([...TIME, ...COMPARE])
     return address()
   }
@@ -57,16 +57,15 @@ export function resolveReportsUrl(params: Record<string, string | undefined>): s
       // The overview used to be the tab without a name; its comparison links
       // carried the chart's choices and no view.
       return hadComparison && params.view === undefined ? toComparison() : null
+    case 'compare':
     case 'jobs':
     case 'utilization':
     case 'quality':
       return null
     case 'revenue':
-      if (params.view !== 'cumulative') return null
-      set('tab', 'revenue')
-      set('view', 'compare')
-      keep([...TIME, ...REVENUE_CHOICES, ...COMPARE])
-      return address()
+      // The comparison was a view of Planumsatz, and the running sum one before
+      // it; both are the Vergleich tab now. The months' layout stays behind.
+      return params.view === 'compare' || params.view === 'cumulative' ? toComparison() : null
     case 'overview':
       // Somebody who had set up the comparison chart wants the comparison.
       if (hadComparison) return toComparison()

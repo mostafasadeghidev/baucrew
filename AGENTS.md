@@ -56,8 +56,8 @@ manager/vehicles/crew on templates), `docs/CHANGE-configurable-types.md`
 (client/building/item type enums → configurable lists),
 `docs/CHANGE-checklists-in-projects.md` (checklists moved to the project area;
 projects and templates pick their lists), `docs/CHANGE-crm-tabs.md` (CRM page:
-eight tabs become Heute, Planumsatz, Auslastung, Datenlücken; old addresses
-redirect). Add a new file there for similar
+eight tabs become Heute, Vergleich, Aufträge & Baustellen, Planumsatz,
+Auslastung, Datenlücken; old addresses redirect). Add a new file there for similar
 changes.
 
 ## Commands

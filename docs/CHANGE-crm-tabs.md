@@ -1,4 +1,4 @@
-# CHANGE: CRM page — eight tabs become five
+# CHANGE: CRM page — eight tabs become six
 
 ## What changed
 
@@ -6,13 +6,14 @@ The CRM page (`/reports`) had eight tabs — Übersicht, Cockpit, Umsatz,
 Angebote, Projekte, Kunden, Auslastung, Datenqualität. They showed the same
 jobs through different groupings and different time rules, so one status could
 carry two sums on one screen, and the year/period pickers only half-applied on
-most tabs. It now has five tabs, each answering one question with one time rule:
+most tabs. It now has six tabs, each answering one question with one time rule:
 
 | Tab | Question | Time rule |
 | --- | --- | --- |
 | **Heute** (default) | Where must I look today? Eight tiles with traffic lights; a click on a tile opens its short version right under the tiles (`?open=<tile>`), with a link to the whole of it. | Stand heute — pickers hidden |
+| **Vergleich** (`tab=compare`) | How does the year compare with other years? Chart by month, quarter card, year bars, running sum. | Every figure follows Jahr/Zeitraum |
 | **Aufträge & Baustellen** (`tab=jobs`) | The long lists behind the tiles: jobs by stage (`?open=offers\|ordered\|money` unfolds rows), one site table, material. | Stand heute — pickers hidden |
-| **Planumsatz** (`tab=revenue`) | What is the year/period worth by month, how sure is it, who carries it, how does it compare? Views: Monate · Baustellen · Kunden · Vergleich. | Every figure follows Jahr/Zeitraum |
+| **Planumsatz** (`tab=revenue`) | What is the year/period worth by month, how sure is it, who carries it? Views: Monate · Baustellen · Kunden. | Every figure follows Jahr/Zeitraum |
 | **Auslastung** (`tab=utilization`) | Is the crew planned, who and what is idle, how long did finished jobs take? | Every figure follows Jahr/Zeitraum |
 | **Datenlücken** (`tab=quality`) | What makes a figure wrong or incomplete, and where is it fixed? | Stand heute |
 
@@ -29,8 +30,10 @@ Rules that hold on every tab:
 - Lamps are the only summary layer; every tile links to what it counts.
 
 The comparison chart, quarter card, year bars and the running sum moved from
-Übersicht into Planumsatz → Vergleich. The month layouts (Raster, Bahnen,
-Jahresmatrix) stay under Planumsatz → Monate.
+Übersicht into a tab of their own, Vergleich, the second after Heute (they were
+a view of Planumsatz first). The month layouts (Raster, Bahnen, Jahresmatrix)
+stay under Planumsatz → Monate. Vergleich and Planumsatz show money, so both
+are there only for users who may see it.
 
 ## Old addresses
 
@@ -39,12 +42,12 @@ with a 307, keeping `year` and `period`:
 
 | Old | New |
 | --- | --- |
-| `tab=overview`, or no tab and no view | `/reports` — or `tab=revenue&view=compare` when `compare`/`chart`/`qyear`/`qcompare` is set (the old overview had no tab) |
+| `tab=overview`, or no tab and no view | `/reports` — or `tab=compare` when `compare`/`chart`/`qyear`/`qcompare` is set (the old overview had no tab) |
 | `tab=cockpit`, unknown tab | `/reports` |
 | `tab=offers` | `/reports?open=offers` (the offers tile's sheet on Heute) |
 | `tab=projects` | `/reports?tab=utilization` |
 | `tab=customers` | `/reports?tab=revenue&view=customers` |
-| `tab=revenue&view=cumulative` | `/reports?tab=revenue&view=compare` |
+| `tab=revenue&view=compare`, `tab=revenue&view=cumulative` | `/reports?tab=compare` |
 
 ## Touched files
 

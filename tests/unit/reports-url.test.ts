@@ -8,6 +8,7 @@ describe('resolveReportsUrl', () => {
     expect(resolveReportsUrl({ tab: 'utilization', period: 'q2' })).toBeNull()
     expect(resolveReportsUrl({ tab: 'quality' })).toBeNull()
     expect(resolveReportsUrl({ tab: 'jobs', open: 'money' })).toBeNull()
+    expect(resolveReportsUrl({ tab: 'compare', year: '2025', compare: '2024', chart: 'line' })).toBeNull()
   })
 
   it('opens Heute for the old overview and cockpit, keeping the time frame', () => {
@@ -17,23 +18,21 @@ describe('resolveReportsUrl', () => {
 
   it('sends an overview that had the comparison set up to the comparison', () => {
     expect(resolveReportsUrl({ tab: 'overview', year: '2025', compare: '2024,2023', chart: 'line' })).toBe(
-      '/reports?tab=revenue&view=compare&year=2025&compare=2024%2C2023&chart=line'
+      '/reports?tab=compare&year=2025&compare=2024%2C2023&chart=line'
     )
   })
 
   it('sends an old overview link without a tab to the comparison, and leaves a current Heute address alone', () => {
     expect(resolveReportsUrl({ year: '2025', compare: '2024,2023', chart: 'line', qyear: '2024' })).toBe(
-      '/reports?tab=revenue&view=compare&year=2025&compare=2024%2C2023&chart=line&qyear=2024'
+      '/reports?tab=compare&year=2025&compare=2024%2C2023&chart=line&qyear=2024'
     )
     expect(resolveReportsUrl({ view: 'compare', compare: '2024' })).toBeNull()
     expect(resolveReportsUrl({ year: '2025', open: 'money' })).toBeNull()
   })
 
   it('keeps an empty comparison — every year taken out — through a redirect', () => {
-    expect(resolveReportsUrl({ tab: 'revenue', view: 'cumulative', compare: '' })).toBe(
-      '/reports?tab=revenue&view=compare&compare='
-    )
-    expect(resolveReportsUrl({ tab: 'overview', qcompare: '' })).toBe('/reports?tab=revenue&view=compare&qcompare=')
+    expect(resolveReportsUrl({ tab: 'revenue', view: 'cumulative', compare: '' })).toBe('/reports?tab=compare&compare=')
+    expect(resolveReportsUrl({ tab: 'overview', qcompare: '' })).toBe('/reports?tab=compare&qcompare=')
   })
 
   it('opens the offers list on Heute for the old offers tab', () => {
@@ -45,9 +44,12 @@ describe('resolveReportsUrl', () => {
     expect(resolveReportsUrl({ tab: 'customers', period: 'h1' })).toBe('/reports?tab=revenue&view=customers&period=h1')
   })
 
-  it('turns the old cumulative view into the comparison, keeping the revenue choices', () => {
+  it('moves the comparison out of Planumsatz into its own tab, with its choices and not the months layout', () => {
+    expect(
+      resolveReportsUrl({ tab: 'revenue', view: 'compare', year: '2025', period: 'q2', compare: '2024', chart: 'area', layout: 'lanes' })
+    ).toBe('/reports?tab=compare&year=2025&period=q2&compare=2024&chart=area')
     expect(resolveReportsUrl({ tab: 'revenue', view: 'cumulative', year: '2025', layout: 'lanes', per: '6' })).toBe(
-      '/reports?tab=revenue&view=compare&year=2025&layout=lanes&per=6'
+      '/reports?tab=compare&year=2025'
     )
   })
 

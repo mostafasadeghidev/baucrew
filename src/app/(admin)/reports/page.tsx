@@ -116,11 +116,14 @@ type Params = {
 }
 
 /**
- * The CRM: four tabs, each answering one question, each with one time rule.
+ * The CRM: six tabs, each answering one question, each with one time rule.
  *
  * - Heute — where to look today. Stand heute; the pickers are hidden.
- * - Planumsatz — what the year or period is worth by month, how sure it is,
- *   who carries it and how it compares. Every figure follows Jahr/Zeitraum.
+ * - Vergleich — the year against other years: by month, by quarter, year by
+ *   year and as a running sum. Every figure follows Jahr/Zeitraum.
+ * - Aufträge & Baustellen — the long lists behind the Heute tiles. Stand heute.
+ * - Planumsatz — what the year or period is worth by month, how sure it is and
+ *   who carries it. Every figure follows Jahr/Zeitraum.
  * - Auslastung — is the crew planned, and how long finished jobs took.
  *   Every figure follows Jahr/Zeitraum.
  * - Datenlücken — what makes a figure wrong or incomplete. Stand heute.
@@ -164,6 +167,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const onToday = tab === ''
   const onJobs = tab === 'jobs'
   const onRevenue = tab === 'revenue' && showFinancials
+  const onCompare = tab === 'compare' && showFinancials
   const onUsage = tab === 'utilization'
   const onGaps = tab === 'quality'
   // The team tile holds today's crew against the usual one, read from the
@@ -198,10 +202,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     // The backlog runs twelve months, so it reaches into the next year.
     onToday && showFinancials ? getYearRevenueOrHistory(currentYear + 1) : null,
     onToday ? getCrewDays(usualFrom, addDays(today, -1)) : null,
-    onRevenue ? getYearRevenueOrHistory(year) : null,
-    onRevenue ? getYearRevenueOrHistory(year - 1) : null,
-    onRevenue ? getYearTotals(comparisonYears) : null,
-    onRevenue ? getYearPlan(year) : null,
+    // Planumsatz and Vergleich both stand on the year, the year before and the plan.
+    onRevenue || onCompare ? getYearRevenueOrHistory(year) : null,
+    onRevenue || onCompare ? getYearRevenueOrHistory(year - 1) : null,
+    onCompare ? getYearTotals(comparisonYears) : null,
+    onRevenue || onCompare ? getYearPlan(year) : null,
     onRevenue ? getOpenOffers() : null,
     onUsage ? getCrewUsage(year, range) : null,
     onUsage ? getProjectEfficiency(year, range) : null,
@@ -323,8 +328,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   })()
 
   // ── Planumsatz ───────────────────────────────────────────
-  const revenueView: '' | 'sites' | 'customers' | 'compare' =
-    viewParam === 'sites' || viewParam === 'customers' || viewParam === 'compare' ? viewParam : ''
+  const revenueView: '' | 'sites' | 'customers' = viewParam === 'sites' || viewParam === 'customers' ? viewParam : ''
   const runningMonth = year === currentYear ? todayMonth : -1
   const fromSheet = revenue?.fromSheet ?? false
   const sheetLed = revenue?.sheetLed ?? false
@@ -442,7 +446,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   // window, so there the labels stand on their own.
   const hints = monthsLayout.grid === '2' || monthsLayout.grid === '3'
   const monthOrder = orderedMonths.map((m) => m.month)
-  const foldSites = revenue !== null && revenueView === '' && monthsLayout.layout !== 'grid'
+  const foldSites = onRevenue && revenue !== null && revenueView === '' && monthsLayout.layout !== 'grid'
   const siteRows = foldSites ? siteMonthRows(revenue.months, monthOrder) : []
   const extraSiteRows = foldSites
     ? siteMonthRows(
@@ -452,7 +456,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     : []
   const lastYearMonths = prevRevenue && prevRevenue.yearTotal > 0 ? prevTotals : null
   const situationMonths =
-    revenue && revenueView === '' && !revenue.fromSheet
+    onRevenue && revenue && revenueView === '' && !revenue.fromSheet
       ? monthSituations({
           year,
           months: revenue.months,
@@ -488,7 +492,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
    * line or shrink the figures it sits under.
    */
   const MAX_QUARTER_COMPARE = 2
-  const onCompare = revenueView === 'compare'
   const chartMode: 'bars' | 'line' | 'linear' | 'area' =
     chartParam === 'line' || chartParam === 'linear' || chartParam === 'area' ? chartParam : 'bars'
   const compareYears = parseCompareYears(compareParam, year, comparisonYears, MAX_COMPARE)
@@ -588,6 +591,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   const tabs = [
     { value: '', label: t('tabToday') },
+    ...(showFinancials ? [{ value: 'compare', label: t('tabCompare') }] : []),
     { value: 'jobs', label: t('tabJobs') },
     ...(showFinancials ? [{ value: 'revenue', label: t('tabPlan') }] : []),
     { value: 'utilization', label: t('tabUtilization') },
@@ -596,14 +600,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const tabLabel = tabs.find((x) => x.value === tab)?.label ?? t('tabPlan')
   const intro = onToday
     ? t('introToday')
-    : onJobs
-      ? t('introJobs')
-      : tab === 'revenue'
-      ? t('introPlan')
-      : onUsage
-        ? t('introUsage')
-        : t('introGaps')
-  const timeTab = tab === 'revenue' || onUsage
+    : tab === 'compare'
+      ? t('introCompare')
+      : onJobs
+        ? t('introJobs')
+        : tab === 'revenue'
+          ? t('introPlan')
+          : onUsage
+            ? t('introUsage')
+            : t('introGaps')
+  const timeTab = tab === 'revenue' || tab === 'compare' || onUsage
 
   return (
     <div className="space-y-4">
@@ -680,6 +686,164 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         />
       )}
 
+      {/* ── Vergleich: the year against other years ───────── */}
+      {onCompare && revenue && (
+        <div className="space-y-4">
+          {/* The two stretch to the same height, and the chart takes
+              whatever height is left over inside its card. */}
+          <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
+            <div className={`${card} flex flex-col p-4`}>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">
+                  {chartTitle}
+                  {compareYears.length > 0 && (
+                    <InfoHint text={t('chartCompareHint', { year })} className="ml-1.5" wide />
+                  )}
+                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ChartModePicker
+                    value={chartMode === 'bars' ? '' : chartMode}
+                    label={t('chartMode')}
+                    options={[
+                      { value: '', label: t('chartModeBars') },
+                      { value: 'line', label: t('chartModeLine') },
+                      { value: 'linear', label: t('chartModeLinear') },
+                      { value: 'area', label: t('chartModeArea') },
+                    ]}
+                  />
+                  <YearComparePicker
+                    options={comparisonYears.filter((y) => y !== year)}
+                    selected={compareYears}
+                    max={MAX_COMPARE}
+                    label={t('compareYears')}
+                    maxHint={t('compareMax', { count: MAX_COMPARE })}
+                  />
+                </div>
+              </div>
+              <RevenueChart
+                year={year}
+                months={revenue.months.map((m, i) => ({
+                  own: m.ownTotal,
+                  sub: m.subTotal,
+                  plan: planComparable ? plan!.months[i].total : null,
+                }))}
+                compare={compareSeries}
+                mode={chartMode}
+                labels={shortMonths}
+                legend={{
+                  own: t('legendOwn', { year }),
+                  sub: t('legendSub', { year }),
+                  plan: t('legendPlan'),
+                  total: t('chartTotal'),
+                  wholeMonth: t('chartWholeMonth'),
+                  changeAgainst: t('vsPrevYear', { year }),
+                }}
+                locale={locale}
+                highlightRange={range}
+              />
+            </div>
+
+            <div className={`${card} p-4`}>
+              <div className="mb-3 space-y-2">
+                <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+                  {t('quarterTitleYear')}
+                  <InfoHint text={t('quarterHint')} wide align="end" />
+                </h2>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <ParamPicker
+                    param="qyear"
+                    label={t('quarterYear')}
+                    value={quarterYear === year ? '' : String(quarterYear)}
+                    options={comparisonYears.map((y) => ({ value: y === year ? '' : String(y), label: String(y) }))}
+                    dense
+                  />
+                  <span className="text-xs text-muted">{t('quarterVersus')}</span>
+                  <YearComparePicker
+                    options={comparisonYears.filter((y) => y !== quarterYear)}
+                    selected={quarterCompareYears}
+                    param="qcompare"
+                    max={MAX_QUARTER_COMPARE}
+                    label={t('compareYears')}
+                    maxHint={t('compareMax', { count: MAX_QUARTER_COMPARE })}
+                    noneLabel={t('compareNone')}
+                    dense
+                  />
+                </div>
+              </div>
+              <QuarterBreakdown
+                rows={quarterViews}
+                year={quarterYear}
+                center={
+                  best
+                    ? { label: t('quarterBest'), quarter: `Q${best.index + 1}`, share: `${Math.round(best.share * 100)} %` }
+                    : null
+                }
+                labels={{
+                  share: t('quarterShare'),
+                  change: t('quarterChange'),
+                  running: t('quarterRunning'),
+                  empty: t('quarterEmpty'),
+                }}
+              />
+            </div>
+          </div>
+
+          {yearBars.length > 1 && (
+            <div className={`${card} p-4`}>
+              <h2 className="mb-3 text-sm font-semibold">{t('yearComparison')}</h2>
+              <YearBars
+                rows={yearBars}
+                selected={year}
+                hrefFor={(y) =>
+                  `/reports?tab=compare&year=${y}${periodParam ? `&period=${encodeURIComponent(periodParam)}` : ''}`
+                }
+                formatValue={money}
+                legend={{ own: t('ownPeople'), sub: t('sub'), change: t('changeVsPrev') }}
+              />
+            </div>
+          )}
+
+          {cumulativeRows.length > 0 && (
+            <div className={`overflow-hidden ${card}`}>
+              <h2 className="border-b border-border px-3 py-2.5 text-sm font-semibold">{t('cumulativeTitle')}</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] table-fixed text-sm">
+                  <colgroup>
+                    <col />
+                    <col className="w-36" />
+                    <col className="w-36" />
+                    <col className="w-36" />
+                    <col className="w-36" />
+                  </colgroup>
+                  <thead className="border-b border-border bg-subtle">
+                    <tr>
+                      <th className={th}>{t('colMonth')}</th>
+                      <th className={thR}>{t('colPlanRevenue')}</th>
+                      <th className={thR}>{t('colCumulative')}</th>
+                      <th className={thR}>{t('colPrevCumulative', { year: year - 1 })}</th>
+                      <th className={thR}>{t('colDelta')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {cumulativeRows.map((row) => (
+                      <tr key={row.month}>
+                        <td className={td}>{monthName(row.month)}</td>
+                        <td className={`${tdR} text-muted`}>{money(row.total)}</td>
+                        <td className={`${tdR} font-semibold`}>{money(row.running)}</td>
+                        <td className={`${tdR} text-muted`}>{row.prevRunning == null ? '—' : money(row.prevRunning)}</td>
+                        <td className={`${tdR} font-medium ${row.delta == null ? 'text-muted' : row.delta >= 0 ? up : down}`}>
+                          {row.delta == null ? '—' : `${row.delta >= 0 ? '+' : '−'}${money(Math.abs(row.delta))}`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Aufträge & Baustellen ──────────────────────────── */}
       {onJobs && todayData && (
         <JobsView
@@ -694,7 +858,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       )}
 
       {/* ── Planumsatz ───────────────────────────────────── */}
-      {tab === 'revenue' && !showFinancials && <p className={`${card} p-6 text-sm text-muted`}>{t('noAccess')}</p>}
+      {(tab === 'revenue' || tab === 'compare') && !showFinancials && (
+        <p className={`${card} p-6 text-sm text-muted`}>{t('noAccess')}</p>
+      )}
       {onRevenue && revenue && (
         <section className="space-y-3">
           <div className={`${card} space-y-2 p-4`}>
@@ -775,7 +941,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   { value: '', label: t('viewMonths') },
                   { value: 'sites', label: t('viewSitesPlan'), count: topSiteRows.length },
                   { value: 'customers', label: t('viewCustomers') },
-                  { value: 'compare', label: t('viewCompare') },
                 ]}
               />
             </div>
@@ -1145,163 +1310,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </div>
           )}
 
-          {/* ── Vergleich: the year against other years ── */}
-          {onCompare && (
-            <div className="space-y-4">
-              {/* The two stretch to the same height, and the chart takes
-                  whatever height is left over inside its card. */}
-              <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
-                <div className={`${card} flex flex-col p-4`}>
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-sm font-semibold">
-                      {chartTitle}
-                      {compareYears.length > 0 && (
-                        <InfoHint text={t('chartCompareHint', { year })} className="ml-1.5" wide />
-                      )}
-                    </h2>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <ChartModePicker
-                        value={chartMode === 'bars' ? '' : chartMode}
-                        label={t('chartMode')}
-                        options={[
-                          { value: '', label: t('chartModeBars') },
-                          { value: 'line', label: t('chartModeLine') },
-                          { value: 'linear', label: t('chartModeLinear') },
-                          { value: 'area', label: t('chartModeArea') },
-                        ]}
-                      />
-                      <YearComparePicker
-                        options={comparisonYears.filter((y) => y !== year)}
-                        selected={compareYears}
-                        max={MAX_COMPARE}
-                        label={t('compareYears')}
-                        maxHint={t('compareMax', { count: MAX_COMPARE })}
-                      />
-                    </div>
-                  </div>
-                  <RevenueChart
-                    year={year}
-                    months={revenue.months.map((m, i) => ({
-                      own: m.ownTotal,
-                      sub: m.subTotal,
-                      plan: planComparable ? plan!.months[i].total : null,
-                    }))}
-                    compare={compareSeries}
-                    mode={chartMode}
-                    labels={shortMonths}
-                    legend={{
-                      own: t('legendOwn', { year }),
-                      sub: t('legendSub', { year }),
-                      plan: t('legendPlan'),
-                      total: t('chartTotal'),
-                      wholeMonth: t('chartWholeMonth'),
-                      changeAgainst: t('vsPrevYear', { year }),
-                    }}
-                    locale={locale}
-                    highlightRange={range}
-                  />
-                </div>
-
-                <div className={`${card} p-4`}>
-                  <div className="mb-3 space-y-2">
-                    <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-                      {t('quarterTitleYear')}
-                      <InfoHint text={t('quarterHint')} wide align="end" />
-                    </h2>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <ParamPicker
-                        param="qyear"
-                        label={t('quarterYear')}
-                        value={quarterYear === year ? '' : String(quarterYear)}
-                        options={comparisonYears.map((y) => ({ value: y === year ? '' : String(y), label: String(y) }))}
-                        dense
-                      />
-                      <span className="text-xs text-muted">{t('quarterVersus')}</span>
-                      <YearComparePicker
-                        options={comparisonYears.filter((y) => y !== quarterYear)}
-                        selected={quarterCompareYears}
-                        param="qcompare"
-                        max={MAX_QUARTER_COMPARE}
-                        label={t('compareYears')}
-                        maxHint={t('compareMax', { count: MAX_QUARTER_COMPARE })}
-                        noneLabel={t('compareNone')}
-                        dense
-                      />
-                    </div>
-                  </div>
-                  <QuarterBreakdown
-                    rows={quarterViews}
-                    year={quarterYear}
-                    center={
-                      best
-                        ? { label: t('quarterBest'), quarter: `Q${best.index + 1}`, share: `${Math.round(best.share * 100)} %` }
-                        : null
-                    }
-                    labels={{
-                      share: t('quarterShare'),
-                      change: t('quarterChange'),
-                      running: t('quarterRunning'),
-                      empty: t('quarterEmpty'),
-                    }}
-                  />
-                </div>
-              </div>
-
-              {yearBars.length > 1 && (
-                <div className={`${card} p-4`}>
-                  <h2 className="mb-3 text-sm font-semibold">{t('yearComparison')}</h2>
-                  <YearBars
-                    rows={yearBars}
-                    selected={year}
-                    hrefFor={(y) =>
-                      `/reports?tab=revenue&view=compare&year=${y}${periodParam ? `&period=${encodeURIComponent(periodParam)}` : ''}`
-                    }
-                    formatValue={money}
-                    legend={{ own: t('ownPeople'), sub: t('sub'), change: t('changeVsPrev') }}
-                  />
-                </div>
-              )}
-
-              {cumulativeRows.length > 0 && (
-                <div className={`overflow-hidden ${card}`}>
-                  <h2 className="border-b border-border px-3 py-2.5 text-sm font-semibold">{t('cumulativeTitle')}</h2>
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[720px] table-fixed text-sm">
-                      <colgroup>
-                        <col />
-                        <col className="w-36" />
-                        <col className="w-36" />
-                        <col className="w-36" />
-                        <col className="w-36" />
-                      </colgroup>
-                      <thead className="border-b border-border bg-subtle">
-                        <tr>
-                          <th className={th}>{t('colMonth')}</th>
-                          <th className={thR}>{t('colPlanRevenue')}</th>
-                          <th className={thR}>{t('colCumulative')}</th>
-                          <th className={thR}>{t('colPrevCumulative', { year: year - 1 })}</th>
-                          <th className={thR}>{t('colDelta')}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {cumulativeRows.map((row) => (
-                          <tr key={row.month}>
-                            <td className={td}>{monthName(row.month)}</td>
-                            <td className={`${tdR} text-muted`}>{money(row.total)}</td>
-                            <td className={`${tdR} font-semibold`}>{money(row.running)}</td>
-                            <td className={`${tdR} text-muted`}>{row.prevRunning == null ? '—' : money(row.prevRunning)}</td>
-                            <td className={`${tdR} font-medium ${row.delta == null ? 'text-muted' : row.delta >= 0 ? up : down}`}>
-                              {row.delta == null ? '—' : `${row.delta >= 0 ? '+' : '−'}${money(Math.abs(row.delta))}`}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </section>
       )}
 
