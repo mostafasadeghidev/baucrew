@@ -1,8 +1,8 @@
 /**
  * The CRM's "Aufträge & Baustellen" tab: the long lists behind the Heute tiles.
  *
- * Every job that still matters, by the stage it stands in; one table of the
- * sites — late, running, starting soon — in which every job appears once; and
+ * Every job that still matters, by the stage it stands in; the sites — late,
+ * running, starting soon — as one card each, every job once; and
  * the material that is missing. Heute keeps the tiles and opens a short version
  * of each under them; this is where the whole of it is read.
  *
@@ -23,10 +23,6 @@ import { STALE_OFFER_DAYS, type Today, type TodayJob } from '@/lib/reports'
 
 const card = 'rounded-xl border border-border bg-surface shadow-sm'
 const label = 'text-[11px] uppercase tracking-wide text-muted'
-const th = 'px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted'
-const thR = `${th} text-right`
-const td = 'px-3 py-1.5 align-top'
-const tdR = `${td} text-right tabular-nums`
 const warn = 'text-amber-700 dark:text-amber-400'
 const danger = 'text-red-700 dark:text-red-400'
 
@@ -131,7 +127,8 @@ export async function JobsView({
     )
   }
 
-  const siteRows = (group: 'overdue' | 'running' | 'starting', jobs: TodayJob[], title: string) => {
+  /** One group of sites: its name and count, then a card for each site in it. */
+  const siteCards = (group: 'overdue' | 'running' | 'starting', jobs: TodayJob[], title: string) => {
     if (jobs.length === 0) return null
     const sorted = [...jobs].sort((a, b) =>
       group === 'overdue'
@@ -139,71 +136,101 @@ export async function JobsView({
         : (a.plannedStart?.getTime() ?? 0) - (b.plannedStart?.getTime() ?? 0)
     )
     return (
-      <tbody key={group} className="divide-y divide-border border-t border-border">
-        <tr className="bg-subtle">
-          <th colSpan={showFinancials ? 7 : 6} className={`${th} ${group === 'overdue' ? danger : ''}`}>
-            {title} · {jobs.length}
-          </th>
-        </tr>
-        {sorted.map((job) => {
-          const notes = [
-            job.missingItems > 0
-              ? { key: 'material', text: `${t('colMaterial')}: ${t('materialMissingCount', { count: job.missingItems })}`, tone: warn }
-              : null,
-            job.checklistProblems > 0 || job.checklistOpen > 0
-              ? {
-                  key: 'checklist',
-                  text: `${t('colChecklist')}: ${[
-                    job.checklistProblems > 0 ? t('cockpitProblems', { count: job.checklistProblems }) : null,
-                    job.checklistOpen > 0 ? t('cockpitOpenPoints', { count: job.checklistOpen }) : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}`,
-                  tone: job.checklistProblems > 0 ? warn : 'text-muted',
-                }
-              : null,
-            job.noCity ? { key: 'city', text: t('placeMissing'), tone: warn } : null,
-          ].filter((note) => note !== null)
-          return (
-            <tr key={job.id} className="hover:bg-surface-hover">
-              <td className={`${td} break-words`}>
-                <Link href={`/projects/${job.id}`} className="text-accent hover:underline">
-                  {job.number} — {job.name}
-                </Link>
-                <span className="block break-words text-[11px] text-muted">{job.customer}</span>
-              </td>
-              <td className={td}>
-                <StatusBadge status={job.status as ProjectStatus} />
-              </td>
-              <td className={`${td} text-muted`}>
-                {job.plannedStart
-                  ? `${date(job.plannedStart)}${job.plannedEnd ? ` – ${date(job.plannedEnd)}` : ''}`
-                  : job.plannedEnd
-                    ? t('periodUntil', { date: date(job.plannedEnd) })
-                    : '—'}
-              </td>
-              <td className={td}>{situation(job)}</td>
-              <td className={td}>
-                <NextVisit job={job} day={day} locale={locale} labels={{ none: t('noVisit14', { days: SOON_DAYS }), later: (d) => t('nextVisitLater', { date: d }) }} />
-              </td>
-              <td className={`${td} text-[11px]`}>
-                {notes.length === 0 ? (
-                  <span className="text-muted">—</span>
-                ) : (
-                  notes.map((note) => (
-                    <span key={note.key} className={`block ${note.tone}`}>
-                      {note.text}
-                    </span>
-                  ))
-                )}
-              </td>
-              {showFinancials && (
-                <td className={tdR}>{job.amount === null ? <span className={warn}>{t('valueMissing')}</span> : whole(job.amount)}</td>
-              )}
-            </tr>
-          )
-        })}
-      </tbody>
+      <div key={group}>
+        <h3 className={`${label} ${group === 'overdue' ? danger : ''}`}>
+          {title} · {jobs.length}
+        </h3>
+        <ul className="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {sorted.map((job) => {
+            const notes = [
+              job.missingItems > 0
+                ? { key: 'material', text: `${t('colMaterial')}: ${t('materialMissingCount', { count: job.missingItems })}`, tone: warn }
+                : null,
+              job.checklistProblems > 0 || job.checklistOpen > 0
+                ? {
+                    key: 'checklist',
+                    text: `${t('colChecklist')}: ${[
+                      job.checklistProblems > 0 ? t('cockpitProblems', { count: job.checklistProblems }) : null,
+                      job.checklistOpen > 0 ? t('cockpitOpenPoints', { count: job.checklistOpen }) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}`,
+                    tone: job.checklistProblems > 0 ? warn : 'text-muted',
+                  }
+                : null,
+              job.noCity ? { key: 'city', text: t('placeMissing'), tone: warn } : null,
+            ].filter((note) => note !== null)
+            return (
+              <li
+                key={job.id}
+                className={`overflow-hidden rounded-lg border bg-subtle/40 ${
+                  group === 'overdue' ? 'border-red-300 dark:border-red-500/40' : 'border-border'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-[11px] tabular-nums text-muted">{job.number}</p>
+                    <Link
+                      href={`/projects/${job.id}`}
+                      title={job.name}
+                      className="block truncate text-[13px] font-medium text-accent hover:underline"
+                    >
+                      {job.name}
+                    </Link>
+                    <p className="truncate text-[11px] text-muted" title={job.customer}>
+                      {job.customer}
+                    </p>
+                  </div>
+                  <span className="shrink-0">
+                    <StatusBadge status={job.status as ProjectStatus} />
+                  </span>
+                </div>
+                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 px-3 py-2 text-[12px]">
+                  <dt className="text-muted">{t('colPeriod')}</dt>
+                  <dd className="tabular-nums">
+                    {job.plannedStart
+                      ? `${date(job.plannedStart)}${job.plannedEnd ? ` – ${date(job.plannedEnd)}` : ''}`
+                      : job.plannedEnd
+                        ? t('periodUntil', { date: date(job.plannedEnd) })
+                        : '—'}
+                  </dd>
+                  <dt className="text-muted">{t('colSituation')}</dt>
+                  <dd>{situation(job)}</dd>
+                  <dt className="text-muted">{t('colNextVisit')}</dt>
+                  <dd>
+                    <NextVisit
+                      job={job}
+                      day={day}
+                      locale={locale}
+                      labels={{ none: t('noVisit14', { days: SOON_DAYS }), later: (d) => t('nextVisitLater', { date: d }) }}
+                    />
+                  </dd>
+                  <dt className="text-muted">{t('colNotes')}</dt>
+                  <dd>
+                    {notes.length === 0 ? (
+                      <span className="text-muted">—</span>
+                    ) : (
+                      notes.map((note) => (
+                        <span key={note.key} className={`block ${note.tone}`}>
+                          {note.text}
+                        </span>
+                      ))
+                    )}
+                  </dd>
+                  {showFinancials && (
+                    <>
+                      <dt className="text-muted">{t('colOrderValue')}</dt>
+                      <dd className="font-medium tabular-nums">
+                        {job.amount === null ? <span className={warn}>{t('valueMissing')}</span> : whole(job.amount)}
+                      </dd>
+                    </>
+                  )}
+                </dl>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
     )
   }
 
@@ -306,32 +333,10 @@ export async function JobsView({
         {overdue.length + running.length + starting.length === 0 ? (
           <p className="px-3 py-6 text-sm text-muted">{t('cockpitNoSites')}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className={`w-full table-fixed text-sm ${showFinancials ? 'min-w-[1000px]' : 'min-w-[900px]'}`}>
-              <colgroup>
-                <col />
-                <col className="w-32" />
-                <col className="w-28" />
-                <col className="w-44" />
-                <col className="w-32" />
-                <col className="w-40" />
-                {showFinancials && <col className="w-28" />}
-              </colgroup>
-              <thead className="border-b border-border">
-                <tr>
-                  <th className={th}>{t('colProject')}</th>
-                  <th className={th}>{t('colStatus')}</th>
-                  <th className={th}>{t('colPeriod')}</th>
-                  <th className={th}>{t('colSituation')}</th>
-                  <th className={th}>{t('colNextVisit')}</th>
-                  <th className={th}>{t('colNotes')}</th>
-                  {showFinancials && <th className={thR}>{t('colOrderValue')}</th>}
-                </tr>
-              </thead>
-              {siteRows('overdue', overdue, t('groupOverdue'))}
-              {siteRows('running', running, t('groupRunning'))}
-              {siteRows('starting', starting, t('groupStarting'))}
-            </table>
+          <div className="space-y-5 p-3">
+            {siteCards('overdue', overdue, t('groupOverdue'))}
+            {siteCards('running', running, t('groupRunning'))}
+            {siteCards('starting', starting, t('groupStarting'))}
           </div>
         )}
       </div>
