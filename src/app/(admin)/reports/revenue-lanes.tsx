@@ -8,9 +8,11 @@
  * one line — the site's name, and beside it its amount and, for a job that runs
  * over several months, which of them it is ("2/3", in words on hover) — so a
  * busy month stays short; with twelve the tiles become blocks as tall as their
- * amount — the shape of the year, with name and figure on hover. A period with
- * fewer months than the zoom shares the width among the months it has, and
- * sizes its tiles for that.
+ * amount with the site's name written in them — the shape of the year, still
+ * readable. Every tile tells its whole name, customer, amount and months the
+ * moment the pointer is on it (`HoverTips`). A period with fewer months than
+ * the zoom shares the width among the months it has, and sizes its tiles for
+ * that.
  *
  * The box is as tall as its tiles: the page scrolls, not the box.
  */
@@ -19,6 +21,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { PanBox } from '@/components/pan-box'
+import { HoverTips } from '@/components/ui/hover-tips'
 import { formatCurrency, formatThousands } from '@/lib/format'
 import { pricesHidden } from '@/lib/price-visibility'
 import type { MonthRevenue, RevenueProject } from '@/lib/reports'
@@ -70,23 +73,31 @@ export async function RevenueLanes({
     // second month is its second month read backwards too.
     const at = [...span].sort((a, b) => a - b).indexOf(month) + 1
     const place = span.length > 1 ? t('siteSpan', { n: at, count: span.length }) : null
-    const title = [p.name, exact(p.price), place].filter(Boolean).join(' · ')
+    // The tip's lines: the name first, then who it is for, what it is worth and which month of the job.
+    const tip = [p.name, p.customer, exact(p.price), place].filter(Boolean).join('\n')
 
     if (size === 'mini') {
+      // As tall as its amount, and never too short for the name written in it.
       const block = (
         <span
-          className={`block rounded-sm ${
-            lane === 'own' ? 'bg-accent/70' : lane === 'sub' ? 'bg-accent/35' : 'border border-dashed border-muted'
+          className={`flex overflow-hidden rounded-sm px-1 text-[10px] leading-4 ${
+            lane === 'own'
+              ? 'bg-accent/70 text-white'
+              : lane === 'sub'
+                ? 'bg-accent/35 text-foreground'
+                : 'border border-dashed border-muted text-muted'
           }`}
-          style={{ height: Math.round(6 + (30 * Math.max(p.price ?? 0, 0)) / biggest) }}
-        />
+          style={{ height: Math.round(16 + (40 * Math.max(p.price ?? 0, 0)) / biggest) }}
+        >
+          <span className="min-w-0 truncate">{p.name}</span>
+        </span>
       )
       return p.fromSheet ? (
-        <div key={p.key} title={title}>
+        <div key={p.key} data-tip={tip}>
           {block}
         </div>
       ) : (
-        <Link key={p.key} href={`/projects/${p.id}`} title={title} className="block">
+        <Link key={p.key} href={`/projects/${p.id}`} data-tip={tip} aria-label={p.name} className="block">
           {block}
         </Link>
       )
@@ -95,7 +106,7 @@ export async function RevenueLanes({
     return (
       <div
         key={p.key}
-        title={title}
+        data-tip={tip}
         className={`flex items-center justify-between gap-2 rounded-md border bg-background px-2 py-1 ${
           lane === 'extra' ? 'border-dashed border-border text-muted' : 'border-border'
         } ${size === 'wide' ? 'text-[13px]' : 'text-xs'}`}
@@ -185,35 +196,37 @@ export async function RevenueLanes({
   ]
 
   return (
-    <PanBox
-      label={t('revenueTitle')}
-      zoom={density}
-      runningMonth={runningMonth}
-      columns={`8rem repeat(${months.length}, max(${MIN_WIDTH[size]}, calc((100% - 8rem) / ${inView})))`}
-      printColumns={`8rem repeat(${months.length}, minmax(0, 1fr))`}
-      // As tall as its tiles, so nothing scrolls inside it but the months
-      // sideways. Keyboard focus scrolls a tile clear of the lane names.
-      className="scroll-pl-32 scroll-pt-16 rounded-xl border border-border bg-surface shadow-sm"
-    >
-      {header}
-      {lane(
-        'own',
-        <span className="flex items-center gap-1.5 font-medium">
-          {dot('bg-accent')}
-          {t('ownPeople')}
-        </span>
-      )}
-      {sums('own', t('laneOwnTotal'))}
-      {lane(
-        'sub',
-        <span className="flex items-center gap-1.5 font-medium">
-          {dot('bg-accent/40')}
-          {t('sub')}
-        </span>
-      )}
-      {sums('sub', t('laneSubTotal'))}
-      {months.some((m) => m.extra.length > 0) &&
-        lane('extra', <span className="italic text-muted">{t('extraTitle')}</span>)}
-    </PanBox>
+    <HoverTips>
+      <PanBox
+        label={t('revenueTitle')}
+        zoom={density}
+        runningMonth={runningMonth}
+        columns={`8rem repeat(${months.length}, max(${MIN_WIDTH[size]}, calc((100% - 8rem) / ${inView})))`}
+        printColumns={`8rem repeat(${months.length}, minmax(0, 1fr))`}
+        // As tall as its tiles, so nothing scrolls inside it but the months
+        // sideways. Keyboard focus scrolls a tile clear of the lane names.
+        className="scroll-pl-32 scroll-pt-16 rounded-xl border border-border bg-surface shadow-sm"
+      >
+        {header}
+        {lane(
+          'own',
+          <span className="flex items-center gap-1.5 font-medium">
+            {dot('bg-accent')}
+            {t('ownPeople')}
+          </span>
+        )}
+        {sums('own', t('laneOwnTotal'))}
+        {lane(
+          'sub',
+          <span className="flex items-center gap-1.5 font-medium">
+            {dot('bg-accent/40')}
+            {t('sub')}
+          </span>
+        )}
+        {sums('sub', t('laneSubTotal'))}
+        {months.some((m) => m.extra.length > 0) &&
+          lane('extra', <span className="italic text-muted">{t('extraTitle')}</span>)}
+      </PanBox>
+    </HoverTips>
   )
 }
