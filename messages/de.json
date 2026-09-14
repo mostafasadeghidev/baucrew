@@ -697,6 +697,8 @@
     "panelThisMonth": "Dieser Monat",
     "panelLargestLines": "Alle Zeilen dieses Monats, die größten zuerst",
     "panelBacklogHint": "Beauftragte, geplante und laufende Arbeit aus der Jahresplanung, Monat für Monat über die nächsten zwölf Monate.",
+    "panelBacklogJobs": "{count, plural, =0 {kein Auftrag} one {# Auftrag} other {# Aufträge}}",
+    "panelBacklogEmpty": "Für diesen Monat ist noch nichts beauftragt.",
     "panelOffersNone": "Keine offenen Anfragen oder Angebote.",
     "panelTeamPeople": "Personen heute",
     "panelTeamSites": "Baustellen heute",

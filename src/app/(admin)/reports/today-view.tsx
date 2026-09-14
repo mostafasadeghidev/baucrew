@@ -76,8 +76,17 @@ export async function TodayView({
     classes: Record<PlanClass, number>
     lines: MonthPlanLine[]
   } | null
-  /** Ordered work of the next twelve months; null without money rights. */
-  backlog: { label: string; amount: number; weeks: number | null; months: Array<{ label: string; amount: number }> } | null
+  /** Ordered work of the next twelve months, month by month with its jobs; null without money rights. */
+  backlog: {
+    label: string
+    amount: number
+    weeks: number | null
+    months: Array<{
+      label: string
+      amount: number
+      lines: Array<{ key: string; id: string; number: string; name: string; customer: string; amount: number | null }>
+    }>
+  } | null
   /** People on an ordinary working day of the last three months, to hold today's crew against; null without one. */
   usualCrew: number | null
   gaps: GapReport
@@ -205,25 +214,51 @@ export async function TodayView({
     </div>
   )
 
-  const backlogMax = backlog ? Math.max(1, ...backlog.months.map((m) => m.amount)) : 1
   const backlogPanel = backlog && (
     <div className="space-y-3">
       <p className="text-[13px] text-muted">{t('panelBacklogHint')}</p>
-      <ul className="space-y-1.5">
-        {backlog.months.map((month) => (
-          <li key={month.label} className="grid grid-cols-[5.5rem_1fr_7rem] items-center gap-3 text-[13px]">
-            <span className="tabular-nums text-muted">{month.label}</span>
-            <span className="h-2 rounded-sm bg-surface-hover">
-              <span className="block h-2 rounded-sm bg-accent/70" style={{ width: `${(month.amount / backlogMax) * 100}%` }} />
-            </span>
-            <span className="text-right tabular-nums">{month.amount > 0 ? whole(month.amount) : '—'}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="border-t border-border pt-2 text-[13px]">
+      <p className="text-[13px]">
         <span className="font-semibold tabular-nums">{whole(backlog.amount)}</span>
         {backlog.weeks !== null && <span className="text-muted"> · {t('situationWeeks', { count: backlog.weeks })}</span>}
       </p>
+      {/* One card per month: its ordered work on top, then the jobs it is made of, the biggest first. */}
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {backlog.months.map((month) => (
+          <li key={month.label} className="overflow-hidden rounded-lg border border-border bg-subtle/40">
+            <div className="flex items-start justify-between gap-3 border-b border-border px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium">{month.label}</p>
+                {/* A job with two lines in one month is one job. */}
+                <p className="text-[11px] text-muted">
+                  {t('panelBacklogJobs', { count: new Set(month.lines.map((line) => line.id)).size })}
+                </p>
+              </div>
+              <span className="shrink-0 text-[13px] font-semibold tabular-nums">
+                {month.amount > 0 ? whole(month.amount) : '—'}
+              </span>
+            </div>
+            {month.lines.length === 0 ? (
+              <p className="px-3 py-2 text-[12px] text-muted">{t('panelBacklogEmpty')}</p>
+            ) : (
+              <ul className="divide-y divide-border px-3">
+                {month.lines.map((line) => (
+                  <li key={line.key} className="flex items-start justify-between gap-3 py-1.5 text-[13px]">
+                    <span className="min-w-0">
+                      <Link href={`/projects/${line.id}`} title={line.name} className="block truncate text-accent hover:underline">
+                        {line.name}
+                      </Link>
+                      <span className="block truncate text-[11px] text-muted">
+                        {[line.number, line.customer].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    <span className="shrink-0 tabular-nums">{line.amount === null ? '—' : whole(line.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 

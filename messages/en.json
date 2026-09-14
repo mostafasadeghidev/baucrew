@@ -697,6 +697,8 @@
     "panelThisMonth": "This month",
     "panelLargestLines": "Every line this month, largest first",
     "panelBacklogHint": "Ordered, planned and running work from the year plan, month by month over the next twelve months.",
+    "panelBacklogJobs": "{count, plural, =0 {no jobs} one {# job} other {# jobs}}",
+    "panelBacklogEmpty": "Nothing is ordered for this month yet.",
     "panelOffersNone": "No open enquiries or offers.",
     "panelTeamPeople": "People today",
     "panelTeamSites": "Sites today",

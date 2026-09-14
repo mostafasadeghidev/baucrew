@@ -64,6 +64,7 @@ import {
   classTotals,
   monthSituations,
   monthlyAverage,
+  orderedLines,
   situationSummary,
   weeklyTurnover,
 } from '@/lib/order-situation'
@@ -291,19 +292,25 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             nextYear ? nextYear.months.map((m) => certaintyTotals([...m.own, ...m.sub]).ordered) : null
           )
         : null
-    // The twelve months the backlog runs over, each with its ordered work: this
+    // The twelve months the backlog runs over, each with its ordered jobs: this
     // year's from the running month on, then next year's before it.
-    const orderedOf = (months: typeof thisYear) =>
-      months ? months.months.map((m) => certaintyTotals([...m.own, ...m.sub]).ordered) : null
-    const orderedThis = orderedOf(thisYear)
-    const orderedNext = orderedOf(nextYear)
     const backlogMonths = Array.from({ length: 12 }, (_, i) => {
       const index = todayMonth + i
       const inNext = index > 11
       const month = index % 12
+      const source = (inNext ? nextYear : thisYear)?.months[month]
+      const lines = source ? orderedLines([...source.own, ...source.sub]) : []
       return {
-        label: `${shortMonths[month]} ${inNext ? currentYear + 1 : currentYear}`,
-        amount: (inNext ? orderedNext?.[month] : orderedThis?.[month]) ?? 0,
+        label: `${monthName(month)} ${inNext ? currentYear + 1 : currentYear}`,
+        amount: lines.reduce((sum, line) => sum + (line.price ?? 0), 0),
+        lines: lines.map((line) => ({
+          key: line.key,
+          id: line.id,
+          number: line.number,
+          name: line.name,
+          customer: line.customer,
+          amount: line.price,
+        })),
       }
     })
     return {

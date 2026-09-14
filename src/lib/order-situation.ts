@@ -79,6 +79,11 @@ export function certaintyTotals(lines: SituationLine[]): Record<Certainty, numbe
   return totals
 }
 
+/** A month's lines that are ordered work, the biggest first: what `certaintyTotals(…).ordered` adds up. */
+export function orderedLines<T extends SituationLine>(lines: T[]): T[] {
+  return lines.filter((line) => lineCertainty(line) === 'ordered').sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
+}
+
 export const securedOf = (totals: Record<Certainty, number>): number =>
   SECURED.reduce((sum, certainty) => sum + totals[certainty], 0)
 

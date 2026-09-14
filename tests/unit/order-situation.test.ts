@@ -8,6 +8,7 @@ import {
   monthSituations,
   monthlyAverage,
   openMoneyOf,
+  orderedLines,
   securedOf,
   situationSummary,
   weeklyTurnover,
@@ -71,6 +72,22 @@ describe('certaintyTotals', () => {
       { ...line('i', 700, 'COMPLETED', true), settled: true },
     ])
     expect(totals).toMatchObject({ paid: 6_500, done: 0, invoiced: 0, sheet: 700 })
+  })
+})
+
+describe('orderedLines', () => {
+  it('keeps the ordered, planned and running work, the biggest first, and adds up to the ordered total', () => {
+    const lines = [
+      line('a', 4_000, 'APPROVED'),
+      line('b', 9_000, 'IN_PROGRESS'),
+      line('c', null, 'PLANNED'),
+      line('d', 7_000, 'QUOTED'),
+      line('e', 8_000, 'PLANNED', true), // a sheet line: only a plan
+      line('f', 5_000, 'COMPLETED'),
+    ]
+    const ordered = orderedLines(lines)
+    expect(ordered.map((l) => l.id)).toEqual(['b', 'a', 'c'])
+    expect(ordered.reduce((sum, l) => sum + (l.price ?? 0), 0)).toBe(certaintyTotals(lines).ordered)
   })
 })
 
