@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 import { ApiError } from './api-service'
 import { authenticateApi, type ApiIdentity } from './api-auth'
+import type { EventActor } from './project-events'
 
 /** The 401 that also tells a client how to authenticate. */
 export function unauthorized(): NextResponse {
@@ -53,3 +54,9 @@ export async function readJson(req: Request): Promise<Record<string, unknown>> {
 /** Query-string parameters as a plain object (repeated keys keep the first). */
 export const query = (req: Request): Record<string, string> =>
   Object.fromEntries(new URL(req.url).searchParams.entries())
+
+/** Who an event names for this caller: the key and its user, or the signed-in user of the app's own pages. */
+export const actorOf = (identity: ApiIdentity): EventActor =>
+  identity.via === 'key'
+    ? { type: 'api', userId: identity.user.id, key: identity.keyName }
+    : { type: 'user', userId: identity.user.id }

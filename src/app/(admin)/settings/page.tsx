@@ -504,6 +504,13 @@ export default async function SettingsPage({
               {t("apiKeysLink")}
             </Link>
           </Card>
+
+          {/* Webhooks: the app telling automations what happened */}
+          <Card title={t("webhooksTitle")} description={t("webhooksHint")}>
+            <Link href="/settings/webhooks" className={btn.outline}>
+              {t("webhooksLink")}
+            </Link>
+          </Card>
         </div>
       )}
 

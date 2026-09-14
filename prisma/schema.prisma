@@ -56,6 +56,45 @@ model Session {
 // People
 // ─────────────────────────────────────────────
 
+/// Where the app tells an automation — n8n, for one — that something
+/// happened. Each event is signed with the endpoint's secret, which the
+/// receiver checks; the secret is kept in the clear because the app needs it
+/// to sign.
+model WebhookEndpoint {
+  id         String            @id @default(cuid())
+  name       String
+  url        String
+  secret     String
+  /// The events it receives — names from src/lib/webhook-events.ts.
+  events     String[]          @default([])
+  active     Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  deliveries WebhookDelivery[]
+}
+
+/// One event on its way to one endpoint: queued, sent, retried until it is
+/// taken or the attempts run out.
+model WebhookDelivery {
+  id             String          @id @default(cuid())
+  endpointId     String
+  endpoint       WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event          String
+  /// The whole body as sent: id, event, occurredAt, data.
+  payload        Json
+  /// pending | delivered | failed
+  status         String          @default("pending")
+  attempts       Int             @default(0)
+  nextAttemptAt  DateTime        @default(now())
+  responseStatus Int?
+  lastError      String?
+  deliveredAt    DateTime?
+  createdAt      DateTime        @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([endpointId, createdAt])
+}
+
 /// A key for a program outside the app — an automation, an AI assistant via
 /// MCP — that acts as one user of the app: same role, same financial access.
 /// Only the hash is kept; the key itself is shown once, when it is made.
@@ -253,10 +292,30 @@ model Project {
   checklists      ProjectChecklist[]
   devices         DeviceAssignment[]
   deviceNeeds     ProjectDevice[]
+  /// Its records in other systems: the Trello card, the Wattro project.
+  links           ProjectLink[]
 
   @@index([customerId])
   @@index([status])
   @@index([externalSystem, externalId])
+}
+
+/// A project's record in another system — its Trello card, its Wattro
+/// project. One per system per project, and one project per record, so an
+/// automation can find the project by what it knows from the other side.
+model ProjectLink {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// "trello", "wattro" … lower case.
+  system     String
+  externalId String
+  url        String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([system, externalId])
+  @@unique([projectId, system])
 }
 
 model ProjectWorkCategory {

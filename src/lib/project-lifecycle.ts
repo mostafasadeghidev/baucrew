@@ -7,6 +7,7 @@ import {
   type LifecycleStatus,
 } from './project-lifecycle-rules'
 import type { ProjectStatus } from '@/generated/prisma/enums'
+import { announceProjectChanges, announceStatusChange, projectBefore } from './project-events'
 
 function todayUtc(): Date {
   const n = new Date()
@@ -39,6 +40,7 @@ export async function promoteToPlanned(projectId: string, userId: string): Promi
   if (!p) return
   const next = statusAfterFirstScheduleEntry(p.status as LifecycleStatus)
   if (!next) return
+  const snapshot = await projectBefore(projectId)
   await db.project.update({ where: { id: projectId }, data: { status: next as ProjectStatus } })
   await audit({
     userId,
@@ -49,6 +51,7 @@ export async function promoteToPlanned(projectId: string, userId: string): Promi
     oldValue: p.status,
     newValue: `${next} (Einsatz geplant)`,
   })
+  await announceProjectChanges(snapshot, { type: 'user', userId })
 }
 
 /**
@@ -106,6 +109,7 @@ export async function syncProjectsInProgress(force = false): Promise<number> {
       oldValue: 'PLANNED',
       newValue: `IN_PROGRESS (erster Einsatztag ${r.first.toISOString().slice(0, 10)})`,
     })
+    await announceStatusChange(r.id, 'PLANNED', { type: 'system', reason: 'firstScheduledDay' })
   }
   return rows.length
 }

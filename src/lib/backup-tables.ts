@@ -1,7 +1,7 @@
 // What a backup holds: every table of the app, in the order they depend on
 // each other. Parents come first, so a restore can insert straight down the
-// list and wipe straight up it. Sessions are the one table left out — they
-// belong to a running installation, not to its data.
+// list and wipe straight up it. Sessions and the webhook deliveries are left
+// out — they belong to a running installation, not to its data.
 //
 // The `model` names match prisma/schema.prisma; a test holds the two lists
 // against each other, so a new table cannot slip past the backup unnoticed.
@@ -31,6 +31,7 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   { key: 'templateChecklists', model: 'TemplateChecklist' },
   { key: 'templateDevices', model: 'TemplateDevice' },
   { key: 'projects', model: 'Project' },
+  { key: 'projectLinks', model: 'ProjectLink' },
   { key: 'projectWorkCategories', model: 'ProjectWorkCategory' },
   { key: 'projectAddOns', model: 'ProjectAddOn' },
   { key: 'projectEmployees', model: 'ProjectEmployee' },
@@ -50,11 +51,15 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   { key: 'projectDrafts', model: 'ProjectDraft' },
   { key: 'appSettings', model: 'AppSetting' },
   { key: 'apiKeys', model: 'ApiKey' },
+  { key: 'webhookEndpoints', model: 'WebhookEndpoint' },
   { key: 'auditLogs', model: 'AuditLog' },
 ]
 
-/** Tables that are deliberately not part of a backup. */
-export const NOT_BACKED_UP: readonly string[] = ['Session']
+/**
+ * Tables that are deliberately not part of a backup: sessions, and the queue of
+ * webhook deliveries — restored, it would send old events again.
+ */
+export const NOT_BACKED_UP: readonly string[] = ['Session', 'WebhookDelivery']
 
 /** The Prisma client's name for a model: the model name with a small first letter. */
 export const delegateName = (model: string): string => model[0].toLowerCase() + model.slice(1)

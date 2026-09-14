@@ -25,6 +25,26 @@ export function validateUpload(size: number, mimeType: string): UploadError | nu
   return null
 }
 
+const TYPE_BY_EXTENSION: Record<string, string> = {
+  pdf: 'application/pdf',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  xls: 'application/vnd.ms-excel',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  csv: 'text/csv',
+  txt: 'text/plain',
+}
+
+/** The type of an accepted file by its name, for a file that came without one. */
+export function mimeFromName(name: string): string | null {
+  const ext = /\.([a-z0-9]+)$/i.exec(name.trim())?.[1]?.toLowerCase()
+  return ext ? (TYPE_BY_EXTENSION[ext] ?? null) : null
+}
+
 /** Keeps the extension, drops anything path- or header-hostile. */
 export function safeFileName(name: string): string {
   const trimmed = name.split(/[\\/]/).pop()?.trim() || 'datei'

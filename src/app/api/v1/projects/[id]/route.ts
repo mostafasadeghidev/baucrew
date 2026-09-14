@@ -1,5 +1,5 @@
-import { readJson, withApi } from '@/lib/api-http'
-import { getProject, projectStatusInput, setProjectStatus } from '@/lib/api-service'
+import { actorOf, readJson, withApi } from '@/lib/api-http'
+import { getProject, updateProject, updateProjectInput } from '@/lib/api-service'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -9,11 +9,10 @@ export async function GET(req: Request, ctx: Ctx) {
   return withApi(req, ({ user }) => getProject(user, id))
 }
 
-/** For now the one thing to change from outside: the status. */
+/** Changes what is sent: status, name, dates, price, manager, description, address. */
 export async function PATCH(req: Request, ctx: Ctx) {
   const { id } = await ctx.params
-  return withApi(req, async ({ user }) => {
-    const { status } = projectStatusInput.parse(await readJson(req))
-    return setProjectStatus(user, id, status)
-  })
+  return withApi(req, async (identity) =>
+    updateProject(identity.user, id, updateProjectInput.parse(await readJson(req)), actorOf(identity))
+  )
 }

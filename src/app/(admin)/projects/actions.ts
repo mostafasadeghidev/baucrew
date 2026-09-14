@@ -11,6 +11,12 @@ import { actualDatesForStatus } from '@/lib/project-lifecycle'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { nextProjectNumber } from '@/lib/project-numbers'
 import {
+  announceProjectChanges,
+  announceProjectCreated,
+  announceProjectDeleted,
+  projectBefore,
+} from '@/lib/project-events'
+import {
   PROJECT_BOARD_KEY,
   boardConfigFromOrder,
   serializeBoardConfig,
@@ -298,6 +304,19 @@ export async function createProject(
         where: { id: draftId },
         data: { status: 'done', projectId: project.id },
       })
+      if (draft.externalSystem && draft.externalId) {
+        // The same record as a link, so an automation finds the project by it.
+        await db.projectLink
+          .create({
+            data: {
+              projectId: project.id,
+              system: draft.externalSystem.toLowerCase(),
+              externalId: draft.externalId,
+              url: draft.externalUrl,
+            },
+          })
+          .catch(() => {})
+      }
     }
   }
 
@@ -308,6 +327,7 @@ export async function createProject(
     entityId: project.id,
     newValue: `${project.number} ${project.name}${templateId ? ' (Vorlage)' : ''}`,
   })
+  await announceProjectCreated(project.id, { type: 'user', userId: user.id })
   revalidatePath('/projects')
   redirect(`/projects/${project.id}`)
 }
@@ -323,6 +343,7 @@ export async function updateProject(
 
   const before = await db.project.findUnique({ where: { id } })
   if (!before) return { error: 'saveFailed' }
+  const snapshot = await projectBefore(id)
 
   const d = parsed.data
   const financials = canViewFinancials(user)
@@ -403,6 +424,7 @@ export async function updateProject(
     entityId: id,
     newValue: `${before.number} ${d.name}`,
   })
+  await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
   redirect(`/projects/${id}`)
@@ -419,6 +441,7 @@ export async function setProjectStatus(id: string, status: string): Promise<{ er
   })
   if (!before) return { error: 'saveFailed' }
   if (before.status === status) return {}
+  const snapshot = await projectBefore(id)
   const derived = await actualDatesForStatus(id, status as ProjectStatus, before)
   await db.project.update({ where: { id }, data: { status: status as ProjectStatus, ...derived } })
   await audit({
@@ -430,6 +453,7 @@ export async function setProjectStatus(id: string, status: string): Promise<{ er
     oldValue: before.status,
     newValue: status,
   })
+  await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
   revalidatePath('/dashboard')
@@ -558,6 +582,7 @@ export async function deleteProject(
   _formData: FormData
 ): Promise<DeleteState> {
   const user = await requireAdmin()
+  const snapshot = await projectBefore(id)
   const project = await db.project.delete({ where: { id } })
   await audit({
     userId: user.id,
@@ -566,6 +591,7 @@ export async function deleteProject(
     entityId: id,
     oldValue: `${project.number} ${project.name}`,
   })
+  await announceProjectDeleted(snapshot, { type: 'user', userId: user.id })
   revalidatePath('/projects')
   redirect('/projects')
 }
@@ -592,6 +618,7 @@ export async function addProjectAddOn(projectId: string, formData: FormData): Pr
 
   const project = await db.project.findUnique({ where: { id: projectId }, select: { number: true } })
   if (!project) return { error: 'saveFailed' }
+  const snapshot = await projectBefore(projectId)
   await db.projectAddOn.create({ data: { projectId, label, amount, date } })
   await audit({
     userId: user.id,
@@ -601,6 +628,8 @@ export async function addProjectAddOn(projectId: string, formData: FormData): Pr
     field: label,
     newValue: String(amount),
   })
+  // The order value changed with it.
+  await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/reports')
   return {}
@@ -611,6 +640,7 @@ export async function removeProjectAddOn(projectId: string, addOnId: string): Pr
   if (!canViewFinancials(user)) return { error: 'notAllowed' }
   const addOn = await db.projectAddOn.findFirst({ where: { id: addOnId, projectId } })
   if (!addOn) return { error: 'saveFailed' }
+  const snapshot = await projectBefore(projectId)
   await db.projectAddOn.delete({ where: { id: addOnId } })
   await audit({
     userId: user.id,
@@ -620,6 +650,7 @@ export async function removeProjectAddOn(projectId: string, addOnId: string): Pr
     field: addOn.label,
     oldValue: String(Number(addOn.amount)),
   })
+  await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/reports')
   return {}
@@ -660,6 +691,8 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
   ])
   const keepDays = days.map((d) => d.date)
   const conflicts = await db.scheduleEntry.count({ where: { projectId: dropId, date: { in: keepDays } } })
+  const keepLinks = await db.projectLink.findMany({ where: { projectId: keepId }, select: { system: true } })
+  const [keepSnapshot, dropSnapshot] = await Promise.all([projectBefore(keepId), projectBefore(dropId)])
 
   const from = `${drop.number} ${drop.name}`
   const joined = (mine: string | null, theirs: string | null) =>
@@ -698,6 +731,10 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
       db.timeEntry.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.deviceAssignment.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.planEntry.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.projectLink.updateMany({
+        where: { projectId: dropId, system: { notIn: keepLinks.map((l) => l.system) } },
+        data: { projectId: keepId },
+      }),
       db.project.update({
         where: { id: keepId },
         data: {
@@ -742,6 +779,9 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
     oldValue: from,
     newValue: `${keep.number} ${keep.name}`,
   })
+  const actor = { type: 'user' as const, userId: user.id }
+  await announceProjectChanges(keepSnapshot, actor)
+  await announceProjectDeleted(dropSnapshot, actor, { id: keepId, number: keep.number })
   for (const path of ['/projects', `/projects/${keepId}`, '/schedule', '/reports', '/reports/plan']) {
     revalidatePath(path)
   }

@@ -1,6 +1,8 @@
 import 'server-only'
+import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
+import type { Prisma } from '@/generated/prisma/client'
 import { db } from './db'
 import type { CurrentUser } from './auth'
 import { canViewFinancials } from './authz'
@@ -11,6 +13,17 @@ import { entrySchema, type EntryResult } from './schedule-entry'
 import { createEntries } from './schedule-service'
 import { actualDatesForStatus } from './project-lifecycle'
 import { getPlanGaps, getYearRevenue, orderValue } from './reports'
+import {
+  announceProjectChanges,
+  announceProjectCreated,
+  projectBefore,
+  statusSinceFor,
+  type EventActor,
+} from './project-events'
+import { normalizeSystem, trelloShortLink } from './webhook-events'
+import { suggestStatus } from './trello'
+import { mimeFromName, safeFileName, storageKeyFor, validateUpload } from './files'
+import { saveStoredFile } from './file-storage'
 
 // What the API and the MCP tools do, in one place. Every function takes the
 // user the caller acts as and gives back plain data; the same rules as the
@@ -47,6 +60,19 @@ function assertFinancials(user: CurrentUser): void {
   if (!canViewFinancials(user)) throw new ApiError(403, 'forbidden', 'This user may not see financial data.')
 }
 
+/** Who an event names when the caller did not say: the key's user, over the API. */
+const actorFor = (user: CurrentUser, actor?: EventActor): EventActor => actor ?? { type: 'api', userId: user.id, key: null }
+
+/** A text that may be sent to clear a field: absent leaves it, null or empty clears it. */
+const clearableText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullable()
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v || null))
+
 // ── Projects ──────────────────────────────────────────────────────────
 
 const projectSelect = {
@@ -65,9 +91,12 @@ const projectSelect = {
   city: true,
   description: true,
   externalUrl: true,
-  customer: { select: { id: true, name: true } },
+  sourceCreatedAt: true,
+  createdAt: true,
+  customer: { select: { id: true, name: true, company: true, contactPerson: true, email: true, phone: true } },
   manager: { select: { id: true, firstName: true, lastName: true } },
   addOns: { select: { amount: true } },
+  links: { select: { system: true, externalId: true, url: true }, orderBy: { system: 'asc' } },
 } as const
 
 type ProjectRow = {
@@ -86,18 +115,30 @@ type ProjectRow = {
   city: string | null
   description: string | null
   externalUrl: string | null
-  customer: { id: string; name: string }
+  sourceCreatedAt: Date | null
+  createdAt: Date
+  customer: {
+    id: string
+    name: string
+    company: string | null
+    contactPerson: string | null
+    email: string | null
+    phone: string | null
+  }
   manager: { id: string; firstName: string; lastName: string } | null
   addOns: Array<{ amount: { toString(): string } }>
+  links: Array<{ system: string; externalId: string; url: string | null }>
 }
 
-function projectDto(p: ProjectRow, user: CurrentUser) {
+function projectDto(p: ProjectRow, user: CurrentUser, statusSince: Date) {
   const money = canViewFinancials(user)
   return {
     id: p.id,
     number: p.number,
     name: p.name,
     status: p.status,
+    /** Since when it stands in that status — for reminders on offers nobody answered. */
+    statusSince: statusSince.toISOString(),
     isSub: p.isSub,
     customer: p.customer,
     manager: p.manager ? { id: p.manager.id, name: `${p.manager.firstName} ${p.manager.lastName}`.trim() } : null,
@@ -108,6 +149,7 @@ function projectDto(p: ProjectRow, user: CurrentUser) {
     actualEnd: day(p.actualEnd),
     description: p.description,
     externalUrl: p.externalUrl,
+    links: p.links,
     // Money only for those who may see it; the field is absent, not null.
     ...(money
       ? {
@@ -121,14 +163,20 @@ function projectDto(p: ProjectRow, user: CurrentUser) {
 export const listProjectsInput = z.object({
   q: z.string().trim().max(200).optional(),
   status: z.enum(ProjectStatus).optional(),
+  /** Only projects linked to this system ("trello"), and with `externalId` to that one record. */
+  system: z.string().trim().max(40).optional(),
+  externalId: z.string().trim().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 })
 
 export async function listProjects(user: CurrentUser, input: z.infer<typeof listProjectsInput>) {
   assertManagement(user)
+  const system = input.system ? normalizeSystem(input.system) : null
+  if (input.system && !system) throw new ApiError(400, 'invalid', 'system is letters, digits, - and _.')
   const where = {
     ...(input.status ? { status: input.status } : {}),
+    ...(system ? { links: { some: { system, ...(input.externalId ? { externalId: input.externalId } : {}) } } } : {}),
     ...(input.q
       ? {
           OR: [
@@ -144,7 +192,8 @@ export async function listProjects(user: CurrentUser, input: z.infer<typeof list
     db.project.findMany({ where, select: projectSelect, orderBy: { number: 'desc' }, take: input.limit, skip: input.offset }),
     db.project.count({ where }),
   ])
-  return { items: rows.map((p) => projectDto(p, user)), total, limit: input.limit, offset: input.offset }
+  const since = await statusSinceFor(rows)
+  return { items: rows.map((p) => projectDto(p, user, since.get(p.id)!)), total, limit: input.limit, offset: input.offset }
 }
 
 /** A project by id or by its number ("2026-0048"). */
@@ -173,8 +222,9 @@ export async function getProject(user: CurrentUser, idOrNumber: string) {
     },
   })
   if (!p) throw new ApiError(404, 'notFound', 'No such project.')
+  const since = await statusSinceFor([p])
   return {
-    ...projectDto(p, user),
+    ...projectDto(p, user, since.get(p.id)!),
     team: p.team.map((t) => ({ id: t.employee.id, name: `${t.employee.firstName} ${t.employee.lastName}`.trim() })),
     vehicles: p.vehicles.map((v) => v.vehicle),
     schedule: p.scheduleEntries.map((e) => ({
@@ -214,79 +264,382 @@ export const createProjectInput = z
     path: ['plannedEnd'],
   })
 
-export async function createProject(user: CurrentUser, input: z.infer<typeof createProjectInput>) {
-  assertManagement(user)
-  let customerId = input.customerId ?? null
-  if (!customerId && input.customerName) {
-    const existing = await db.customer.findFirst({
-      where: { name: { equals: input.customerName, mode: 'insensitive' } },
-      select: { id: true },
-    })
-    customerId = existing
-      ? existing.id
-      : (await db.customer.create({ data: { name: input.customerName }, select: { id: true } })).id
+/** A customer by id, or by name — found, or made — with what is known of how to reach them. */
+async function customerFor(input: { customerId?: string; customerName?: string; customer?: CustomerContactFields }): Promise<string> {
+  if (input.customerId) {
+    if (!(await db.customer.findUnique({ where: { id: input.customerId }, select: { id: true } }))) {
+      throw new ApiError(404, 'notFound', 'No such customer.')
+    }
+    if (input.customer) await fillCustomerGaps(input.customerId, input.customer)
+    return input.customerId
   }
-  if (!customerId || !(await db.customer.findUnique({ where: { id: customerId }, select: { id: true } }))) {
-    throw new ApiError(404, 'notFound', 'No such customer.')
+  const name = input.customer?.name ?? input.customerName
+  if (!name) throw new ApiError(400, 'invalid', 'customerId, customer or customerName is required.')
+  const existing = await db.customer.findFirst({
+    where: { name: { equals: name, mode: 'insensitive' } },
+    select: { id: true },
+  })
+  if (existing) {
+    if (input.customer) await fillCustomerGaps(existing.id, input.customer)
+    return existing.id
   }
-  let created: { id: string } | null = null
+  const { name: _name, ...contact } = input.customer ?? { name }
+  return (await db.customer.create({ data: { name, ...contact }, select: { id: true } })).id
+}
+
+/** Contact details are added where the customer has none; what the office entered is never overwritten. */
+async function fillCustomerGaps(customerId: string, contact: CustomerContactFields): Promise<void> {
+  const current = await db.customer.findUnique({ where: { id: customerId } })
+  if (!current) return
+  const data: Record<string, string> = {}
+  for (const key of ['company', 'contactPerson', 'phone', 'email', 'street', 'postalCode', 'city'] as const) {
+    const value = contact[key]
+    if (value && !current[key]) data[key] = value
+  }
+  if (Object.keys(data).length > 0) await db.customer.update({ where: { id: customerId }, data })
+}
+
+/**
+ * The site manager an automation names: by id, or by the full name as the
+ * other system spells it ("Vorname Nachname", case and spaces aside). A name
+ * that fits nobody, or more than one, sets nothing and says so.
+ */
+async function managerFor(input: { managerId?: string | null; managerName?: string }): Promise<{ id?: string | null; warning?: string }> {
+  if (input.managerId !== undefined) {
+    if (input.managerId === null) return { id: null }
+    if (!(await db.employee.findUnique({ where: { id: input.managerId }, select: { id: true } }))) {
+      throw new ApiError(404, 'notFound', 'No such employee.')
+    }
+    return { id: input.managerId }
+  }
+  if (!input.managerName) return {}
+  const wanted = input.managerName.toLowerCase().replace(/\s+/g, ' ').trim()
+  const people = await db.employee.findMany({ where: { active: true }, select: { id: true, firstName: true, lastName: true } })
+  const fits = people.filter((p) => `${p.firstName} ${p.lastName}`.toLowerCase().replace(/\s+/g, ' ').trim() === wanted)
+  if (fits.length === 1) return { id: fits[0].id }
+  return { warning: fits.length === 0 ? 'managerNotFound' : 'managerAmbiguous' }
+}
+
+/** Makes the project and gives back its id; telling automations is the caller's, once everything hangs on it. */
+async function insertProject(user: CurrentUser, data: Omit<Prisma.ProjectUncheckedCreateInput, 'number'>): Promise<string> {
   // Retry once if the sequential number collides with a concurrent create.
-  for (let attempt = 0; attempt < 2 && !created; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      created = await db.project.create({
-        data: {
-          number: await nextProjectNumber(),
-          name: input.name,
-          customerId,
-          status: input.status,
-          isSub: input.isSub,
-          plannedStart: input.plannedStart ? utcDay(input.plannedStart) : null,
-          plannedEnd: input.plannedEnd ? utcDay(input.plannedEnd) : null,
-          price: canViewFinancials(user) && input.price !== undefined ? input.price : null,
-          street: input.street,
-          postalCode: input.postalCode,
-          city: input.city,
-          description: input.description,
-        },
-        select: { id: true },
-      })
+      const created = await db.project.create({ data: { ...data, number: await nextProjectNumber() }, select: { id: true } })
+      await audit({ userId: user.id, action: 'api.project.create', entity: 'Project', entityId: created.id, newValue: data.name })
+      return created.id
     } catch (e) {
       if (!isUniqueClash(e) || attempt === 1) throw e
     }
   }
-  if (!created) throw new ApiError(500, 'saveFailed')
-  await audit({ userId: user.id, action: 'api.project.create', entity: 'Project', entityId: created.id, newValue: input.name })
+  throw new ApiError(500, 'saveFailed')
+}
+
+export async function createProject(user: CurrentUser, input: z.infer<typeof createProjectInput>, actor?: EventActor) {
+  assertManagement(user)
+  const customerId = await customerFor(input)
+  const id = await insertProject(user, {
+    name: input.name,
+    customerId,
+    status: input.status,
+    isSub: input.isSub,
+    plannedStart: input.plannedStart ? utcDay(input.plannedStart) : null,
+    plannedEnd: input.plannedEnd ? utcDay(input.plannedEnd) : null,
+    price: canViewFinancials(user) && input.price !== undefined ? input.price : null,
+    street: input.street,
+    postalCode: input.postalCode,
+    city: input.city,
+    description: input.description,
+  })
   revalidatePath('/projects')
   revalidatePath('/dashboard')
-  return getProject(user, created.id)
+  await announceProjectCreated(id, actorFor(user, actor))
+  return getProject(user, id)
 }
 
 export const projectStatusInput = z.object({ status: z.enum(ProjectStatus) })
 
-export async function setProjectStatus(user: CurrentUser, idOrNumber: string, status: ProjectStatus) {
-  assertManagement(user)
-  const before = await db.project.findFirst({
-    where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] },
-    select: { id: true, status: true, number: true, actualStart: true, actualEnd: true },
+export async function setProjectStatus(user: CurrentUser, idOrNumber: string, status: ProjectStatus, actor?: EventActor) {
+  return updateProject(user, idOrNumber, { status }, actor)
+}
+
+export const updateProjectInput = z
+  .object({
+    name: z.string().trim().min(1).max(300).optional(),
+    status: z.enum(ProjectStatus).optional(),
+    isSub: z.boolean().optional(),
+    plannedStart: isoDate.nullable().optional(),
+    plannedEnd: isoDate.nullable().optional(),
+    price: z.number().min(0).max(999_999_999).nullable().optional(),
+    managerId: z.string().min(1).nullable().optional(),
+    /** Matched against the employees' full names; nothing is set when nobody, or more than one, fits. */
+    managerName: z.string().trim().min(1).max(200).optional(),
+    description: clearableText(10000),
+    street: clearableText(200),
+    postalCode: clearableText(20),
+    city: clearableText(120),
   })
-  if (!before) throw new ApiError(404, 'notFound', 'No such project.')
-  if (before.status !== status) {
-    const derived = await actualDatesForStatus(before.id, status, before)
-    await db.project.update({ where: { id: before.id }, data: { status, ...derived } })
-    await audit({
-      userId: user.id,
-      action: 'api.project.status',
-      entity: 'Project',
-      entityId: before.id,
-      field: 'status',
-      oldValue: before.status,
-      newValue: status,
-    })
-    revalidatePath('/projects')
-    revalidatePath(`/projects/${before.id}`)
-    revalidatePath('/dashboard')
+  .strict()
+
+/**
+ * Changes what is sent and leaves the rest: an absent field stays as it is,
+ * null clears it. A new status fills the actual dates the way the pages do.
+ * The money needs financial access; a manager's name that fits nobody is
+ * reported in `warnings` rather than refused.
+ */
+export async function updateProject(
+  user: CurrentUser,
+  idOrNumber: string,
+  input: Partial<z.infer<typeof updateProjectInput>>,
+  actor?: EventActor
+) {
+  assertManagement(user)
+  const current = await db.project.findFirst({
+    where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] },
+    select: { id: true, status: true, actualStart: true, actualEnd: true, plannedStart: true, plannedEnd: true },
+  })
+  if (!current) throw new ApiError(404, 'notFound', 'No such project.')
+
+  const warnings: string[] = []
+  const data: Prisma.ProjectUncheckedUpdateInput = {}
+  if (input.name !== undefined) data.name = input.name
+  if (input.isSub !== undefined) data.isSub = input.isSub
+  if (input.description !== undefined) data.description = input.description
+  if (input.street !== undefined) data.street = input.street
+  if (input.postalCode !== undefined) data.postalCode = input.postalCode
+  if (input.city !== undefined) data.city = input.city
+  if (input.plannedStart !== undefined) data.plannedStart = input.plannedStart ? utcDay(input.plannedStart) : null
+  if (input.plannedEnd !== undefined) data.plannedEnd = input.plannedEnd ? utcDay(input.plannedEnd) : null
+  const start = input.plannedStart !== undefined ? (data.plannedStart as Date | null) : current.plannedStart
+  const end = input.plannedEnd !== undefined ? (data.plannedEnd as Date | null) : current.plannedEnd
+  if (start && end && end < start) throw new ApiError(400, 'invalid', 'plannedEnd must not be before plannedStart.')
+  if (input.price !== undefined) {
+    if (!canViewFinancials(user)) throw new ApiError(403, 'forbidden', 'This user may not change the price.')
+    data.price = input.price
   }
-  return getProject(user, before.id)
+  const manager = await managerFor(input)
+  if (manager.id !== undefined) data.managerId = manager.id
+  if (manager.warning) warnings.push(manager.warning)
+  const statusChanged = input.status !== undefined && input.status !== current.status
+  if (statusChanged) {
+    data.status = input.status
+    Object.assign(data, await actualDatesForStatus(current.id, input.status!, current))
+  }
+
+  if (Object.keys(data).length > 0) {
+    const before = await projectBefore(current.id)
+    await db.project.update({ where: { id: current.id }, data })
+    if (statusChanged) {
+      await audit({
+        userId: user.id,
+        action: 'api.project.status',
+        entity: 'Project',
+        entityId: current.id,
+        field: 'status',
+        oldValue: current.status,
+        newValue: input.status,
+      })
+    }
+    const fields = Object.keys(data).filter((k) => k !== 'status' && k !== 'actualStart' && k !== 'actualEnd')
+    if (fields.length > 0) {
+      await audit({ userId: user.id, action: 'api.project.update', entity: 'Project', entityId: current.id, newValue: fields.join(', ') })
+    }
+    revalidatePath('/projects')
+    revalidatePath(`/projects/${current.id}`)
+    revalidatePath('/dashboard')
+    await announceProjectChanges(before, actorFor(user, actor))
+  }
+  const project = await getProject(user, current.id)
+  return warnings.length > 0 ? { ...project, warnings } : project
+}
+
+// ── Links to other systems ───────────────────────────────────────────
+
+const customerContactInput = z.object({
+  name: z.string().trim().min(1).max(200),
+  company: text(200),
+  contactPerson: text(200),
+  phone: text(60),
+  email: text(200),
+  street: text(200),
+  postalCode: text(20),
+  city: text(120),
+})
+/** A customer as an automation sends it: the name, and whatever else it knows. */
+type CustomerContactFields = Partial<z.infer<typeof customerContactInput>> & { name: string }
+
+export const upsertProjectByLinkInput = updateProjectInput
+  .extend({
+    customerId: z.string().min(1).optional(),
+    customer: customerContactInput.optional(),
+    /** The column the card stands in on its board: the status is read from its name when none is sent. */
+    list: z.string().trim().min(1).max(200).optional(),
+    /** The record's address in the other system. */
+    url: z.string().trim().max(500).optional(),
+  })
+  .strict()
+
+function linkKey(systemRaw: string, externalIdRaw: string): { system: string; externalId: string } {
+  const system = normalizeSystem(systemRaw)
+  if (!system) throw new ApiError(400, 'invalid', 'The system is letters, digits, - and _ ("trello").')
+  const externalId = externalIdRaw.trim()
+  if (!externalId || externalId.length > 200) throw new ApiError(400, 'invalid', 'The external id is 1 to 200 characters.')
+  return { system, externalId }
+}
+
+async function linkedProjectId(system: string, externalId: string): Promise<string | null> {
+  const link = await db.projectLink.findUnique({ where: { system_externalId: { system, externalId } }, select: { projectId: true } })
+  return link?.projectId ?? null
+}
+
+export async function getProjectByLink(user: CurrentUser, systemRaw: string, externalIdRaw: string) {
+  assertManagement(user)
+  const { system, externalId } = linkKey(systemRaw, externalIdRaw)
+  const id = await linkedProjectId(system, externalId)
+  if (!id) throw new ApiError(404, 'notFound', 'No project is linked to that record.')
+  return getProject(user, id)
+}
+
+/**
+ * The door for a record of another system — a Trello card, above all: the
+ * project linked to it is updated with what is sent, and when there is none
+ * a project is made and linked, as a lead unless a status or a board column
+ * says otherwise. Sending the same card twice never makes two projects.
+ *
+ * A project imported from Trello before links existed is found by the card's
+ * short link in its address and linked from then on.
+ */
+export async function upsertProjectByLink(
+  user: CurrentUser,
+  systemRaw: string,
+  externalIdRaw: string,
+  input: Partial<Omit<z.infer<typeof upsertProjectByLinkInput>, 'customer'>> & { customer?: CustomerContactFields },
+  actor?: EventActor
+) {
+  assertManagement(user)
+  const { system, externalId } = linkKey(systemRaw, externalIdRaw)
+  const { customerId, customer, list, url, ...fields } = input
+  if (fields.status === undefined && list) fields.status = suggestStatus(list) as ProjectStatus
+
+  let projectId = await linkedProjectId(system, externalId)
+  if (!projectId && system === 'trello') {
+    const short = trelloShortLink(url)
+    const adopted = short
+      ? await db.project.findFirst({
+          where: { externalUrl: { contains: `/c/${short}` }, links: { none: { system } } },
+          select: { id: true },
+        })
+      : null
+    if (adopted) {
+      await db.projectLink.create({ data: { projectId: adopted.id, system, externalId, url: url || null } })
+      projectId = adopted.id
+    }
+  }
+
+  if (projectId) {
+    if (url) await db.projectLink.update({ where: { system_externalId: { system, externalId } }, data: { url } })
+    if (customer) {
+      const row = await db.project.findUnique({ where: { id: projectId }, select: { customerId: true } })
+      if (row) await fillCustomerGaps(row.customerId, customer)
+    }
+    return { created: false, project: await updateProject(user, projectId, fields, actor) }
+  }
+
+  if (!fields.name) throw new ApiError(400, 'invalid', 'name is required to make a new project.')
+  if (fields.plannedStart && fields.plannedEnd && fields.plannedEnd < fields.plannedStart) {
+    throw new ApiError(400, 'invalid', 'plannedEnd must not be before plannedStart.')
+  }
+  if (fields.price != null && !canViewFinancials(user)) throw new ApiError(403, 'forbidden', 'This user may not set the price.')
+  const manager = await managerFor(fields)
+  const id = await insertProject(user, {
+    name: fields.name,
+    customerId: await customerFor({ customerId, customer }),
+    status: fields.status ?? 'LEAD',
+    isSub: fields.isSub ?? false,
+    plannedStart: fields.plannedStart ? utcDay(fields.plannedStart) : null,
+    plannedEnd: fields.plannedEnd ? utcDay(fields.plannedEnd) : null,
+    price: fields.price ?? null,
+    managerId: manager.id ?? null,
+    description: fields.description ?? null,
+    street: fields.street ?? null,
+    postalCode: fields.postalCode ?? null,
+    city: fields.city ?? null,
+  })
+  try {
+    await db.projectLink.create({ data: { projectId: id, system, externalId, url: url || null } })
+  } catch (e) {
+    // The same record, sent twice at the same moment: the other request made the project.
+    if (!isUniqueClash(e)) throw e
+    await db.project.delete({ where: { id } })
+    const other = await linkedProjectId(system, externalId)
+    if (!other) throw e
+    return { created: false, project: await updateProject(user, other, fields, actor) }
+  }
+  revalidatePath('/projects')
+  revalidatePath('/dashboard')
+  await announceProjectCreated(id, actorFor(user, actor))
+  const project = await getProject(user, id)
+  return { created: true, project: manager.warning ? { ...project, warnings: [manager.warning] } : project }
+}
+
+export const projectLinkInput = z.object({
+  externalId: z.string().trim().min(1).max(200),
+  url: z.string().trim().max(500).optional(),
+})
+
+/** Links a project to its record in a system, or moves its link there; a record linked to another project is refused. */
+export async function setProjectLink(user: CurrentUser, idOrNumber: string, systemRaw: string, input: z.infer<typeof projectLinkInput>) {
+  assertManagement(user)
+  const { system, externalId } = linkKey(systemRaw, input.externalId)
+  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
+  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  const taken = await linkedProjectId(system, externalId)
+  if (taken && taken !== project.id) throw new ApiError(409, 'linkTaken', 'That record is linked to another project.')
+  await db.projectLink.upsert({
+    where: { projectId_system: { projectId: project.id, system } },
+    create: { projectId: project.id, system, externalId, url: input.url || null },
+    update: { externalId, ...(input.url !== undefined ? { url: input.url || null } : {}) },
+  })
+  await audit({ userId: user.id, action: 'api.project.link', entity: 'Project', entityId: project.id, field: system, newValue: externalId })
+  return getProject(user, project.id)
+}
+
+export async function removeProjectLink(user: CurrentUser, idOrNumber: string, systemRaw: string) {
+  assertManagement(user)
+  const system = normalizeSystem(systemRaw)
+  if (!system) throw new ApiError(400, 'invalid', 'The system is letters, digits, - and _.')
+  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
+  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  const removed = await db.projectLink.deleteMany({ where: { projectId: project.id, system } })
+  if (removed.count > 0) {
+    await audit({ userId: user.id, action: 'api.project.unlink', entity: 'Project', entityId: project.id, field: system })
+  }
+  return getProject(user, project.id)
+}
+
+// ── Files ─────────────────────────────────────────────────────────────
+
+/**
+ * A file handed in by an automation — an attachment of the Trello card, say —
+ * put on the project for the office. A file sent without a type gets one from
+ * its name; the rules on size and type are the upload's own.
+ */
+export async function addProjectFile(user: CurrentUser, idOrNumber: string, file: File) {
+  assertManagement(user)
+  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
+  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  const mimeType = file.type && file.type !== 'application/octet-stream' ? file.type : (mimeFromName(file.name) ?? file.type)
+  const invalid = validateUpload(file.size, mimeType)
+  if (invalid) throw new ApiError(400, invalid, invalid === 'badType' ? 'This type of file is not accepted.' : invalid === 'tooLarge' ? 'The file is larger than 25 MB.' : 'The file is empty.')
+  const key = storageKeyFor(project.id, randomUUID(), file.name)
+  await saveStoredFile(key, Buffer.from(await file.arrayBuffer()))
+  const doc = await db.document.create({
+    data: { projectId: project.id, filename: safeFileName(file.name), mimeType, size: file.size, path: key, source: 'api', uploadedById: user.id },
+    select: { id: true, filename: true, mimeType: true, size: true, createdAt: true },
+  })
+  await audit({ userId: user.id, action: 'api.project.file', entity: 'Project', entityId: project.id, newValue: doc.filename })
+  revalidatePath(`/projects/${project.id}`)
+  return doc
 }
 
 // ── Customers ─────────────────────────────────────────────────────────
@@ -334,6 +687,41 @@ export const createCustomerInput = z.object({
   city: text(120),
   notes: text(5000),
 })
+
+export async function getCustomer(user: CurrentUser, id: string) {
+  assertManagement(user)
+  const c = await db.customer.findUnique({ where: { id }, select: customerSelect })
+  if (!c) throw new ApiError(404, 'notFound', 'No such customer.')
+  return { ...c, projects: c._count.projects, _count: undefined }
+}
+
+export const updateCustomerInput = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    company: clearableText(200),
+    contactPerson: clearableText(200),
+    phone: clearableText(60),
+    email: clearableText(200),
+    street: clearableText(200),
+    postalCode: clearableText(20),
+    city: clearableText(120),
+    notes: clearableText(5000),
+  })
+  .strict()
+
+/** Changes what is sent; an absent field stays, null clears it. */
+export async function updateCustomer(user: CurrentUser, id: string, input: z.infer<typeof updateCustomerInput>) {
+  assertManagement(user)
+  if (!(await db.customer.findUnique({ where: { id }, select: { id: true } }))) throw new ApiError(404, 'notFound', 'No such customer.')
+  const data = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined))
+  if (Object.keys(data).length > 0) {
+    await db.customer.update({ where: { id }, data })
+    await audit({ userId: user.id, action: 'api.customer.update', entity: 'Customer', entityId: id, newValue: Object.keys(data).join(', ') })
+    revalidatePath('/customers')
+    revalidatePath(`/customers/${id}`)
+  }
+  return getCustomer(user, id)
+}
 
 export async function createCustomer(user: CurrentUser, input: z.infer<typeof createCustomerInput>) {
   assertManagement(user)

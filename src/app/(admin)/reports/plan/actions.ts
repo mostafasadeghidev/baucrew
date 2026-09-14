@@ -15,6 +15,7 @@ import {
 } from '@/lib/plan-jobs'
 import { parsePlanLinks, serializePlanLinks, type PlanLinkRecord } from '@/lib/plan-links'
 import { isSheetDate, isSheetPrice, planNote, sheetFigures, withoutPlanNotes } from '@/lib/plan-notes'
+import { announceProjectChanges, projectBefore, type EventActor } from '@/lib/project-events'
 
 /** Statuses that mean the work is behind us. */
 const DONE = new Set(['COMPLETED', 'INVOICED', 'PAID'])
@@ -42,7 +43,8 @@ const fmtDate = (d: Date) => d.toISOString().slice(0, 10)
  * start, a later end, the amounts added up. The description records what
  * came from the sheet.
  */
-async function applyJob(job: PlanJob, projectId: string, stamp: string): Promise<void> {
+async function applyJob(job: PlanJob, projectId: string, stamp: string, actor: EventActor): Promise<void> {
+  const snapshot = await projectBefore(projectId)
   const project = await db.project.findUnique({
     where: { id: projectId },
     select: { plannedStart: true, plannedEnd: true, price: true, description: true },
@@ -96,6 +98,7 @@ async function applyJob(job: PlanJob, projectId: string, stamp: string): Promise
     db.planEntry.updateMany({ where: { id: { in: job.lineIds } }, data: { projectId } }),
     db.project.update({ where: { id: projectId }, data }),
   ])
+  await announceProjectChanges(snapshot, actor)
 }
 
 /**
@@ -106,7 +109,8 @@ async function applyJob(job: PlanJob, projectId: string, stamp: string): Promise
  * office typed in is theirs and stays. This is what lets the links of a
  * year be cleared and the matching started over without figures left behind.
  */
-async function takeBack(projectId: string, stamp: string): Promise<void> {
+async function takeBack(projectId: string, stamp: string, actor: EventActor): Promise<void> {
+  const snapshot = await projectBefore(projectId)
   const project = await db.project.findUnique({
     where: { id: projectId },
     select: {
@@ -154,6 +158,7 @@ async function takeBack(projectId: string, stamp: string): Promise<void> {
   const note = Object.keys(taken).length ? planNote(stamp, taken) : null
   data.description = note ? (kept ? `${kept}\n\n${note}` : note) : kept
   await db.project.update({ where: { id: projectId }, data })
+  await announceProjectChanges(snapshot, actor)
 }
 
 /**
@@ -232,7 +237,7 @@ export async function reconcilePlan(): Promise<ReconcileResult> {
   for (const m of matches) {
     if (m.sure.length) {
       // A project doing one customer's job in phases takes all of them at once.
-      await applyJob(mergeJobs(m.sure), m.projectId, stamp)
+      await applyJob(mergeJobs(m.sure), m.projectId, stamp, { type: 'user', userId: user.id })
       touched.push(m.projectId)
       applied++
     } else if (isLinked.has(m.projectId)) continue
@@ -270,7 +275,7 @@ export async function linkPlanJob(lineIds: string[], projectId: string): Promise
   // The person chose these lines; the job must carry exactly them.
   const job = mergeJobs(jobs)
   job.lineIds = rows.map((r) => r.id)
-  await applyJob(job, projectId, fmtDate(new Date()))
+  await applyJob(job, projectId, fmtDate(new Date()), { type: 'user', userId: user.id })
 
   await audit({
     userId: user.id,
@@ -299,7 +304,7 @@ export async function unlinkPlanJob(lineIds: string[]): Promise<{ error?: string
   const projectIds = [...new Set(rows.map((r) => r.projectId!))]
   await db.planEntry.updateMany({ where: { id: { in: lineIds } }, data: { projectId: null } })
   const stamp = fmtDate(new Date())
-  for (const projectId of projectIds) await takeBack(projectId, stamp)
+  for (const projectId of projectIds) await takeBack(projectId, stamp, { type: 'user', userId: user.id })
   await audit({
     userId: user.id,
     action: 'unlink',
@@ -328,7 +333,7 @@ export async function clearPlanLinks(year: number): Promise<{ cleared: number }>
   })
   const projectIds = [...new Set(linked.map((l) => l.projectId!))]
   const stamp = fmtDate(new Date())
-  for (const projectId of projectIds) await takeBack(projectId, stamp)
+  for (const projectId of projectIds) await takeBack(projectId, stamp, { type: 'user', userId: user.id })
   await audit({
     userId: user.id,
     action: 'unlink',
@@ -453,7 +458,7 @@ export async function importPlanLinks(text: string): Promise<LinkImportResult> {
     if (jobs.length === 0) continue
     const job = mergeJobs(jobs)
     job.lineIds = lines.map((l) => l.id)
-    await applyJob(job, projectId, stamp)
+    await applyJob(job, projectId, stamp, { type: 'user', userId: user.id })
     result.applied += lines.length
   }
 

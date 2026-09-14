@@ -83,6 +83,18 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
   let customersCreated = 0
   let flagged = 0
   const customerCache = new Map<string, string>()
+  // The card itself as a link, so an automation that sends the same card later
+  // finds this project. A card linked to another project already keeps that link.
+  // This import tells automations nothing: what it brings comes from the board
+  // they would tell, and a board of old cards would set off a flood of events.
+  const linkCard = (projectId: string, cardId: string, url: string | undefined) =>
+    db.projectLink
+      .upsert({
+        where: { projectId_system: { projectId, system: 'trello' } },
+        create: { projectId, system: 'trello', externalId: cardId, url: url || null },
+        update: { externalId: cardId, url: url || null },
+      })
+      .catch(() => {})
 
   for (const card of board.cards) {
     const status = mapping.get(card.idList)
@@ -129,6 +141,7 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
           plannedEnd: card.due ? new Date(card.due) : undefined,
         },
       })
+      await linkCard(existing.id, card.id, card.shortUrl)
       updated++
       continue
     }
@@ -150,6 +163,7 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
           sourceCreatedAt,
         },
       })
+      await linkCard(byName.id, card.id, card.shortUrl)
       skipped++
       continue
     }
@@ -169,7 +183,7 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
       customerCache.set(customerName.toLowerCase(), customerId)
     }
 
-    await db.project.create({
+    const createdProject = await db.project.create({
       data: {
         number: await nextProjectNumber(),
         name: projectName,
@@ -182,7 +196,9 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
         externalUrl: card.shortUrl || undefined,
         sourceCreatedAt,
       },
+      select: { id: true },
     })
+    await linkCard(createdProject.id, card.id, card.shortUrl)
     created++
   }
 

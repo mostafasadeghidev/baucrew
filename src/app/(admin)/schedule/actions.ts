@@ -9,6 +9,7 @@ import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { getProjectDevices } from '../devices/actions'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
+import { announceProjectChanges, projectBefore } from '@/lib/project-events'
 import { expandDateRange } from '@/lib/schedule-range'
 import { assignmentBlock } from '@/lib/schedule-block'
 import { entrySchema, entryErrorKey, type EntryInput, type EntryResult } from '@/lib/schedule-entry'
@@ -55,6 +56,7 @@ export async function completeProjectFromEntry(
   if (!entry) return { error: 'saveFailed' }
   const p = entry.project
   if (p.status === 'INVOICED' || p.status === 'PAID' || p.status === 'CANCELLED') return {}
+  const snapshot = await projectBefore(p.id)
   const derived = await actualDatesForStatus(p.id, 'COMPLETED', { actualStart: p.actualStart, actualEnd: p.actualEnd })
   await db.project.update({
     where: { id: p.id },
@@ -74,6 +76,7 @@ export async function completeProjectFromEntry(
     oldValue: p.status,
     newValue: `COMPLETED (aus Einsatz ${entry.date.toISOString().slice(0, 10)})`,
   })
+  await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
 
   // The work is done — days planned after that are cancelled (soft), so the
   // crew and vehicles are free again. `reopenProject` brings them back.
@@ -112,6 +115,7 @@ export async function reopenProject(projectId: string): Promise<{ error?: string
     select: { id: true, number: true, status: true, actualStart: true },
   })
   if (!p) return { error: 'saveFailed' }
+  const snapshot = await projectBefore(projectId)
 
   const restoredEntries = await db.scheduleEntry.updateMany({
     where: { projectId, cancelledAt: { not: null } },
@@ -131,6 +135,7 @@ export async function reopenProject(projectId: string): Promise<{ error?: string
     oldValue: p.status,
     newValue: `${next} (${restoredEntries.count} Einsätze wiederhergestellt)`,
   })
+  await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
   revalidateBoard(projectId)
   revalidatePath('/projects')
   return { restored: restoredEntries.count }
@@ -489,6 +494,7 @@ export async function setProjectManager(projectId: string, managerId: string): P
   })
   if (!project) return { error: 'saveFailed' }
   if ((project.managerId ?? '') === managerId) return {}
+  const snapshot = await projectBefore(projectId)
   await db.project.update({
     where: { id: projectId },
     data: { managerId: managerId || null },
@@ -502,6 +508,7 @@ export async function setProjectManager(projectId: string, managerId: string): P
     oldValue: project.managerId ?? '',
     newValue: managerId,
   })
+  await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
   revalidateBoard(projectId)
   revalidatePath('/projects')
   return {}
