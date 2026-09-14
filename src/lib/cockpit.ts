@@ -236,14 +236,19 @@ export function todayCrewLamp(today: CrewDay, usual: number | null): Lamp {
   return 'green'
 }
 
+export type SitePerson = { id: string; name: string }
+
 /** A site on today's schedule: who is on it, and who is booked on it but away today. */
-export type SiteCrew = { projectId: string; number: string; name: string; people: string[]; away: string[] }
+export type SiteCrew = { projectId: string; number: string; name: string; people: SitePerson[]; away: SitePerson[] }
+
+const byName = (a: SitePerson, b: SitePerson) => a.name.localeCompare(b.name, 'de')
 
 /**
- * Today's schedule by site, the sites with the most people first. Somebody
- * booked on a site but away today will not come: they are named apart and not
- * counted. `people` counts everybody on a site today once, however many sites
- * they are booked on — the same rule as `crewDays`.
+ * Today's schedule by site, the sites with the most people first and the
+ * people on each in alphabetical order. Somebody booked on a site but away
+ * today will not come: they are named apart and not counted. `people` counts
+ * everybody on a site today once, however many sites they are booked on — the
+ * same rule as `crewDays`.
  */
 export function sitesToday(
   entries: Array<{
@@ -263,18 +268,20 @@ export function sitesToday(
     for (const { employeeId, employee } of entry.employees) {
       if (row.ids.has(employeeId)) continue
       row.ids.add(employeeId)
-      const name = `${employee.firstName} ${employee.lastName}`.trim()
+      const person = { id: employeeId, name: `${employee.firstName} ${employee.lastName}`.trim() }
       if (awayIds.has(employeeId)) {
-        row.site.away.push(name)
+        row.site.away.push(person)
       } else {
-        row.site.people.push(name)
+        row.site.people.push(person)
         onSite.add(employeeId)
       }
     }
     sites.set(entry.projectId, row)
   }
   return {
-    sites: [...sites.values()].map((row) => row.site).sort((a, b) => b.people.length - a.people.length),
+    sites: [...sites.values()]
+      .map(({ site }) => ({ ...site, people: site.people.sort(byName), away: site.away.sort(byName) }))
+      .sort((a, b) => b.people.length - a.people.length),
     people: onSite.size,
   }
 }

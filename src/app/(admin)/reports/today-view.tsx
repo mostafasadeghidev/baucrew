@@ -341,21 +341,39 @@ export async function TodayView({
         {data.schedule.today.length === 0 ? (
           empty(t('panelTeamTodayNone'))
         ) : (
-          <ul className="mt-1 divide-y divide-border">
+          // One card per site: the site on top, then its people one under the other.
+          <ul className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {data.schedule.today.map((site) => (
-              <li key={site.projectId} className="py-2 text-[13px]">
-                <div className="flex items-baseline justify-between gap-3">
-                  {jobName({ id: site.projectId, number: site.number, name: site.name })}
-                  <span className="shrink-0 font-semibold tabular-nums">
+              <li key={site.projectId} className="overflow-hidden rounded-lg border border-border bg-subtle/40">
+                <div className="flex items-start justify-between gap-3 border-b border-border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-[11px] tabular-nums text-muted">{site.number}</p>
+                    <Link
+                      href={`/projects/${site.projectId}`}
+                      title={site.name}
+                      className="block truncate text-[13px] font-medium text-accent hover:underline"
+                    >
+                      {site.name}
+                    </Link>
+                  </div>
+                  <span className="mt-0.5 shrink-0 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-accent">
                     {t('teamPeople', { count: site.people.length })}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[11px] text-muted">
-                  {site.people.length > 0 ? site.people.join(', ') : site.away.length === 0 ? '—' : null}
-                  {site.people.length > 0 && site.away.length > 0 && ' · '}
+                <ul className="space-y-1 px-3 py-2 text-[13px]">
+                  {site.people.map((person) => (
+                    <li key={person.id} className="truncate">
+                      {person.name || '—'}
+                    </li>
+                  ))}
                   {/* Booked but away today: named, not counted. */}
-                  {site.away.length > 0 && <span className={warn}>{t('panelTeamAway', { names: site.away.join(', ') })}</span>}
-                </p>
+                  {site.away.map((person) => (
+                    <li key={person.id} className={`truncate ${warn}`}>
+                      {person.name || '—'} <span className="text-[11px]">· {t('panelTeamAwayOne')}</span>
+                    </li>
+                  ))}
+                  {site.people.length === 0 && site.away.length === 0 && <li className="text-muted">—</li>}
+                </ul>
               </li>
             ))}
           </ul>

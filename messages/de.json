@@ -701,7 +701,7 @@
     "panelTeamUsualHint": "Üblich: im Durchschnitt {count, plural, one {# Person} other {# Personen}} an den Arbeitstagen mit Einsätzen der letzten drei Monate. Wer abwesend ist, zählt nicht mit.",
     "panelTeamPeople": "Personen heute",
     "panelTeamSites": "Baustellen heute",
-    "panelTeamAway": "abwesend: {names}",
+    "panelTeamAwayOne": "abwesend",
     "panelTeamToday": "Heute im Einsatz",
     "panelTeamTodayNone": "Heute steht niemand im Einsatzplan.",
     "panelGapsTotal": "Einträge insgesamt — ein Auftrag kann in mehr als einer Gruppe stehen, deshalb können die Gruppen zusammen mehr ergeben.",

@@ -163,10 +163,12 @@ describe('sitesToday', () => {
     employees: people.map((id) => ({ employeeId: id, employee: { firstName: 'Muster', lastName: id } })),
   })
 
-  it('lists every site with its people, the fullest first, and counts a person on two sites once', () => {
-    const { sites, people } = sitesToday([entry('a', ['Eins']), entry('b', ['Eins', 'Zwei', 'Drei'])], new Set())
-    expect(sites.map((site) => [site.projectId, site.people])).toEqual([
-      ['b', ['Muster Eins', 'Muster Zwei', 'Muster Drei']],
+  const names = (list: Array<{ name: string }>) => list.map((person) => person.name)
+
+  it('lists every site with its people in alphabetical order, the fullest first, and counts a person on two sites once', () => {
+    const { sites, people } = sitesToday([entry('a', ['Eins']), entry('b', ['Zwei', 'Eins', 'drei'])], new Set())
+    expect(sites.map((site) => [site.projectId, names(site.people)])).toEqual([
+      ['b', ['Muster drei', 'Muster Eins', 'Muster Zwei']],
       ['a', ['Muster Eins']],
     ])
     expect(people).toBe(3)
@@ -174,8 +176,9 @@ describe('sitesToday', () => {
 
   it('names who is booked but away apart, and does not count them', () => {
     const { sites, people } = sitesToday([entry('a', ['Eins', 'Zwei']), entry('b', ['Zwei'])], new Set(['Zwei']))
-    expect(sites[0]).toMatchObject({ projectId: 'a', people: ['Muster Eins'], away: ['Muster Zwei'] })
-    expect(sites[1]).toMatchObject({ projectId: 'b', people: [], away: ['Muster Zwei'] })
+    expect(names(sites[0].people)).toEqual(['Muster Eins'])
+    expect(names(sites[0].away)).toEqual(['Muster Zwei'])
+    expect(sites[1]).toMatchObject({ projectId: 'b', people: [], away: [{ id: 'Zwei', name: 'Muster Zwei' }] })
     expect(people).toBe(1)
   })
 
