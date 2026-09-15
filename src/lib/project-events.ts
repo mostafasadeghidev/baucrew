@@ -3,11 +3,12 @@ import { db } from './db'
 import { orderValue } from './reports'
 import { emitEvent } from './webhooks'
 import { projectChanges, statusSinceOf, type ProjectSnapshot } from './webhook-events'
+import { INVOICE_KIND, type InvoicePart } from './invoices'
 
 /**
  * A project's life told to automations: made, moved to another status,
- * changed, deleted. Every place that does one of these takes a snapshot before
- * and announces after; what changed is worked out here, once.
+ * changed, deleted, an invoice ready. Every place that does one of these takes
+ * a snapshot before and announces after; what changed is worked out here, once.
  *
  * The body carries the whole project — customer contact, manager, dates,
  * money, links to other systems — so an automation rarely has to ask again.
@@ -43,6 +44,7 @@ const eventSelect = {
   manager: { select: { id: true, firstName: true, lastName: true } },
   addOns: { select: { amount: true } },
   links: { select: { system: true, externalId: true, url: true }, orderBy: { system: 'asc' as const } },
+  invoices: { select: { part: true, number: true, amount: true, readyAt: true }, orderBy: { part: 'asc' as const } },
 } as const
 
 type EventRow = NonNullable<Awaited<ReturnType<typeof loadRow>>>
@@ -104,6 +106,18 @@ function projectBody(row: EventRow, statusSince: Date) {
     orderValue: snapshot.orderValue,
     description: row.description,
     links: row.links,
+    /** The invoices marked ready so far. */
+    invoices: row.invoices.map(invoiceBody),
+  }
+}
+
+function invoiceBody(invoice: EventRow['invoices'][number]) {
+  return {
+    part: invoice.part,
+    kind: INVOICE_KIND[invoice.part as InvoicePart],
+    number: invoice.number,
+    amount: invoice.amount === null ? null : Number(invoice.amount),
+    readyAt: invoice.readyAt.toISOString(),
   }
 }
 
@@ -174,6 +188,22 @@ export async function announceProjectDeleted(
 ): Promise<void> {
   if (!before) return
   await emitEvent('project.deleted', { project: before.body, ...(mergedInto ? { mergedInto } : {}), actor })
+}
+
+/**
+ * The office marked one of the two invoices ready: the automation prepares the
+ * e-mail. The body carries the invoice and the whole project around it.
+ */
+export async function announceInvoiceReady(projectId: string, part: InvoicePart, actor: EventActor): Promise<void> {
+  try {
+    const row = await loadRow(projectId)
+    const invoice = row?.invoices.find((i) => i.part === part)
+    if (!row || !invoice) return
+    const since = statusSinceOf(await lastStatusChange(projectId), row.sourceCreatedAt, row.createdAt)
+    await emitEvent('invoice.ready', { invoice: invoiceBody(invoice), project: projectBody(row, since), actor })
+  } catch (e) {
+    console.error('invoice event failed', e)
+  }
 }
 
 /** Since when each project has stood in its status, for many at once. */

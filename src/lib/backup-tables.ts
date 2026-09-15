@@ -34,6 +34,7 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   { key: 'projectLinks', model: 'ProjectLink' },
   { key: 'projectWorkCategories', model: 'ProjectWorkCategory' },
   { key: 'projectAddOns', model: 'ProjectAddOn' },
+  { key: 'projectInvoices', model: 'ProjectInvoice' },
   { key: 'projectEmployees', model: 'ProjectEmployee' },
   { key: 'projectVehicles', model: 'ProjectVehicle' },
   { key: 'projectItems', model: 'ProjectItem' },

@@ -24,6 +24,8 @@ import { btn } from '@/components/ui/button'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { ProjectAddOns } from './add-ons'
+import { ProjectInvoices, type InvoiceRow } from './invoices-card'
+import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
 import { ProjectTimeSummary } from './time-summary'
 import { daysOut } from '@/lib/devices'
 import { ProjectDevicesEditor } from './project-devices'
@@ -56,6 +58,7 @@ export default async function ProjectDetailPage({
       manager: true,
       vehicles: { include: { vehicle: true } },
       addOns: { orderBy: { date: 'asc' } },
+      invoices: { include: { readyBy: { select: { username: true } } } },
       // Lines of the year-planning sheet someone tied to this project.
       planEntries: { orderBy: [{ year: 'asc' }, { month: 'asc' }] },
       documents: {
@@ -159,6 +162,24 @@ export default async function ProjectDetailPage({
   // What the year-planning sheet had pencilled in for this project.
   const plannedTotal = project.planEntries.reduce((sum, e) => sum + Number(e.amount), 0)
   const orderTotal = orderValue(project.price, project.addOns)
+  const firstInvoice = project.invoices.find((i) => i.part === 1)
+  const invoiceRows: InvoiceRow[] = INVOICE_PARTS.map((part) => {
+    const invoice = project.invoices.find((i) => i.part === part)
+    const suggested = suggestedInvoiceAmount(part, orderTotal, firstInvoice?.amount == null ? null : Number(firstInvoice.amount))
+    return {
+      part,
+      ready: invoice
+        ? {
+            dateLabel: formatDate(invoice.readyAt, locale),
+            byLabel: invoice.readyBy?.username ?? null,
+            amountLabel: invoice.amount == null ? null : formatCurrency(Number(invoice.amount), locale, { hidden: hidePrices }),
+            number: invoice.number,
+          }
+        : null,
+      suggestedLabel: suggested == null ? null : formatCurrency(suggested, locale, { hidden: hidePrices }),
+      suggestedInput: suggested == null ? '' : locale === 'en' ? suggested.toFixed(2) : suggested.toFixed(2).replace('.', ','),
+    }
+  })
   const categoryLabel = (c: { nameDe: string; nameEn: string }) =>
     locale === 'en' ? c.nameEn : c.nameDe
 
@@ -472,6 +493,9 @@ export default async function ProjectDetailPage({
             }))}
           />
         )}
+
+        {/* The two invoices; marking one ready lets the automation draft the e-mail. */}
+        {showPrice && <ProjectInvoices projectId={project.id} rows={invoiceRows} amountField={!hidePrices} />}
 
         {/* `#material`: the CRM's missing-material lists link straight here. */}
         <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">

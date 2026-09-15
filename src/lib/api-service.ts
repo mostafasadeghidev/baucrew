@@ -14,6 +14,7 @@ import { createEntries } from './schedule-service'
 import { actualDatesForStatus } from './project-lifecycle'
 import { getPlanGaps, getYearRevenue, orderValue } from './reports'
 import {
+  announceInvoiceReady,
   announceProjectChanges,
   announceProjectCreated,
   projectBefore,
@@ -22,6 +23,7 @@ import {
 } from './project-events'
 import { normalizeSystem, trelloShortLink } from './webhook-events'
 import { suggestStatus } from './trello'
+import { INVOICE_KIND, invoicePartOf, suggestedInvoiceAmount, type InvoicePart } from './invoices'
 import { mimeFromName, safeFileName, storageKeyFor, validateUpload } from './files'
 import { saveStoredFile } from './file-storage'
 
@@ -97,6 +99,7 @@ const projectSelect = {
   manager: { select: { id: true, firstName: true, lastName: true } },
   addOns: { select: { amount: true } },
   links: { select: { system: true, externalId: true, url: true }, orderBy: { system: 'asc' } },
+  invoices: { select: { part: true, number: true, amount: true, readyAt: true }, orderBy: { part: 'asc' } },
 } as const
 
 type ProjectRow = {
@@ -128,6 +131,7 @@ type ProjectRow = {
   manager: { id: string; firstName: string; lastName: string } | null
   addOns: Array<{ amount: { toString(): string } }>
   links: Array<{ system: string; externalId: string; url: string | null }>
+  invoices: Array<{ part: number; number: string | null; amount: { toString(): string } | null; readyAt: Date }>
 }
 
 function projectDto(p: ProjectRow, user: CurrentUser, statusSince: Date) {
@@ -155,6 +159,14 @@ function projectDto(p: ProjectRow, user: CurrentUser, statusSince: Date) {
       ? {
           price: p.price === null ? null : Number(p.price),
           orderValue: orderValue(p.price === null ? null : Number(p.price), p.addOns),
+          /** The invoices marked ready so far — 1 the first half, 2 the final one. */
+          invoices: p.invoices.map((i) => ({
+            part: i.part,
+            kind: INVOICE_KIND[i.part as InvoicePart],
+            number: i.number,
+            amount: i.amount === null ? null : Number(i.amount),
+            readyAt: i.readyAt.toISOString(),
+          })),
         }
       : {}),
   }
@@ -613,6 +625,93 @@ export async function removeProjectLink(user: CurrentUser, idOrNumber: string, s
   const removed = await db.projectLink.deleteMany({ where: { projectId: project.id, system } })
   if (removed.count > 0) {
     await audit({ userId: user.id, action: 'api.project.unlink', entity: 'Project', entityId: project.id, field: system })
+  }
+  return getProject(user, project.id)
+}
+
+// ── Invoices ──────────────────────────────────────────────────────────
+
+export const invoiceReadyInput = z.object({
+  /** Its number in the accounting program. */
+  number: text(60),
+  /** Left out: half the order value for the first, what the first left for the final. */
+  amount: z.number().min(0).max(999_999_999).nullable().optional(),
+})
+
+const invoicePart = (raw: string | number): InvoicePart => {
+  const part = invoicePartOf(raw)
+  if (!part) throw new ApiError(400, 'invalid', 'The invoice is 1 (first) or 2 (final).')
+  return part
+}
+
+/**
+ * Marks one of a project's two invoices ready — on the project page or from an
+ * automation — and tells the automations, which prepare the e-mail. One that is
+ * ready already only takes the new number and amount; nobody is told twice.
+ */
+export async function markInvoiceReady(
+  user: CurrentUser,
+  idOrNumber: string,
+  partRaw: string | number,
+  input: { number?: string | null; amount?: number | null },
+  actor?: EventActor
+) {
+  assertFinancials(user)
+  const part = invoicePart(partRaw)
+  const project = await db.project.findFirst({
+    where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] },
+    select: { id: true, price: true, addOns: { select: { amount: true } }, invoices: { select: { part: true, amount: true } } },
+  })
+  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  const amountOf = (i: { amount: unknown } | undefined) => (i?.amount == null ? null : Number(i.amount))
+  const existing = project.invoices.find((i) => i.part === part)
+
+  if (existing) {
+    await db.projectInvoice.update({
+      where: { projectId_part: { projectId: project.id, part } },
+      data: {
+        ...(input.number !== undefined ? { number: input.number } : {}),
+        ...(input.amount !== undefined ? { amount: input.amount } : {}),
+      },
+    })
+  } else {
+    const amount =
+      input.amount !== undefined
+        ? input.amount
+        : suggestedInvoiceAmount(part, orderValue(project.price, project.addOns), amountOf(project.invoices.find((i) => i.part === 1)))
+    try {
+      await db.projectInvoice.create({
+        data: { projectId: project.id, part, number: input.number ?? null, amount, readyById: user.id },
+      })
+    } catch (e) {
+      // Marked twice at the same moment: the other request told the automations.
+      if (!isUniqueClash(e)) throw e
+      return getProject(user, project.id)
+    }
+  }
+  await audit({
+    userId: user.id,
+    action: existing ? 'project.invoice.change' : 'project.invoice.ready',
+    entity: 'Project',
+    entityId: project.id,
+    field: `invoice${part}`,
+    newValue: input.number ?? undefined,
+  })
+  if (!existing) await announceInvoiceReady(project.id, part, actorFor(user, actor))
+  revalidatePath(`/projects/${project.id}`)
+  return getProject(user, project.id)
+}
+
+/** Takes a ready mark back — marked by mistake. An e-mail an automation already drafted stays where it is. */
+export async function withdrawInvoice(user: CurrentUser, idOrNumber: string, partRaw: string | number) {
+  assertFinancials(user)
+  const part = invoicePart(partRaw)
+  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
+  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  const removed = await db.projectInvoice.deleteMany({ where: { projectId: project.id, part } })
+  if (removed.count > 0) {
+    await audit({ userId: user.id, action: 'project.invoice.withdraw', entity: 'Project', entityId: project.id, field: `invoice${part}` })
+    revalidatePath(`/projects/${project.id}`)
   }
   return getProject(user, project.id)
 }

@@ -38,6 +38,7 @@ model User {
   uploadedDocuments Document[]         @relation("DocumentUploader")
   timeEntryEdits    TimeEntry[]        @relation("TimeEntryEditor")
   deviceHandouts    DeviceAssignment[] @relation("DeviceAssignmentEditor")
+  readyInvoices     ProjectInvoice[]   @relation("InvoiceReadyBy")
 }
 
 model Session {
@@ -294,6 +295,8 @@ model Project {
   deviceNeeds     ProjectDevice[]
   /// Its records in other systems: the Trello card, the Wattro project.
   links           ProjectLink[]
+  /// The two halves it is billed in, once the office marked them ready.
+  invoices        ProjectInvoice[]
 
   @@index([customerId])
   @@index([status])
@@ -316,6 +319,28 @@ model ProjectLink {
 
   @@unique([system, externalId])
   @@unique([projectId, system])
+}
+
+/// A job is billed in two halves: the first invoice (Abschlagsrechnung, 50 %)
+/// and the final one (Schlussrechnung). The invoice itself is written in the
+/// accounting program; the row stands for the office marking it ready, which
+/// tells automations to prepare the e-mail. No row, not ready.
+model ProjectInvoice {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// 1 = the first half, 2 = the final invoice.
+  part      Int
+  /// Its number in the accounting program, when the office typed it in.
+  number    String?
+  amount    Decimal? @db.Decimal(12, 2)
+  readyAt   DateTime @default(now())
+  readyById String?
+  readyBy   User?    @relation("InvoiceReadyBy", fields: [readyById], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, part])
 }
 
 model ProjectWorkCategory {

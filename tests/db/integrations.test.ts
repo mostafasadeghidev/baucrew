@@ -45,7 +45,7 @@ beforeAll(async () => {
       name: TAG,
       url: `http://127.0.0.1:${port}/hook`,
       secret: SECRET,
-      events: ['project.created', 'project.status_changed', 'project.updated'],
+      events: ['project.created', 'project.status_changed', 'project.updated', 'invoice.ready'],
     },
   })
   endpointId = endpoint.id
@@ -171,5 +171,48 @@ describe('webhooks', () => {
     const count = await prisma.webhookDelivery.count({ where: { endpointId } })
     await updateProject(user, made.project.id, { name: `${TAG} Webhook Musterhaus neu` })
     expect(await prisma.webhookDelivery.count({ where: { endpointId } })).toBe(count)
+  })
+})
+
+describe('invoices', () => {
+  it('asks half the order value first and the rest at the end, and tells the automation once per invoice', async () => {
+    const { markInvoiceReady, upsertProjectByLink, withdrawInvoice } = await import('@/lib/api-service')
+    const { processDueDeliveries } = await import('@/lib/webhooks')
+    await processDueDeliveries(100)
+    received.length = 0
+
+    const made = await upsertProjectByLink(user, 'trello', `${TAG}-card-invoice`, {
+      name: `${TAG} Rechnung Musterhaus`,
+      price: 10_000,
+      customer: { name: `${TAG} Muster GmbH`, company: null, contactPerson: null, phone: null, email: null, street: null, postalCode: null, city: null },
+    })
+    const first = await markInvoiceReady(user, made.project.number, 'first', { number: 'RE-2041-1' })
+    expect(first.invoices).toEqual([expect.objectContaining({ part: 1, kind: 'first', number: 'RE-2041-1', amount: 5000 })])
+    await processDueDeliveries()
+    const told = received.map((r) => JSON.parse(r.raw)).filter((b) => b.event === 'invoice.ready')
+    expect(told).toHaveLength(1)
+    expect(told[0].data).toMatchObject({
+      invoice: { part: 1, kind: 'first', number: 'RE-2041-1', amount: 5000 },
+      project: { id: made.project.id, invoices: [{ part: 1 }] },
+      actor: { type: 'api', userId },
+    })
+
+    // Marked again: the number changes, nobody is told twice.
+    received.length = 0
+    await markInvoiceReady(user, made.project.id, 1, { number: 'RE-2041-1a' })
+    await processDueDeliveries()
+    expect(received.filter((r) => r.headers['x-baucrew-event'] === 'invoice.ready')).toHaveLength(0)
+
+    // A follow-on offer accepted in between lands on the final invoice.
+    await prisma.projectAddOn.create({ data: { projectId: made.project.id, label: 'Nachtrag', amount: 1_000, date: new Date() } })
+    const final = await markInvoiceReady(user, made.project.id, 'final', {})
+    expect(final.invoices).toEqual([
+      expect.objectContaining({ part: 1, number: 'RE-2041-1a', amount: 5000 }),
+      expect.objectContaining({ part: 2, kind: 'final', amount: 6000 }),
+    ])
+
+    const back = await withdrawInvoice(user, made.project.id, 2)
+    expect(back.invoices?.map((i) => i.part)).toEqual([1])
+    await expect(markInvoiceReady(user, made.project.id, 3, {})).rejects.toMatchObject({ status: 400 })
   })
 })

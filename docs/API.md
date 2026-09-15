@@ -49,6 +49,8 @@ knows each project's record there, as a *link* (`system` + `externalId`).
 | PUT | `/api/v1/projects/by-link/{system}/{externalId}` | Update the linked project, or create one and link it — see below. Answers `{ created, project }` |
 | PUT | `/api/v1/projects/{id}/links/{system}` | Link the project to a record: `{ "externalId": "…", "url": "…" }`. `409 linkTaken` when the record belongs to another project |
 | DELETE | `/api/v1/projects/{id}/links/{system}` | Remove the project's link to that system |
+| PUT | `/api/v1/projects/{id}/invoices/{part}` | Mark invoice `1` (`first`, half the order value) or `2` (`final`, what the first left) ready: `{ "number": "…", "amount": 6250 }`, both optional — without `amount` it is suggested. Raises `invoice.ready` the first time (financial access) |
+| DELETE | `/api/v1/projects/{id}/invoices/{part}` | Take the ready mark back; nothing is raised |
 | POST | `/api/v1/projects/{id}/files` | Add a file: multipart form data, field `file` (PDF, images, Office, CSV, text; ≤25 MB). A file without a type gets one from its name |
 | GET | `/api/v1/customers` | Customers by `q` (name, company, town), `limit` |
 | POST | `/api/v1/customers` | Create a customer: `name`, optional `company`, `contactPerson`, `phone`, `email`, `street`, `postalCode`, `city`, `notes` |
@@ -75,7 +77,9 @@ curl -X POST -H "Authorization: Bearer bc_…" -H "Content-Type: application/jso
 
 Every project carries `statusSince` (when it entered its status — the last
 status change, else when the record came into being), its `customer` with
-`email` and `phone`, and its `links`.
+`email` and `phone`, and its `links`. With financial access it also carries
+`price`, `orderValue` and `invoices` — the invoices marked ready so far, each
+`{ part, kind, number, amount, readyAt }`.
 
 ### A project by its record in another system
 
@@ -123,6 +127,7 @@ secret, sends a test, and lists the recent deliveries with their answers.
 | `project.status_changed` | Its status changed — by hand, on the board, over the API, or by itself (first scheduled day, completion from the schedule) |
 | `project.updated` | Name, customer, site manager, dates, price or order value (follow-on offers), sub-contract flag, address or description changed |
 | `project.deleted` | A project was deleted, or merged into another (`mergedInto`) |
+| `invoice.ready` | The office marked one of the job's two invoices ready — on the project page or over the API. `data.invoice` is `{ part, kind, number, amount, readyAt }`; marking it again changes it without a second event |
 
 The Trello board import in Settings raises no events: what it brings comes
 from the board an automation would tell.
@@ -140,7 +145,7 @@ A delivery is a `POST` with this body:
                  "manager": null, "address": { "street": null, "postalCode": null, "city": "…" },
                  "plannedStart": null, "plannedEnd": null, "actualStart": null, "actualEnd": null,
                  "price": 12500, "orderValue": 12500, "description": null, "isSub": false,
-                 "links": [{ "system": "trello", "externalId": "…", "url": "…" }] },
+                 "links": [{ "system": "trello", "externalId": "…", "url": "…" }], "invoices": [] },
     "from": "LEAD",
     "to": "QUOTED",
     "actor": { "type": "user", "userId": "…" }

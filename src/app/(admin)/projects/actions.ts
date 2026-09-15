@@ -692,6 +692,7 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
   const keepDays = days.map((d) => d.date)
   const conflicts = await db.scheduleEntry.count({ where: { projectId: dropId, date: { in: keepDays } } })
   const keepLinks = await db.projectLink.findMany({ where: { projectId: keepId }, select: { system: true } })
+  const keepInvoices = await db.projectInvoice.findMany({ where: { projectId: keepId }, select: { part: true } })
   const [keepSnapshot, dropSnapshot] = await Promise.all([projectBefore(keepId), projectBefore(dropId)])
 
   const from = `${drop.number} ${drop.name}`
@@ -733,6 +734,10 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
       db.planEntry.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.projectLink.updateMany({
         where: { projectId: dropId, system: { notIn: keepLinks.map((l) => l.system) } },
+        data: { projectId: keepId },
+      }),
+      db.projectInvoice.updateMany({
+        where: { projectId: dropId, part: { notIn: keepInvoices.map((i) => i.part) } },
         data: { projectId: keepId },
       }),
       db.project.update({

@@ -17,6 +17,7 @@ const EVENT_LABEL = {
   'project.status_changed': 'webhookEventStatus',
   'project.updated': 'webhookEventUpdated',
   'project.deleted': 'webhookEventDeleted',
+  'invoice.ready': 'webhookEventInvoiceReady',
 } as const
 
 /**

@@ -8,8 +8,14 @@
 
 import { createHmac } from 'crypto'
 
-/** The events an endpoint can listen for. */
-export const WEBHOOK_EVENTS = ['project.created', 'project.status_changed', 'project.updated', 'project.deleted'] as const
+/** The events an endpoint can listen for. `invoice.ready`: the office marked one of a job's two invoices ready. */
+export const WEBHOOK_EVENTS = [
+  'project.created',
+  'project.status_changed',
+  'project.updated',
+  'project.deleted',
+  'invoice.ready',
+] as const
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]
 
 export const isWebhookEvent = (value: string): value is WebhookEvent => (WEBHOOK_EVENTS as readonly string[]).includes(value)
