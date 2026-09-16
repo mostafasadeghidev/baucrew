@@ -3,6 +3,151 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.37.0] — 2026-09-17
+
+### Added
+- **BauCrew talks to automations.** Under Einstellungen → Daten → **Webhooks**
+  an administrator gives the app an address — the production URL of a Webhook
+  node in n8n, say — and picks what it hears of: a project made, its status
+  changed, its dates, value, site manager or address changed, a project
+  deleted, an invoice ready. Every message carries the whole project, who did
+  it (a user, an API key by name, or the app itself) and a signature the
+  receiver can check. A message is written down before it goes out, so a
+  restart or an automation that is down loses nothing: it is sent again after
+  a minute, five, thirty, two hours, six and a day, and the page lists what
+  went out, what waits and what was given up, with a resend button and a test
+  button. The board import in Einstellungen deliberately says nothing, or a
+  hundred old cards would ring at once.
+- **A project keeps its records in other systems.** Each project can be linked
+  to its card on a board and its project in a field-service tool at the same
+  time, one record per system and one project per record. Projects imported
+  from a board keep their card, and the rest are recognised by the card's
+  short link the first time an automation sends it. The API grows the doors an
+  automation needs: `PUT /projects/by-link/{system}/{externalId}` updates the
+  linked project or makes a lead with its customer — and never makes two for
+  one record — `PATCH /projects/{id}` changes any field, files are added to a
+  project, customers are read and changed, and every project says since when
+  it stands in its status, so a reminder for an offer nobody answered can be
+  timed. `docs/API.md` describes all of it.
+- **Rechnungen** on a project's page. A job is billed in two halves: the
+  Abschlagsrechnung asks half the order value, the Schlussrechnung what the
+  first left, so follow-on offers accepted in between land on it. The invoice
+  itself is written in the accounting program; the card lets the office mark
+  each one ready, with the invoice number and the suggested amount, and take
+  the mark back. Marking one ready tells the automations, once — marking it
+  again only changes the number or the amount. Only accounts that may see
+  money see the card; while prices are hidden on screen the amount field is
+  not shown and the suggestion is taken as it is.
+- **Preise ausblenden** in the user menu, for users who may see money at all.
+  While it is on, every amount the app draws reads `**** €` — the dashboard,
+  the projects list, board and page, the drafts, the plan import and every CRM
+  tab with its tiles, cards, lanes, chart and tooltips. Always the same number
+  of asterisks, so nothing is given away about the size either. It is a
+  curtain for a screen, not a permission: edit fields keep the real value and
+  the Excel export keeps the real figures.
+- **Vergleich is a tab of its own**, second after Heute: the chart by month,
+  the quarter card, the year bars and the running sum, for users who may see
+  money. Year and period apply to it.
+- **Heute is eight tiles, and each opens a sheet.** A click on a tile opens
+  its details under the grid — every line of the running month by state, the
+  ordered work per month, the money still to come in, enquiries and offers,
+  overdue jobs, today's crew, missing material, the data gaps — and closing
+  the sheet returns to the tile. The team tile speaks for today: how many
+  people stand on the schedule against the usual crew of a working day, and
+  its sheet shows each site of the day as a card with the people on it in
+  alphabetical order, somebody away marked and not counted. The backlog sheet
+  is a card per month with the jobs inside it, the biggest first; the month's
+  Planumsatz sheet a card per state; both link to their projects.
+- **Aufträge & Baustellen** shows the building sites as cards — number, name,
+  customer, status, the period, where it stands, the next day on site and, for
+  those who may see it, the order value — grouped into late, running and
+  starting soon; late sites wear a red edge. A **Karten | Kanban** switch lays
+  the same cards out in three columns instead. Cards are not dragged there: a
+  site's column follows from its dates.
+- **The lanes in Planumsatz say more.** At twelve months each block carries the
+  site's name and is never shorter than that line; every tile, at any zoom,
+  shows a tip the moment the pointer reaches it — the whole name, the customer,
+  the amount and which month of the job this is. A tile is coloured by where
+  its money stands — finished, ordered, offered, only in the plan — and the bar
+  under each month's head splits the month the same way, with a legend above.
+  While the pointer or the keyboard rests on a job that runs over several
+  months, every tile of that job lights up and the rest step back, in the
+  lanes and in the grid of month cards alike.
+- **The projects page opens as the board**, and a year picker beside the
+  Liste/Board switch shows the running year, any set of years, or all of them:
+  a project belongs to every year its dates touch, and the running year holds
+  every open project. The board is as tall as the window and each column
+  scrolls on its own; the wheel keeps to one axis, the board is pulled by the
+  space around the cards or by holding a card at the edge, a column is moved
+  by its head, and every move can be taken back from the note the board
+  leaves. "… weitere" shows the next fifty. Everything dragged anywhere in the
+  app is now picked up the same way — a copy under the pointer, the original
+  left behind at 40 % — and the dashboard's cards can be arranged by finger.
+- **Einsatzplanung**: the weekend is shown unless switched off, and the choice
+  travels through week steps, the month and the map; on the map a site's number
+  zooms to it and **Ganze Woche** brings the week back. The assignment dialog
+  carries the project's checklists as the project page does.
+- **Mitarbeiter**: absences and hours stand side by side, and the contact card
+  is edited where it stands.
+- A job named under missing material links to its own list of tools and
+  materials, where "missing" was marked and is set right.
+
+### Changed
+- **The CRM has six tabs**: Heute, Vergleich, Aufträge & Baustellen,
+  Planumsatz, Auslastung, Datenlücken — each one question with one time rule.
+  Old addresses land on the tab that took over their content. The tab box
+  scrolls away with the page now, only the bar with the page's name stays
+  pinned, and the year and period pickers moved from the bar into the tab
+  box, in one slot of fixed size so nothing wraps when the tab changes.
+- **Planumsatz is the months.** The summary card above them — the frame's
+  total, the SUB share, the year-on-year sentence — is gone, *Planumsatz nach
+  Stand* moved under the months, and the Baustellen and Kunden views went
+  with their switch. Six cards to a row show their sites again, drawn dense;
+  the lanes are as tall as their tiles and the page scrolls instead of the box;
+  a tile is one line with its amount beside the name; the month's state cards
+  stand four in a row.
+- **Every page in the admin area wears one bar, 64 pixels high**, with the
+  page's name, the back link inline and its buttons at the right end. What a
+  page has to explain moved under the bar, where it scrolls away. Scheduling's
+  bar is that bar too; the views, the arrows and the toggles open the sheet
+  under it. A strip of frosted glass hangs under every bar, exactly as tall as
+  the gap beneath it, so what scrolls under the bar is blurred rather than
+  running into it. The scrollbar is always there, idle when there is nothing
+  to scroll, so a long page is as wide as a short one.
+- **Table columns stay where they are.** Every list table uses a fixed layout
+  with widths chosen from real German and English content, so paging,
+  switching a tab or searching no longer slides the columns sideways. Long
+  values without spaces truncate with the full text as a tooltip; a phone
+  scrolls a table sideways instead of crushing it.
+- The Excel import moved to Einstellungen → Daten beside the board and
+  year-plan importers; the old address redirects.
+
+### Removed
+- The plan-vs-actual table of finished jobs is gone from the Auslastung tab;
+  the Excel export keeps its *Plan vs Ist* sheet.
+- The jobs-by-stage list and the missing-material box on Aufträge &
+  Baustellen; the Heute sheets list both in full.
+- The lines under the Lager and Geräte bars, and the sentence explaining the
+  usual crew on the team sheet.
+
+### Fixed
+- **The team tile counted a crew that never existed.** Its share was the crew
+  size times the weekdays, so a helper booked twice a year held it down as
+  much as a painter with nothing to do. It reads the schedule day by day now,
+  people per working day against the usual crew of the last thirteen weeks.
+- The board import read offer columns as finished work, a first talk with an
+  appointment as a planned start, and rejected offers as new enquiries. Money
+  words are read first, negations included, then the sales steps, then the
+  job stages, and partial payments suggest work in progress.
+- Picking up a card on the projects board: the board is no longer selectable,
+  a sideways pull no longer files the project into the next column, and a
+  column order saved a step behind the screen is read from what is on screen.
+- A dialog no longer sends the page bar and the sidebar scrolling away with
+  the page; the lock sits on the root, nested, so the phone drawer and a
+  dialog cannot release each other.
+- Drafts and the board import write the project's link to its card, so the
+  next import updates the project instead of making the duplicate again.
+
 ## [1.36.0] — 2026-09-10
 
 ### Added
