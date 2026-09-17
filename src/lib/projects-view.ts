@@ -17,14 +17,16 @@ export function opensBoard(params: { view?: string; status?: string; page?: stri
 
 /**
  * Where the list/board switch leads. It keeps what both views understand — the
- * search and the year — and drops what only the list has, the status tab and
- * the page number, which would otherwise turn the board back into the list.
+ * search, the year and which board — and drops what only the list has, the
+ * status tab and the page number, which would otherwise turn the board back
+ * into the list.
  */
-export function projectsViewHref(target: 'list' | 'board', keep: { q?: string; year?: string }): string {
+export function projectsViewHref(target: 'list' | 'board', keep: { q?: string; year?: string; board?: string }): string {
   const params = new URLSearchParams()
   if (target === 'list') params.set('view', 'list')
   if (keep.q) params.set('q', keep.q)
   if (keep.year) params.set('year', keep.year)
+  if (keep.board) params.set('board', keep.board)
   const query = params.toString()
   return query ? `/projects?${query}` : '/projects'
 }

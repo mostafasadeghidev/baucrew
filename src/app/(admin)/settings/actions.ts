@@ -16,8 +16,6 @@ import { Role } from '@/generated/prisma/enums'
 import type { SaveState } from '@/components/saved-form'
 import { deleteUserBlockReason } from '@/lib/user-guards'
 import { PREP_TAB_KEY, prepTabConfigFromForm, serializePrepTabConfig } from '@/lib/prep-tab'
-import { PROJECT_BOARD_KEY, boardConfigFromForm, serializeBoardConfig } from '@/lib/board-columns'
-import { getBoardConfig } from '@/lib/board-columns-db'
 import { normalizeAccent } from "@/lib/branding";
 import {
   optionListFromForm,
@@ -424,30 +422,6 @@ export async function updatePrepTab(formData: FormData): Promise<SaveState> {
   const value = serializePrepTabConfig(prepTabConfigFromForm((n) => formData.get(n)))
   await db.appSetting.upsert({ where: { key: PREP_TAB_KEY }, update: { value }, create: { key: PREP_TAB_KEY, value } })
   await audit({ userId: admin.id, action: 'settings.prepTab', entity: 'AppSetting', entityId: PREP_TAB_KEY, newValue: value })
-  revalidatePath('/projects')
-  revalidatePath('/settings')
-  return { savedAt: Date.now() }
-}
-
-/** Which statuses stand as columns on the project board. */
-export async function updateProjectBoard(formData: FormData): Promise<SaveState> {
-  const admin = await requireAdmin()
-  // The board may have been arranged by hand since it was last ticked, and
-  // ticking one more box must not shuffle it back into lifecycle order.
-  const current = await getBoardConfig()
-  const value = serializeBoardConfig(boardConfigFromForm((n) => formData.get(n), current.statuses))
-  await db.appSetting.upsert({
-    where: { key: PROJECT_BOARD_KEY },
-    update: { value },
-    create: { key: PROJECT_BOARD_KEY, value },
-  })
-  await audit({
-    userId: admin.id,
-    action: 'settings.projectBoard',
-    entity: 'AppSetting',
-    entityId: PROJECT_BOARD_KEY,
-    newValue: value,
-  })
   revalidatePath('/projects')
   revalidatePath('/settings')
   return { savedAt: Date.now() }

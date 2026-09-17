@@ -30,6 +30,8 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   { key: 'templateItems', model: 'TemplateItem' },
   { key: 'templateChecklists', model: 'TemplateChecklist' },
   { key: 'templateDevices', model: 'TemplateDevice' },
+  { key: 'boards', model: 'Board' },
+  { key: 'boardColumns', model: 'BoardColumn' },
   { key: 'projects', model: 'Project' },
   { key: 'projectLinks', model: 'ProjectLink' },
   { key: 'projectWorkCategories', model: 'ProjectWorkCategory' },

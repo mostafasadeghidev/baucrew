@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { AlertDialog } from './ui/alert-dialog'
 import { btn } from './ui/button'
 
-type DeleteState = { error?: string }
+export type DeleteState = { error?: string }
 
 export function DeleteButton({
   action,

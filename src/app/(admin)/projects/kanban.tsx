@@ -52,7 +52,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { GripVertical, Undo2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
-import { moveColumn } from '@/lib/board-columns'
+import { moveColumn } from '@/lib/boards'
 import {
   DRAG_THRESHOLD,
   LONG_PRESS_MS,
@@ -107,10 +107,13 @@ type Grab =
   | { kind: 'column'; pointerId: number; status: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement }
 
 export function ProjectsKanban({
+  boardId,
   columns,
   confirmFor,
   labels,
 }: {
+  /** The board the columns belong to — the order they are dragged into is saved on it. */
+  boardId: string
   columns: KanbanColumn[]
   /** The statuses that ask before they are set, e.g. COMPLETED and CANCELLED. */
   confirmFor: string[]
@@ -215,7 +218,7 @@ export function ProjectsKanban({
   const saveOrder = (order: string[]) => {
     setError(null)
     startTransition(async () => {
-      const result = await setBoardOrder(order)
+      const result = await setBoardOrder(boardId, order)
       if (result?.error) setError(labels.saveFailed)
       router.refresh()
     })

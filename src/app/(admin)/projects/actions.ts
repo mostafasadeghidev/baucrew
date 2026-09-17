@@ -16,11 +16,9 @@ import {
   announceProjectDeleted,
   projectBefore,
 } from '@/lib/project-events'
-import {
-  PROJECT_BOARD_KEY,
-  boardConfigFromOrder,
-  serializeBoardConfig,
-} from '@/lib/board-columns'
+import { cookies } from 'next/headers'
+import { BOARD_COOKIE } from '@/lib/boards'
+import { saveColumnOrder } from '@/lib/boards-db'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -461,33 +459,27 @@ export async function setProjectStatus(id: string, status: string): Promise<{ er
 }
 
 /**
- * The order the board's columns stand in, as somebody dragged them.
- *
- * It shares the setting the tick-boxes in Einstellungen write, so the two
- * cannot disagree: which columns there are is chosen there, and the order they
- * stand in is chosen here, on the board itself, where it can be seen.
+ * The order a board's columns stand in, as somebody dragged them. Which
+ * columns a board has is chosen in Einstellungen; the order they stand in is
+ * chosen here, on the board itself, where it can be seen.
  *
  * Management rather than admin: this is arranging a desk, not changing what
  * the company records.
  */
-export async function setBoardOrder(statuses: string[]): Promise<{ error?: string }> {
+export async function setBoardOrder(boardId: string, statuses: string[]): Promise<{ error?: string }> {
   const user = await requireManagement()
-  const value = serializeBoardConfig(boardConfigFromOrder(statuses))
-  await db.appSetting.upsert({
-    where: { key: PROJECT_BOARD_KEY },
-    update: { value },
-    create: { key: PROJECT_BOARD_KEY, value },
-  })
-  await audit({
-    userId: user.id,
-    action: 'settings.projectBoard',
-    entity: 'AppSetting',
-    entityId: PROJECT_BOARD_KEY,
-    newValue: value,
-  })
+  if (!(await saveColumnOrder(boardId, statuses))) return { error: 'notFound' }
+  await audit({ userId: user.id, action: 'board.columns', entity: 'Board', entityId: boardId, newValue: statuses.join(',') })
   revalidatePath('/projects')
-  revalidatePath('/settings')
+  revalidatePath('/settings/boards')
   return {}
+}
+
+/** Which board this browser opened last, so the projects page comes back to it. */
+export async function rememberBoard(boardId: string): Promise<void> {
+  await requireManagement()
+  const store = await cookies()
+  store.set(BOARD_COOKIE, boardId, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
 }
 
 // ── Project items (tools & materials) ─────────────────────────

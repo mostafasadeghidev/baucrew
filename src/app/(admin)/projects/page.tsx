@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
@@ -8,7 +9,8 @@ import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/p
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
 import { getPrepTabConfig } from '@/lib/prep-tab-db'
-import { getBoardConfig } from '@/lib/board-columns-db'
+import { BOARD_COOKIE, columnLabel, pickBoard } from '@/lib/boards'
+import { getBoards } from '@/lib/boards-db'
 import type { Prisma } from '@/generated/prisma/client'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
@@ -21,16 +23,17 @@ import { ALL_YEARS, belongsToYears, parseProjectYears, projectYearOptions } from
 import { todayUtc } from '@/lib/dates'
 import { ProjectsKanban, type KanbanColumn } from './kanban'
 import { ProjectYearPicker } from './year-picker'
+import { BoardTabs } from './board-tabs'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
 
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; page?: string; view?: string; year?: string | string[] }>
+  searchParams: Promise<{ q?: string; status?: string; page?: string; view?: string; year?: string | string[]; board?: string }>
 }) {
   const user = await requireManagement()
-  const { q, status, page: pageParam, view, year: yearValue } = await searchParams
+  const { q, status, page: pageParam, view, year: yearValue, board: boardParam } = await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
   const page = parsePage(pageParam)
@@ -41,7 +44,8 @@ export default async function ProjectsPage({
   // cursor — so the list names itself once it is showing.
   if (!kanban && view !== 'list') {
     const params = new URLSearchParams({ view: 'list' })
-    for (const [key, value] of Object.entries({ q, status, page: pageParam, year: yearParam })) if (value) params.set(key, value)
+    for (const [key, value] of Object.entries({ q, status, page: pageParam, year: yearParam, board: boardParam }))
+      if (value) params.set(key, value)
     redirect(`/projects?${params.toString()}`)
   }
   const [t, tStatus, tTemplates, tChecklists, tDrafts, tc, locale] = await Promise.all([
@@ -57,9 +61,9 @@ export default async function ProjectsPage({
 
   const currentYear = todayUtc().getUTCFullYear()
   const years = parseProjectYears(yearParam, currentYear)
-  const [prepTab, board, dated, statusChanges] = await Promise.all([
+  const [prepTab, boards, dated, statusChanges] = await Promise.all([
     getPrepTabConfig(),
-    getBoardConfig(),
+    getBoards(),
     // The dates every project is filed under a year by. The rule is a few lines
     // of plain code (src/lib/project-years.ts) rather than a query, so it is
     // tested; the rows it needs are small.
@@ -78,6 +82,9 @@ export default async function ProjectsPage({
     // A card moved this year belongs to this year, whatever its dates say.
     db.auditLog.findMany({ where: { entity: 'Project', field: 'status' }, select: { entityId: true, createdAt: true } }),
   ])
+  // Which board: the address, else the one this browser opened last, else the first.
+  const board = pickBoard(boards, boardParam, (await cookies()).get(BOARD_COOKIE)?.value)
+  const boardStatuses = (board?.columns ?? []).map((c) => c.status as ProjectStatus)
   const changedYears = new Map<string, number[]>()
   for (const change of statusChanges) {
     const years = changedYears.get(change.entityId) ?? []
@@ -143,7 +150,7 @@ export default async function ProjectsPage({
     query && years !== ALL_YEARS
       ? db.project.count({
           where: kanban
-            ? { ...searchWhere, status: { in: board.statuses as ProjectStatus[] } }
+            ? { ...searchWhere, status: { in: boardStatuses } }
             : { ...statusWhere, ...searchWhere },
         })
       : Promise.resolve(0),
@@ -174,14 +181,16 @@ export default async function ProjectsPage({
         orderBy: { number: 'desc' },
       })
     : []
-  // Which statuses get a column is the office's own choice (Einstellungen →
-  // Arbeitsbereiche), the same way the combined tab on the list is.
-  const columns: KanbanColumn[] = board.statuses.map((value) => {
+  // Which statuses get a column, and what each is called, is the board's own
+  // (Einstellungen → Boards); a project stands on every board with a column
+  // for its status.
+  const columns: KanbanColumn[] = (board?.columns ?? []).map((column) => {
+    const value = column.status as ProjectStatus
     const own = boardProjects.filter((p) => p.status === value)
     const sum = own.reduce((total, p) => total + (p.price ? Number(p.price) : 0), 0)
     return {
       status: value,
-      label: tStatus(value),
+      label: columnLabel(column, tStatus(value)),
       count: own.length,
       sum: showPrice && sum > 0 ? formatCurrency(sum, locale, { hidden: hidePrices }) : null,
       badgeClass: STATUS_STYLES[value],
@@ -199,15 +208,14 @@ export default async function ProjectsPage({
     }
   })
   const allCount = statusCounts.reduce((sum, s) => sum + s._count._all, 0)
-  const shownInYear = kanban
-    ? boardProjects.filter((p) => (board.statuses as string[]).includes(p.status)).length
-    : total
+  const shownInYear = kanban ? boardProjects.filter((p) => boardStatuses.includes(p.status)).length : total
   const otherYearHits = query && years !== ALL_YEARS ? Math.max(0, searchInAllYears - shownInYear) : 0
   const allYearsHref = (() => {
     const params = new URLSearchParams()
     if (view) params.set('view', view)
     if (status) params.set('status', status)
     if (query) params.set('q', query)
+    if (boardParam) params.set('board', boardParam)
     params.set('year', ALL_YEARS)
     return `/projects?${params.toString()}`
   })()
@@ -260,7 +268,7 @@ export default async function ProjectsPage({
         ) : (
           <Link
             key={option.value || 'board'}
-            href={projectsViewHref(option.value ? 'list' : 'board', { q: query, year: yearParam })}
+            href={projectsViewHref(option.value ? 'list' : 'board', { q: query, year: yearParam, board: boardParam })}
             className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
           >
             {option.label}
@@ -343,7 +351,17 @@ export default async function ProjectsPage({
         <div className="space-y-3 border-b border-border p-4">
           {kanban ? (
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <div className="order-2 flex min-w-0 flex-1 lg:order-1">{search}</div>
+              {/* The boards first, the way Trello lines them up, and the search
+                  beside them: which board, then what on it. */}
+              <div className="order-2 flex min-w-0 flex-1 flex-wrap items-center gap-3 lg:order-1">
+                <BoardTabs
+                  boards={boards.map((b) => ({ id: b.id, name: b.name }))}
+                  current={board?.id ?? ''}
+                  ariaLabel={t('boardTabs')}
+                  manage={user.role === 'ADMIN' ? { href: '/settings/boards', label: t('boardsManage') } : null}
+                />
+                {search}
+              </div>
               {viewSwitch}
             </div>
           ) : (
@@ -390,6 +408,10 @@ export default async function ProjectsPage({
         {kanban ? (
           <div className="min-h-0 flex-1 p-3">
             <ProjectsKanban
+              // A new board is a new component: what a column was showing
+              // beyond its first fifty belongs to the board it was on.
+              key={board?.id ?? 'none'}
+              boardId={board?.id ?? ''}
               columns={columns}
               confirmFor={['COMPLETED', 'CANCELLED']}
               labels={{

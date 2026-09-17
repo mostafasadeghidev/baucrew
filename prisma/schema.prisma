@@ -754,6 +754,38 @@ model Document {
 }
 
 // Small app-wide key/value settings (e.g. the uploaded company logo)
+// ─────────────────────────────────────────────
+// Boards
+// ─────────────────────────────────────────────
+
+/// A board of the projects page: a name and its columns. Each column is one
+/// status, so a card dragged into it changes the project's status and nothing
+/// else has to be kept in step; a project stands on every board that has a
+/// column for its status. Several boards, so the office side can look at the
+/// enquiries and the offers and the site side at what is being built, each on
+/// a board of its own — the way their Trello was laid out.
+model Board {
+  id        String        @id @default(cuid())
+  name      String
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  columns   BoardColumn[]
+}
+
+model BoardColumn {
+  id        String        @id @default(cuid())
+  boardId   String
+  board     Board         @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  status    ProjectStatus
+  /// The column's own name on this board, when it is not the status's — "Angebot fertig" for QUOTED, say.
+  title     String?
+  /// Left to right, as the board was dragged into.
+  sortOrder Int           @default(0)
+
+  @@unique([boardId, status])
+}
+
 model AppSetting {
   key   String @id
   value String

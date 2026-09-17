@@ -199,6 +199,12 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 - Die Spalte **Auftragswert** sehen nur Konten mit Finanzfreigabe.
 - **Vorlagen** oben rechts führt zu den Projektvorlagen (Kapitel 12).
 
+### Das Board — und mehrere davon
+
+Mit **Liste / Board** rechts oben wechseln Sie zur Board-Ansicht: eine Spalte je Status, und eine Karte in eine andere Spalte ziehen ändert den Status (Abschließen und Stornieren fragen vorher nach; jede Bewegung lässt sich mit **Rückgängig** unter dem Board zurücknehmen). Über der Suche stehen die **Boards** als Reiter, wie in Trello: zum Beispiel *Vertrieb* mit *Anfrage → Angebot → Beauftragt* und *Baustellen* mit *Beauftragt → Geplant → In Ausführung → Abgeschlossen*. Ein Projekt steht auf jedem Board, das eine Spalte für seinen Status hat — ein Board ist eine Sicht auf die Projekte, kein zweiter Ort. Welches Board zuletzt offen war, merkt sich der Browser.
+
+Boards anlegen, umbenennen, Spalten wählen und löschen: **Einstellungen → Boards** (Administrator). Jede Spalte ist ein Status und kann auf dem Board einen **eigenen Namen** tragen, etwa „Angebot fertig“ statt „Angebot erstellt“, so wie die Liste in Trello hieß. Die **Reihenfolge** der Spalten ziehen Sie auf dem Board selbst am Griff (sechs Punkte) im Spaltenkopf. Das letzte Board lässt sich nicht löschen.
+
 ### 6.2 Ein Projekt anlegen — Feld für Feld
 
 ![Projekt anlegen](screenshots/04-projekt-neu.png)

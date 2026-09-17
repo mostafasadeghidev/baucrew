@@ -57,7 +57,9 @@ manager/vehicles/crew on templates), `docs/CHANGE-configurable-types.md`
 `docs/CHANGE-checklists-in-projects.md` (checklists moved to the project area;
 projects and templates pick their lists), `docs/CHANGE-crm-tabs.md` (CRM page:
 eight tabs become Heute, Vergleich, Aufträge & Baustellen, Planumsatz,
-Auslastung, Datenlücken; old addresses redirect). Add a new file there for similar
+Auslastung, Datenlücken; old addresses redirect), `docs/CHANGE-project-boards.md`
+(the projects page's one board becomes several, each a set of status columns
+with names of their own; the old column setting becomes the first board). Add a new file there for similar
 changes.
 
 ## Commands
