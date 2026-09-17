@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { audit } from '@/lib/audit'
-import { cleanBoardName, columnsFromForm } from '@/lib/boards'
+import { boardBackgroundKey, cleanBoardName, columnsFromForm } from '@/lib/boards'
 import { saveBoardColumns } from '@/lib/boards-db'
 import type { SaveState } from '@/components/saved-form'
 import type { DeleteState } from '@/components/delete-button'
@@ -24,6 +24,7 @@ export async function createBoard(formData: FormData): Promise<SaveState> {
   const board = await db.board.create({
     data: {
       name,
+      background: boardBackgroundKey(String(formData.get('background') ?? '')),
       sortOrder: (last._max.sortOrder ?? -1) + 1,
       columns: { create: columns.map((c, sortOrder) => ({ status: c.status, title: c.title, sortOrder })) },
     },
@@ -51,7 +52,7 @@ export async function updateBoard(id: string, formData: FormData): Promise<SaveS
     board.columns.map((c) => c.status)
   )
   if (!name || columns.length === 0) return { error: 'invalid' }
-  await db.board.update({ where: { id }, data: { name } })
+  await db.board.update({ where: { id }, data: { name, background: boardBackgroundKey(String(formData.get('background') ?? '')) } })
   await saveBoardColumns(id, columns)
   await audit({
     userId: admin.id,

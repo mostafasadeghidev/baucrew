@@ -46,14 +46,17 @@
  * never "select from here to there".
  */
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { CalendarDays, GripVertical, ListChecks, MessageSquare, Paperclip, Undo2, X } from 'lucide-react'
+import { CalendarDays, GripVertical, ListChecks, MessageSquare, Paperclip, Pencil, Plus, Undo2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { moveColumn } from '@/lib/boards'
-import { LABEL_SWATCH, PERSON_SWATCH } from '@/components/swatches'
+import { LABEL_BAR, LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
+import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
+import { Combobox } from '@/components/combobox'
+import { btn } from '@/components/ui/button'
 import {
   DRAG_THRESHOLD,
   LONG_PRESS_MS,
@@ -63,7 +66,7 @@ import {
   lift,
 } from '@/lib/card-lift'
 import { isVerticalWheel, wheelPixels } from '@/lib/wheel-axis'
-import { setBoardOrder, setProjectStatus } from './actions'
+import { quickAddProject, quickUpdateProject, setBoardOrder, setProjectStatus } from './actions'
 
 export type KanbanCard = {
   id: string
@@ -97,6 +100,29 @@ const DATE_TONE = {
   soon: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
 }
 
+/**
+ * Whether the labels are opened — bars without names, the way Trello folds
+ * them, or pills with names. A click on any label flips every one of them,
+ * and the browser remembers.
+ */
+const LABELS_KEY = 'baucrew-board-labels'
+const LABELS_EVENT = 'baucrew:board-labels'
+function subscribeLabels(onChange: () => void) {
+  window.addEventListener('storage', onChange)
+  window.addEventListener(LABELS_EVENT, onChange)
+  return () => {
+    window.removeEventListener('storage', onChange)
+    window.removeEventListener(LABELS_EVENT, onChange)
+  }
+}
+function readLabels(): boolean {
+  try {
+    return window.localStorage.getItem(LABELS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export type KanbanColumn = {
   status: string
   label: string
@@ -126,12 +152,18 @@ type Grab =
 export function ProjectsKanban({
   boardId,
   columns,
+  customers,
+  onGround,
   confirmFor,
   labels,
 }: {
   /** The board the columns belong to — the order they are dragged into is saved on it. */
   boardId: string
   columns: KanbanColumn[]
+  /** The customers a card added at the foot of a list can be given. */
+  customers: Array<{ value: string; label: string }>
+  /** True when the board stands on a coloured ground: what is written straight on it turns light. */
+  onGround: boolean
   /** The statuses that ask before they are set, e.g. COMPLETED and CANCELLED. */
   confirmFor: string[]
   /**
@@ -173,6 +205,22 @@ export function ProjectsKanban({
   const [undo, setUndo] = useState<{ card: KanbanCard; from: string; to: string } | null>(null)
   /** How many cards each column is showing, when it is showing more than the first lot. */
   const [shown, setShown] = useState<Record<string, number>>({})
+  /** The list whose "Karte hinzufügen" is open, the customer typed in new, and what went wrong. */
+  const [adding, setAdding] = useState<string | null>(null)
+  const [newCustomer, setNewCustomer] = useState<string | null>(null)
+  const [addError, setAddError] = useState<string | null>(null)
+  const [addKey, setAddKey] = useState(0)
+  /** The card whose name is being typed over. */
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
+  const labelsOpen = useSyncExternalStore(subscribeLabels, readLabels, () => false)
+  const toggleLabels = () => {
+    try {
+      window.localStorage.setItem(LABELS_KEY, labelsOpen ? '0' : '1')
+    } catch {
+      /* private mode: the labels flip for this visit only */
+    }
+    window.dispatchEvent(new Event(LABELS_EVENT))
+  }
 
   const scroller = useRef<HTMLDivElement | null>(null)
   const grab = useRef<Grab | null>(null)
@@ -202,6 +250,9 @@ export function ProjectsKanban({
   useEffect(() => {
     order.current = board.map((c) => c.status)
   }, [board])
+
+  // On a coloured ground the undo line and the error keep their own surface; the flag is here for what is drawn bare.
+  void onGround
 
   const labelOf = (status: string) => board.find((c) => c.status === status)?.label ?? status
 
@@ -237,6 +288,12 @@ export function ProjectsKanban({
     setDragging(null)
     setOver(null)
     if (!card || card.status === status) return
+    requestMove(card, status)
+  }
+
+  /** A move asked for — by a drop, or from a card's quick menu. The two that end a project ask first. */
+  function requestMove(card: KanbanCard, status: string) {
+    if (card.status === status) return
     if (confirmFor.includes(status)) setAsk({ card, status, label: labelOf(status) })
     else move(card, status)
   }
@@ -247,6 +304,62 @@ export function ProjectsKanban({
       const result = await setBoardOrder(boardId, order)
       if (result?.error) setError(labels.saveFailed)
       router.refresh()
+    })
+  }
+
+  /** The quick menu: the card changes at once, and goes back if the server says no. */
+  const quick = (card: KanbanCard, changes: { name?: string; urgent?: boolean }) => {
+    const before = board
+    setBoard((current) =>
+      current.map((column) => ({
+        ...column,
+        cards: column.cards.map((c) =>
+          c.id === card.id ? { ...c, name: changes.name ?? c.name, urgent: changes.urgent ?? c.urgent } : c
+        ),
+      }))
+    )
+    setError(null)
+    startTransition(async () => {
+      const result = await quickUpdateProject(card.id, changes)
+      if (result?.error) {
+        setBoard(before)
+        setError(labels.saveFailed)
+        return
+      }
+      router.refresh()
+    })
+  }
+
+  const closeAdd = () => {
+    setAdding(null)
+    setNewCustomer(null)
+    setAddError(null)
+  }
+
+  /** A card added at the foot of a list. The box stays open for the next one, the way Trello's does. */
+  function submitAdd(e: React.FormEvent<HTMLFormElement>, status: string) {
+    e.preventDefault()
+    const form = e.currentTarget
+    const data = new FormData(form)
+    if (newCustomer) data.set('customerName', newCustomer)
+    setAddError(null)
+    startTransition(async () => {
+      const result = await quickAddProject(status, data)
+      if (result.error) {
+        setAddError(
+          result.error === 'nameRequired'
+            ? t('kanbanAddErrorName')
+            : result.error === 'customerRequired'
+              ? t('kanbanAddErrorCustomer')
+              : labels.saveFailed
+        )
+        return
+      }
+      form.reset()
+      setNewCustomer(null)
+      setAddKey((k) => k + 1)
+      router.refresh()
+      form.querySelector<HTMLInputElement>('input[name="name"]')?.focus()
     })
   }
 
@@ -344,6 +457,11 @@ export function ProjectsKanban({
   function onCardPointerDown(e: React.PointerEvent<HTMLDivElement>, card: KanbanCard) {
     if (!scroller.current) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
+    // A press on a button or a field of the card is that control's own; and a
+    // press in a menu the card opened arrives here only through React's tree,
+    // not through the page's.
+    const pressed = e.target as HTMLElement
+    if (!e.currentTarget.contains(pressed) || pressed.closest('button, input, textarea')) return
     const el = e.currentTarget
     const state: Grab = {
       kind: 'maybe-card',
@@ -446,6 +564,9 @@ export function ProjectsKanban({
     if (grab.current) return
     if (e.pointerType !== 'mouse' || e.button !== 0) return
     const target = e.target as HTMLElement
+    // A list of options or a menu drawn at the end of the document reaches
+    // this handler through React, though it is not on the board at all.
+    if (!e.currentTarget.contains(target)) return
     if (target.closest('[data-board-card], [data-board-grip], a, button, input, select, textarea')) return
     const box = scroller.current
     if (!box || box.scrollWidth <= box.clientWidth) return
@@ -629,7 +750,7 @@ export function ProjectsKanban({
         // knows the press was a drag, and by then half the board is blue.
         // A press here always means "take hold of", never "select from here to
         // there" — the project's own page is where its text is read.
-        className={`flex min-h-0 flex-1 select-none gap-3 overflow-x-auto pb-2 ${
+        className={`flex min-h-0 flex-1 select-none items-start gap-3 overflow-x-auto pb-2 ${
           panning || dragging || movingColumn ? 'cursor-grabbing' : 'cursor-grab'
         }`}
       >
@@ -640,10 +761,10 @@ export function ProjectsKanban({
             <div
               key={column.status}
               data-board-column={column.status}
-              className={`flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border bg-subtle/40 transition-colors ${
-                over === column.status && movingColumn !== column.status
-                  ? 'border-accent bg-accent/5'
-                  : 'border-border'
+              // A list the way Trello draws one: a rounded grey slab as tall as
+              // its cards, floating on the board's ground.
+              className={`flex max-h-full w-[272px] shrink-0 flex-col overflow-hidden rounded-xl bg-[#f1f2f4] shadow-sm transition-shadow dark:bg-[#101204] ${
+                over === column.status && movingColumn !== column.status ? 'ring-2 ring-accent' : ''
               }`}
             >
               {/* The head does not scroll with the cards: which status this is,
@@ -656,7 +777,7 @@ export function ProjectsKanban({
                   the right a matter of rearranging them. */}
               <div
                 data-board-head
-                className="flex shrink-0 cursor-grab items-center gap-1.5 border-b border-border px-2 py-2 active:cursor-grabbing"
+                className="flex shrink-0 cursor-grab items-center gap-1.5 px-2 pb-1 pt-2.5 active:cursor-grabbing"
               >
                 <span
                   data-board-grip
@@ -668,13 +789,15 @@ export function ProjectsKanban({
                 >
                   <GripVertical className="h-3.5 w-3.5" aria-hidden />
                 </span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${column.badgeClass}`}>
-                  {column.label}
+                {/* The status's colour as a dot; the name is the list's own. */}
+                <span className={column.badgeClass} style={{ background: 'transparent' }}>
+                  <span className="block h-2 w-2 rounded-full bg-current" />
                 </span>
-                <span className="ml-auto text-[11px] tabular-nums text-muted">{column.count}</span>
+                <h3 className="min-w-0 truncate text-sm font-semibold">{column.label}</h3>
+                <span className="ml-auto text-xs tabular-nums text-muted">{column.count}</span>
               </div>
               {column.sum && (
-                <p className="shrink-0 border-b border-border px-3 py-1 text-[11px] tabular-nums text-muted">
+                <p className="shrink-0 px-3 pb-1 text-[11px] tabular-nums text-muted">
                   {column.sum}
                 </p>
               )}
@@ -682,7 +805,7 @@ export function ProjectsKanban({
               {/* Each column carries its own scroll. One column holding a couple
                   of hundred finished projects would otherwise make every column
                   that tall, and the whole page with them. */}
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
+              <div className="min-h-2 flex-1 space-y-2 overflow-y-auto px-2 py-1">
                 {column.cards.length === 0 && (
                   <p className="px-1 py-4 text-center text-[11px] text-muted">{labels.empty}</p>
                 )}
@@ -694,7 +817,8 @@ export function ProjectsKanban({
                     // card opens; a drag never ends in a click, because the
                     // pointer is captured by the board once the card is lifted.
                     onClick={(e) => {
-                      if ((e.target as HTMLElement).closest('a, button')) return
+                      const clicked = e.target as HTMLElement
+                      if (!e.currentTarget.contains(clicked) || clicked.closest('a, button, input, textarea')) return
                       router.push(openHref(card.id), { scroll: false })
                     }}
                     data-board-card
@@ -703,39 +827,99 @@ export function ProjectsKanban({
                     // alone meant the board could only be moved by the narrow
                     // strips between the columns.
                     style={{ touchAction: 'pan-x pan-y' }}
-                    className={`rounded-lg border border-border bg-surface px-2.5 py-2 shadow-sm transition-opacity ${
+                    className={`group relative cursor-pointer rounded-lg bg-white px-3 py-2 shadow-[0_1px_1px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)] ring-accent/70 transition-opacity hover:ring-2 dark:bg-[#22272b] ${
                       dragging === card.id ? 'opacity-40' : ''
                     }`}
                   >
                     {/* Labels first, the way a Trello card wears them: urgent,
                         SUB and the trades, each in its own colour. */}
+                    {/* The pencil of a Trello card: there when the pointer is, and
+                        always where there is no pointer to hover with. */}
+                    <div className="absolute right-1 top-1 z-10 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
+                      <Menu
+                        side="bottom"
+                        align="end"
+                        label={t('cardQuickEdit')}
+                        className="flex h-6 w-6 items-center justify-center rounded-md bg-white/90 text-muted shadow-sm transition-colors hover:text-foreground dark:bg-[#22272b]/90"
+                        trigger={<Pencil className="h-3 w-3" aria-hidden />}
+                      >
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => router.push(openHref(card.id), { scroll: false })}>
+                          {t('cardOpen')}
+                        </button>
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => setRenaming({ id: card.id, value: card.name })}>
+                          {t('cardRename')}
+                        </button>
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => quick(card, { urgent: !card.urgent })}>
+                          {card.urgent ? t('cardUnmarkUrgent') : t('cardMarkUrgent')}
+                        </button>
+                        <MenuSeparator />
+                        <div className="px-2 pb-0.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted">{t('cardMoveTo')}</div>
+                        {board
+                          .filter((target) => target.status !== card.status)
+                          .map((target) => (
+                            <button key={target.status} type="button" role="menuitem" className={menuItemClass} onClick={() => requestMove(card, target.status)}>
+                              {target.label}
+                            </button>
+                          ))}
+                      </Menu>
+                    </div>
+                    {/* Labels first, the way a Trello card wears them: urgent,
+                        SUB and the trades, each in its own colour — folded to
+                        bars until one of them is clicked. */}
                     {(card.urgent || card.sub || card.labels.length > 0) && (
-                      <div className="mb-1 flex flex-wrap gap-1">
-                        {card.urgent && (
-                          <span className="rounded-sm bg-danger/15 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-danger">
-                            {t('priorityHigh')}
-                          </span>
-                        )}
-                        {card.sub && (
-                          <span className="rounded-sm bg-subtle px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                            SUB
-                          </span>
-                        )}
-                        {card.labels.map((label) => (
-                          <span key={label.text} className={`rounded-sm px-1.5 text-[10px] font-medium ${LABEL_SWATCH[label.swatch]}`}>
-                            {label.text}
-                          </span>
+                      <div className="mb-1.5 flex flex-wrap gap-1 pr-6">
+                        {[
+                          ...(card.urgent ? [{ text: t('priorityHigh'), ...URGENT_LABEL }] : []),
+                          ...(card.sub ? [{ text: 'SUB', ...SUB_LABEL }] : []),
+                          ...card.labels.map((label) => ({ text: label.text, bar: LABEL_BAR[label.swatch], pill: LABEL_PILL[label.swatch] })),
+                        ].map((label) => (
+                          <button
+                            key={label.text}
+                            type="button"
+                            onClick={toggleLabels}
+                            title={labelsOpen ? t('labelsToggle') : label.text}
+                            aria-label={label.text}
+                            className={
+                              labelsOpen
+                                ? `h-5 rounded px-2 text-[11px] font-medium leading-5 ${label.pill}`
+                                : `h-2 w-10 rounded-full ${label.bar}`
+                            }
+                          >
+                            {labelsOpen ? label.text : null}
+                          </button>
                         ))}
                       </div>
                     )}
-                    <Link
-                      href={openHref(card.id)}
-                      scroll={false}
-                      draggable={false}
-                      className="block text-[13px] font-medium text-accent hover:underline"
-                    >
-                      {card.name}
-                    </Link>
+                    {renaming?.id === card.id ? (
+                      <input
+                        autoFocus
+                        value={renaming.value}
+                        maxLength={300}
+                        aria-label={t('cardRename')}
+                        onChange={(e) => setRenaming({ id: card.id, value: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const name = renaming.value.trim()
+                            if (name && name !== card.name) quick(card, { name })
+                            setRenaming(null)
+                          } else if (e.key === 'Escape') {
+                            setRenaming(null)
+                          }
+                        }}
+                        onBlur={() => setRenaming(null)}
+                        className="block w-full select-text rounded border border-accent bg-background px-1.5 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                    ) : (
+                      <Link
+                        href={openHref(card.id)}
+                        scroll={false}
+                        draggable={false}
+                        className="block pr-5 text-sm leading-snug text-foreground hover:text-accent"
+                      >
+                        {card.name}
+                      </Link>
+                    )}
                     <p className="truncate text-[11px] text-muted">
                       {card.customer}
                       {card.city && ` · ${card.city}`}
@@ -794,14 +978,14 @@ export function ProjectsKanban({
                               key={person.name}
                               title={person.manager ? `${t('cardManager')}: ${person.name}` : person.name}
                               className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold text-white ring-2 ${
-                                person.manager ? 'ring-accent' : 'ring-surface'
+                                person.manager ? 'ring-accent' : 'ring-white dark:ring-[#22272b]'
                               } ${PERSON_SWATCH[person.swatch]}`}
                             >
                               {person.initials}
                             </span>
                           ))}
                           {card.more > 0 && (
-                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-subtle px-1 text-[9px] font-medium text-muted ring-2 ring-surface">
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-subtle px-1 text-[9px] font-medium text-muted ring-2 ring-white dark:ring-[#22272b]">
                               +{card.more}
                             </span>
                           )}
@@ -824,6 +1008,76 @@ export function ProjectsKanban({
                     className="w-full rounded-md px-1 py-1.5 text-center text-[11px] text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
                   >
                     {t('kanbanMore', { count: hidden })}
+                  </button>
+                )}
+              </div>
+
+              {/* The foot of a list: a card is added where it belongs — a name,
+                  a customer, Enter — and the box stays for the next one. */}
+              <div className="shrink-0 p-2 pt-1">
+                {adding === column.status ? (
+                  <form onSubmit={(e) => submitAdd(e, column.status)} className="space-y-1.5">
+                    <input
+                      name="name"
+                      autoFocus
+                      required
+                      maxLength={300}
+                      placeholder={t('kanbanAddName')}
+                      aria-label={t('kanbanAddName')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') closeAdd()
+                      }}
+                      className="block w-full select-text rounded-lg bg-white px-3 py-2 text-sm shadow-[0_1px_1px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)] focus:outline-none focus:ring-2 focus:ring-accent dark:bg-[#22272b]"
+                    />
+                    {newCustomer ? (
+                      <p className="flex items-center justify-between gap-2 rounded-md bg-accent/10 px-2 py-1.5 text-xs text-accent">
+                        <span className="truncate">{t('kanbanAddNewCustomer', { name: newCustomer })}</span>
+                        <button type="button" onClick={() => setNewCustomer(null)} aria-label={tc('cancel')} className="shrink-0 rounded p-0.5 hover:bg-accent/10">
+                          <X className="h-3 w-3" aria-hidden />
+                        </button>
+                      </p>
+                    ) : (
+                      <Combobox
+                        key={addKey}
+                        name="customerId"
+                        options={customers}
+                        placeholder={t('kanbanAddCustomer')}
+                        noResultsLabel={t('noResults')}
+                        onCreateNew={(name) => setNewCustomer(name)}
+                        createLabel={(name) => t('kanbanAddNewCustomer', { name })}
+                      />
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <button type="submit" disabled={pending} className={btn.primarySm}>
+                        {t('kanbanAddSubmit')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeAdd}
+                        aria-label={tc('cancel')}
+                        title={tc('cancel')}
+                        className="rounded-md p-1.5 text-muted transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                      >
+                        <X className="h-4 w-4" aria-hidden />
+                      </button>
+                    </div>
+                    {addError && (
+                      <p role="alert" className="text-xs text-danger">
+                        {addError}
+                      </p>
+                    )}
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeAdd()
+                      setAdding(column.status)
+                    }}
+                    className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-muted transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                  >
+                    <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                    {t('kanbanAddCard')}
                   </button>
                 )}
               </div>

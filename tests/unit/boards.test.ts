@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { cleanBoardName, cleanColumnOrder, columnLabel, columnsFromForm, moveColumn, pickBoard } from '@/lib/boards'
+import {
+  BOARD_BACKGROUNDS,
+  boardBackgroundCss,
+  boardBackgroundKey,
+  cleanBoardName,
+  cleanColumnOrder,
+  columnLabel,
+  columnsFromForm,
+  moveColumn,
+  pickBoard,
+} from '@/lib/boards'
 
 const form = (picked: string[], titles: Record<string, string> = {}) => (name: string) => {
   if (name.startsWith('column_')) return picked.includes(name.slice('column_'.length)) ? 'on' : null
@@ -81,5 +91,21 @@ describe('names', () => {
   it('calls a column by its own name, else by the status', () => {
     expect(columnLabel({ title: 'Angebot fertig' }, 'Angebot erstellt')).toBe('Angebot fertig')
     expect(columnLabel({ title: null }, 'Angebot erstellt')).toBe('Angebot erstellt')
+  })
+})
+
+describe('backgrounds', () => {
+  it('takes one of its own keys and nothing else', () => {
+    expect(boardBackgroundKey('blue')).toBe('blue')
+    expect(boardBackgroundKey('')).toBeNull()
+    expect(boardBackgroundKey('url(https://example.test/x.png)')).toBeNull()
+    expect(boardBackgroundKey(null)).toBeNull()
+  })
+
+  it('draws a stored key, and nothing for none', () => {
+    expect(boardBackgroundCss('blue')).toBe(BOARD_BACKGROUNDS.blue)
+    expect(boardBackgroundCss('ocean')).toContain('linear-gradient')
+    expect(boardBackgroundCss(null)).toBeNull()
+    expect(boardBackgroundCss('nope')).toBeNull()
   })
 })

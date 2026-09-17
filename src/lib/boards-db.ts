@@ -4,6 +4,7 @@ import { cleanColumnOrder, type BoardColumnDef } from './boards'
 export type BoardRow = {
   id: string
   name: string
+  background: string | null
   sortOrder: number
   columns: Array<{ status: string; title: string | null; sortOrder: number }>
 }
@@ -15,6 +16,7 @@ export async function getBoards(): Promise<BoardRow[]> {
     select: {
       id: true,
       name: true,
+      background: true,
       sortOrder: true,
       columns: { orderBy: { sortOrder: 'asc' }, select: { status: true, title: true, sortOrder: true } },
     },

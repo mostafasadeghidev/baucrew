@@ -10,7 +10,7 @@ import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/p
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
 import { getPrepTabConfig } from '@/lib/prep-tab-db'
-import { BOARD_COOKIE, columnLabel, pickBoard } from '@/lib/boards'
+import { BOARD_COOKIE, boardBackgroundCss, columnLabel, pickBoard } from '@/lib/boards'
 import { getBoards } from '@/lib/boards-db'
 import type { Prisma } from '@/generated/prisma/client'
 import { Pagination } from '@/components/pagination'
@@ -91,7 +91,7 @@ export default async function ProjectsPage({
     ...(filter.label ? { workCategories: { some: { workCategoryId: filter.label } } } : {}),
     ...(filter.urgent ? { priority: 'HIGH' } : {}),
   }
-  const [prepTab, boards, dated, statusChanges, people, trades] = await Promise.all([
+  const [prepTab, boards, dated, statusChanges, people, trades, customerOptions] = await Promise.all([
     getPrepTabConfig(),
     getBoards(),
     // The dates every project is filed under a year by. The rule is a few lines
@@ -122,6 +122,8 @@ export default async function ProjectsPage({
     kanban
       ? db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, nameDe: true, nameEn: true } })
       : Promise.resolve([]),
+    // The customers a card added on the board can be given.
+    kanban ? db.customer.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }) : Promise.resolve([]),
   ])
   // Which board: the address, else the one this browser opened last, else the first.
   const board = pickBoard(boards, boardParam, (await cookies()).get(BOARD_COOKIE)?.value)
@@ -490,13 +492,20 @@ export default async function ProjectsPage({
         </div>
 
         {kanban ? (
-          <div className="min-h-0 flex-1 p-3">
+          <div
+            className="min-h-0 flex-1 p-3"
+            // The board's own ground, the way Trello gives each board one; the
+            // lists float on it.
+            style={boardBackgroundCss(board?.background) ? { background: boardBackgroundCss(board?.background)! } : undefined}
+          >
             <ProjectsKanban
               // A new board is a new component: what a column was showing
               // beyond its first fifty belongs to the board it was on.
               key={board?.id ?? 'none'}
               boardId={board?.id ?? ''}
               columns={columns}
+              customers={customerOptions.map((c) => ({ value: c.id, label: c.name }))}
+              onGround={boardBackgroundCss(board?.background) !== null}
               confirmFor={['COMPLETED', 'CANCELLED']}
               labels={{
                 confirmTitle: t('kanbanConfirmTitle'),

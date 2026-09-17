@@ -19,6 +19,38 @@ export const BOARD_COOKIE = 'project-board'
 
 export type BoardColumnDef = { status: ProjectStatusKey; title: string | null }
 
+/**
+ * The grounds a board can stand on, the way Trello offers them: plain colours
+ * and a few gradients. Kept as CSS rather than classes — a key is stored, and
+ * what it looks like is decided here, once.
+ */
+export const BOARD_BACKGROUNDS = {
+  blue: '#0079bf',
+  teal: '#00aecc',
+  green: '#519839',
+  orange: '#d29034',
+  red: '#b04632',
+  purple: '#89609e',
+  pink: '#cd5a91',
+  gray: '#838c91',
+  ocean: 'linear-gradient(135deg, #0c66e4 0%, #09326c 100%)',
+  forest: 'linear-gradient(135deg, #1f845a 0%, #60c6d2 100%)',
+  sunset: 'linear-gradient(135deg, #e774bb 0%, #6e5dc6 100%)',
+  ember: 'linear-gradient(135deg, #e34935 0%, #f5cd47 100%)',
+} as const
+export type BoardBackground = keyof typeof BOARD_BACKGROUNDS
+
+/** A background's key as the form sent it, or null — none, or not one of ours. */
+export function boardBackgroundKey(raw: string | null | undefined): BoardBackground | null {
+  return raw && raw in BOARD_BACKGROUNDS ? (raw as BoardBackground) : null
+}
+
+/** What a stored key looks like; null is the app's own ground. */
+export function boardBackgroundCss(key: string | null | undefined): string | null {
+  const known = boardBackgroundKey(key)
+  return known ? BOARD_BACKGROUNDS[known] : null
+}
+
 export function isProjectStatus(v: unknown): v is ProjectStatusKey {
   return typeof v === 'string' && (ALL_PROJECT_STATUSES as readonly string[]).includes(v)
 }

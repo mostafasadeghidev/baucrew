@@ -17,6 +17,7 @@ import {
   projectBefore,
 } from '@/lib/project-events'
 import { cookies } from 'next/headers'
+import { createProject as createProjectRecord, createProjectInput } from '@/lib/api-service'
 import { BOARD_COOKIE } from '@/lib/boards'
 import { saveColumnOrder } from '@/lib/boards-db'
 
@@ -785,4 +786,66 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
     revalidatePath(path)
   }
   return { conflicts }
+}
+
+// ── The board: a card added from its list, a card changed from its menu ──
+
+export type QuickAddResult = { error?: 'nameRequired' | 'customerRequired' | 'saveFailed' }
+
+/**
+ * "Karte hinzufügen" at the foot of a list: a project with a name and a
+ * customer — picked, or made from the name typed — in that list's status.
+ * Everything else is filled in on the card afterwards.
+ */
+export async function quickAddProject(status: string, formData: FormData): Promise<QuickAddResult> {
+  const user = await requireManagement()
+  const name = String(formData.get('name') ?? '').trim().slice(0, 300)
+  const customerId = String(formData.get('customerId') ?? '').trim()
+  const customerName = String(formData.get('customerName') ?? '').trim().slice(0, 200)
+  if (!name) return { error: 'nameRequired' }
+  if (!customerId && !customerName) return { error: 'customerRequired' }
+  if (!(status in ProjectStatus)) return { error: 'saveFailed' }
+  try {
+    const input = createProjectInput.parse({ name, status, ...(customerId ? { customerId } : { customerName }) })
+    await createProjectRecord(user, input, { type: 'user', userId: user.id })
+  } catch (e) {
+    console.error('quick add failed', e)
+    return { error: 'saveFailed' }
+  }
+  revalidatePath('/projects')
+  return {}
+}
+
+/** The quick menu on a card: another name, or urgent on and off. */
+export async function quickUpdateProject(
+  id: string,
+  changes: { name?: string; urgent?: boolean }
+): Promise<{ error?: 'nameRequired' | 'saveFailed' }> {
+  const user = await requireManagement()
+  const project = await db.project.findUnique({ where: { id }, select: { name: true, priority: true } })
+  if (!project) return { error: 'saveFailed' }
+  const data: { name?: string; priority?: string | null } = {}
+  if (changes.name !== undefined) {
+    const name = changes.name.trim().slice(0, 300)
+    if (!name) return { error: 'nameRequired' }
+    if (name !== project.name) data.name = name
+  }
+  if (changes.urgent !== undefined) {
+    // Taking "hoch" away leaves a "niedrig" alone.
+    const priority = changes.urgent ? 'HIGH' : project.priority === 'HIGH' ? null : project.priority
+    if (priority !== project.priority) data.priority = priority
+  }
+  if (Object.keys(data).length === 0) return {}
+  const snapshot = await projectBefore(id)
+  await db.project.update({ where: { id }, data })
+  if (data.name !== undefined) {
+    await audit({ userId: user.id, action: 'project.update', entity: 'Project', entityId: id, field: 'name', oldValue: project.name, newValue: data.name })
+  }
+  if (data.priority !== undefined) {
+    await audit({ userId: user.id, action: 'project.update', entity: 'Project', entityId: id, field: 'priority', oldValue: project.priority, newValue: data.priority })
+  }
+  await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
+  revalidatePath('/projects')
+  revalidatePath(`/projects/${id}`)
+  return {}
 }

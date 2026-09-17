@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp } from 'lucide-react'
 import { requireAdmin } from '@/lib/authz'
 import { getBoards } from '@/lib/boards-db'
 import { ALL_PROJECT_STATUSES, type ProjectStatusKey } from '@/lib/prep-tab'
-import { COLUMN_TITLE_MAX, BOARD_NAME_MAX } from '@/lib/boards'
+import { BOARD_BACKGROUNDS, BOARD_NAME_MAX, COLUMN_TITLE_MAX } from '@/lib/boards'
 import { STATUS_STYLES } from '@/components/status-badge'
 import { Card } from '@/components/ui/card'
 import { DeleteButton } from '@/components/delete-button'
@@ -83,6 +83,35 @@ export default async function BoardsPage() {
     )
   }
 
+  /** The ground the board stands on: none, or one of the colours. */
+  const backgroundPicker = (current: string | null, prefix: string) => (
+    <fieldset>
+      <legend className="text-sm text-muted">{t('boardBackground')}</legend>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        {[null, ...Object.keys(BOARD_BACKGROUNDS)].map((key) => (
+          <label key={key ?? 'none'} className="cursor-pointer" title={key ?? t('boardBackgroundNone')}>
+            <input
+              type="radio"
+              name="background"
+              value={key ?? ''}
+              id={`${prefix}-bg-${key ?? 'none'}`}
+              defaultChecked={(current ?? null) === key}
+              className="peer sr-only"
+            />
+            <span
+              style={key ? { background: BOARD_BACKGROUNDS[key as keyof typeof BOARD_BACKGROUNDS] } : undefined}
+              className={`flex h-8 w-12 items-center justify-center rounded-md text-[10px] text-muted ring-offset-2 ring-offset-surface peer-checked:ring-2 peer-checked:ring-accent peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${
+                key ? '' : 'border border-dashed border-border bg-background'
+              }`}
+            >
+              {key ? '' : t('boardBackgroundNone')}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+
   return (
     <div className="space-y-6">
       <StickyHead>
@@ -102,6 +131,7 @@ export default async function BoardsPage() {
               className={`${inputClass} mt-1 max-w-sm`}
             />
           </label>
+          {backgroundPicker(null, 'new')}
           {columnRows([], true, 'new')}
           <button type="submit" className={btn.primary}>
             {t('boardCreate')}
@@ -117,6 +147,7 @@ export default async function BoardsPage() {
                 <span className="text-muted">{t('boardName')}</span>
                 <input name="name" required defaultValue={board.name} maxLength={BOARD_NAME_MAX} className={`${inputClass} mt-1 max-w-sm`} />
               </label>
+              {backgroundPicker(board.background, board.id)}
               {columnRows(board.columns, false, board.id)}
               <button type="submit" className={btn.primarySm}>
                 {tc('save')}

@@ -27,6 +27,8 @@ export type ProjectSectionKey = 'basic' | 'address' | 'planning' | 'assignment' 
 export const PROJECT_EDIT_ALL_EVENT = 'baucrew:project-edit-all'
 /** Fired by that button's "cancel"; puts every field back as it was. */
 export const PROJECT_EDIT_CANCEL_EVENT = 'baucrew:project-edit-cancel'
+/** Opens one card by its key and brings it into view — the card sheet's side column asks for it. */
+export const PROJECT_EDIT_CARD_EVENT = 'baucrew:project-edit-card'
 /**
  * Fired by the form after every change of mind, so the button in the bar knows
  * what to call itself. `all` means the bar opened everything and the bar
@@ -112,9 +114,12 @@ function Section({
   saveLabel,
   cancelLabel,
   pending = false,
+  anchor,
 }: {
   title: string
   children: React.ReactNode
+  /** The card's id on the page, so it can be scrolled to. */
+  anchor?: string
   /** Runs the full width of the form — for the long text boxes. */
   wide?: boolean
   /**
@@ -140,7 +145,8 @@ function Section({
   const inline = view !== undefined
   return (
     <section
-      className={`rounded-xl border border-border bg-surface p-5 shadow-sm ${
+      id={anchor}
+      className={`scroll-mt-24 rounded-xl border border-border bg-surface p-5 shadow-sm ${
         wide ? 'xl:col-span-2' : ''
       }`}
     >
@@ -469,11 +475,21 @@ export function ProjectForm({
       setOpenCards({ basic: true, address: true, planning: true, assignment: true, description: true })
       setMode('all')
     }
+    const openOne = (event: Event) => {
+      const key = (event as CustomEvent<ProjectSectionKey>).detail
+      // With every card open already there is nothing to open, only to show.
+      if (mode !== 'all') openCard(key)
+      requestAnimationFrame(() =>
+        document.getElementById(`project-card-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      )
+    }
     window.addEventListener(PROJECT_EDIT_ALL_EVENT, openAll)
     window.addEventListener(PROJECT_EDIT_CANCEL_EVENT, cancelInline)
+    window.addEventListener(PROJECT_EDIT_CARD_EVENT, openOne)
     return () => {
       window.removeEventListener(PROJECT_EDIT_ALL_EVENT, openAll)
       window.removeEventListener(PROJECT_EDIT_CANCEL_EVENT, cancelInline)
+      window.removeEventListener(PROJECT_EDIT_CARD_EVENT, openOne)
     }
   })
 
@@ -510,6 +526,7 @@ export function ProjectForm({
     inline
       ? {
           view: inline.views[key],
+          anchor: `project-card-${key}`,
           open: !!openCards[key],
           onOpen: () => openCard(key),
           onCancel: cancelInline,

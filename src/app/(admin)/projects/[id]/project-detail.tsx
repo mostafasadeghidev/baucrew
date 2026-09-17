@@ -16,6 +16,9 @@ import { deleteProject, setProjectStatus, updateProject } from '../actions'
 import { ProjectForm } from '../project-form'
 import { ProjectBarActions } from './edit-all-button'
 import { SheetClose } from '../card-sheet'
+import { SheetSidebar } from '../sheet-sidebar'
+import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
+import { todayUtc } from '@/lib/dates'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
 import { PlanEntryButton } from './plan-entry-button'
 import { MergeButton } from './merge-button'
@@ -30,7 +33,7 @@ import { ProjectComments, type CommentRow } from '@/components/project-comments'
 import { addProjectComment, deleteProjectComment } from './comment-actions'
 import { displayName, mentionablePeople } from '@/lib/comments-db'
 import { canDeleteComment } from '@/lib/comments'
-import { initials, swatchOf } from '@/lib/board-cards'
+import { dateTone, initials, swatchOf } from '@/lib/board-cards'
 import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
 import { ProjectTimeSummary } from './time-summary'
 import { daysOut } from '@/lib/devices'
@@ -403,79 +406,9 @@ export async function ProjectDetail({
     ),
   }
 
-  // Over the board the bar sticks to the sheet it is in, not to the window.
-  const Head = sheet ? SheetHead : StickyHead
-
-  return (
-    <div className="space-y-6">
-      <Head>
-        <PageBar
-          back={sheet ? undefined : { href: '/projects', label: t('title') }}
-          title={
-            <>
-              <span className="mr-2 text-muted">{project.number}</span>
-              {project.name}
-            </>
-          }
-          meta={
-            <QuickStatus
-              value={project.status}
-              ariaLabel={t('status')}
-              colorClass={STATUS_STYLES[project.status]}
-              options={(Object.keys(ProjectStatus) as ProjectStatus[]).map((s) => ({
-                value: s,
-                label: tStatus(s),
-              }))}
-              onChange={setProjectStatus.bind(null, project.id)}
-            />
-          }
-          actions={
-            <>
-            <ProjectBarActions
-              label={tc('edit')}
-              saveLabel={tc('save')}
-              cancelLabel={tc('cancel')}
-              whileEditing={
-                user.role === 'ADMIN' ? (
-                  <MergeButton
-                    projectId={project.id}
-                    projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
-                  />
-                ) : null
-              }
-            >
-              {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
-                <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
-              )}
-              <Link href={`/projects/${project.id}/sheet`} className={btn.outlineSm}>
-                {tSheet('title')}
-              </Link>
-              {sheet && (
-                <Link href={`/projects/${project.id}`} className={btn.outlineSm}>
-                  {t('cardOpenFull')}
-                </Link>
-              )}
-              {user.role === 'ADMIN' && (
-                <DeleteButton
-                  action={deleteProject.bind(null, project.id)}
-                  label={tc('delete')}
-                  confirmMessage={t('deleteConfirm')}
-                />
-              )}
-            </ProjectBarActions>
-            {/* Over the board the cross closes the sheet — the last button on the right. */}
-            {sheet && <SheetClose />}
-            </>
-          }
-        />
-      </Head>
-      <PageHint>
-        <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
-          {project.customer.name}
-        </Link>
-        {address && <> · {address}</>}
-      </PageHint>
-
+  // The cards themselves — the page stacks them, the sheet puts a column beside them.
+  const body = (
+    <>
       <ProjectForm
         action={updateProject.bind(null, project.id, sheet?.returnTo ?? null)}
         cancelHref={sheet?.returnTo ?? `/projects/${project.id}`}
@@ -626,7 +559,7 @@ export async function ProjectDetail({
         />
 
         {/* Site checklists — ticked off on site, saved with who and when */}
-        <section className="rounded-xl border border-border bg-surface shadow-sm">
+        <section id="checklists" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tChecklists('title')}</h2>
             <p className="mt-0.5 text-xs text-muted">{tChecklists('hint')}</p>
@@ -651,6 +584,7 @@ export async function ProjectDetail({
           </div>
         </section>
 
+        <div id="files" className="scroll-mt-24">
         <FilesCard
           projectId={project.id}
           files={project.documents.map((d) => ({
@@ -663,6 +597,7 @@ export async function ProjectDetail({
             uploadedBy: d.uploadedBy,
           }))}
         />
+        </div>
 
         {/* Schedule (read-only here) */}
         <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
@@ -700,7 +635,7 @@ export async function ProjectDetail({
         </section>
 
         {/* The team talking on the project — the whole width, under everything. */}
-        <div className="lg:col-span-2">
+        <div id="comments" className="scroll-mt-24 lg:col-span-2">
           <ProjectComments
             projectId={project.id}
             comments={comments}
@@ -710,6 +645,174 @@ export async function ProjectDetail({
           />
         </div>
       </div>
+    </>
+  )
+
+  // What a Trello card says under its title: who, which labels, when, how much.
+  const faces = [
+    ...(project.manager ? [{ id: project.manager.id, name: `${project.manager.firstName} ${project.manager.lastName}`.trim(), manager: true }] : []),
+    ...project.team
+      .filter((m) => m.employeeId !== project.managerId)
+      .map((m) => ({ id: m.employeeId, name: `${m.employee.firstName} ${m.employee.lastName}`.trim(), manager: false })),
+  ]
+  const planned = [project.plannedStart, project.plannedEnd].filter((d): d is Date => d !== null).map((d) => formatDate(d, locale))
+  const tone = dateTone(project.status, project.plannedStart, project.plannedEnd, todayUtc())
+  const metaHead = 'text-[11px] font-semibold uppercase tracking-wide text-muted'
+  const meta = sheet ? (
+    <div className="flex flex-wrap gap-x-8 gap-y-3 px-1">
+      <div>
+        <p className={metaHead}>{t('sheetMembers')}</p>
+        <div className="mt-1 flex min-h-7 items-center -space-x-1">
+          {faces.length === 0 ? (
+            <span className="text-sm text-muted">—</span>
+          ) : (
+            faces.map((face) => (
+              <span
+                key={face.id}
+                title={face.manager ? `${t('cardManager')}: ${face.name}` : face.name}
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold text-white ring-2 ${
+                  face.manager ? 'ring-accent' : 'ring-background'
+                } ${PERSON_SWATCH[swatchOf(face.id)]}`}
+              >
+                {initials(face.name)}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+      <div>
+        <p className={metaHead}>{t('sheetLabels')}</p>
+        <div className="mt-1 flex min-h-7 flex-wrap items-center gap-1">
+          {project.priority === 'HIGH' && (
+            <span className={`h-6 rounded px-2 text-xs font-medium leading-6 ${URGENT_LABEL.pill}`}>{t('priorityHigh')}</span>
+          )}
+          {project.isSub && <span className={`h-6 rounded px-2 text-xs font-medium leading-6 ${SUB_LABEL.pill}`}>SUB</span>}
+          {project.workCategories.map((wc) => (
+            <span key={wc.workCategoryId} className={`h-6 rounded px-2 text-xs font-medium leading-6 ${LABEL_PILL[swatchOf(wc.workCategoryId)]}`}>
+              {categoryLabel(wc.workCategory)}
+            </span>
+          ))}
+          {project.priority !== 'HIGH' && !project.isSub && project.workCategories.length === 0 && (
+            <span className="text-sm text-muted">—</span>
+          )}
+        </div>
+      </div>
+      <div>
+        <p className={metaHead}>{t('sheetDates')}</p>
+        <p
+          className={`mt-1 inline-flex min-h-7 items-center rounded px-1.5 text-sm tabular-nums ${
+            tone === 'late' ? 'bg-danger/10 text-danger' : tone === 'soon' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : ''
+          }`}
+          title={tone === 'late' ? t('cardLate') : tone === 'soon' ? t('cardSoon') : undefined}
+        >
+          {planned.length > 0 ? planned.join(' – ') : '—'}
+        </p>
+      </div>
+      {showPrice && orderTotal != null && (
+        <div>
+          <p className={metaHead}>{t('price')}</p>
+          <p className="mt-1 flex min-h-7 items-center text-sm font-medium tabular-nums">
+            {formatCurrency(orderTotal, locale, { hidden: hidePrices })}
+          </p>
+        </div>
+      )}
+    </div>
+  ) : null
+
+  // Over the board the bar sticks to the sheet it is in, not to the window.
+  const Head = sheet ? SheetHead : StickyHead
+
+  return (
+    <div className="space-y-6">
+      <Head>
+        <PageBar
+          back={sheet ? undefined : { href: '/projects', label: t('title') }}
+          title={
+            <>
+              <span className="mr-2 text-muted">{project.number}</span>
+              {project.name}
+            </>
+          }
+          meta={
+            <QuickStatus
+              value={project.status}
+              ariaLabel={t('status')}
+              colorClass={STATUS_STYLES[project.status]}
+              options={(Object.keys(ProjectStatus) as ProjectStatus[]).map((s) => ({
+                value: s,
+                label: tStatus(s),
+              }))}
+              onChange={setProjectStatus.bind(null, project.id)}
+            />
+          }
+          actions={
+            <>
+            <ProjectBarActions
+              label={tc('edit')}
+              saveLabel={tc('save')}
+              cancelLabel={tc('cancel')}
+              whileEditing={
+                user.role === 'ADMIN' ? (
+                  <MergeButton
+                    projectId={project.id}
+                    projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+                  />
+                ) : null
+              }
+            >
+              {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
+                <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
+              )}
+              <Link href={`/projects/${project.id}/sheet`} className={btn.outlineSm}>
+                {tSheet('title')}
+              </Link>
+              {sheet && (
+                <Link href={`/projects/${project.id}`} className={btn.outlineSm}>
+                  {t('cardOpenFull')}
+                </Link>
+              )}
+              {user.role === 'ADMIN' && (
+                <DeleteButton
+                  action={deleteProject.bind(null, project.id)}
+                  label={tc('delete')}
+                  confirmMessage={t('deleteConfirm')}
+                />
+              )}
+            </ProjectBarActions>
+            {/* Over the board the cross closes the sheet — the last button on the right. */}
+            {sheet && <SheetClose />}
+            </>
+          }
+        />
+      </Head>
+      <PageHint>
+        <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
+          {project.customer.name}
+        </Link>
+        {address && <> · {address}</>}
+      </PageHint>
+      {meta}
+
+      {/* Over the board the project reads like a Trello card: what it is made
+          of on the left, what can be added to it on the right. */}
+      {sheet ? (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_13rem]">
+          <div className="min-w-0 space-y-6">{body}</div>
+          <SheetSidebar
+            labels={{
+              heading: t('sheetAddToCard'),
+              members: t('sheetMembers'),
+              labels: t('sheetLabels'),
+              checklist: t('sheetChecklist'),
+              dates: t('sheetDates'),
+              attachment: t('sheetAttachment'),
+              comment: t('sheetComment'),
+            }}
+          />
+        </div>
+      ) : (
+        body
+      )}
 
     </div>
   )
