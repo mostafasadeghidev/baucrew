@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -25,6 +26,8 @@ import { ProjectsKanban, type KanbanColumn } from './kanban'
 import { ProjectYearPicker } from './year-picker'
 import { BoardTabs } from './board-tabs'
 import { BoardFilter } from './board-filter'
+import { CardSheet } from './card-sheet'
+import { ProjectDetail } from './[id]/project-detail'
 import { dateTone, initials, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
@@ -42,10 +45,11 @@ export default async function ProjectsPage({
     member?: string
     label?: string
     urgent?: string
+    card?: string
   }>
 }) {
   const user = await requireManagement()
-  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent } = await searchParams
+  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, card } = await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
   const page = parsePage(pageParam)
@@ -71,6 +75,11 @@ export default async function ProjectsPage({
   ])
   const hidePrices = await pricesHidden()
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
+  // This very address — where the open card's forms return to.
+  const here = new URLSearchParams()
+  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, card }))
+    if (value) here.set(key, value)
+  const returnTo = `/projects?${here.toString()}`
 
   const today = todayUtc()
   const currentYear = today.getUTCFullYear()
@@ -594,6 +603,16 @@ export default async function ProjectsPage({
       </PagePanel>
 
       {!kanban && <Pagination page={page} total={total} />}
+
+      {/* A card opened over the board: the project's page in a sheet, the
+          board still underneath. It streams in after the board. */}
+      {card && (
+        <CardSheet fullHref={`/projects/${card}`}>
+          <Suspense fallback={<p className="py-16 text-center text-sm text-muted">{t('cardLoading')}</p>}>
+            <ProjectDetail id={card} sheet={{ returnTo }} />
+          </Suspense>
+        </CardSheet>
+      )}
     </div>
   )
 }

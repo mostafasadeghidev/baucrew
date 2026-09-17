@@ -48,7 +48,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { CalendarDays, GripVertical, ListChecks, MessageSquare, Paperclip, Undo2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
@@ -176,8 +176,17 @@ export function ProjectsKanban({
   const t = useTranslations('projects')
   const tc = useTranslations('common')
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [pending, startTransition] = useTransition()
   const [board, setBoard] = useState(columns)
+
+  /** The card's sheet over this very board: the address as it stands, plus the card. */
+  const openHref = (id: string) => {
+    const params = new URLSearchParams(searchParams)
+    params.set('card', id)
+    return `${pathname}?${params.toString()}`
+  }
   const [dragging, setDragging] = useState<string | null>(null)
   const [over, setOver] = useState<string | null>(null)
   const [movingColumn, setMovingColumn] = useState<string | null>(null)
@@ -704,6 +713,13 @@ export function ProjectsKanban({
                   <div
                     key={card.id}
                     onPointerDown={(e) => onCardPointerDown(e, card)}
+                    // A click anywhere on the card opens it, the way a Trello
+                    // card opens; a drag never ends in a click, because the
+                    // pointer is captured by the board once the card is lifted.
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('a, button')) return
+                      router.push(openHref(card.id), { scroll: false })
+                    }}
                     data-board-card
                     // Both directions: a finger that starts on a card still
                     // pushes the board sideways or the column down. `pan-y`
@@ -736,7 +752,8 @@ export function ProjectsKanban({
                       </div>
                     )}
                     <Link
-                      href={`/projects/${card.id}`}
+                      href={openHref(card.id)}
+                      scroll={false}
                       draggable={false}
                       className="block text-[13px] font-medium text-accent hover:underline"
                     >

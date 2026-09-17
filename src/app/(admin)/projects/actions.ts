@@ -332,6 +332,8 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
+  /** Where to go afterwards; the project's page when null. The board's card sheet returns to itself. */
+  returnTo: string | null,
   _prev: ProjectFormState,
   formData: FormData
 ): Promise<ProjectFormState> {
@@ -425,7 +427,7 @@ export async function updateProject(
   await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
-  redirect(`/projects/${id}`)
+  redirect(returnTo ?? `/projects/${id}`)
 }
 
 // ── Quick status change (detail page header) ─────────────────

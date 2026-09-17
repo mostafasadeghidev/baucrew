@@ -67,7 +67,7 @@ export default async function EditProjectPage({
   return (
     <div className="space-y-4">
       <ProjectForm
-        action={updateProject.bind(null, project.id)}
+        action={updateProject.bind(null, project.id, null)}
         cancelHref={`/projects/${project.id}`}
         title={`${t('editTitle')} — ${project.number}`}
         showPrice={showPrice}
