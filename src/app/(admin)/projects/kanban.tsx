@@ -50,7 +50,7 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { GripVertical, Undo2, X } from 'lucide-react'
+import { CalendarDays, GripVertical, ListChecks, MessageSquare, Paperclip, Undo2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { moveColumn } from '@/lib/boards'
 import {
@@ -71,13 +71,53 @@ export type KanbanCard = {
   customer: string
   /** Town, when the project has one. */
   city: string | null
-  /** The planned start, already formatted; null when none is set. */
-  start: string | null
+  /** Planned start and end, already formatted, and whether they are coloured. */
+  dates: { text: string; tone: 'late' | 'soon' | null } | null
   /** Already formatted; null when the reader may not see money. */
   price: string | null
-  /** True for the projects marked "hoch" — a red mark in the list. */
+  /** True for the projects marked "hoch" — a red label on the card. */
   urgent: boolean
+  /** A subcontractor's job. */
+  sub: boolean
   status: string
+  /** The trades, each in its colour (an index into the palette). */
+  labels: Array<{ text: string; swatch: number }>
+  /** The site checklists: how far they are ticked, and whether a problem was noted. */
+  checklist: { done: number; total: number; problems: number } | null
+  files: number
+  comments: number
+  /** Site manager first, then the team — the first few, with how many more. */
+  people: Array<{ initials: string; name: string; swatch: number; manager: boolean }>
+  more: number
+}
+
+/**
+ * The colours a label and a person can wear — literal, so Tailwind finds
+ * them; which one is picked by `swatchOf` in lib/board-cards.
+ */
+const LABEL_SWATCH = [
+  'bg-sky-500/20 text-sky-800 dark:text-sky-300',
+  'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300',
+  'bg-amber-500/25 text-amber-800 dark:text-amber-300',
+  'bg-rose-500/20 text-rose-800 dark:text-rose-300',
+  'bg-violet-500/20 text-violet-800 dark:text-violet-300',
+  'bg-teal-500/20 text-teal-800 dark:text-teal-300',
+  'bg-orange-500/20 text-orange-800 dark:text-orange-300',
+  'bg-indigo-500/20 text-indigo-800 dark:text-indigo-300',
+]
+const PERSON_SWATCH = [
+  'bg-sky-600',
+  'bg-emerald-600',
+  'bg-amber-600',
+  'bg-rose-600',
+  'bg-violet-600',
+  'bg-teal-600',
+  'bg-orange-600',
+  'bg-indigo-600',
+]
+const DATE_TONE = {
+  late: 'bg-danger/10 text-danger',
+  soon: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
 }
 
 export type KanbanColumn = {
@@ -674,17 +714,31 @@ export function ProjectsKanban({
                       dragging === card.id ? 'opacity-40' : ''
                     }`}
                   >
-                    <div className="flex items-baseline gap-1.5">
-                      {card.urgent && <span className="text-xs font-semibold text-danger">!</span>}
-                      <span className="text-[11px] tabular-nums text-muted">{card.number}</span>
-                      {card.price && (
-                        <span className="ml-auto text-[11px] font-medium tabular-nums">{card.price}</span>
-                      )}
-                    </div>
+                    {/* Labels first, the way a Trello card wears them: urgent,
+                        SUB and the trades, each in its own colour. */}
+                    {(card.urgent || card.sub || card.labels.length > 0) && (
+                      <div className="mb-1 flex flex-wrap gap-1">
+                        {card.urgent && (
+                          <span className="rounded-sm bg-danger/15 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-danger">
+                            {t('priorityHigh')}
+                          </span>
+                        )}
+                        {card.sub && (
+                          <span className="rounded-sm bg-subtle px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                            SUB
+                          </span>
+                        )}
+                        {card.labels.map((label) => (
+                          <span key={label.text} className={`rounded-sm px-1.5 text-[10px] font-medium ${LABEL_SWATCH[label.swatch]}`}>
+                            {label.text}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <Link
                       href={`/projects/${card.id}`}
                       draggable={false}
-                      className="mt-0.5 block text-[13px] font-medium text-accent hover:underline"
+                      className="block text-[13px] font-medium text-accent hover:underline"
                     >
                       {card.name}
                     </Link>
@@ -692,9 +746,74 @@ export function ProjectsKanban({
                       {card.customer}
                       {card.city && ` · ${card.city}`}
                     </p>
-                    {card.start && (
-                      <p className="mt-1 text-[11px] tabular-nums text-muted">{card.start}</p>
+                    {/* What the card carries: the dates, coloured when they press;
+                        the checklist, files and notes as small counts; the value. */}
+                    {(card.dates || card.checklist || card.files > 0 || card.comments > 0 || card.price) && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
+                        {card.dates && (
+                          <span
+                            title={card.dates.tone === 'late' ? t('cardLate') : card.dates.tone === 'soon' ? t('cardSoon') : t('cardDates')}
+                            className={`inline-flex items-center gap-1 rounded-sm px-1 tabular-nums ${
+                              card.dates.tone ? DATE_TONE[card.dates.tone] : ''
+                            }`}
+                          >
+                            <CalendarDays className="h-3 w-3 shrink-0" aria-hidden />
+                            {card.dates.text}
+                          </span>
+                        )}
+                        {card.checklist && (
+                          <span
+                            title={t('checklistProgressTitle')}
+                            className={`inline-flex items-center gap-1 rounded-sm px-1 tabular-nums ${
+                              card.checklist.problems > 0
+                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                                : card.checklist.done === card.checklist.total
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                                  : ''
+                            }`}
+                          >
+                            <ListChecks className="h-3 w-3 shrink-0" aria-hidden />
+                            {card.checklist.done}/{card.checklist.total}
+                          </span>
+                        )}
+                        {card.files > 0 && (
+                          <span title={t('cardFiles', { count: card.files })} className="inline-flex items-center gap-1 tabular-nums">
+                            <Paperclip className="h-3 w-3 shrink-0" aria-hidden />
+                            {card.files}
+                          </span>
+                        )}
+                        {card.comments > 0 && (
+                          <span title={t('cardComments', { count: card.comments })} className="inline-flex items-center gap-1 tabular-nums">
+                            <MessageSquare className="h-3 w-3 shrink-0" aria-hidden />
+                            {card.comments}
+                          </span>
+                        )}
+                        {card.price && <span className="ml-auto font-medium tabular-nums text-foreground">{card.price}</span>}
+                      </div>
                     )}
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <span className="text-[11px] tabular-nums text-muted">{card.number}</span>
+                      {card.people.length > 0 && (
+                        <span className="flex -space-x-1">
+                          {card.people.map((person) => (
+                            <span
+                              key={person.name}
+                              title={person.manager ? `${t('cardManager')}: ${person.name}` : person.name}
+                              className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold text-white ring-2 ${
+                                person.manager ? 'ring-accent' : 'ring-surface'
+                              } ${PERSON_SWATCH[person.swatch]}`}
+                            >
+                              {person.initials}
+                            </span>
+                          ))}
+                          {card.more > 0 && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-subtle px-1 text-[9px] font-medium text-muted ring-2 ring-surface">
+                              +{card.more}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {hidden > 0 && (

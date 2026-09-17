@@ -24,16 +24,28 @@ import { todayUtc } from '@/lib/dates'
 import { ProjectsKanban, type KanbanColumn } from './kanban'
 import { ProjectYearPicker } from './year-picker'
 import { BoardTabs } from './board-tabs'
+import { BoardFilter } from './board-filter'
+import { dateTone, initials, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
 
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; page?: string; view?: string; year?: string | string[]; board?: string }>
+  searchParams: Promise<{
+    q?: string
+    status?: string
+    page?: string
+    view?: string
+    year?: string | string[]
+    board?: string
+    member?: string
+    label?: string
+    urgent?: string
+  }>
 }) {
   const user = await requireManagement()
-  const { q, status, page: pageParam, view, year: yearValue, board: boardParam } = await searchParams
+  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent } = await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
   const page = parsePage(pageParam)
@@ -58,10 +70,19 @@ export default async function ProjectsPage({
     getLocale(),
   ])
   const hidePrices = await pricesHidden()
+  const intl = locale === 'en' ? 'en-GB' : 'de-DE'
 
-  const currentYear = todayUtc().getUTCFullYear()
+  const today = todayUtc()
+  const currentYear = today.getUTCFullYear()
   const years = parseProjectYears(yearParam, currentYear)
-  const [prepTab, boards, dated, statusChanges] = await Promise.all([
+  // The filter above the board: one person, one trade, urgent only.
+  const filter = parseBoardFilter({ member, label, urgent })
+  const filterWhere: Prisma.ProjectWhereInput = {
+    ...(filter.member ? { OR: [{ managerId: filter.member }, { team: { some: { employeeId: filter.member } } }] } : {}),
+    ...(filter.label ? { workCategories: { some: { workCategoryId: filter.label } } } : {}),
+    ...(filter.urgent ? { priority: 'HIGH' } : {}),
+  }
+  const [prepTab, boards, dated, statusChanges, people, trades] = await Promise.all([
     getPrepTabConfig(),
     getBoards(),
     // The dates every project is filed under a year by. The rule is a few lines
@@ -81,6 +102,17 @@ export default async function ProjectsPage({
     }),
     // A card moved this year belongs to this year, whatever its dates say.
     db.auditLog.findMany({ where: { entity: 'Project', field: 'status' }, select: { entityId: true, createdAt: true } }),
+    // What the board's filter offers.
+    kanban
+      ? db.employee.findMany({
+          where: { active: true },
+          orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : Promise.resolve([]),
+    kanban
+      ? db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, nameDe: true, nameEn: true } })
+      : Promise.resolve([]),
   ])
   // Which board: the address, else the one this browser opened last, else the first.
   const board = pickBoard(boards, boardParam, (await cookies()).get(BOARD_COOKIE)?.value)
@@ -150,7 +182,7 @@ export default async function ProjectsPage({
     query && years !== ALL_YEARS
       ? db.project.count({
           where: kanban
-            ? { ...searchWhere, status: { in: boardStatuses } }
+            ? { AND: [searchWhere, filterWhere], status: { in: boardStatuses } }
             : { ...statusWhere, ...searchWhere },
         })
       : Promise.resolve(0),
@@ -166,7 +198,8 @@ export default async function ProjectsPage({
    */
   const boardProjects = kanban
     ? await db.project.findMany({
-        where: whereWithoutStatus,
+        // The filter's own OR must not overwrite the search's: two wheres, both.
+        where: { AND: [whereWithoutStatus, filterWhere] },
         select: {
           id: true,
           number: true,
@@ -175,12 +208,22 @@ export default async function ProjectsPage({
           status: true,
           price: true,
           priority: true,
+          isSub: true,
           plannedStart: true,
+          plannedEnd: true,
           customer: { select: { name: true } },
+          manager: { select: { id: true, firstName: true, lastName: true } },
+          team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
+          workCategories: { select: { workCategory: { select: { id: true, nameDe: true, nameEn: true } } } },
+          checklists: { select: { items: { select: { ok: true } } } },
+          _count: { select: { documents: true, notes: true } },
         },
         orderBy: { number: 'desc' },
       })
     : []
+  const dayMonth = new Intl.DateTimeFormat(intl, { day: '2-digit', month: '2-digit' })
+  /** Up to this many people are drawn on a card; the rest are a count. */
+  const FACES = 3
   // Which statuses get a column, and what each is called, is the board's own
   // (Einstellungen → Boards); a project stands on every board with a column
   // for its status.
@@ -194,17 +237,43 @@ export default async function ProjectsPage({
       count: own.length,
       sum: showPrice && sum > 0 ? formatCurrency(sum, locale, { hidden: hidePrices }) : null,
       badgeClass: STATUS_STYLES[value],
-      cards: own.map((p) => ({
-        id: p.id,
-        number: p.number,
-        name: p.name,
-        customer: p.customer.name,
-        city: p.city,
-        start: p.plannedStart ? formatDate(p.plannedStart, locale) : null,
-        price: showPrice ? formatCurrency(p.price ? Number(p.price) : null, locale, { hidden: hidePrices }) : null,
-        urgent: p.priority === 'HIGH',
-        status: p.status,
-      })),
+      cards: own.map((p) => {
+        // The site manager first, then the team, nobody twice.
+        const seen = new Set<string>()
+        const people = [
+          ...(p.manager ? [{ ...p.manager, manager: true }] : []),
+          ...p.team.map((m) => ({ ...m.employee, manager: false })),
+        ].filter((e) => !seen.has(e.id) && seen.add(e.id))
+        const items = p.checklists.flatMap((c) => c.items)
+        const dates = [p.plannedStart, p.plannedEnd].filter((d): d is Date => d !== null).map((d) => dayMonth.format(d))
+        return {
+          id: p.id,
+          number: p.number,
+          name: p.name,
+          customer: p.customer.name,
+          city: p.city,
+          dates: dates.length > 0 ? { text: dates.join(' – '), tone: dateTone(p.status, p.plannedStart, p.plannedEnd, today) } : null,
+          price: showPrice ? formatCurrency(p.price ? Number(p.price) : null, locale, { hidden: hidePrices }) : null,
+          urgent: p.priority === 'HIGH',
+          sub: p.isSub,
+          status: p.status,
+          labels: p.workCategories.map((wc) => ({
+            text: locale === 'en' ? wc.workCategory.nameEn : wc.workCategory.nameDe,
+            swatch: swatchOf(wc.workCategory.id),
+          })),
+          checklist:
+            items.length > 0
+              ? { done: items.filter((i) => i.ok !== null).length, total: items.length, problems: items.filter((i) => i.ok === false).length }
+              : null,
+          files: p._count.documents,
+          comments: p._count.notes,
+          people: people.slice(0, FACES).map((e) => {
+            const name = `${e.firstName} ${e.lastName}`.trim()
+            return { initials: initials(name), name, swatch: swatchOf(e.id), manager: e.manager }
+          }),
+          more: Math.max(0, people.length - FACES),
+        }
+      }),
     }
   })
   const allCount = statusCounts.reduce((sum, s) => sum + s._count._all, 0)
@@ -216,6 +285,7 @@ export default async function ProjectsPage({
     if (status) params.set('status', status)
     if (query) params.set('q', query)
     if (boardParam) params.set('board', boardParam)
+    for (const [key, value] of Object.entries({ member, label, urgent })) if (value) params.set(key, value)
     params.set('year', ALL_YEARS)
     return `/projects?${params.toString()}`
   })()
@@ -361,6 +431,11 @@ export default async function ProjectsPage({
                   manage={user.role === 'ADMIN' ? { href: '/settings/boards', label: t('boardsManage') } : null}
                 />
                 {search}
+                <BoardFilter
+                  people={people.map((e) => ({ id: e.id, name: `${e.firstName} ${e.lastName}`.trim() }))}
+                  labels={trades.map((c) => ({ id: c.id, name: locale === 'en' ? c.nameEn : c.nameDe }))}
+                  current={filter}
+                />
               </div>
               {viewSwitch}
             </div>
