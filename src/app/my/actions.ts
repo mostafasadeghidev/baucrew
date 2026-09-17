@@ -5,6 +5,8 @@ import { db } from '@/lib/db'
 import { requireUser } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { LATE_ENTRY_DAYS, validInterval } from '@/lib/time-entries'
+import { canDeleteComment, type CommentResult } from '@/lib/comments'
+import { createComment } from '@/lib/comments-db'
 import { ProjectItemStatus } from '@/generated/prisma/enums'
 
 const ITEM_STATUSES = Object.keys(ProjectItemStatus) as ProjectItemStatus[]
@@ -60,6 +62,41 @@ export async function setMyItemStatus(projectItemId: string, status: string): Pr
   revalidatePath('/today')
   revalidatePath('/dashboard/packing')
   revalidatePath(`/projects/${item.projectId}`)
+  return {}
+}
+
+// ── Comments (the crew talking from the site) ───────────────
+
+/** Whoever may work on the project may write on it; the office always. Never for the office only. */
+export async function addMyComment(projectId: string, formData: FormData): Promise<CommentResult> {
+  const user = await requireUser()
+  if (user.role === 'EMPLOYEE' && (!user.employee || !(await canBookOn(projectId, user.employee.id)))) {
+    return { error: 'notAllowed' }
+  }
+  const result = await createComment({
+    projectId,
+    authorId: user.id,
+    body: String(formData.get('body') ?? ''),
+    office: false,
+    actor: { type: 'user', userId: user.id },
+  })
+  if ('error' in result) return { error: result.error === 'empty' ? 'empty' : 'saveFailed' }
+  revalidatePath('/my')
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/projects')
+  return {}
+}
+
+export async function deleteMyComment(noteId: string): Promise<CommentResult> {
+  const user = await requireUser()
+  const note = await db.note.findUnique({ where: { id: noteId }, select: { id: true, projectId: true, authorId: true, body: true } })
+  if (!note) return { error: 'saveFailed' }
+  if (!canDeleteComment(user, note)) return { error: 'notAllowed' }
+  await db.note.delete({ where: { id: noteId } })
+  await audit({ userId: user.id, action: 'project.commentDeleted', entity: 'Project', entityId: note.projectId, oldValue: note.body.slice(0, 200) })
+  revalidatePath('/my')
+  revalidatePath(`/projects/${note.projectId}`)
+  revalidatePath('/projects')
   return {}
 }
 

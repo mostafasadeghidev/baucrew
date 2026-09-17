@@ -6,6 +6,9 @@
 
 export const COMMENT_MAX = 4000
 
+/** What writing or taking back a comment can come to. */
+export type CommentResult = { error?: 'empty' | 'notAllowed' | 'saveFailed' }
+
 /** Somebody who can be named: the account's name, and how they are called. */
 export type Mentionable = { id: string; username: string; name: string }
 

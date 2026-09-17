@@ -4,10 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
-import { canDeleteComment } from '@/lib/comments'
+import { canDeleteComment, type CommentResult } from '@/lib/comments'
 import { createComment } from '@/lib/comments-db'
-
-export type CommentResult = { error?: 'empty' | 'notAllowed' | 'saveFailed' }
 
 function refresh(projectId: string) {
   revalidatePath(`/projects/${projectId}`)

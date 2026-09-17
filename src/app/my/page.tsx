@@ -12,6 +12,11 @@ import { MapPin, Paperclip, Phone, Printer, Truck, Users } from 'lucide-react'
 import { formatMinutes, LATE_ENTRY_DAYS, sumMinutes } from '@/lib/time-entries'
 import { TimeClock } from './time-clock'
 import { TimeLate } from './time-late'
+import { ProjectComments, type CommentRow } from '@/components/project-comments'
+import { displayName, mentionablePeople } from '@/lib/comments-db'
+import { canDeleteComment } from '@/lib/comments'
+import { initials, swatchOf } from '@/lib/board-cards'
+import { addMyComment, deleteMyComment } from './actions'
 
 /**
  * The worker's own day on the phone: week strip, one card per assignment with
@@ -25,13 +30,14 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tChecklists, tFiles, tTime, tToday, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
     getTranslations('checklists'),
     getTranslations('files'),
     getTranslations('time'),
     getTranslations('today'),
+    getTranslations('projects'),
     getLocale(),
   ])
 
@@ -44,7 +50,7 @@ export default async function MyAreaPage({
   const employeeId = user.employee?.id
   const monday = mondayOf(day)
 
-  const [entries, next, weekEntries, openTime, todayTime] = employeeId
+  const [entries, next, weekEntries, openTime, todayTime, people] = employeeId
     ? await Promise.all([
         db.scheduleEntry.findMany({
           where: { date: day, cancelledAt: null, employees: { some: { employeeId } } },
@@ -70,6 +76,12 @@ export default async function MyAreaPage({
                       include: { checkedBy: { select: { firstName: true, lastName: true } } },
                     },
                   },
+                },
+                // The team's comments — what the office keeps to itself stays there.
+                notes: {
+                  where: { visibility: 'TEAM' },
+                  orderBy: { createdAt: 'asc' },
+                  include: { author: { select: { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } } },
                 },
               },
             },
@@ -114,8 +126,11 @@ export default async function MyAreaPage({
           },
           select: { startedAt: true, endedAt: true },
         }),
+        // Everybody a comment can name with @.
+        mentionablePeople(),
       ])
-    : [[], null, [], null, []]
+    : [[], null, [], null, [], []]
+  const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
   const jobsPerDay = new Map<string, number>()
   for (const e of weekEntries) {
@@ -387,6 +402,33 @@ export default async function MyAreaPage({
                 </ul>
               </div>
             )}
+
+            {/* The team talking on the project — answer from the site */}
+            <div className="border-t border-border px-4 py-3">
+              <p className="text-xs uppercase tracking-wide text-muted">{tProjects('commentsTitle')}</p>
+              <div className="mt-2">
+                <ProjectComments
+                  projectId={p.id}
+                  comments={p.notes.map((note): CommentRow => {
+                    const name = note.author ? displayName(note.author) : null
+                    return {
+                      id: note.id,
+                      body: note.body,
+                      when: stamp.format(note.createdAt),
+                      author: note.author && name ? { name, initials: initials(name), swatch: swatchOf(note.author.id) } : null,
+                      office: false,
+                      deletable: canDeleteComment(user, note),
+                    }
+                  })}
+                  people={people}
+                  add={addMyComment}
+                  remove={deleteMyComment}
+                  canMarkOffice={false}
+                  frame={false}
+                  large
+                />
+              </div>
+            </div>
 
             {/* Site checklists — tick them off right here */}
             {p.checklists.length > 0 && (

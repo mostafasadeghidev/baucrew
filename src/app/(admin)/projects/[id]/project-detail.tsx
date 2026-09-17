@@ -25,7 +25,8 @@ import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { ProjectAddOns } from './add-ons'
 import { ProjectInvoices, type InvoiceRow } from './invoices-card'
-import { ProjectComments, type CommentRow } from './comments-card'
+import { ProjectComments, type CommentRow } from '@/components/project-comments'
+import { addProjectComment, deleteProjectComment } from './comment-actions'
 import { displayName, mentionablePeople } from '@/lib/comments-db'
 import { canDeleteComment } from '@/lib/comments'
 import { initials, swatchOf } from '@/lib/board-cards'
@@ -682,7 +683,13 @@ export async function ProjectDetail({
 
         {/* The team talking on the project — the whole width, under everything. */}
         <div className="lg:col-span-2">
-          <ProjectComments projectId={project.id} comments={comments} people={people} />
+          <ProjectComments
+            projectId={project.id}
+            comments={comments}
+            people={people}
+            add={addProjectComment}
+            remove={deleteProjectComment}
+          />
         </div>
       </div>
 

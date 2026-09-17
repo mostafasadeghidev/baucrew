@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers'
+import { Mentions } from '@/components/mentions'
 import { getTranslations } from 'next-intl/server'
 import { canViewFinancials, requireManagement } from '@/lib/authz'
 import { pricesHidden } from '@/lib/price-visibility'
@@ -53,6 +54,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               or the two tops look like a mistake. */}
           <main className="flex-1 p-4 pt-2 md:p-6 md:pt-2 print:p-0">{children}</main>
         </div>
+        {/* Who has been named in a comment: the bell in the corner. */}
+        <Mentions user={user} area="admin" />
       </div>
     </PricesHiddenProvider>
   )

@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/authz'
 import { getBranding } from '@/lib/branding'
 import { BrandMark } from '@/components/brand-mark'
 import { MyUserMenu } from './user-menu'
+import { Mentions } from '@/components/mentions'
 
 /**
  * Frame of the worker area: a slim sticky bar with the company mark and one
@@ -32,6 +33,8 @@ export default async function MyAreaLayout({ children }: { children: React.React
         />
       </header>
       <main className="flex-1 p-4 pb-16">{children}</main>
+      {/* Who has been named in a comment: the bell in the corner. */}
+      <Mentions user={user} area="my" />
     </div>
   )
 }

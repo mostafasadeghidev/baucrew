@@ -27,6 +27,8 @@ model User {
   active            Boolean  @default(true)
   // Personal dashboard layout (order, hidden widgets, widths) as JSON.
   dashboardLayout   String?
+  /// When the user last opened the list of comments naming them; what came after is new.
+  mentionsSeenAt    DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
