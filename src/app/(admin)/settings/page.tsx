@@ -31,6 +31,8 @@ import { getOptionLists } from "@/lib/option-lists-db";
 import { getHistoryCutoff } from "@/lib/history-db";
 import { formatHistoryCutoff } from "@/lib/history";
 import { BUILT_IN, SUGGESTED } from "@/lib/option-lists";
+import { LABEL_COLORS, swatchOf } from "@/lib/board-cards";
+import { LABEL_BAR } from "@/components/swatches";
 
 const inputClass =
   "block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
@@ -80,6 +82,31 @@ export default async function SettingsPage({
   const privileged = users.filter(
     (u) => u.role === "ADMIN" || u.canViewFinancials,
   );
+
+  /**
+   * The colour a trade's label wears on the board: one of the ten. A new
+   * trade may leave it to the app ("A"), which takes the one the fewest wear.
+   */
+  const labelColorPicker = (prefix: string, current: string | null, allowAuto: boolean) => (
+    <fieldset className="flex items-center gap-1" aria-label={t("categoryColor")}>
+      {allowAuto && (
+        <label className="cursor-pointer" title={t("categoryColorAuto")}>
+          <input type="radio" name="color" value="" defaultChecked className="peer sr-only" id={`${prefix}-color-auto`} />
+          <span className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-border bg-background text-[9px] font-semibold text-muted ring-offset-1 ring-offset-surface peer-checked:ring-2 peer-checked:ring-accent peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
+            A
+          </span>
+        </label>
+      )}
+      {LABEL_COLORS.map((key, i) => (
+        <label key={key} className="cursor-pointer" title={key}>
+          <input type="radio" name="color" value={key} defaultChecked={current === key} className="peer sr-only" id={`${prefix}-color-${key}`} />
+          <span
+            className={`block h-5 w-5 rounded-full ring-offset-1 ring-offset-surface peer-checked:ring-2 peer-checked:ring-accent peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${LABEL_BAR[i]}`}
+          />
+        </label>
+      ))}
+    </fieldset>
+  )
 
   return (
     // Four in a row rather than eight: the bar, the tabs and the first card
@@ -535,8 +562,8 @@ export default async function SettingsPage({
             />
           </Card>
 
-          <Card title={t("categoriesTitle")}>
-            <div className="max-w-2xl space-y-2">
+          <Card title={t("categoriesTitle")} description={t("categoryColorHint")}>
+            <div className="max-w-3xl space-y-2">
               {categories.map((c) => (
                 <SavedForm
                   key={c.id}
@@ -557,6 +584,7 @@ export default async function SettingsPage({
                     aria-label={t("nameEn")}
                     className={`${inputClass} min-w-40 flex-1`}
                   />
+                  {labelColorPicker(c.id, c.color ?? LABEL_COLORS[swatchOf(c.id)], false)}
                   <label className="flex cursor-pointer items-center gap-1.5 px-1 text-sm">
                     <input
                       type="checkbox"
@@ -589,6 +617,7 @@ export default async function SettingsPage({
                   required
                   className={`${inputClass} min-w-40 flex-1`}
                 />
+                {labelColorPicker("new", null, true)}
                 <button type="submit" className={btn.primarySm}>
                   {t("addCategory")}
                 </button>

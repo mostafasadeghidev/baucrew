@@ -17,6 +17,7 @@ import type { SaveState } from '@/components/saved-form'
 import { deleteUserBlockReason } from '@/lib/user-guards'
 import { PREP_TAB_KEY, prepTabConfigFromForm, serializePrepTabConfig } from '@/lib/prep-tab'
 import { normalizeAccent } from "@/lib/branding";
+import { labelColorKey, nextLabelColor } from '@/lib/board-cards'
 import {
   optionListFromForm,
   parseOptionList,
@@ -332,8 +333,11 @@ export async function createCategory(formData: FormData): Promise<SaveState> {
   })
   if (!parsed.success) return { error: 'saveFailed' }
   const maxSort = await db.workCategory.aggregate({ _max: { sortOrder: true } })
+  // Without a colour picked, the one the fewest trades wear.
+  const worn = await db.workCategory.findMany({ select: { color: true } })
+  const color = labelColorKey(String(formData.get('color') ?? '')) ?? nextLabelColor(worn.map((w) => w.color))
   const category = await db.workCategory.create({
-    data: { ...parsed.data, sortOrder: (maxSort._max.sortOrder ?? 0) + 1 },
+    data: { ...parsed.data, color, sortOrder: (maxSort._max.sortOrder ?? 0) + 1 },
   })
   await audit({
     userId: admin.id,
@@ -356,7 +360,9 @@ export async function updateCategory(id: string, formData: FormData): Promise<Sa
   if (!parsed.success) return { error: 'saveFailed' }
   const before = await db.workCategory.findUnique({ where: { id } })
   if (!before) return { error: 'saveFailed' }
-  await db.workCategory.update({ where: { id }, data: parsed.data })
+  // No colour sent leaves the one it has.
+  const color = labelColorKey(String(formData.get('color') ?? ''))
+  await db.workCategory.update({ where: { id }, data: { ...parsed.data, ...(color ? { color } : {}) } })
   await audit({
     userId: admin.id,
     action: 'workCategory.update',
@@ -366,6 +372,7 @@ export async function updateCategory(id: string, formData: FormData): Promise<Sa
     newValue: parsed.data.nameDe,
   })
   revalidatePath('/settings')
+  revalidatePath('/projects')
   return { savedAt: Date.now() }
 }
 

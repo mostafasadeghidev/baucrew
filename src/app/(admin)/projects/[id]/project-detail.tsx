@@ -33,7 +33,7 @@ import { ProjectComments, type CommentRow } from '@/components/project-comments'
 import { addProjectComment, deleteProjectComment } from './comment-actions'
 import { displayName, mentionablePeople } from '@/lib/comments-db'
 import { canDeleteComment } from '@/lib/comments'
-import { dateTone, initials, swatchOf } from '@/lib/board-cards'
+import { dateTone, initials, labelSwatch, swatchOf } from '@/lib/board-cards'
 import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
 import { ProjectTimeSummary } from './time-summary'
 import { daysOut } from '@/lib/devices'
@@ -688,7 +688,7 @@ export async function ProjectDetail({
           )}
           {project.isSub && <span className={`h-6 rounded px-2 text-xs font-medium leading-6 ${SUB_LABEL.pill}`}>SUB</span>}
           {project.workCategories.map((wc) => (
-            <span key={wc.workCategoryId} className={`h-6 rounded px-2 text-xs font-medium leading-6 ${LABEL_PILL[swatchOf(wc.workCategoryId)]}`}>
+            <span key={wc.workCategoryId} className={`h-6 rounded px-2 text-xs font-medium leading-6 ${LABEL_PILL[labelSwatch(wc.workCategory.color, wc.workCategoryId)]}`}>
               {categoryLabel(wc.workCategory)}
             </span>
           ))}

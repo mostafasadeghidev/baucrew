@@ -28,7 +28,7 @@ import { BoardTabs } from './board-tabs'
 import { BoardFilter } from './board-filter'
 import { CardSheet, SheetClose } from './card-sheet'
 import { ProjectDetail } from './[id]/project-detail'
-import { dateTone, initials, parseBoardFilter, swatchOf } from '@/lib/board-cards'
+import { dateTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
 
@@ -120,7 +120,7 @@ export default async function ProjectsPage({
         })
       : Promise.resolve([]),
     kanban
-      ? db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, nameDe: true, nameEn: true } })
+      ? db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, nameDe: true, nameEn: true, color: true } })
       : Promise.resolve([]),
     // The customers a card added on the board can be given.
     kanban ? db.customer.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }) : Promise.resolve([]),
@@ -225,7 +225,7 @@ export default async function ProjectsPage({
           customer: { select: { name: true } },
           manager: { select: { id: true, firstName: true, lastName: true } },
           team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
-          workCategories: { select: { workCategory: { select: { id: true, nameDe: true, nameEn: true } } } },
+          workCategories: { select: { workCategory: { select: { id: true, nameDe: true, nameEn: true, color: true } } } },
           checklists: { select: { items: { select: { ok: true } } } },
           _count: { select: { documents: true, notes: true } },
         },
@@ -270,7 +270,7 @@ export default async function ProjectsPage({
           status: p.status,
           labels: p.workCategories.map((wc) => ({
             text: locale === 'en' ? wc.workCategory.nameEn : wc.workCategory.nameDe,
-            swatch: swatchOf(wc.workCategory.id),
+            swatch: labelSwatch(wc.workCategory.color, wc.workCategory.id),
           })),
           checklist:
             items.length > 0
@@ -444,7 +444,7 @@ export default async function ProjectsPage({
                 {search}
                 <BoardFilter
                   people={people.map((e) => ({ id: e.id, name: `${e.firstName} ${e.lastName}`.trim() }))}
-                  labels={trades.map((c) => ({ id: c.id, name: locale === 'en' ? c.nameEn : c.nameDe }))}
+                  labels={trades.map((c) => ({ id: c.id, name: locale === 'en' ? c.nameEn : c.nameDe, swatch: labelSwatch(c.color, c.id) }))}
                   current={filter}
                 />
               </div>

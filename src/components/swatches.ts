@@ -4,8 +4,10 @@
  * `swatchOf` in lib/board-cards, so the same trade and the same person are
  * the same colour everywhere.
  *
- * A label is a bar while the board's labels are folded, the way Trello draws
- * them, and a pill with its name once they are opened.
+ * A label is a pill with its name, and a bar while the board's labels are
+ * folded, the way Trello draws them. Both lists follow `LABEL_COLORS` in
+ * lib/board-cards; which of the ten a trade wears is chosen under
+ * Einstellungen.
  */
 export const LABEL_BAR = [
   'bg-sky-500',
@@ -16,6 +18,8 @@ export const LABEL_BAR = [
   'bg-teal-500',
   'bg-orange-500',
   'bg-indigo-500',
+  'bg-lime-500',
+  'bg-pink-500',
 ]
 
 export const LABEL_PILL = [
@@ -27,6 +31,8 @@ export const LABEL_PILL = [
   'bg-teal-200 text-teal-900 dark:bg-teal-800 dark:text-teal-100',
   'bg-orange-200 text-orange-900 dark:bg-orange-800 dark:text-orange-100',
   'bg-indigo-200 text-indigo-900 dark:bg-indigo-800 dark:text-indigo-100',
+  'bg-lime-200 text-lime-900 dark:bg-lime-800 dark:text-lime-100',
+  'bg-pink-200 text-pink-900 dark:bg-pink-800 dark:text-pink-100',
 ]
 
 /** The two labels that are not trades. */

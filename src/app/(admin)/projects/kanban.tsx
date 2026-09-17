@@ -101,9 +101,9 @@ const DATE_TONE = {
 }
 
 /**
- * Whether the labels are opened — bars without names, the way Trello folds
- * them, or pills with names. A click on any label flips every one of them,
- * and the browser remembers.
+ * Whether the labels are opened — pills with names, which is how the board
+ * opens, or bars without, the way Trello folds them. A click on any label
+ * flips every one of them, and the browser remembers.
  */
 const LABELS_KEY = 'baucrew-board-labels'
 const LABELS_EVENT = 'baucrew:board-labels'
@@ -117,9 +117,9 @@ function subscribeLabels(onChange: () => void) {
 }
 function readLabels(): boolean {
   try {
-    return window.localStorage.getItem(LABELS_KEY) === '1'
+    return window.localStorage.getItem(LABELS_KEY) !== '0'
   } catch {
-    return false
+    return true
   }
 }
 
@@ -212,7 +212,7 @@ export function ProjectsKanban({
   const [addKey, setAddKey] = useState(0)
   /** The card whose name is being typed over. */
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
-  const labelsOpen = useSyncExternalStore(subscribeLabels, readLabels, () => false)
+  const labelsOpen = useSyncExternalStore(subscribeLabels, readLabels, () => true)
   const toggleLabels = () => {
     try {
       window.localStorage.setItem(LABELS_KEY, labelsOpen ? '0' : '1')
@@ -864,8 +864,8 @@ export function ProjectsKanban({
                       </Menu>
                     </div>
                     {/* Labels first, the way a Trello card wears them: urgent,
-                        SUB and the trades, each in its own colour — folded to
-                        bars until one of them is clicked. */}
+                        SUB and the trades, each in its own colour — named, and
+                        folded to bars by a click on any of them. */}
                     {(card.urgent || card.sub || card.labels.length > 0) && (
                       <div className="mb-1.5 flex flex-wrap gap-1 pr-6">
                         {[

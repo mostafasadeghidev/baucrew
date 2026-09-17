@@ -220,6 +220,8 @@ model WorkCategory {
   id        String  @id @default(cuid())
   nameDe    String
   nameEn    String
+  /// The colour its label wears on the board — a key from src/lib/board-cards.ts; null lets the app pick one.
+  color     String?
   active    Boolean @default(true)
   sortOrder Int     @default(0)
 

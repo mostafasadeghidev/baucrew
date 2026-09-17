@@ -18,8 +18,9 @@ import { Check, Search, SlidersHorizontal } from 'lucide-react'
 import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { btn } from '@/components/ui/button'
 import { boardFilterCount, type BoardFilter } from '@/lib/board-cards'
+import { LABEL_BAR } from '@/components/swatches'
 
-type Option = { id: string; name: string }
+type Option = { id: string; name: string; /** A trade's colour, as an index into the label palette. */ swatch?: number }
 
 export function BoardFilter({ people, labels, current }: { people: Option[]; labels: Option[]; current: BoardFilter }) {
   const t = useTranslations('projects')
@@ -70,9 +71,16 @@ export function BoardFilter({ people, labels, current }: { people: Option[]; lab
   const heading = (text: string) => (
     <div className="px-2 pb-0.5 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-muted">{text}</div>
   )
-  const item = (on: boolean, label: string, onPick: () => void, role: 'menuitemradio' | 'menuitemcheckbox' = 'menuitemradio') => (
+  const item = (
+    on: boolean,
+    label: string,
+    onPick: () => void,
+    role: 'menuitemradio' | 'menuitemcheckbox' = 'menuitemradio',
+    swatch?: number
+  ) => (
     <button type="button" role={role} aria-checked={on} onClick={onPick} className={menuItemClass}>
       <Check aria-hidden className={`h-3.5 w-3.5 shrink-0 text-accent ${on ? '' : 'invisible'}`} />
+      {swatch !== undefined && <span aria-hidden className={`h-2 w-5 shrink-0 rounded-full ${LABEL_BAR[swatch]}`} />}
       <span className="truncate">{label}</span>
     </button>
   )
@@ -121,7 +129,7 @@ export function BoardFilter({ people, labels, current }: { people: Option[]; lab
               {shownPeople.length > 0 && <MenuSeparator />}
               {heading(t('boardFilterLabel'))}
               {shownLabels.map((l) => (
-                <div key={l.id}>{item(current.label === l.id, l.name, () => pickLabel(l.id))}</div>
+                <div key={l.id}>{item(current.label === l.id, l.name, () => pickLabel(l.id), 'menuitemradio', l.swatch)}</div>
               ))}
             </>
           )}

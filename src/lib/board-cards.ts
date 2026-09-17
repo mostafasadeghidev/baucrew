@@ -18,6 +18,36 @@ export function swatchOf(key: string): number {
   return hash % SWATCHES
 }
 
+/**
+ * The colours a label can wear, in the order the palettes in
+ * components/swatches list them. Every trade has one of its own — given in
+ * the order the trades stand when the colours came, chosen under
+ * Einstellungen since; only a trade without one falls back on `swatchOf`.
+ */
+export const LABEL_COLORS = ['sky', 'emerald', 'amber', 'rose', 'violet', 'teal', 'orange', 'indigo', 'lime', 'pink'] as const
+export type LabelColor = (typeof LABEL_COLORS)[number]
+
+/** A colour as the form sent it, or null — none sent, or not one of ours. */
+export function labelColorKey(raw: string | null | undefined): LabelColor | null {
+  return raw && (LABEL_COLORS as readonly string[]).includes(raw) ? (raw as LabelColor) : null
+}
+
+/** Where in the palettes a label's colour stands: the one chosen for it, else the one its key gets. */
+export function labelSwatch(color: string | null | undefined, key: string): number {
+  const chosen = labelColorKey(color)
+  return chosen ? LABEL_COLORS.indexOf(chosen) : swatchOf(key)
+}
+
+/**
+ * The colour a new trade gets when none was picked: the one the fewest trades
+ * wear, the earliest of those — so ten trades are ten colours before any
+ * repeats.
+ */
+export function nextLabelColor(used: Array<string | null | undefined>): LabelColor {
+  const counts = LABEL_COLORS.map((color) => used.filter((u) => u === color).length)
+  return LABEL_COLORS[counts.indexOf(Math.min(...counts))]
+}
+
 /** The letters an avatar shows: the first of the first two words, "Max Muster" → "MM". */
 export function initials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean)

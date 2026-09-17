@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { SWATCHES, boardFilterCount, dateTone, initials, parseBoardFilter, swatchOf } from '@/lib/board-cards'
+import {
+  LABEL_COLORS,
+  SWATCHES,
+  boardFilterCount,
+  dateTone,
+  initials,
+  labelColorKey,
+  labelSwatch,
+  nextLabelColor,
+  parseBoardFilter,
+  swatchOf,
+} from '@/lib/board-cards'
 
 const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`)
 
@@ -53,5 +64,31 @@ describe('the board filter', () => {
     expect(filter).toEqual({ member: 'e1', label: 'c1', urgent: true })
     expect(boardFilterCount(filter)).toBe(3)
     expect(boardFilterCount(parseBoardFilter({ urgent: 'yes' }))).toBe(0)
+  })
+})
+
+describe('a label’s colour', () => {
+  it('is the one chosen for the trade, else the one its key gets', () => {
+    expect(labelSwatch('pink', 'cm1')).toBe(LABEL_COLORS.indexOf('pink'))
+    expect(labelSwatch(null, 'cm1')).toBe(swatchOf('cm1'))
+    expect(labelSwatch('not-a-colour', 'cm1')).toBe(swatchOf('cm1'))
+  })
+
+  it('takes only its own keys from a form', () => {
+    expect(labelColorKey('lime')).toBe('lime')
+    expect(labelColorKey('')).toBeNull()
+    expect(labelColorKey('#ff0000')).toBeNull()
+  })
+
+  it('gives a new trade the colour the fewest wear, the earliest of those', () => {
+    expect(nextLabelColor([])).toBe('sky')
+    expect(nextLabelColor(['sky', 'emerald', null])).toBe('amber')
+    expect(nextLabelColor([...LABEL_COLORS])).toBe('sky')
+    expect(nextLabelColor([...LABEL_COLORS, 'sky'])).toBe('emerald')
+  })
+
+  it('hands out only the first eight by itself, so the old colours stay', () => {
+    expect(SWATCHES).toBe(8)
+    expect(LABEL_COLORS.length).toBeGreaterThanOrEqual(SWATCHES)
   })
 })
