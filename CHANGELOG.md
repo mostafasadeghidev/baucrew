@@ -3,6 +3,55 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.39.0] — 2026-09-17
+
+### Added
+- **The board looks like Trello as well as behaving like it.** Every board can
+  stand on a ground of its own — eight colours, four gradients, or none —
+  chosen under Einstellungen → Boards. A list is a rounded grey slab as tall
+  as its cards, with the status as a dot beside the list's own name; a card is
+  a white sheet with a soft shadow that rings when the pointer is on it.
+- **Karte hinzufügen** at the foot of every list: a name, a customer — found as
+  it is typed, or typed in new — and Enter. The project is made in that list's
+  status, and the box stays open for the next one.
+- **A pencil on the card** — there when the pointer is, always where there is
+  no pointer to hover with — opens a quick menu: open the card, rename it in
+  place, urgent on and off, move it to another list. The two statuses that end
+  a project still ask first.
+- **The card's sheet reads like a Trello card.** Under the title: members,
+  labels, dates — coloured when they press — and the order value. On the
+  right, *Zur Karte hinzufügen*: members, labels, checklist, dates, attachment,
+  comment — each opens the card that holds the field, or goes down to the
+  list, rather than doing the same thing in a second place.
+- **Every trade has a label colour of its own**, chosen under Einstellungen →
+  Arbeitsbereiche → Arbeitskategorien from ten. The trades that were there got
+  one each in the order they stand, so ten trades are ten colours before any
+  repeats — the colour used to be worked out from the trade's id, and two
+  trades on one card could come out the same. A new trade takes the colour the
+  fewest trades wear unless one is picked. The board's filter shows each
+  trade's colour beside its name.
+- **The board's filter searches as it is typed into.** The box on top takes
+  the keyboard the moment the menu opens: people and trades narrow with every
+  letter, the arrow goes down into the list, Enter takes the first of what is
+  left.
+
+### Changed
+- **Labels carry their names** when the board opens; a click on any label
+  folds them all to colour bars, the way Trello draws them, and the browser
+  remembers which.
+- **The card's sheet closes on purpose only.** The cross moved into the
+  project's own bar, the last button on the right, with *Projektseite öffnen*
+  beside the others, and the sheet's separate row is gone. A click beside the
+  sheet no longer closes it — it holds forms, and a slip of the mouse must not
+  throw away what was typed. Escape and the back gesture still close it.
+- **Zusammenführen** stands with save and cancel once *Bearbeiten* is pressed,
+  rather than among the everyday buttons: folding a duplicate into a project
+  is part of putting it right, not of reading it.
+
+### Fixed
+- A press inside a menu or a list of options drawn at the end of the document
+  no longer reaches the board's drag handlers through React's tree.
+
 ## [1.38.0] — 2026-09-17
 
 ### Added
