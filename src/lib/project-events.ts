@@ -206,6 +206,51 @@ export async function announceInvoiceReady(projectId: string, part: InvoicePart,
   }
 }
 
+/** Somebody as an event names them: the account, and the person behind it. */
+function personBody(user: { id: string; username: string; employee: { firstName: string; lastName: string } | null }) {
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.employee ? `${user.employee.firstName} ${user.employee.lastName}`.trim() : user.username,
+  }
+}
+
+const personSelect = { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } as const
+
+/**
+ * Somebody wrote on the project. The body carries the comment with the people
+ * it names, so an automation can reach them, and the whole project around it.
+ */
+export async function announceCommentCreated(noteId: string, actor: EventActor): Promise<void> {
+  try {
+    const note = await db.note.findUnique({
+      where: { id: noteId },
+      select: { id: true, projectId: true, body: true, visibility: true, mentions: true, createdAt: true, author: { select: personSelect } },
+    })
+    if (!note) return
+    const row = await loadRow(note.projectId)
+    if (!row) return
+    const named = note.mentions.length
+      ? await db.user.findMany({ where: { id: { in: note.mentions } }, select: personSelect })
+      : []
+    const since = statusSinceOf(await lastStatusChange(row.id), row.sourceCreatedAt, row.createdAt)
+    await emitEvent('comment.created', {
+      comment: {
+        id: note.id,
+        body: note.body,
+        office: note.visibility === 'MANAGEMENT',
+        createdAt: note.createdAt.toISOString(),
+        author: note.author ? personBody(note.author) : null,
+        mentions: named.map(personBody),
+      },
+      project: projectBody(row, since),
+      actor,
+    })
+  } catch (e) {
+    console.error('comment event failed', e)
+  }
+}
+
 /** Since when each project has stood in its status, for many at once. */
 export async function statusSinceFor(
   rows: Array<{ id: string; sourceCreatedAt: Date | null; createdAt: Date }>

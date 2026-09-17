@@ -272,6 +272,8 @@ Zum Schluss **Speichern** → die Projektseite öffnet sich.
 - **Geplante Einsätze:** Datum, Uhrzeit, Team, Fahrzeuge. **+ Einsatz planen** öffnet das Einsatzfenster mit vorbelegtem Team, Fahrzeug und Uhrzeit (Kapitel 7.2).
 - **Arbeitsauftrag** (Druckersymbol), **Bearbeiten**, **Löschen** (nur Administrator; löscht auch alle Einsätze).
 
+**Kommentare** — ganz unten auf der Projektseite (und in der Karte über dem Board) spricht das Team über das Projekt: kurze Nachrichten, die älteste zuerst, jede mit Namen und Zeit. Ein **@** nennt eine Person — beim Tippen erscheint die Liste der Konten, Enter übernimmt. Ist ein Webhook eingerichtet (Kapitel Einstellungen → Webhooks, Ereignis *Kommentar geschrieben*), erfährt die Automation jeden Kommentar samt den genannten Personen und kann sie in Telegram oder per E-Mail benachrichtigen. **Nur fürs Büro** hält einen Kommentar vom Team fern. Wer einen Kommentar geschrieben hat, kann ihn löschen; ein Administrator jeden. Auf der Board-Karte zählt 💬 die Kommentare.
+
 ### 6.4 Projekt abschließen
 
 Zwei Wege — beide setzen Status **Abgeschlossen** und tragen **Ende (tatsächlich)** ein:

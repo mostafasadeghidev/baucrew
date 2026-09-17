@@ -53,6 +53,7 @@ import { useTranslations } from 'next-intl'
 import { CalendarDays, GripVertical, ListChecks, MessageSquare, Paperclip, Undo2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { moveColumn } from '@/lib/boards'
+import { LABEL_SWATCH, PERSON_SWATCH } from '@/components/swatches'
 import {
   DRAG_THRESHOLD,
   LONG_PRESS_MS,
@@ -91,30 +92,6 @@ export type KanbanCard = {
   more: number
 }
 
-/**
- * The colours a label and a person can wear — literal, so Tailwind finds
- * them; which one is picked by `swatchOf` in lib/board-cards.
- */
-const LABEL_SWATCH = [
-  'bg-sky-500/20 text-sky-800 dark:text-sky-300',
-  'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300',
-  'bg-amber-500/25 text-amber-800 dark:text-amber-300',
-  'bg-rose-500/20 text-rose-800 dark:text-rose-300',
-  'bg-violet-500/20 text-violet-800 dark:text-violet-300',
-  'bg-teal-500/20 text-teal-800 dark:text-teal-300',
-  'bg-orange-500/20 text-orange-800 dark:text-orange-300',
-  'bg-indigo-500/20 text-indigo-800 dark:text-indigo-300',
-]
-const PERSON_SWATCH = [
-  'bg-sky-600',
-  'bg-emerald-600',
-  'bg-amber-600',
-  'bg-rose-600',
-  'bg-violet-600',
-  'bg-teal-600',
-  'bg-orange-600',
-  'bg-indigo-600',
-]
 const DATE_TONE = {
   late: 'bg-danger/10 text-danger',
   soon: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',

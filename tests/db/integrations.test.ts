@@ -45,7 +45,7 @@ beforeAll(async () => {
       name: TAG,
       url: `http://127.0.0.1:${port}/hook`,
       secret: SECRET,
-      events: ['project.created', 'project.status_changed', 'project.updated', 'invoice.ready'],
+      events: ['project.created', 'project.status_changed', 'project.updated', 'invoice.ready', 'comment.created'],
     },
   })
   endpointId = endpoint.id
@@ -214,5 +214,32 @@ describe('invoices', () => {
     const back = await withdrawInvoice(user, made.project.id, 2)
     expect(back.invoices?.map((i) => i.part)).toEqual([1])
     await expect(markInvoiceReady(user, made.project.id, 3, {})).rejects.toMatchObject({ status: 400 })
+  })
+})
+
+describe('comments', () => {
+  it('names the people written with @ and tells the automation', async () => {
+    const { addComment, listComments, upsertProjectByLink } = await import('@/lib/api-service')
+    const { processDueDeliveries } = await import('@/lib/webhooks')
+    await processDueDeliveries(100)
+    received.length = 0
+
+    const made = await upsertProjectByLink(user, 'trello', `${TAG}-card-comment`, {
+      name: `${TAG} Kommentar Musterhaus`,
+      customer: { name: `${TAG} Muster GmbH`, company: null, contactPerson: null, phone: null, email: null, street: null, postalCode: null, city: null },
+    })
+    const written = await addComment(user, made.project.number, { body: `Bitte @${TAG} anrufen, @niemand nicht.`, office: false })
+    expect(written).toMatchObject({ office: false, mentions: [userId], author: { id: userId, username: TAG } })
+    expect((await listComments(user, made.project.id)).map((c) => c.id)).toEqual([written!.id])
+
+    await processDueDeliveries()
+    const told = received.map((r) => JSON.parse(r.raw)).filter((b) => b.event === 'comment.created')
+    expect(told).toHaveLength(1)
+    expect(told[0].data).toMatchObject({
+      comment: { id: written!.id, mentions: [{ id: userId, username: TAG }] },
+      project: { id: made.project.id },
+      actor: { type: 'api', userId },
+    })
+    await expect(addComment(user, made.project.id, { body: '   ', office: false })).rejects.toBeDefined()
   })
 })

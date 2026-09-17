@@ -24,6 +24,8 @@ import {
 import { normalizeSystem, trelloShortLink } from './webhook-events'
 import { suggestStatus } from './trello'
 import { INVOICE_KIND, invoicePartOf, suggestedInvoiceAmount, type InvoicePart } from './invoices'
+import { COMMENT_MAX } from './comments'
+import { createComment, displayName } from './comments-db'
 import { mimeFromName, safeFileName, storageKeyFor, validateUpload } from './files'
 import { saveStoredFile } from './file-storage'
 
@@ -714,6 +716,67 @@ export async function withdrawInvoice(user: CurrentUser, idOrNumber: string, par
     revalidatePath(`/projects/${project.id}`)
   }
   return getProject(user, project.id)
+}
+
+// ── Comments ──────────────────────────────────────────────────────────
+
+export const commentInput = z.object({
+  body: z.string().trim().min(1).max(COMMENT_MAX),
+  /** For the office only; the team does not see it. */
+  office: z.boolean().default(false),
+})
+
+const commentSelect = {
+  id: true,
+  body: true,
+  visibility: true,
+  mentions: true,
+  createdAt: true,
+  author: { select: { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } },
+} as const
+
+type CommentRow = {
+  id: string
+  body: string
+  visibility: string
+  mentions: string[]
+  createdAt: Date
+  author: { id: string; username: string; employee: { firstName: string; lastName: string } | null } | null
+}
+
+const commentDto = (n: CommentRow) => ({
+  id: n.id,
+  body: n.body,
+  office: n.visibility === 'MANAGEMENT',
+  createdAt: n.createdAt.toISOString(),
+  author: n.author ? { id: n.author.id, username: n.author.username, name: displayName(n.author) } : null,
+  /** The ids of the users named with @. */
+  mentions: n.mentions,
+})
+
+async function projectIdOf(idOrNumber: string): Promise<string> {
+  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
+  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  return project.id
+}
+
+/** The comments on a project, oldest first. */
+export async function listComments(user: CurrentUser, idOrNumber: string) {
+  assertManagement(user)
+  const projectId = await projectIdOf(idOrNumber)
+  const rows = await db.note.findMany({ where: { projectId }, orderBy: { createdAt: 'asc' }, select: commentSelect })
+  return rows.map(commentDto)
+}
+
+/** A comment from an automation — "Angebot versendet", say — written as the key's user. */
+export async function addComment(user: CurrentUser, idOrNumber: string, input: z.infer<typeof commentInput>, actor?: EventActor) {
+  assertManagement(user)
+  const projectId = await projectIdOf(idOrNumber)
+  const result = await createComment({ projectId, authorId: user.id, body: input.body, office: input.office, actor: actorFor(user, actor) })
+  if ('error' in result) throw new ApiError(400, 'invalid', 'The comment is empty.')
+  revalidatePath(`/projects/${projectId}`)
+  const row = await db.note.findUnique({ where: { id: result.id }, select: commentSelect })
+  return row ? commentDto(row) : null
 }
 
 // ── Files ─────────────────────────────────────────────────────────────

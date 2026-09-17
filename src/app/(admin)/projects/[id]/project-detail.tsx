@@ -25,6 +25,10 @@ import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { ProjectAddOns } from './add-ons'
 import { ProjectInvoices, type InvoiceRow } from './invoices-card'
+import { ProjectComments, type CommentRow } from './comments-card'
+import { displayName, mentionablePeople } from '@/lib/comments-db'
+import { canDeleteComment } from '@/lib/comments'
+import { initials, swatchOf } from '@/lib/board-cards'
 import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
 import { ProjectTimeSummary } from './time-summary'
 import { daysOut } from '@/lib/devices'
@@ -93,6 +97,11 @@ export async function ProjectDetail({
         orderBy: { startedAt: 'desc' },
         include: { employee: { select: { id: true, firstName: true, lastName: true } } },
       },
+      // The team's comments, oldest first, with who wrote each.
+      notes: {
+        orderBy: { createdAt: 'asc' },
+        include: { author: { select: { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } } },
+      },
       checklists: {
         orderBy: { createdAt: 'asc' },
         include: {
@@ -117,7 +126,7 @@ export async function ProjectDetail({
     notFound()
   }
 
-  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects] =
+  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people] =
     await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
     db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
@@ -152,7 +161,21 @@ export async function ProjectDetail({
           select: { id: true, number: true, name: true },
         })
       : Promise.resolve([]),
+    // Everybody a comment can name with @.
+    mentionablePeople(),
   ])
+  const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { dateStyle: 'short', timeStyle: 'short' })
+  const comments: CommentRow[] = project.notes.map((note) => {
+    const name = note.author ? displayName(note.author) : null
+    return {
+      id: note.id,
+      body: note.body,
+      when: stamp.format(note.createdAt),
+      author: note.author && name ? { name, initials: initials(name), swatch: swatchOf(note.author.id) } : null,
+      office: note.visibility === 'MANAGEMENT',
+      deletable: canDeleteComment(user, note),
+    }
+  })
   const assignedItemIds = new Set(project.items.map((i) => i.catalogItemId))
   const catalogOptions = (
     await db.catalogItem.findMany({
@@ -656,6 +679,11 @@ export async function ProjectDetail({
             </ul>
           )}
         </section>
+
+        {/* The team talking on the project — the whole width, under everything. */}
+        <div className="lg:col-span-2">
+          <ProjectComments projectId={project.id} comments={comments} people={people} />
+        </div>
       </div>
 
     </div>

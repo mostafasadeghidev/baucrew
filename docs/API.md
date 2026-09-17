@@ -51,6 +51,8 @@ knows each project's record there, as a *link* (`system` + `externalId`).
 | DELETE | `/api/v1/projects/{id}/links/{system}` | Remove the project's link to that system |
 | PUT | `/api/v1/projects/{id}/invoices/{part}` | Mark invoice `1` (`first`, half the order value) or `2` (`final`, what the first left) ready: `{ "number": "…", "amount": 6250 }`, both optional — without `amount` it is suggested. Raises `invoice.ready` the first time (financial access) |
 | DELETE | `/api/v1/projects/{id}/invoices/{part}` | Take the ready mark back; nothing is raised |
+| GET | `/api/v1/projects/{id}/comments` | The comments on the project, oldest first: `{ id, body, office, createdAt, author, mentions }` |
+| POST | `/api/v1/projects/{id}/comments` | Write a comment as the key's user — "Angebot versendet", say: `{ "body": "…", "office": false }`. `@name` in the body names an account; the users named come back in `mentions`. Raises `comment.created` |
 | POST | `/api/v1/projects/{id}/files` | Add a file: multipart form data, field `file` (PDF, images, Office, CSV, text; ≤25 MB). A file without a type gets one from its name |
 | GET | `/api/v1/customers` | Customers by `q` (name, company, town), `limit` |
 | POST | `/api/v1/customers` | Create a customer: `name`, optional `company`, `contactPerson`, `phone`, `email`, `street`, `postalCode`, `city`, `notes` |
@@ -128,6 +130,7 @@ secret, sends a test, and lists the recent deliveries with their answers.
 | `project.updated` | Name, customer, site manager, dates, price or order value (follow-on offers), sub-contract flag, address or description changed |
 | `project.deleted` | A project was deleted, or merged into another (`mergedInto`) |
 | `invoice.ready` | The office marked one of the job's two invoices ready — on the project page or over the API. `data.invoice` is `{ part, kind, number, amount, readyAt }`; marking it again changes it without a second event |
+| `comment.created` | Somebody wrote on the project. `data.comment` is `{ id, body, office, createdAt, author: { id, username, name }, mentions: [{ id, username, name }] }` — the people named with `@`, so an automation can reach them |
 
 The Trello board import in Settings raises no events: what it brings comes
 from the board an automation would tell.

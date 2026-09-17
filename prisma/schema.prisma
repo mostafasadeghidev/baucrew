@@ -727,6 +727,8 @@ model Note {
   author     User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
   visibility NoteVisibility @default(TEAM)
   body       String
+  /// The users named with @ in the body, so an automation can tell them.
+  mentions   String[]       @default([])
   createdAt  DateTime       @default(now())
 
   @@index([projectId])
