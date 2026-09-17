@@ -15,6 +15,7 @@ import { pricesHidden } from '@/lib/price-visibility'
 import { deleteProject, setProjectStatus, updateProject } from '../actions'
 import { ProjectForm } from '../project-form'
 import { ProjectBarActions } from './edit-all-button'
+import { SheetClose } from '../card-sheet'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
 import { PlanEntryButton } from './plan-entry-button'
 import { MergeButton } from './merge-button'
@@ -123,7 +124,13 @@ export async function ProjectDetail({
     },
   })
   if (!project) {
-    if (sheet) return <p className="px-2 py-8 text-center text-sm text-muted">{t('cardMissing')}</p>
+    if (sheet)
+      return (
+        <div className="flex items-center justify-between gap-3">
+          <p className="px-2 py-6 text-sm text-muted">{t('cardMissing')}</p>
+          <SheetClose />
+        </div>
+      )
     notFound()
   }
 
@@ -423,10 +430,19 @@ export async function ProjectDetail({
             />
           }
           actions={
+            <>
             <ProjectBarActions
               label={tc('edit')}
               saveLabel={tc('save')}
               cancelLabel={tc('cancel')}
+              whileEditing={
+                user.role === 'ADMIN' ? (
+                  <MergeButton
+                    projectId={project.id}
+                    projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
+                  />
+                ) : null
+              }
             >
               {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
                 <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
@@ -434,20 +450,22 @@ export async function ProjectDetail({
               <Link href={`/projects/${project.id}/sheet`} className={btn.outlineSm}>
                 {tSheet('title')}
               </Link>
+              {sheet && (
+                <Link href={`/projects/${project.id}`} className={btn.outlineSm}>
+                  {t('cardOpenFull')}
+                </Link>
+              )}
               {user.role === 'ADMIN' && (
-                <>
-                  <MergeButton
-                    projectId={project.id}
-                    projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
-                  />
-                  <DeleteButton
-                    action={deleteProject.bind(null, project.id)}
-                    label={tc('delete')}
-                    confirmMessage={t('deleteConfirm')}
-                  />
-                </>
+                <DeleteButton
+                  action={deleteProject.bind(null, project.id)}
+                  label={tc('delete')}
+                  confirmMessage={t('deleteConfirm')}
+                />
               )}
             </ProjectBarActions>
+            {/* Over the board the cross closes the sheet — the last button on the right. */}
+            {sheet && <SheetClose />}
+            </>
           }
         />
       </Head>

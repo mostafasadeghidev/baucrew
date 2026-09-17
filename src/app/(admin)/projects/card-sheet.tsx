@@ -5,24 +5,53 @@
  * stays where it is underneath, and the sheet carries the project's page —
  * every card of it, every form. Which project is open lives in the address
  * (`?card=<id>`), so a sheet can be sent as a link and the browser's back
- * gesture closes it. Escape, the backdrop and the cross close it too.
+ * gesture closes it.
+ *
+ * It is closed on purpose only: Escape, or the cross at the right end of the
+ * project's own bar. A click beside the sheet does nothing — the sheet holds
+ * forms, and a slip of the mouse must not throw away what was typed.
  */
 
 import { useEffect, useSyncExternalStore, useTransition, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { ExternalLink, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { lockPageScroll } from '@/lib/scroll-lock'
-import { btn } from '@/components/ui/button'
 
-export function CardSheet({ fullHref, children }: { fullHref: string; children: ReactNode }) {
-  const t = useTranslations('projects')
+/** Takes the card out of the address, which is what closes the sheet. */
+function useCloseSheet() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
+  return () => {
+    const params = new URLSearchParams(searchParams)
+    params.delete('card')
+    const qs = params.toString()
+    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }))
+  }
+}
+
+/** The cross — the last button of the project's bar while it is shown in the sheet. */
+export function SheetClose() {
+  const t = useTranslations('projects')
+  const close = useCloseSheet()
+  return (
+    <button
+      type="button"
+      onClick={close}
+      aria-label={t('cardClose')}
+      title={t('cardClose')}
+      className="rounded-md border border-border p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+    >
+      <X className="h-4 w-4" aria-hidden />
+    </button>
+  )
+}
+
+export function CardSheet({ children }: { children: ReactNode }) {
+  const close = useCloseSheet()
 
   // Client-only render (portal target); no setState-in-effect.
   const mounted = useSyncExternalStore(
@@ -30,13 +59,6 @@ export function CardSheet({ fullHref, children }: { fullHref: string; children: 
     () => true,
     () => false
   )
-
-  const close = () => {
-    const params = new URLSearchParams(searchParams)
-    params.delete('card')
-    const qs = params.toString()
-    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }))
-  }
 
   useEffect(() => {
     const unlock = lockPageScroll()
@@ -56,25 +78,9 @@ export function CardSheet({ fullHref, children }: { fullHref: string; children: 
 
   return createPortal(
     <div className="fixed inset-0 z-[70] overflow-y-auto">
-      <button type="button" aria-label={t('cardClose')} onClick={close} className="fixed inset-0 bg-black/50" />
+      <div aria-hidden className="fixed inset-0 bg-black/50" />
       <div className="relative mx-auto my-4 w-full max-w-6xl px-4 sm:my-8">
         <div role="dialog" aria-modal="true" className="rounded-xl border border-border bg-background p-5 shadow-2xl">
-          {/* The sheet's own row: the way to the whole page, and out. */}
-          <div className="mb-3 flex items-center justify-end gap-2">
-            <Link href={fullHref} className={`${btn.outlineSm} gap-1.5`}>
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-              {t('cardOpenFull')}
-            </Link>
-            <button
-              type="button"
-              onClick={close}
-              aria-label={t('cardClose')}
-              title={t('cardClose')}
-              className="rounded-md border border-border p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
-            >
-              <X className="h-4 w-4" aria-hidden />
-            </button>
-          </div>
           {children}
         </div>
       </div>

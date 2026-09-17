@@ -208,6 +208,7 @@
     "boardFilterLabel": "Trade",
     "boardFilterUrgent": "Urgent only",
     "boardFilterReset": "Reset filter",
+    "boardFilterSearch": "Search …",
     "cardDates": "Start – end (planned)",
     "cardLate": "Past its planned end",
     "cardSoon": "Starts in the next days",

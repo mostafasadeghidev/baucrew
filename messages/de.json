@@ -208,6 +208,7 @@
     "boardFilterLabel": "Gewerk",
     "boardFilterUrgent": "Nur dringende",
     "boardFilterReset": "Filter zurücksetzen",
+    "boardFilterSearch": "Suchen …",
     "cardDates": "Beginn – Ende (geplant)",
     "cardLate": "Das geplante Ende ist überschritten",
     "cardSoon": "Beginn in den nächsten Tagen",

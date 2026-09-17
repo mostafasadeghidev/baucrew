@@ -4,12 +4,14 @@
  * The right-hand end of a project's bar.
  *
  * Normally it is what the page can do to the project — reopen it, print its
- * work order, fold a duplicate into it, delete it — with "Bearbeiten" at the
- * end. Press that and the whole group is replaced by save and cancel: while
- * the page is being edited, deleting or merging it is not something anybody
- * means to do, and a row of buttons that stay live next to an unsaved form is
- * a row of ways to lose the work. It is also why they are replaced rather than
- * hidden — the bar keeps its shape, so nothing on the page moves.
+ * work order, delete it — with "Bearbeiten" at the end. Press that and the
+ * group is replaced by save and cancel: a row of buttons that stay live next
+ * to an unsaved form is a row of ways to lose the work. They are replaced
+ * rather than hidden — the bar keeps its shape, so nothing on the page moves.
+ *
+ * Folding a duplicate into the project is part of putting a project right,
+ * not of reading it, so that button stands with save and cancel
+ * (`whileEditing`) rather than among the everyday ones.
  *
  * A single card opened with its pencil carries its own two buttons; this stays
  * "Bearbeiten" then, because that is still what it does: open the rest.
@@ -35,11 +37,14 @@ export function ProjectBarActions({
   label,
   saveLabel,
   cancelLabel,
+  whileEditing,
   children,
 }: {
   label: string
   saveLabel: string
   cancelLabel: string
+  /** What is offered only while the whole project is open for editing — merging a duplicate into it. */
+  whileEditing?: ReactNode
   /** Everything the bar offers while nothing is being edited. */
   children: ReactNode
 }) {
@@ -54,6 +59,7 @@ export function ProjectBarActions({
   if (mode === 'all') {
     return (
       <div className="flex flex-wrap items-center gap-2">
+        {whileEditing}
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent(PROJECT_EDIT_CANCEL_EVENT))}

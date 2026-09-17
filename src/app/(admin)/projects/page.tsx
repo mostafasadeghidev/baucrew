@@ -26,7 +26,7 @@ import { ProjectsKanban, type KanbanColumn } from './kanban'
 import { ProjectYearPicker } from './year-picker'
 import { BoardTabs } from './board-tabs'
 import { BoardFilter } from './board-filter'
-import { CardSheet } from './card-sheet'
+import { CardSheet, SheetClose } from './card-sheet'
 import { ProjectDetail } from './[id]/project-detail'
 import { dateTone, initials, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 
@@ -607,8 +607,15 @@ export default async function ProjectsPage({
       {/* A card opened over the board: the project's page in a sheet, the
           board still underneath. It streams in after the board. */}
       {card && (
-        <CardSheet fullHref={`/projects/${card}`}>
-          <Suspense fallback={<p className="py-16 text-center text-sm text-muted">{t('cardLoading')}</p>}>
+        <CardSheet>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-between gap-3">
+                <p className="px-2 py-6 text-sm text-muted">{t('cardLoading')}</p>
+                <SheetClose />
+              </div>
+            }
+          >
             <ProjectDetail id={card} sheet={{ returnTo }} />
           </Suspense>
         </CardSheet>
