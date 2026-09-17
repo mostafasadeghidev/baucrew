@@ -3,6 +3,64 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.38.0] — 2026-09-17
+
+### Added
+- **Boards, several of them.** The projects page had one board; it now has
+  boards, the way Trello lines them up — a tab per board above the search,
+  each board a name and its columns, and a project standing on every board
+  that has a column for its status. A column is still a status, so a card
+  dragged into it changes nothing but the status and the schedule, the CRM
+  and the webhooks read what they always read; a column may carry a name of
+  its own on its board, *Angebot fertig* for *Angebot erstellt*, say, the way
+  the list was called on the old Trello board. Boards are made under
+  **Einstellungen → Boards** (administrators): name, columns and their names,
+  the order of the tabs, and deleting all but the last. The order of a board's
+  columns is still dragged on the board itself and saved on that board; which
+  board is open lives in the address and is remembered per browser. The old
+  column setting became the first board, *Alle*, in its dragged order.
+- **The cards say what a Trello card says.** Labels on top — *Hoch*, *SUB*,
+  the trades each in a colour of its own — then name, customer and town, then
+  what the card holds: start and end, red once the planned end has passed and
+  amber when a job that has not started is due within the week; the checklists
+  as done/total with a warning where a problem was noted; the number of files
+  and comments; the value for those who may see it. At the foot the faces: the
+  site manager ringed in the accent, the team after, three and a count of the
+  rest. A **Filter** beside the search narrows the board to one person (as site
+  manager or in the team), one trade, or only the urgent jobs; the choice lives
+  in the address and follows the office from one board to the next.
+- **A card opens over the board.** A click on a card — its name or anywhere on
+  it — opens the project in a sheet with the board still underneath: the
+  project's page inside, every card of it and every form. Which project is
+  open lives in the address (`?card=…`), so a sheet is a link that can be sent
+  and the browser's back gesture closes it; Escape, the cross and the backdrop
+  close it too, and **Projektseite öffnen** leads to the whole page. A save
+  made in the sheet returns to the board with the sheet still open.
+- **Kommentare.** The team talks on the project the way it talks under a
+  Trello card: at the foot of the project page and of the card sheet, short
+  comments oldest first with who wrote each and when, and a box for the next
+  one. An @ names somebody — the picker under the box offers the accounts as
+  the name is typed, Enter or a click takes one — and the name is lit in the
+  comment. **Nur fürs Büro** keeps a comment from the team. The author may
+  take a comment back; an administrator any. Every comment raises the webhook
+  event `comment.created`, carrying the comment, the people it names and the
+  whole project, so an automation can reach them in Telegram or by mail; and
+  `GET`/`POST /api/v1/projects/{id}/comments` lets an automation write on the
+  card in turn — "Angebot versendet", say.
+- **The crew answers from the site.** The comments the team may see stand
+  under every assignment in Mein Bereich, with the same box: whoever may work
+  on a project may write on it.
+- **A bell says who was named.** In the corner, in the office and on the
+  phone, the bell counts the comments that have named the user since they last
+  looked and lists them behind a click — project, who wrote, what — each line
+  opening the project on the office side. Looking is enough: the count goes.
+
+### Changed
+- The project page is one component now, drawn by the page and by the card
+  sheet alike; what is added to the page is in the sheet as well.
+- The label and person colours live in one place and mean the same on the
+  board and under a comment.
+
 ## [1.37.0] — 2026-09-17
 
 ### Added
