@@ -22,6 +22,8 @@ import {
   planReached,
   cumulativeMonths,
   parseCompareYears,
+  carryCompareYears,
+  compareTones,
   quarterBreakdown,
   bestQuarter,
   siteKey,
@@ -241,9 +243,31 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const frameLabel = periodLabel ? `${periodLabel} ${year}` : String(year)
   const standLabel = t('standDate', { date: formatDate(today, locale) })
 
+  // The quarter card may stand on a year of its own.
+  const quarterYear =
+    quarterYearParam && /^\d{4}$/.test(quarterYearParam) && comparisonYears.includes(Number(quarterYearParam))
+      ? Number(quarterYearParam)
+      : year
+  /**
+   * What the two comparisons become once the page moves to another year: the
+   * years ticked stay, and the year that was on screen joins them — see
+   * `carryCompareYears`. The quarter card follows the page unless it was set
+   * to a year of its own, and that year is not the one the page moves to.
+   */
+  const carriedCompare = (nextYearValue: number) => {
+    const quarterFollows = quarterYearParam === undefined || quarterYearParam === String(nextYearValue)
+    return {
+      compare: carryCompareYears(compareParam, year, nextYearValue),
+      qcompare: quarterFollows
+        ? carryCompareYears(quarterCompareParam, quarterYear, nextYearValue)
+        : quarterCompareParam,
+    }
+  }
+
   /** Every link out of this page keeps the rest of the page as it stands. */
   const reportHref = (change: { period?: string | null; year?: number } = {}) => {
     const nextYearValue = change.year ?? year
+    const carried = carriedCompare(nextYearValue)
     const query = new URLSearchParams({ year: String(nextYearValue) })
     const period = change.period === undefined ? periodParam : change.period
     if (period) query.set('period', period)
@@ -251,8 +275,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     if (orderParam) query.set('order', orderParam)
     if (viewParam) query.set('view', viewParam)
     // An empty comparison is a choice, not an absence — see parseCompareYears.
-    if (compareParam !== undefined) query.set('compare', compareParam)
-    if (quarterCompareParam !== undefined) query.set('qcompare', quarterCompareParam)
+    if (carried.compare !== undefined) query.set('compare', carried.compare)
+    if (carried.qcompare !== undefined) query.set('qcompare', carried.qcompare)
     if (quarterYearParam !== undefined && quarterYearParam !== String(nextYearValue)) query.set('qyear', quarterYearParam)
     if (chartParam) query.set('chart', chartParam)
     // How the revenue months are drawn: a layout that came in on a link has no
@@ -427,6 +451,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const chartMode: 'bars' | 'line' | 'linear' | 'area' =
     chartParam === 'line' || chartParam === 'linear' || chartParam === 'area' ? chartParam : 'bars'
   const compareYears = parseCompareYears(compareParam, year, comparisonYears, MAX_COMPARE)
+  const tones = compareTones(year, comparisonYears)
   const compareSeries = onCompare
     ? compareYears
         .map((y) => {
@@ -438,15 +463,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 ownLabel: t('legendOwn', { year: y }),
                 subLabel: t('legendSub', { year: y }),
                 months: row.months.map((m) => ({ own: m.own, sub: m.sub })),
+                tone: tones.get(y),
               }
             : null
         })
         .filter((row) => row !== null)
     : []
-  const quarterYear =
-    quarterYearParam && /^\d{4}$/.test(quarterYearParam) && comparisonYears.includes(Number(quarterYearParam))
-      ? Number(quarterYearParam)
-      : year
   const monthsOfYear = (y: number): number[] =>
     y === year ? monthTotals : ((yearTotals ?? []).find((r) => r.year === y)?.months ?? []).map((m) => m.total)
   const quarterCompareYears = parseCompareYears(quarterCompareParam, quarterYear, comparisonYears, MAX_QUARTER_COMPARE)
@@ -498,7 +520,30 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       : []
 
   const exportHref = `/reports/export?year=${year}${periodParam ? `&period=${encodeURIComponent(periodParam)}` : ''}`
-  const yearOptions = comparisonYears.map(String)
+  // The year on screen is always among them: a link can bring a year the six
+  // do not hold, and a picker without it would show another year's name.
+  const yearOptions = [...new Set([...comparisonYears, year])].sort((a, b) => b - a)
+  const yearValue = (y: number) => (y === currentYear ? '' : String(y))
+  /** What choosing a year takes along — only what the choice would change. */
+  const yearCarry = Object.fromEntries(
+    yearOptions.map((y) => {
+      const carried = carriedCompare(y)
+      const sets: Record<string, string> = {}
+      if (carried.compare !== undefined && carried.compare !== compareParam) sets.compare = carried.compare
+      // Choosing a year takes the quarter card along with it (`clears`).
+      const quarter = carryCompareYears(quarterCompareParam, quarterYear, y)
+      if (quarter !== undefined && quarter !== quarterCompareParam) sets.qcompare = quarter
+      return [yearValue(y), sets]
+    })
+  )
+  const quarterCarry = Object.fromEntries(
+    comparisonYears.map((y) => {
+      const carried = carryCompareYears(quarterCompareParam, quarterYear, y)
+      const sets: Record<string, string> = {}
+      if (carried !== undefined && carried !== quarterCompareParam) sets.qcompare = carried
+      return [y === year ? '' : String(y), sets]
+    })
+  )
   // Grouped, so quarters, half-years and months are not one long flat list.
   const periodOptions = [
     {
@@ -583,7 +628,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 className="min-w-20"
                 compact
                 clears={['qyear']}
-                options={yearOptions.map((y) => ({ value: y === String(currentYear) ? '' : y, label: y }))}
+                value={yearValue(year)}
+                carry={yearCarry}
+                options={yearOptions.map((y) => ({ value: yearValue(y), label: String(y) }))}
               />
               <LiveSelect
                 param="period"
@@ -694,6 +741,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     label={t('quarterYear')}
                     value={quarterYear === year ? '' : String(quarterYear)}
                     options={comparisonYears.map((y) => ({ value: y === year ? '' : String(y), label: String(y) }))}
+                    carry={quarterCarry}
                     dense
                   />
                   <span className="text-xs text-muted">{t('quarterVersus')}</span>
@@ -733,9 +781,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <YearBars
                 rows={yearBars}
                 selected={year}
-                hrefFor={(y) =>
-                  `/reports?tab=compare&year=${y}${periodParam ? `&period=${encodeURIComponent(periodParam)}` : ''}`
-                }
+                hrefFor={(y) => reportHref({ year: y })}
                 formatValue={money}
                 legend={{ own: t('ownPeople'), sub: t('sub'), change: t('changeVsPrev') }}
               />

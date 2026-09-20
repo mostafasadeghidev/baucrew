@@ -451,6 +451,43 @@ export function parseCompareYears(
   )
 }
 
+/**
+ * The comparison as the address has to carry it once the year on screen moves
+ * from one year to another.
+ *
+ * Ticked years stay ticked and the year that was on screen joins them, so going
+ * from 2026 to 2025 turns "2026 against 2025 and 2024" into "2025 against 2026
+ * and 2024" — the same three years, none of them lost. Left as it was, the list
+ * would drop 2025 for being the year on screen and have nothing to say about
+ * 2026: the running year would fall out of a chart it was just standing in.
+ *
+ * A comparison nobody chose stays unchosen — the year before, whatever the year
+ * — and one that was emptied stays empty.
+ */
+export function carryCompareYears(value: string | undefined, from: number, to: number): string | undefined {
+  if (value === undefined || value.trim() === '' || from === to) return value
+  const ticked = value
+    .split(',')
+    .map((part) => Number(part.trim()))
+    .filter((n) => Number.isInteger(n))
+  return [...new Set([...ticked, from])]
+    .filter((y) => y !== to)
+    .sort((a, b) => b - a)
+    .join(',')
+}
+
+/**
+ * Which of the chart's colours a compared year wears. It follows the year, not
+ * the order of ticking: the year before always has the first one — the grey —
+ * and the others take theirs newest first, so ticking one year more never
+ * repaints the ones already in the chart.
+ */
+export function compareTones(year: number, offered: number[]): Map<number, number> {
+  const others = [...new Set(offered)].filter((y) => y !== year).sort((a, b) => b - a)
+  const ordered = others.includes(year - 1) ? [year - 1, ...others.filter((y) => y !== year - 1)] : others
+  return new Map(ordered.map((y, i) => [y, i]))
+}
+
 /** A line of the revenue tab as the customer split reads it. */
 export type CustomerLine = {
   id: string

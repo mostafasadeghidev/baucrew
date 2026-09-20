@@ -215,7 +215,12 @@ export default async function PlanMatchPage({
   const sureCount = openRows.filter((r) => r.suggestions.some((s) => s.sure)).length
   const hidePrices = await pricesHidden()
   const money = (v: number) => formatCurrency(v, locale, { hidden: hidePrices })
-  const yearOptions = years.map((y) => ({ value: String(y.year), label: String(y.year) }))
+  // The year on screen is always on offer, plan or none: opened without a year
+  // the page stands on the running one, and a picker that does not hold it
+  // would show another year's name over this year's lines.
+  const yearOptions = [...new Set([...years.map((y) => y.year), year])]
+    .sort((x, y) => y - x)
+    .map((y) => ({ value: String(y), label: String(y) }))
 
   return (
     <div className="space-y-4">
@@ -224,8 +229,8 @@ export default async function PlanMatchPage({
           back={{ href: '/reports?tab=revenue', label: tNav('reports') }}
           title={t('title')}
           actions={
-            yearOptions.length > 0 && (
-              <LiveSelect param="year" options={yearOptions} ariaLabel={t('yearLabel')} />
+            years.length > 0 && (
+              <LiveSelect param="year" value={String(year)} options={yearOptions} ariaLabel={t('yearLabel')} />
             )
           }
         />

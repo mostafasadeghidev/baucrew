@@ -10,13 +10,17 @@ function useParamUpdater() {
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
 
-  return (param: string, value: string, clears: string[] = []) => {
+  return (param: string, value: string, clears: string[] = [], sets: Record<string, string> = {}) => {
     const params = new URLSearchParams(searchParams)
     if (value) params.set(param, value)
     else params.delete(param)
     // Some filters carry others with them: a card that was looking at its own
     // year has no business staying there once the whole page has moved.
     for (const other of clears) params.delete(other)
+    // And some rewrite others: what a choice takes along is set after what it
+    // drops, so a parameter can be both. An empty value is written as one — see
+    // `carry` below.
+    for (const [other, carried] of Object.entries(sets)) params.set(other, carried)
     // Changing a filter always jumps back to the first page.
     params.delete('page')
     const qs = params.toString()
@@ -76,6 +80,8 @@ export function LiveSelect({
   className = 'min-w-44',
   compact = false,
   clears,
+  value,
+  carry,
 }: {
   param: string
   options: Array<LiveSelectOption | LiveSelectGroup>
@@ -85,6 +91,19 @@ export function LiveSelect({
   compact?: boolean
   /** Other query parameters to drop when this one changes. */
   clears?: string[]
+  /**
+   * The option the page is standing on, when the address alone cannot say. A
+   * default that is written as nothing can still arrive spelled out — a link
+   * carrying "year=2026" in 2026 — and a select asked for a value none of its
+   * options has falls back to the first one: the page shows 2026 and its year
+   * picker says 2027. Whoever renders the page knows which it is.
+   */
+  value?: string
+  /**
+   * Other query parameters an option rewrites when it is chosen, by option
+   * value: `{ '2025': { compare: '2026,2024' } }`.
+   */
+  carry?: Record<string, Record<string, string>>
 }) {
   const searchParams = useSearchParams()
   const update = useParamUpdater()
@@ -100,8 +119,8 @@ export function LiveSelect({
       className={className}
       compact={compact}
       aria-label={ariaLabel}
-      value={searchParams.get(param) ?? ''}
-      onChange={(e) => update(param, e.target.value, clears)}
+      value={value ?? searchParams.get(param) ?? ''}
+      onChange={(e) => update(param, e.target.value, clears, carry?.[e.target.value])}
     >
       {allLabel !== undefined && <option value="">{allLabel}</option>}
       {options.map((o) =>

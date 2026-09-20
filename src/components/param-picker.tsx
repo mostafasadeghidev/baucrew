@@ -28,6 +28,7 @@ export function ParamPicker({
   param,
   label,
   dense = false,
+  carry,
 }: {
   options: ParamOption[]
   /** The value in the URL now; '' is the default. */
@@ -37,6 +38,11 @@ export function ParamPicker({
   label: string
   /** Smaller, to match a picker it stands beside. */
   dense?: boolean
+  /**
+   * Other query parameters an option rewrites when it is chosen, by option
+   * value: `{ '2025': { qcompare: '2026' } }`.
+   */
+  carry?: Record<string, Record<string, string>>
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -49,6 +55,7 @@ export function ParamPicker({
     const params = new URLSearchParams(searchParams)
     if (next) params.set(param, next)
     else params.delete(param)
+    for (const [other, carried] of Object.entries(carry?.[next] ?? {})) params.set(other, carried)
     const qs = params.toString()
     startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }))
   }

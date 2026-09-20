@@ -9,6 +9,8 @@ import {
   lostCustomers,
   monthSiteCount,
   parseCompareYears,
+  carryCompareYears,
+  compareTones,
   percentChange,
   planReached,
   siteMonthRows,
@@ -371,6 +373,56 @@ describe('parseCompareYears', () => {
 
   it('offers no comparison when the year before is not on the list', () => {
     expect(parseCompareYears(undefined, 2022, allowed)).toEqual([])
+  })
+})
+
+describe('carryCompareYears', () => {
+  it('keeps every year of the chart when the page moves to another year', () => {
+    // 2026 against 2025 and 2024 becomes 2025 against 2026 and 2024.
+    expect(carryCompareYears('2025,2024', 2026, 2025)).toBe('2026,2024')
+    // A year that was not in the chart joins it; the old one stays beside it.
+    expect(carryCompareYears('2025,2024', 2026, 2023)).toBe('2026,2025,2024')
+  })
+
+  it('brings the chart back as it was when the page moves back', () => {
+    const there = carryCompareYears('2025,2024', 2026, 2025)
+    expect(carryCompareYears(there, 2025, 2026)).toBe('2025,2024')
+  })
+
+  it('leaves a comparison nobody chose, and one that was emptied, alone', () => {
+    expect(carryCompareYears(undefined, 2026, 2025)).toBeUndefined()
+    expect(carryCompareYears('', 2026, 2025)).toBe('')
+  })
+
+  it('changes nothing when the year does not change', () => {
+    expect(carryCompareYears('2025,2024', 2026, 2026)).toBe('2025,2024')
+  })
+
+  it('ignores rubbish and repeats in what it is given', () => {
+    expect(carryCompareYears('2025,abc,2025', 2026, 2024)).toBe('2026,2025')
+  })
+})
+
+describe('compareTones', () => {
+  const offered = [2027, 2026, 2025, 2024, 2023, 2022]
+
+  it('gives the year before the first colour and the others theirs newest first', () => {
+    const tones = compareTones(2026, offered)
+    expect([...tones]).toEqual([
+      [2025, 0],
+      [2027, 1],
+      [2024, 2],
+      [2023, 3],
+      [2022, 4],
+    ])
+    expect(tones.has(2026)).toBe(false)
+  })
+
+  it('goes newest first where the year before is not on offer', () => {
+    expect([...compareTones(2022, offered)].slice(0, 2)).toEqual([
+      [2027, 0],
+      [2026, 1],
+    ])
   })
 })
 

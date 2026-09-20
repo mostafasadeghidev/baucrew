@@ -83,13 +83,20 @@ export type RevenueChartCompare = {
   subLabel: string
   /** Twelve months, own crew and SUB apart. */
   months: Array<{ own: number; sub: number }>
+  /**
+   * Which of the compare colours the year wears. Given by whoever knows every
+   * year on offer, so a year keeps its colour while others are ticked and
+   * unticked around it; left out, the colours go by position.
+   */
+  tone?: number
 }
 
 /**
  * One colour per compared year, own crew solid and SUB at the same fraction
- * the accent colour uses, so the split reads the same in every bar. The
- * colours go to the compared years newest first, which leaves the grey on the
- * year before in every ordinary case. Five is the cap — as many as the year
+ * the accent colour uses, so the split reads the same in every bar. Which one
+ * a year wears comes with the year (`tone`): the grey stays on the year before
+ * and no year changes colour because another was ticked beside it. Without a
+ * tone the colours go newest first. Five is the cap — as many as the year
  * picker offers, and as many as a month can hold before the bars stop being
  * tellable apart.
  */
@@ -293,6 +300,8 @@ export function RevenueChart({
   const hidePrices = usePricesHidden()
   const money = (v: number) => formatCurrency(v, locale, { hidden: hidePrices })
   const series = compare.slice(0, COMPARE_OWN.length)
+  /** The colour of compared year `n` — its own where it has one. */
+  const tone = (n: number) => (series[n].tone ?? n) % COMPARE_OWN.length
   /**
    * From two compared years on, a bar answers for itself. A curve cannot: it
    * has no column, so a line or an area always answers for the whole month.
@@ -393,13 +402,13 @@ export function RevenueChart({
     // The same mark the legend gives it: split where the bars are split, plain
     // where the picture is a single stroke.
     const mark: string | [string, string] = curved
-      ? SWATCH_OWN[n]
-      : [SWATCH_OWN[n], SWATCH_SUB[n]]
+      ? SWATCH_OWN[tone(n)]
+      : [SWATCH_OWN[tone(n)], SWATCH_SUB[tone(n)]]
     const totalEntry: TipEntry = { label: s.label, value: money(total), swatch: mark, change }
     if (!split || sub === 0) return [totalEntry]
     return [
-      { label: s.subLabel, value: money(sub), swatch: SWATCH_SUB[n] },
-      { label: s.ownLabel, value: money(own), swatch: SWATCH_OWN[n] },
+      { label: s.subLabel, value: money(sub), swatch: SWATCH_SUB[tone(n)] },
+      { label: s.ownLabel, value: money(own), swatch: SWATCH_OWN[tone(n)] },
       totalEntry,
     ]
   }
@@ -467,7 +476,7 @@ export function RevenueChart({
     ? null
     : [...lanes].reverse().map((lane) => {
         const values = months.map((_, i) => ownOf(lane, i) + subOf(lane, i))
-        const lineClass = lane.compare === -1 ? 'stroke-accent' : COMPARE_STROKE[lane.compare]
+        const lineClass = lane.compare === -1 ? 'stroke-accent' : COMPARE_STROKE[tone(lane.compare)]
         return (
           <g key={lane.year} className="pointer-events-none">
             {monthRuns(values).map((run) => {
@@ -556,8 +565,8 @@ export function RevenueChart({
               <Swatch
                 swatch={
                   curved
-                    ? SWATCH_OWN[lane.compare]
-                    : [SWATCH_OWN[lane.compare], SWATCH_SUB[lane.compare]]
+                    ? SWATCH_OWN[tone(lane.compare)]
+                    : [SWATCH_OWN[tone(lane.compare)], SWATCH_SUB[tone(lane.compare)]]
                 }
               />{' '}
               {series[lane.compare].label}
@@ -625,8 +634,8 @@ export function RevenueChart({
                 const sub = subOf(lane, i)
                 if (own + sub <= 0) return null
                 const x = x0 + j * (barW + gap)
-                const ownFill = lane.compare === -1 ? 'fill-accent' : COMPARE_OWN[lane.compare]
-                const subFill = lane.compare === -1 ? 'fill-accent/40' : COMPARE_SUB[lane.compare]
+                const ownFill = lane.compare === -1 ? 'fill-accent' : COMPARE_OWN[tone(lane.compare)]
+                const subFill = lane.compare === -1 ? 'fill-accent/40' : COMPARE_SUB[tone(lane.compare)]
                 return (
                   <g key={lane.year}>
                     {sub > 0 && (
@@ -684,13 +693,13 @@ export function RevenueChart({
                   >
                     <stop
                       offset="0%"
-                      className={lane.compare === -1 ? 'text-accent' : COMPARE_TEXT[lane.compare]}
+                      className={lane.compare === -1 ? 'text-accent' : COMPARE_TEXT[tone(lane.compare)]}
                       stopColor="currentColor"
                       stopOpacity={0.5}
                     />
                     <stop
                       offset="100%"
-                      className={lane.compare === -1 ? 'text-accent' : COMPARE_TEXT[lane.compare]}
+                      className={lane.compare === -1 ? 'text-accent' : COMPARE_TEXT[tone(lane.compare)]}
                       stopColor="currentColor"
                       stopOpacity={0.02}
                     />
