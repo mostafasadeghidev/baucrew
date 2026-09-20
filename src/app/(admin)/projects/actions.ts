@@ -71,6 +71,7 @@ const projectSchema = z
     contact: optional,
     plannedStart: optionalDate,
     plannedEnd: optionalDate,
+    dueDate: optionalDate,
     actualStart: optionalDate,
     actualEnd: optionalDate,
     managerId: z.string().transform((v) => (v ? v : null)),
@@ -125,6 +126,7 @@ function parseProjectForm(formData: FormData) {
     contact: formData.get('contact') ?? '',
     plannedStart: formData.get('plannedStart') ?? '',
     plannedEnd: formData.get('plannedEnd') ?? '',
+    dueDate: formData.get('dueDate') ?? '',
     actualStart: formData.get('actualStart') ?? '',
     actualEnd: formData.get('actualEnd') ?? '',
     managerId: formData.get('managerId') ?? '',
@@ -228,6 +230,7 @@ export async function createProject(
           price: canViewFinancials(user) ? price.value : null,
           plannedStart: d.plannedStart,
           plannedEnd: d.plannedEnd,
+          dueDate: d.dueDate,
           actualStart: d.actualStart,
           actualEnd: d.actualEnd,
           managerId: d.managerId,
@@ -377,6 +380,7 @@ export async function updateProject(
       ...(financials ? { price: priceValue } : {}),
       plannedStart: d.plannedStart,
       plannedEnd: d.plannedEnd,
+      dueDate: d.dueDate,
       actualStart: d.actualStart,
       actualEnd: d.actualEnd,
       // Status moved forward by hand and the actual dates were left empty → derive them.
@@ -757,6 +761,7 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
           isSub: keep.isSub || drop.isSub,
           plannedStart: keep.plannedStart ?? drop.plannedStart,
           plannedEnd: keep.plannedEnd ?? drop.plannedEnd,
+          dueDate: keep.dueDate ?? drop.dueDate,
           actualStart: keep.actualStart ?? drop.actualStart,
           actualEnd: keep.actualEnd ?? drop.actualEnd,
           managerId: keep.managerId ?? drop.managerId,
@@ -797,9 +802,53 @@ export type QuickAddResult = { error?: 'nameRequired' | 'customerRequired' | 'sa
  * customer — picked, or made from the name typed — in that list's status.
  * Everything else is filled in on the card afterwards.
  */
+/**
+ * Lays a template over a project that was just made with nothing but a name
+ * and a customer: what the template recommends — description, trade, site
+ * manager, crew, vehicles, machines, tools and materials, checklists — copied
+ * onto it, the way the long form does when it is opened with a template.
+ */
+async function applyTemplate(projectId: string, templateId: string) {
+  const template = await db.projectTemplate.findFirst({
+    where: { id: templateId, active: true },
+    select: {
+      description: true,
+      workCategoryId: true,
+      managerId: true,
+      vehicles: { select: { vehicleId: true } },
+      employees: { select: { employeeId: true } },
+      checklists: { select: { checklistTemplateId: true } },
+      deviceNeeds: { select: { deviceId: true } },
+      items: { select: { catalogItemId: true, quantity: true } },
+    },
+  })
+  if (!template) return
+  // The site manager belongs to the crew, as in the form.
+  const crew = [...new Set([...(template.managerId ? [template.managerId] : []), ...template.employees.map((e) => e.employeeId)])]
+  await db.project.update({
+    where: { id: projectId },
+    data: {
+      ...(template.description ? { description: template.description } : {}),
+      ...(template.managerId ? { managerId: template.managerId } : {}),
+      ...(template.workCategoryId ? { workCategories: { create: [{ workCategoryId: template.workCategoryId }] } } : {}),
+      team: { create: crew.map((employeeId) => ({ employeeId })) },
+      vehicles: { create: template.vehicles.map((v) => ({ vehicleId: v.vehicleId })) },
+      deviceNeeds: { create: template.deviceNeeds.map((d) => ({ deviceId: d.deviceId })) },
+    },
+  })
+  if (template.items.length > 0) {
+    await db.projectItem.createMany({
+      data: template.items.map((item) => ({ projectId, catalogItemId: item.catalogItemId, quantity: item.quantity })),
+      skipDuplicates: true,
+    })
+  }
+  await copyChecklistsToProject(projectId, template.checklists.map((c) => c.checklistTemplateId))
+}
+
 export async function quickAddProject(status: string, formData: FormData): Promise<QuickAddResult> {
   const user = await requireManagement()
   const name = String(formData.get('name') ?? '').trim().slice(0, 300)
+  const templateId = String(formData.get('templateId') ?? '').trim()
   const customerId = String(formData.get('customerId') ?? '').trim()
   const customerName = String(formData.get('customerName') ?? '').trim().slice(0, 200)
   if (!name) return { error: 'nameRequired' }
@@ -807,7 +856,8 @@ export async function quickAddProject(status: string, formData: FormData): Promi
   if (!(status in ProjectStatus)) return { error: 'saveFailed' }
   try {
     const input = createProjectInput.parse({ name, status, ...(customerId ? { customerId } : { customerName }) })
-    await createProjectRecord(user, input, { type: 'user', userId: user.id })
+    const project = await createProjectRecord(user, input, { type: 'user', userId: user.id })
+    if (templateId) await applyTemplate(project.id, templateId)
   } catch (e) {
     console.error('quick add failed', e)
     return { error: 'saveFailed' }

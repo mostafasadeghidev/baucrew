@@ -83,6 +83,7 @@ describe('projectChanges', () => {
     managerId: null,
     plannedStart: null,
     plannedEnd: null,
+    dueDate: null,
     actualStart: null,
     actualEnd: null,
     price: null,

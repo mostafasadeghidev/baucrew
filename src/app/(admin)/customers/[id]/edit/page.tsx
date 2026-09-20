@@ -23,6 +23,7 @@ export default async function EditCustomerPage({
         initial={{
           name: customer.name,
           company: customer.company ?? '',
+          number: customer.number ?? '',
           contactPerson: customer.contactPerson ?? '',
           phone: customer.phone ?? '',
           email: customer.email ?? '',

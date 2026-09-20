@@ -195,7 +195,8 @@
     "noProjects": "Für diesen Kunden sind noch keine Projekte angelegt.",
     "deleteConfirm": "Diesen Kunden wirklich löschen?",
     "cannotDeleteHasProjects": "Dieser Kunde kann nicht gelöscht werden, solange ihm Projekte zugeordnet sind.",
-    "nameRequired": "Bitte einen Namen angeben."
+    "nameRequired": "Bitte einen Namen angeben.",
+    "number": "Kundennummer"
   },
   "projects": {
     "title": "Projekte",
@@ -367,7 +368,15 @@
     "plannedRevenue": "Planumsatz",
     "kanbanMoveColumn": "Spalte verschieben",
     "boardStatusOnly": "Nur: {status}",
-    "boardStatusClear": "Statusfilter entfernen"
+    "boardStatusClear": "Statusfilter entfernen",
+    "dueDate": "Fällig am",
+    "cardDue": "Fällig am",
+    "cardDueLate": "Der Fälligkeitstermin ist überschritten",
+    "cardDueSoon": "In den nächsten Tagen fällig",
+    "cardCustomerNumber": "Kundennummer",
+    "cardCreated": "Angelegt am",
+    "kanbanAddTemplate": "Vorlage",
+    "kanbanAddNoTemplate": "Ohne Vorlage"
   },
   "employees": {
     "title": "Mitarbeiter",

@@ -50,12 +50,13 @@ import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { CalendarDays, GripVertical, ListChecks, MessageSquare, Paperclip, Pencil, Plus, Undo2, X } from 'lucide-react'
+import { CalendarDays, Clock, GripVertical, MapPin, ListChecks, MessageSquare, Paperclip, Pencil, Plus, Undo2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { moveColumn } from '@/lib/boards'
 import { LABEL_BAR, LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
 import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { Combobox } from '@/components/combobox'
+import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
 import {
   DRAG_THRESHOLD,
@@ -73,10 +74,16 @@ export type KanbanCard = {
   number: string
   name: string
   customer: string
-  /** Town, when the project has one. */
-  city: string | null
+  /** The customer's number in the office's books, when it has one. */
+  customerNumber: string | null
+  /** The site on one line — street, postal code, town — or what there is of it. */
+  address: string | null
   /** Planned start and end, already formatted, and whether they are coloured. */
   dates: { text: string; tone: 'late' | 'soon' | null } | null
+  /** The day the work is due by, already formatted, and whether it presses. */
+  due: { text: string; tone: 'late' | 'soon' | null } | null
+  /** The day the project was made, already formatted. */
+  created: string
   /** Already formatted; null when the reader may not see money. */
   price: string | null
   /** True for the projects marked "hoch" — a red label on the card. */
@@ -153,6 +160,7 @@ export function ProjectsKanban({
   boardId,
   columns,
   customers,
+  templates,
   onGround,
   confirmFor,
   labels,
@@ -162,6 +170,8 @@ export function ProjectsKanban({
   columns: KanbanColumn[]
   /** The customers a card added at the foot of a list can be given. */
   customers: Array<{ value: string; label: string }>
+  /** The project templates a new card can be made from; none, and the choice is not offered. */
+  templates: Array<{ value: string; label: string }>
   /** True when the board stands on a coloured ground: what is written straight on it turns light. */
   onGround: boolean
   /** The statuses that ask before they are set, e.g. COMPLETED and CANCELLED. */
@@ -209,6 +219,7 @@ export function ProjectsKanban({
   const [adding, setAdding] = useState<string | null>(null)
   const [newCustomer, setNewCustomer] = useState<string | null>(null)
   const [addError, setAddError] = useState<string | null>(null)
+  const [addTemplate, setAddTemplate] = useState('')
   const [addKey, setAddKey] = useState(0)
   /** The card whose name is being typed over. */
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
@@ -334,6 +345,7 @@ export function ProjectsKanban({
     setAdding(null)
     setNewCustomer(null)
     setAddError(null)
+    setAddTemplate('')
   }
 
   /** A card added at the foot of a list. The box stays open for the next one, the way Trello's does. */
@@ -922,11 +934,22 @@ export function ProjectsKanban({
                     )}
                     <p className="truncate text-[11px] text-muted">
                       {card.customer}
-                      {card.city && ` · ${card.city}`}
+                      {card.customerNumber && (
+                        <span title={t('cardCustomerNumber')} className="tabular-nums">
+                          {' · '}
+                          {card.customerNumber}
+                        </span>
+                      )}
                     </p>
+                    {card.address && (
+                      <p className="flex items-center gap-1 text-[11px] text-muted" title={card.address}>
+                        <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+                        <span className="truncate">{card.address}</span>
+                      </p>
+                    )}
                     {/* What the card carries: the dates, coloured when they press;
                         the checklist, files and notes as small counts; the value. */}
-                    {(card.dates || card.checklist || card.files > 0 || card.comments > 0 || card.price) && (
+                    {(card.dates || card.due || card.checklist || card.files > 0 || card.comments > 0 || card.price) && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
                         {card.dates && (
                           <span
@@ -937,6 +960,17 @@ export function ProjectsKanban({
                           >
                             <CalendarDays className="h-3 w-3 shrink-0" aria-hidden />
                             {card.dates.text}
+                          </span>
+                        )}
+                        {card.due && (
+                          <span
+                            title={card.due.tone === 'late' ? t('cardDueLate') : card.due.tone === 'soon' ? t('cardDueSoon') : t('cardDue')}
+                            className={`inline-flex items-center gap-1 rounded-sm px-1 tabular-nums ${
+                              card.due.tone ? DATE_TONE[card.due.tone] : ''
+                            }`}
+                          >
+                            <Clock className="h-3 w-3 shrink-0" aria-hidden />
+                            {card.due.text}
                           </span>
                         )}
                         {card.checklist && (
@@ -970,7 +1004,10 @@ export function ProjectsKanban({
                       </div>
                     )}
                     <div className="mt-1.5 flex items-center justify-between gap-2">
-                      <span className="text-[11px] tabular-nums text-muted">{card.number}</span>
+                      <span className="truncate text-[11px] tabular-nums text-muted">
+                        {card.number}
+                        <span title={t('cardCreated')}> · {card.created}</span>
+                      </span>
                       {card.people.length > 0 && (
                         <span className="flex -space-x-1">
                           {card.people.map((person) => (
@@ -1046,6 +1083,26 @@ export function ProjectsKanban({
                         onCreateNew={(name) => setNewCustomer(name)}
                         createLabel={(name) => t('kanbanAddNewCustomer', { name })}
                       />
+                    )}
+                    {templates.length > 0 && (
+                      // Held here rather than by the form: the box empties itself
+                      // for the next card, and five cards of one kind are five
+                      // cards from one template.
+                      <Select
+                        name="templateId"
+                        compact
+                        aria-label={t('kanbanAddTemplate')}
+                        value={addTemplate}
+                        onChange={(e) => setAddTemplate(e.target.value)}
+                        className="w-full"
+                      >
+                        <option value="">{t('kanbanAddNoTemplate')}</option>
+                        {templates.map((template) => (
+                          <option key={template.value} value={template.value}>
+                            {template.label}
+                          </option>
+                        ))}
+                      </Select>
                     )}
                     <div className="flex items-center gap-1.5">
                       <button type="submit" disabled={pending} className={btn.primarySm}>

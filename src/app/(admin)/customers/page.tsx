@@ -21,6 +21,7 @@ export default async function CustomersPage({
     ? {
         OR: [
           { name: { contains: query, mode: 'insensitive' as const } },
+          { number: { contains: query, mode: 'insensitive' as const } },
           { company: { contains: query, mode: 'insensitive' as const } },
           { contactPerson: { contains: query, mode: 'insensitive' as const } },
           { phone: { contains: query, mode: 'insensitive' as const } },

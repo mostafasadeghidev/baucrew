@@ -14,6 +14,7 @@ export default async function NewCustomerPage() {
         initial={{
           name: '',
           company: '',
+          number: '',
           contactPerson: '',
           phone: '',
           email: '',

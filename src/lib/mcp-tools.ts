@@ -112,6 +112,7 @@ export const mcpTools: McpTool<ApiIdentity>[] = [
         isSub: { type: 'boolean', description: 'True when a subcontractor does the work' },
         plannedStart: date('Planned start'),
         plannedEnd: date('Planned end'),
+        dueDate: date('The day the work has to be done by'),
         price: { type: 'number', description: 'Order value in euros' },
         street: str('Site street'),
         postalCode: str('Site postal code'),

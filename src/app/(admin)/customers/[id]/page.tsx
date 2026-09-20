@@ -40,6 +40,7 @@ export default async function CustomerDetailPage({
   if (!customer) notFound()
 
   const rows: Array<[string, string | null]> = [
+    [t('number'), customer.number],
     [t('company'), customer.company],
     [t('contactPerson'), customer.contactPerson],
     [t('phone'), customer.phone],

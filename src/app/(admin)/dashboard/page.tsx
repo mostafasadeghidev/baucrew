@@ -192,14 +192,22 @@ export default async function DashboardPage({
       : 0,
     needs('dueThisWeek')
       ? db.project.findMany({
+          // Due by the day that was promised; a job nobody promised a day for
+          // is due when its plan ends.
           where: {
             status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] },
-            plannedEnd: { not: null, lt: addDays(monday, 7) },
+            OR: [
+              { dueDate: { not: null, lt: addDays(monday, 7) } },
+              { dueDate: null, plannedEnd: { not: null, lt: addDays(monday, 7) } },
+            ],
           },
-          select: { id: true, number: true, name: true, plannedEnd: true },
-          orderBy: { plannedEnd: 'asc' },
-          take: 8,
-        })
+          select: { id: true, number: true, name: true, plannedEnd: true, dueDate: true },
+        }).then((rows) =>
+          rows
+            .map((row) => ({ ...row, due: row.dueDate ?? row.plannedEnd }))
+            .sort((a, b) => (a.due?.getTime() ?? 0) - (b.due?.getTime() ?? 0))
+            .slice(0, 8)
+        )
       : [],
     needs('stock') ? getStockShortages() : [],
     needs('offers') ? getOpenOffers() : null,
@@ -610,7 +618,7 @@ export default async function DashboardPage({
         ) : (
           <ul className="divide-y divide-border">
             {dueProjects.map((project) => {
-              const overdue = project.plannedEnd != null && iso(project.plannedEnd) < todayIso
+              const overdue = project.due != null && iso(project.due) < todayIso
               return (
                 <li key={project.id} className="flex items-center justify-between gap-3 px-4 py-2 text-sm">
                   <Link href={`/projects/${project.id}`} className="truncate font-medium text-accent hover:underline">
@@ -619,7 +627,7 @@ export default async function DashboardPage({
                   <span
                     className={`shrink-0 text-xs ${overdue ? 'font-semibold text-red-700 dark:text-red-400' : 'text-muted'}`}
                   >
-                    {project.plannedEnd && dateFmt.format(project.plannedEnd)}
+                    {project.due && dateFmt.format(project.due)}
                     {overdue && ` · ${t('overdue')}`}
                   </span>
                 </li>

@@ -8,6 +8,7 @@ import { FormHead } from '@/components/ui/form-head'
 
 export type CustomerFormValues = {
   name: string
+  number: string
   company: string
   contactPerson: string
   phone: string
@@ -85,6 +86,7 @@ export function CustomerForm({
       <div className="max-w-3xl rounded-xl border border-border bg-surface p-5 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t('name')} name="name" defaultValue={initial.name} required />
+          <Field label={t('number')} name="number" defaultValue={initial.number} />
           <Field label={t('company')} name="company" defaultValue={initial.company} />
           <Field label={t('contactPerson')} name="contactPerson" defaultValue={initial.contactPerson} />
           <Field label={t('phone')} name="phone" defaultValue={initial.phone} />

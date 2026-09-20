@@ -23,6 +23,7 @@ const coord = z
 
 const customerSchema = z.object({
   name: z.string().trim().min(1).max(200),
+  number: optional,
   company: optional,
   contactPerson: optional,
   phone: optional,
@@ -50,6 +51,7 @@ export type CustomerFormState = { error?: 'nameRequired' | 'saveFailed' }
 function parseCustomerForm(formData: FormData) {
   return customerSchema.safeParse({
     name: formData.get('name') ?? '',
+    number: formData.get('number') ?? '',
     company: formData.get('company') ?? '',
     contactPerson: formData.get('contactPerson') ?? '',
     phone: formData.get('phone') ?? '',
@@ -133,6 +135,7 @@ export async function createCustomerInline(input: {
   const user = await requireManagement()
   const parsed = customerSchema.safeParse({
     ...input,
+    number: '',
     country: 'Deutschland',
     notes: '',
   })

@@ -33,7 +33,8 @@ import { ProjectComments, type CommentRow } from '@/components/project-comments'
 import { addProjectComment, deleteProjectComment } from './comment-actions'
 import { displayName, mentionablePeople } from '@/lib/comments-db'
 import { canDeleteComment } from '@/lib/comments'
-import { dateTone, initials, labelSwatch, swatchOf } from '@/lib/board-cards'
+import { Clock } from 'lucide-react'
+import { dateTone, dueTone, initials, labelSwatch, swatchOf } from '@/lib/board-cards'
 import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
 import { ProjectTimeSummary } from './time-summary'
 import { daysOut } from '@/lib/devices'
@@ -248,6 +249,8 @@ export async function ProjectDetail({
       <dd>{value}</dd>
     </div>
   )
+  // Whether the day the work is due by presses — read in two places below.
+  const due = dueTone(project.status, project.dueDate, todayUtc())
   /**
    * What each card shows while it is closed. The fields behind them are the
    * project form's own — see `ProjectForm`'s `inline` prop — so every field is
@@ -318,6 +321,15 @@ export async function ProjectDetail({
       <dl className="space-y-2 text-sm">
         {row(t('plannedStart'), <span className="tabular-nums">{formatDate(project.plannedStart, locale)}</span>)}
         {row(t('plannedEnd'), <span className="tabular-nums">{formatDate(project.plannedEnd, locale)}</span>)}
+        {row(
+          t('dueDate'),
+          <span
+            className={`rounded px-1 tabular-nums ${due === 'late' ? 'bg-danger/10 text-danger' : due === 'soon' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : ''}`}
+            title={due === 'late' ? t('cardDueLate') : due === 'soon' ? t('cardDueSoon') : undefined}
+          >
+            {formatDate(project.dueDate, locale)}
+          </span>
+        )}
         {row(t('actualStart'), <span className="tabular-nums">{formatDate(project.actualStart, locale)}</span>)}
         {row(t('actualEnd'), <span className="tabular-nums">{formatDate(project.actualEnd, locale)}</span>)}
             {showPrice && (
@@ -459,6 +471,7 @@ export async function ProjectDetail({
           price: showPrice && project.price != null ? String(Number(project.price)) : '',
           plannedStart: toDateInputValue(project.plannedStart),
           plannedEnd: toDateInputValue(project.plannedEnd),
+          dueDate: toDateInputValue(project.dueDate),
           actualStart: toDateInputValue(project.actualStart),
           actualEnd: toDateInputValue(project.actualEnd),
           managerId: project.managerId ?? '',
@@ -708,6 +721,20 @@ export async function ProjectDetail({
           {planned.length > 0 ? planned.join(' – ') : '—'}
         </p>
       </div>
+      {project.dueDate && (
+        <div>
+          <p className={metaHead}>{t('dueDate')}</p>
+          <p
+            className={`mt-1 inline-flex min-h-7 items-center gap-1 rounded px-1.5 text-sm tabular-nums ${
+              due === 'late' ? 'bg-danger/10 text-danger' : due === 'soon' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : ''
+            }`}
+            title={due === 'late' ? t('cardDueLate') : due === 'soon' ? t('cardDueSoon') : undefined}
+          >
+            <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {formatDate(project.dueDate, locale)}
+          </p>
+        </div>
+      )}
       {showPrice && orderTotal != null && (
         <div>
           <p className={metaHead}>{t('price')}</p>

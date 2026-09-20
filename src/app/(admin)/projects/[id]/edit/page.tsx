@@ -112,6 +112,7 @@ export default async function EditProjectPage({
           price: showPrice && project.price != null ? String(Number(project.price)) : '',
           plannedStart: toDateInputValue(project.plannedStart),
           plannedEnd: toDateInputValue(project.plannedEnd),
+          dueDate: toDateInputValue(project.dueDate),
           actualStart: toDateInputValue(project.actualStart),
           actualEnd: toDateInputValue(project.actualEnd),
           managerId: project.managerId ?? '',

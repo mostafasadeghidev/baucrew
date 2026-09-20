@@ -93,6 +93,7 @@ export type ProjectSnapshot = {
   managerId: string | null
   plannedStart: string | null
   plannedEnd: string | null
+  dueDate: string | null
   actualStart: string | null
   actualEnd: string | null
   price: number | null
@@ -112,6 +113,7 @@ export const WATCHED_FIELDS = [
   'managerId',
   'plannedStart',
   'plannedEnd',
+  'dueDate',
   'actualStart',
   'actualEnd',
   'price',

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   LABEL_COLORS,
   SWATCHES,
+  addressLine,
   boardFilterCount,
   dateTone,
+  dueTone,
   initials,
   labelColorKey,
   labelSwatch,
@@ -54,6 +56,39 @@ describe('dateTone', () => {
   it('colours nothing on a job that is over', () => {
     expect(dateTone('COMPLETED', day('2026-01-01'), day('2026-01-10'), today)).toBeNull()
     expect(dateTone('CANCELLED', day('2026-09-18'), null, today)).toBeNull()
+  })
+})
+
+describe('dueTone', () => {
+  const today = day('2026-09-21')
+
+  it('is red once the day has passed, whatever the job is doing', () => {
+    expect(dueTone('IN_PROGRESS', day('2026-09-20'), today)).toBe('late')
+    expect(dueTone('LEAD', day('2026-09-01'), today)).toBe('late')
+  })
+
+  it('is amber within the next days, today included', () => {
+    expect(dueTone('PLANNED', day('2026-09-21'), today)).toBe('soon')
+    expect(dueTone('IN_PROGRESS', day('2026-09-28'), today)).toBe('soon')
+    expect(dueTone('IN_PROGRESS', day('2026-09-29'), today)).toBeNull()
+  })
+
+  it('wears no colour without a day, or once the job is over', () => {
+    expect(dueTone('IN_PROGRESS', null, today)).toBeNull()
+    expect(dueTone('COMPLETED', day('2026-09-01'), today)).toBeNull()
+    expect(dueTone('CANCELLED', day('2026-09-01'), today)).toBeNull()
+  })
+})
+
+describe('addressLine', () => {
+  it('puts street, postal code and town on one line', () => {
+    expect(addressLine('Musterstraße 1', '12345', 'Musterstadt')).toBe('Musterstraße 1, 12345 Musterstadt')
+  })
+
+  it('makes do with what there is', () => {
+    expect(addressLine(null, null, 'Musterstadt')).toBe('Musterstadt')
+    expect(addressLine('Musterstraße 1', null, null)).toBe('Musterstraße 1')
+    expect(addressLine(' ', '', null)).toBeNull()
   })
 })
 

@@ -70,6 +70,7 @@ export type ProjectFormValues = {
   price: string
   plannedStart: string
   plannedEnd: string
+  dueDate: string
   actualStart: string
   actualEnd: string
   managerId: string
@@ -750,6 +751,9 @@ export function ProjectForm({
           min={isNew ? todayIso : undefined}
           defaultValue={initial.plannedEnd}
         />
+        {/* What was promised to the customer — a date of its own, so a plan
+            that runs past it shows as one. */}
+        <TextField label={t('dueDate')} name="dueDate" type="date" defaultValue={initial.dueDate} />
         <TextField label={t('actualStart')} name="actualStart" type="date" defaultValue={initial.actualStart} />
         <TextField label={t('actualEnd')} name="actualEnd" type="date" defaultValue={initial.actualEnd} />
         {showPrice && (

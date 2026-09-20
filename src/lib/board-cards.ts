@@ -84,6 +84,25 @@ export function dateTone(
   return null
 }
 
+/**
+ * Whether the day a job is due by is coloured: red once it has passed and the
+ * job is not over, amber within the next days — whatever the status, because
+ * a promise presses on a running job as much as on one that has not begun.
+ */
+export function dueTone(status: string, dueDate: Date | null, today: Date, soonDays = 7): DateTone {
+  if (!dueDate || OVER.has(status)) return null
+  const ahead = dueDate.getTime() - today.getTime()
+  if (ahead < 0) return 'late'
+  return ahead <= soonDays * DAY ? 'soon' : null
+}
+
+/** A site on one line: "Musterstraße 1, 12345 Musterstadt" — or what there is of it. */
+export function addressLine(street: string | null, postalCode: string | null, city: string | null): string | null {
+  const town = [postalCode, city].map((part) => part?.trim()).filter(Boolean).join(' ')
+  const line = [street?.trim(), town].filter(Boolean).join(', ')
+  return line || null
+}
+
 /** The filter above the board: one person, one trade, urgent only — each in the address. */
 export type BoardFilter = { member: string | null; label: string | null; urgent: boolean }
 

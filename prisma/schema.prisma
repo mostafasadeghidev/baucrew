@@ -182,6 +182,10 @@ model TimeEntry {
 model Customer {
   id            String   @id @default(cuid())
   name          String
+  /// The customer's number in the office's own books (the quotation software's
+  /// customer number). Free text and not unique: it is copied in by hand or by
+  /// an import, and two spellings of one customer must not block a save.
+  number        String?
   company       String?
   contactPerson String?
   phone         String?
@@ -197,6 +201,8 @@ model Customer {
   updatedAt     DateTime @updatedAt
 
   projects Project[]
+
+  @@index([number])
 }
 
 // ─────────────────────────────────────────────
@@ -268,6 +274,10 @@ model Project {
 
   plannedStart DateTime? @db.Date
   plannedEnd   DateTime? @db.Date
+  /// The day the work has to be done by — a promise to the customer, not a plan
+  /// of the office's own. Apart from plannedEnd on purpose: a job can be planned
+  /// to end well before it is due, or be planned past it, which is the warning.
+  dueDate      DateTime? @db.Date
   actualStart  DateTime? @db.Date
   actualEnd    DateTime? @db.Date
 

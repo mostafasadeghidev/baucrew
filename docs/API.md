@@ -42,9 +42,9 @@ knows each project's record there, as a *link* (`system` + `externalId`).
 | --- | --- | --- |
 | GET | `/api/v1/me` | Who the key acts as, and whether financial data is visible |
 | GET | `/api/v1/projects` | Projects, newest first. `q` (name, number, customer, town), `status`, `system` and `externalId` (linked records), `limit` (≤200), `offset` |
-| POST | `/api/v1/projects` | Create a project: `name`, `customerId` or `customerName`, optional `status`, `isSub`, `plannedStart`, `plannedEnd`, `price`, `street`, `postalCode`, `city`, `description` |
+| POST | `/api/v1/projects` | Create a project: `name`, `customerId` or `customerName`, optional `status`, `isSub`, `plannedStart`, `plannedEnd`, `dueDate`, `price`, `street`, `postalCode`, `city`, `description` |
 | GET | `/api/v1/projects/{id}` | One project by id or number (`2026-0048`): team, vehicles, schedule, plan lines |
-| PATCH | `/api/v1/projects/{id}` | Change what is sent: `status`, `name`, `isSub`, `plannedStart`, `plannedEnd`, `price`, `managerId` or `managerName`, `description`, `street`, `postalCode`, `city`. Absent stays, `null` clears |
+| PATCH | `/api/v1/projects/{id}` | Change what is sent: `status`, `name`, `isSub`, `plannedStart`, `plannedEnd`, `dueDate`, `price`, `managerId` or `managerName`, `description`, `street`, `postalCode`, `city`. Absent stays, `null` clears |
 | GET | `/api/v1/projects/by-link/{system}/{externalId}` | The project linked to a record of another system |
 | PUT | `/api/v1/projects/by-link/{system}/{externalId}` | Update the linked project, or create one and link it — see below. Answers `{ created, project }` |
 | PUT | `/api/v1/projects/{id}/links/{system}` | Link the project to a record: `{ "externalId": "…", "url": "…" }`. `409 linkTaken` when the record belongs to another project |
@@ -54,8 +54,8 @@ knows each project's record there, as a *link* (`system` + `externalId`).
 | GET | `/api/v1/projects/{id}/comments` | The comments on the project, oldest first: `{ id, body, office, createdAt, author, mentions }` |
 | POST | `/api/v1/projects/{id}/comments` | Write a comment as the key's user — "Angebot versendet", say: `{ "body": "…", "office": false }`. `@name` in the body names an account; the users named come back in `mentions`. Raises `comment.created` |
 | POST | `/api/v1/projects/{id}/files` | Add a file: multipart form data, field `file` (PDF, images, Office, CSV, text; ≤25 MB). A file without a type gets one from its name |
-| GET | `/api/v1/customers` | Customers by `q` (name, company, town), `limit` |
-| POST | `/api/v1/customers` | Create a customer: `name`, optional `company`, `contactPerson`, `phone`, `email`, `street`, `postalCode`, `city`, `notes` |
+| GET | `/api/v1/customers` | Customers by `q` (name, number, company, town), `limit` |
+| POST | `/api/v1/customers` | Create a customer: `name`, optional `number` (the customer's number in the office's books), `company`, `contactPerson`, `phone`, `email`, `street`, `postalCode`, `city`, `notes` |
 | GET | `/api/v1/customers/{id}` | One customer |
 | PATCH | `/api/v1/customers/{id}` | Change what is sent; `null` clears |
 | GET | `/api/v1/employees` | Active employees |
@@ -146,7 +146,7 @@ A delivery is a `POST` with this body:
     "project": { "id": "…", "number": "2026-0048", "name": "…", "status": "QUOTED", "statusSince": "…",
                  "customer": { "id": "…", "name": "…", "company": null, "contactPerson": null, "email": "…", "phone": null },
                  "manager": null, "address": { "street": null, "postalCode": null, "city": "…" },
-                 "plannedStart": null, "plannedEnd": null, "actualStart": null, "actualEnd": null,
+                 "plannedStart": null, "plannedEnd": null, "dueDate": null, "actualStart": null, "actualEnd": null,
                  "price": 12500, "orderValue": 12500, "description": null, "isSub": false,
                  "links": [{ "system": "trello", "externalId": "…", "url": "…" }], "invoices": [] },
     "from": "LEAD",

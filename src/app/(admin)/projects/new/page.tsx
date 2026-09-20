@@ -162,6 +162,7 @@ export default async function NewProjectPage({
           price: draft?.price != null ? String(draft.price) : '',
           plannedStart: iso(draft?.plannedStart),
           plannedEnd: iso(draft?.plannedEnd),
+          dueDate: '',
           actualStart: '',
           actualEnd: '',
           managerId: template?.managerId ?? '',

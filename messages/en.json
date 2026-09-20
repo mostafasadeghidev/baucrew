@@ -195,7 +195,8 @@
     "noProjects": "No projects have been created for this customer yet.",
     "deleteConfirm": "Really delete this customer?",
     "cannotDeleteHasProjects": "This customer cannot be deleted while projects are assigned to them.",
-    "nameRequired": "Please enter a name."
+    "nameRequired": "Please enter a name.",
+    "number": "Customer number"
   },
   "projects": {
     "title": "Projects",
@@ -367,7 +368,15 @@
     "plannedRevenue": "Planned revenue",
     "kanbanMoveColumn": "Move column",
     "boardStatusOnly": "Only: {status}",
-    "boardStatusClear": "Remove status filter"
+    "boardStatusClear": "Remove status filter",
+    "dueDate": "Due on",
+    "cardDue": "Due on",
+    "cardDueLate": "The due date has passed",
+    "cardDueSoon": "Due within the next days",
+    "cardCustomerNumber": "Customer number",
+    "cardCreated": "Created on",
+    "kanbanAddTemplate": "Template",
+    "kanbanAddNoTemplate": "No template"
   },
   "employees": {
     "title": "Employees",

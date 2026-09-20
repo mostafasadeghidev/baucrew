@@ -29,7 +29,8 @@ import { BoardTabs } from './board-tabs'
 import { BoardFilter } from './board-filter'
 import { CardSheet, SheetClose } from './card-sheet'
 import { ProjectDetail } from './[id]/project-detail'
-import { dateTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
+import { addressLine, dateTone, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
+import { orderValue } from '@/lib/reports'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
 
@@ -92,7 +93,7 @@ export default async function ProjectsPage({
     ...(filter.label ? { workCategories: { some: { workCategoryId: filter.label } } } : {}),
     ...(filter.urgent ? { priority: 'HIGH' } : {}),
   }
-  const [prepTab, boards, dated, statusChanges, people, trades, customerOptions] = await Promise.all([
+  const [prepTab, boards, dated, statusChanges, people, trades, customerOptions, templateOptions] = await Promise.all([
     getPrepTabConfig(),
     getBoards(),
     // The dates every project is filed under a year by. The rule is a few lines
@@ -119,8 +120,11 @@ export default async function ProjectsPage({
       select: { id: true, firstName: true, lastName: true },
     }),
     db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, nameDe: true, nameEn: true, color: true } }),
-    // The customers a card added on the board can be given.
+    // The customers a card added on the board can be given, and the templates it can be made from.
     kanban ? db.customer.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }) : Promise.resolve([]),
+    kanban
+      ? db.projectTemplate.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } })
+      : Promise.resolve([]),
   ])
   // Which board: the address, else the one this browser opened last, else the first.
   const board = pickBoard(boards, boardParam, (await cookies()).get(BOARD_COOKIE)?.value)
@@ -221,14 +225,20 @@ export default async function ProjectsPage({
           id: true,
           number: true,
           name: true,
+          street: true,
+          postalCode: true,
           city: true,
           status: true,
           price: true,
+          addOns: { select: { amount: true } },
           priority: true,
           isSub: true,
           plannedStart: true,
           plannedEnd: true,
-          customer: { select: { name: true } },
+          dueDate: true,
+          sourceCreatedAt: true,
+          createdAt: true,
+          customer: { select: { name: true, number: true } },
           manager: { select: { id: true, firstName: true, lastName: true } },
           team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
           workCategories: { select: { workCategory: { select: { id: true, nameDe: true, nameEn: true, color: true } } } },
@@ -238,7 +248,8 @@ export default async function ProjectsPage({
         orderBy: { number: 'desc' },
       })
     : []
-  const dayMonth = new Intl.DateTimeFormat(intl, { day: '2-digit', month: '2-digit' })
+  const dayMonth = new Intl.DateTimeFormat(intl, { day: '2-digit', month: '2-digit', timeZone: 'UTC' })
+  const dayMonthYear = new Intl.DateTimeFormat(intl, { day: '2-digit', month: '2-digit', year: '2-digit' })
   /** Up to this many people are drawn on a card; the rest are a count. */
   const FACES = 3
   // Which statuses get a column, and what each is called, is the board's own
@@ -247,7 +258,8 @@ export default async function ProjectsPage({
   const columns: KanbanColumn[] = (board?.columns ?? []).filter((column) => shownStatuses.includes(column.status as ProjectStatus)).map((column) => {
     const value = column.status as ProjectStatus
     const own = boardProjects.filter((p) => p.status === value)
-    const sum = own.reduce((total, p) => total + (p.price ? Number(p.price) : 0), 0)
+    // The order's worth: the price and what was added to it since.
+    const sum = own.reduce((total, p) => total + (orderValue(p.price, p.addOns) ?? 0), 0)
     return {
       status: value,
       label: columnLabel(column, tStatus(value)),
@@ -268,9 +280,17 @@ export default async function ProjectsPage({
           number: p.number,
           name: p.name,
           customer: p.customer.name,
-          city: p.city,
+          customerNumber: p.customer.number,
+          address: addressLine(p.street, p.postalCode, p.city),
           dates: dates.length > 0 ? { text: dates.join(' – '), tone: dateTone(p.status, p.plannedStart, p.plannedEnd, today) } : null,
-          price: showPrice ? formatCurrency(p.price ? Number(p.price) : null, locale, { hidden: hidePrices }) : null,
+          due: p.dueDate ? { text: dayMonth.format(p.dueDate), tone: dueTone(p.status, p.dueDate, today) } : null,
+          // A card brought over from another board keeps the day it was made there.
+          created: dayMonthYear.format(p.sourceCreatedAt ?? p.createdAt),
+          // No figure rather than a dash: a card has no room for an empty one.
+          price:
+            showPrice && orderValue(p.price, p.addOns) != null
+              ? formatCurrency(orderValue(p.price, p.addOns), locale, { hidden: hidePrices })
+              : null,
           urgent: p.priority === 'HIGH',
           sub: p.isSub,
           status: p.status,
@@ -542,6 +562,7 @@ export default async function ProjectsPage({
               boardId={board?.id ?? ''}
               columns={columns}
               customers={customerOptions.map((c) => ({ value: c.id, label: c.name }))}
+              templates={templateOptions.map((tp) => ({ value: tp.id, label: tp.name }))}
               onGround={boardBackgroundCss(board?.background) !== null}
               confirmFor={['COMPLETED', 'CANCELLED']}
               labels={{

@@ -88,6 +88,7 @@ const projectSelect = {
   price: true,
   plannedStart: true,
   plannedEnd: true,
+  dueDate: true,
   actualStart: true,
   actualEnd: true,
   street: true,
@@ -97,7 +98,7 @@ const projectSelect = {
   externalUrl: true,
   sourceCreatedAt: true,
   createdAt: true,
-  customer: { select: { id: true, name: true, company: true, contactPerson: true, email: true, phone: true } },
+  customer: { select: { id: true, name: true, number: true, company: true, contactPerson: true, email: true, phone: true } },
   manager: { select: { id: true, firstName: true, lastName: true } },
   addOns: { select: { amount: true } },
   links: { select: { system: true, externalId: true, url: true }, orderBy: { system: 'asc' } },
@@ -113,6 +114,7 @@ type ProjectRow = {
   price: { toString(): string } | null
   plannedStart: Date | null
   plannedEnd: Date | null
+  dueDate: Date | null
   actualStart: Date | null
   actualEnd: Date | null
   street: string | null
@@ -125,6 +127,7 @@ type ProjectRow = {
   customer: {
     id: string
     name: string
+    number: string | null
     company: string | null
     contactPerson: string | null
     email: string | null
@@ -151,6 +154,8 @@ function projectDto(p: ProjectRow, user: CurrentUser, statusSince: Date) {
     address: { street: p.street, postalCode: p.postalCode, city: p.city },
     plannedStart: day(p.plannedStart),
     plannedEnd: day(p.plannedEnd),
+    /** The day the work has to be done by; null when none was promised. */
+    dueDate: day(p.dueDate),
     actualStart: day(p.actualStart),
     actualEnd: day(p.actualEnd),
     description: p.description,
@@ -266,6 +271,7 @@ export const createProjectInput = z
     isSub: z.boolean().default(false),
     plannedStart: isoDate.optional(),
     plannedEnd: isoDate.optional(),
+    dueDate: isoDate.optional(),
     price: z.number().min(0).max(999_999_999).optional(),
     street: text(200),
     postalCode: text(20),
@@ -306,7 +312,7 @@ async function fillCustomerGaps(customerId: string, contact: CustomerContactFiel
   const current = await db.customer.findUnique({ where: { id: customerId } })
   if (!current) return
   const data: Record<string, string> = {}
-  for (const key of ['company', 'contactPerson', 'phone', 'email', 'street', 'postalCode', 'city'] as const) {
+  for (const key of ['number', 'company', 'contactPerson', 'phone', 'email', 'street', 'postalCode', 'city'] as const) {
     const value = contact[key]
     if (value && !current[key]) data[key] = value
   }
@@ -359,6 +365,7 @@ export async function createProject(user: CurrentUser, input: z.infer<typeof cre
     isSub: input.isSub,
     plannedStart: input.plannedStart ? utcDay(input.plannedStart) : null,
     plannedEnd: input.plannedEnd ? utcDay(input.plannedEnd) : null,
+    dueDate: input.dueDate ? utcDay(input.dueDate) : null,
     price: canViewFinancials(user) && input.price !== undefined ? input.price : null,
     street: input.street,
     postalCode: input.postalCode,
@@ -384,6 +391,7 @@ export const updateProjectInput = z
     isSub: z.boolean().optional(),
     plannedStart: isoDate.nullable().optional(),
     plannedEnd: isoDate.nullable().optional(),
+    dueDate: isoDate.nullable().optional(),
     price: z.number().min(0).max(999_999_999).nullable().optional(),
     managerId: z.string().min(1).nullable().optional(),
     /** Matched against the employees' full names; nothing is set when nobody, or more than one, fits. */
@@ -424,6 +432,7 @@ export async function updateProject(
   if (input.city !== undefined) data.city = input.city
   if (input.plannedStart !== undefined) data.plannedStart = input.plannedStart ? utcDay(input.plannedStart) : null
   if (input.plannedEnd !== undefined) data.plannedEnd = input.plannedEnd ? utcDay(input.plannedEnd) : null
+  if (input.dueDate !== undefined) data.dueDate = input.dueDate ? utcDay(input.dueDate) : null
   const start = input.plannedStart !== undefined ? (data.plannedStart as Date | null) : current.plannedStart
   const end = input.plannedEnd !== undefined ? (data.plannedEnd as Date | null) : current.plannedEnd
   if (start && end && end < start) throw new ApiError(400, 'invalid', 'plannedEnd must not be before plannedStart.')
@@ -471,6 +480,8 @@ export async function updateProject(
 
 const customerContactInput = z.object({
   name: z.string().trim().min(1).max(200),
+  /** The customer's number in the office's own books. */
+  number: text(60),
   company: text(200),
   contactPerson: text(200),
   phone: text(60),
@@ -572,6 +583,7 @@ export async function upsertProjectByLink(
     isSub: fields.isSub ?? false,
     plannedStart: fields.plannedStart ? utcDay(fields.plannedStart) : null,
     plannedEnd: fields.plannedEnd ? utcDay(fields.plannedEnd) : null,
+    dueDate: fields.dueDate ? utcDay(fields.dueDate) : null,
     price: fields.price ?? null,
     managerId: manager.id ?? null,
     description: fields.description ?? null,
@@ -809,6 +821,7 @@ export async function addProjectFile(user: CurrentUser, idOrNumber: string, file
 const customerSelect = {
   id: true,
   name: true,
+  number: true,
   company: true,
   contactPerson: true,
   phone: true,
@@ -826,6 +839,7 @@ export async function listCustomers(user: CurrentUser, q: string | undefined, li
       ? {
           OR: [
             { name: { contains: q, mode: 'insensitive' } },
+            { number: { contains: q, mode: 'insensitive' } },
             { company: { contains: q, mode: 'insensitive' } },
             { city: { contains: q, mode: 'insensitive' } },
           ],
@@ -840,6 +854,7 @@ export async function listCustomers(user: CurrentUser, q: string | undefined, li
 
 export const createCustomerInput = z.object({
   name: z.string().trim().min(1).max(200),
+  number: text(60),
   company: text(200),
   contactPerson: text(200),
   phone: text(60),
@@ -860,6 +875,7 @@ export async function getCustomer(user: CurrentUser, id: string) {
 export const updateCustomerInput = z
   .object({
     name: z.string().trim().min(1).max(200).optional(),
+    number: clearableText(60),
     company: clearableText(200),
     contactPerson: clearableText(200),
     phone: clearableText(60),
