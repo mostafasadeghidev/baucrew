@@ -19,7 +19,8 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { pricesHidden } from '@/lib/price-visibility'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
-import { opensBoard, projectsViewHref } from '@/lib/projects-view'
+import { X } from 'lucide-react'
+import { narrowedStatuses, opensBoard, projectsViewHref } from '@/lib/projects-view'
 import { ALL_YEARS, belongsToYears, parseProjectYears, projectYearOptions } from '@/lib/project-years'
 import { todayUtc } from '@/lib/dates'
 import { ProjectsKanban, type KanbanColumn } from './kanban'
@@ -60,7 +61,7 @@ export default async function ProjectsPage({
   // cursor — so the list names itself once it is showing.
   if (!kanban && view !== 'list') {
     const params = new URLSearchParams({ view: 'list' })
-    for (const [key, value] of Object.entries({ q, status, page: pageParam, year: yearParam, board: boardParam }))
+    for (const [key, value] of Object.entries({ q, status, page: pageParam, year: yearParam, board: boardParam, member, label, urgent }))
       if (value) params.set(key, value)
     redirect(`/projects?${params.toString()}`)
   }
@@ -84,7 +85,7 @@ export default async function ProjectsPage({
   const today = todayUtc()
   const currentYear = today.getUTCFullYear()
   const years = parseProjectYears(yearParam, currentYear)
-  // The filter above the board: one person, one trade, urgent only.
+  // The filter beside the search, in both views: one person, one trade, urgent only.
   const filter = parseBoardFilter({ member, label, urgent })
   const filterWhere: Prisma.ProjectWhereInput = {
     ...(filter.member ? { OR: [{ managerId: filter.member }, { team: { some: { employeeId: filter.member } } }] } : {}),
@@ -111,17 +112,13 @@ export default async function ProjectsPage({
     }),
     // A card moved this year belongs to this year, whatever its dates say.
     db.auditLog.findMany({ where: { entity: 'Project', field: 'status' }, select: { entityId: true, createdAt: true } }),
-    // What the board's filter offers.
-    kanban
-      ? db.employee.findMany({
-          where: { active: true },
-          orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
-          select: { id: true, firstName: true, lastName: true },
-        })
-      : Promise.resolve([]),
-    kanban
-      ? db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, nameDe: true, nameEn: true, color: true } })
-      : Promise.resolve([]),
+    // What the filter offers.
+    db.employee.findMany({
+      where: { active: true },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      select: { id: true, firstName: true, lastName: true },
+    }),
+    db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, nameDe: true, nameEn: true, color: true } }),
     // The customers a card added on the board can be given.
     kanban ? db.customer.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }) : Promise.resolve([]),
   ])
@@ -165,10 +162,20 @@ export default async function ProjectsPage({
         }
       : {}),
   }
-  const where: Prisma.ProjectWhereInput = { ...statusWhere, ...searchWhere, ...yearWhere }
+  // Everything but the status tab: the search, the year and the filter. The
+  // filter's own OR must not overwrite the search's — two wheres, both.
+  const whereWithoutStatus: Prisma.ProjectWhereInput = { AND: [{ ...searchWhere, ...yearWhere }, filterWhere] }
+  const where: Prisma.ProjectWhereInput = { AND: [statusWhere, whereWithoutStatus] }
+  /**
+   * A status tab that came along from the list leaves only its own columns on
+   * the board — "In Ausführung" there is "In Ausführung" here. A board with no
+   * column for it is shown whole (src/lib/projects-view.ts).
+   */
+  const wantedStatuses = statusFilter ? [statusFilter] : prepFilter ? (prepTab.statuses as string[]) : null
+  const narrowed = kanban ? narrowedStatuses(boardStatuses, wantedStatuses) : null
+  const shownStatuses = (narrowed ?? boardStatuses) as ProjectStatus[]
 
-  // Tab counts respect the search query but not the status filter itself.
-  const { status: _ignored, scheduleEntries: _ignoredEntries, ...whereWithoutStatus } = where
+  // Tab counts respect the search and the filter but not the status tab itself.
   const [projects, total, statusCounts, draftCount, prepCount, searchInAllYears] = await Promise.all([
     db.project.findMany({
       where,
@@ -184,7 +191,7 @@ export default async function ProjectsPage({
     db.project.count({ where }),
     db.project.groupBy({ by: ['status'], where: whereWithoutStatus, _count: { _all: true } }),
     db.projectDraft.count({ where: { status: 'open' } }),
-    prepTab.enabled ? db.project.count({ where: { ...whereWithoutStatus, ...prepWhere } }) : Promise.resolve(0),
+    prepTab.enabled ? db.project.count({ where: { AND: [whereWithoutStatus, prepWhere] } }) : Promise.resolve(0),
     // A search for an old job number must not simply come back empty because
     // the page stands on this year: the other years' hits are counted and
     // offered — with the same filter the view draws, so the link never
@@ -193,24 +200,23 @@ export default async function ProjectsPage({
     query && years !== ALL_YEARS
       ? db.project.count({
           where: kanban
-            ? { AND: [searchWhere, filterWhere], status: { in: boardStatuses } }
-            : { ...statusWhere, ...searchWhere },
+            ? { AND: [searchWhere, filterWhere, narrowed ? statusWhere : {}], status: { in: shownStatuses } }
+            : { AND: [statusWhere, searchWhere, filterWhere] },
         })
       : Promise.resolve(0),
   ])
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
   /**
-   * The board reads the same search as the list, but never its status filter:
-   * a board with one column is a list with extra steps. Every card of every
-   * column is sent — the same rows the board already had to read to count them
+   * The board reads the same search and filter as the list. A status tab is
+   * read only when it was brought along from the list — then the board is
+   * those columns and no others. Every card of every column is sent — the same rows the board already had to read to count them
    * — and the column shows the first fifty, with the rest a click away. Paging
    * this from the server would mean a round trip to see cards the page is
    * already holding.
    */
   const boardProjects = kanban
     ? await db.project.findMany({
-        // The filter's own OR must not overwrite the search's: two wheres, both.
-        where: { AND: [whereWithoutStatus, filterWhere] },
+        where: narrowed ? where : whereWithoutStatus,
         select: {
           id: true,
           number: true,
@@ -238,7 +244,7 @@ export default async function ProjectsPage({
   // Which statuses get a column, and what each is called, is the board's own
   // (Einstellungen → Boards); a project stands on every board with a column
   // for its status.
-  const columns: KanbanColumn[] = (board?.columns ?? []).map((column) => {
+  const columns: KanbanColumn[] = (board?.columns ?? []).filter((column) => shownStatuses.includes(column.status as ProjectStatus)).map((column) => {
     const value = column.status as ProjectStatus
     const own = boardProjects.filter((p) => p.status === value)
     const sum = own.reduce((total, p) => total + (p.price ? Number(p.price) : 0), 0)
@@ -288,7 +294,7 @@ export default async function ProjectsPage({
     }
   })
   const allCount = statusCounts.reduce((sum, s) => sum + s._count._all, 0)
-  const shownInYear = kanban ? boardProjects.filter((p) => boardStatuses.includes(p.status)).length : total
+  const shownInYear = kanban ? boardProjects.filter((p) => shownStatuses.includes(p.status)).length : total
   const otherYearHits = query && years !== ALL_YEARS ? Math.max(0, searchInAllYears - shownInYear) : 0
   const allYearsHref = (() => {
     const params = new URLSearchParams()
@@ -328,6 +334,28 @@ export default async function ProjectsPage({
     </div>
   )
 
+  const boardFilter = (
+    <BoardFilter
+      people={people.map((e) => ({ id: e.id, name: `${e.firstName} ${e.lastName}`.trim() }))}
+      labels={trades.map((c) => ({ id: c.id, name: locale === 'en' ? c.nameEn : c.nameDe, swatch: labelSwatch(c.color, c.id) }))}
+      current={filter}
+    />
+  )
+  /** The status tab the board was narrowed to, with the way out of it. */
+  const statusChip = narrowed && (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/40 bg-accent/10 py-0.5 pl-2.5 pr-1 text-xs font-medium text-accent">
+      {t('boardStatusOnly', { status: statusFilter ? tStatus(statusFilter) : prepTab.label || t('tabPreparation') })}
+      <Link
+        href={projectsViewHref('board', { q: query, year: yearParam, board: boardParam, member, label, urgent })}
+        aria-label={t('boardStatusClear')}
+        title={t('boardStatusClear')}
+        className="rounded-full p-0.5 hover:bg-accent/20"
+      >
+        <X className="h-3 w-3" aria-hidden />
+      </Link>
+    </span>
+  )
+
   /** Which year, and list or board: the same projects, two ways of drawing
    *  them. Written once because it sits on a different row in each view. */
   const viewSwitch = (
@@ -349,7 +377,16 @@ export default async function ProjectsPage({
         ) : (
           <Link
             key={option.value || 'board'}
-            href={projectsViewHref(option.value ? 'list' : 'board', { q: query, year: yearParam, board: boardParam })}
+            href={projectsViewHref(option.value ? 'list' : 'board', {
+              q: query,
+              year: yearParam,
+              board: boardParam,
+              // A tab the board could not show is not carried back and forth.
+              status: kanban ? (narrowed ? status : undefined) : wantedStatuses ? status : undefined,
+              member,
+              label,
+              urgent,
+            })}
             className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
           >
             {option.label}
@@ -442,11 +479,8 @@ export default async function ProjectsPage({
                   manage={user.role === 'ADMIN' ? { href: '/settings/boards', label: t('boardsManage') } : null}
                 />
                 {search}
-                <BoardFilter
-                  people={people.map((e) => ({ id: e.id, name: `${e.firstName} ${e.lastName}`.trim() }))}
-                  labels={trades.map((c) => ({ id: c.id, name: locale === 'en' ? c.nameEn : c.nameDe, swatch: labelSwatch(c.color, c.id) }))}
-                  current={filter}
-                />
+                {boardFilter}
+                {statusChip}
               </div>
               {viewSwitch}
             </div>
@@ -486,7 +520,10 @@ export default async function ProjectsPage({
                 </div>
                 {viewSwitch}
               </div>
-              <div className="flex">{search}</div>
+              <div className="flex flex-wrap items-center gap-3">
+                {search}
+                {boardFilter}
+              </div>
             </>
           )}
         </div>

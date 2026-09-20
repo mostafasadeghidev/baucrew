@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { opensBoard, projectsViewHref } from '@/lib/projects-view'
+import { narrowedStatuses, opensBoard, projectsViewHref } from '@/lib/projects-view'
 
 describe('opensBoard', () => {
   it('opens the board when nothing says otherwise, and with a search', () => {
@@ -30,8 +30,37 @@ describe('projectsViewHref', () => {
     expect(projectsViewHref('board', { q: 'Muster', year: 'all' })).toBe('/projects?q=Muster&year=all')
   })
 
+  it('takes the filters along, both ways', () => {
+    const keep = { q: 'Muster', member: 'emp1', label: 'cat1', urgent: '1', board: 'b2' }
+    expect(projectsViewHref('list', keep)).toBe('/projects?view=list&q=Muster&board=b2&member=emp1&label=cat1&urgent=1')
+    expect(projectsViewHref('board', keep)).toBe('/projects?q=Muster&board=b2&member=emp1&label=cat1&urgent=1')
+  })
+
+  it('asks for the board by name when a status tab goes with it', () => {
+    // A status alone opens the list; the board has to be named beside it.
+    const href = projectsViewHref('board', { status: 'IN_PROGRESS', year: '2025' })
+    expect(href).toBe('/projects?view=kanban&status=IN_PROGRESS&year=2025')
+    const params = Object.fromEntries(new URL(href, 'http://x').searchParams)
+    expect(opensBoard(params)).toBe(true)
+    expect(projectsViewHref('list', { status: 'prep' })).toBe('/projects?view=list&status=prep')
+  })
+
   it('leads to the bare page when there is nothing to keep', () => {
     expect(projectsViewHref('board', {})).toBe('/projects')
     expect(projectsViewHref('list', { q: '', year: '' })).toBe('/projects?view=list')
+  })
+})
+
+describe('narrowedStatuses', () => {
+  const board = ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS']
+
+  it('leaves the columns the status tab holds, in the order of the board', () => {
+    expect(narrowedStatuses(board, ['IN_PROGRESS'])).toEqual(['IN_PROGRESS'])
+    expect(narrowedStatuses(board, ['APPROVED', 'LEAD'])).toEqual(['LEAD', 'APPROVED'])
+  })
+
+  it('shows the board whole without a tab, or when it has no such column', () => {
+    expect(narrowedStatuses(board, null)).toBeNull()
+    expect(narrowedStatuses(board, ['PAID'])).toBeNull()
   })
 })

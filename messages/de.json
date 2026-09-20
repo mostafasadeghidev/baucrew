@@ -365,7 +365,9 @@
     "externalSource": "Quelle",
     "externalSourceLink": "Zum Ursprung",
     "plannedRevenue": "Planumsatz",
-    "kanbanMoveColumn": "Spalte verschieben"
+    "kanbanMoveColumn": "Spalte verschieben",
+    "boardStatusOnly": "Nur: {status}",
+    "boardStatusClear": "Statusfilter entfernen"
   },
   "employees": {
     "title": "Mitarbeiter",

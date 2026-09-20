@@ -365,7 +365,9 @@
     "externalSource": "Source",
     "externalSourceLink": "Open origin",
     "plannedRevenue": "Planned revenue",
-    "kanbanMoveColumn": "Move column"
+    "kanbanMoveColumn": "Move column",
+    "boardStatusOnly": "Only: {status}",
+    "boardStatusClear": "Remove status filter"
   },
   "employees": {
     "title": "Employees",
