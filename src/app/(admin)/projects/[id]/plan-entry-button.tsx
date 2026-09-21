@@ -9,17 +9,37 @@ import { createScheduleEntry } from '../../schedule/actions'
 import { iso, todayUtc } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
 
-/** "Einsatz planen" on the project page — opens the schedule dialog with this project preselected. */
+type AbsenceHint = { employeeId: string; start: string; end: string; label: string }
+
+/**
+ * "Einsatz planen" — opens the schedule dialog from somewhere that is not the
+ * schedule. On the project page it comes with the project chosen and today's
+ * date; on the overview with the day the card stands for — tomorrow, say — and,
+ * beside a project listed there, with that project too.
+ */
 export function PlanEntryButton({
   projectId,
+  date,
   projects,
   employees,
   vehicles,
+  absences,
+  label,
+  quiet = false,
 }: {
-  projectId: string
+  /** The project the dialog opens on; none, and it is picked in the dialog. */
+  projectId?: string
+  /** The day the dialog opens on (yyyy-mm-dd); today when left out. */
+  date?: string
   projects: ComboboxOption[]
   employees: ComboboxOption[]
   vehicles: ComboboxOption[]
+  /** Who is away when — the dialog warns beside their name. */
+  absences?: AbsenceHint[]
+  /** The button's own words; "Einsatz planen" when left out. */
+  label?: string
+  /** An outlined button, for a row of a list rather than the head of a card. */
+  quiet?: boolean
 }) {
   const t = useTranslations('schedule')
   const tc = useTranslations('common')
@@ -32,10 +52,10 @@ export function PlanEntryButton({
     <>
       <button
         type="button"
-        onClick={() => setDialog({ mode: 'create', date: iso(todayUtc()), projectId })}
-        className={`${btn.primarySm} text-xs`}
+        onClick={() => setDialog({ mode: 'create', date: date ?? iso(todayUtc()), projectId })}
+        className={`${quiet ? btn.outlineSm : btn.primarySm} shrink-0 text-xs`}
       >
-        + {t('planEntry')}
+        + {label ?? t('planEntry')}
       </button>
       {error && (
         <p role="alert" className="text-xs text-danger">
@@ -48,6 +68,7 @@ export function PlanEntryButton({
           projects={projects}
           employees={employees}
           vehicles={vehicles}
+          absences={absences}
           pending={pending}
           onClose={() => setDialog({ mode: 'closed' })}
           onSubmit={(input) => {

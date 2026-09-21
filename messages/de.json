@@ -135,7 +135,10 @@
     "moveDownShort": "Runter",
     "makeHalfShort": "Halb",
     "makeFullShort": "Voll",
-    "dragHint": "Zum Verschieben ziehen"
+    "dragHint": "Zum Verschieben ziehen",
+    "planCandidates": "Beauftragt, morgen ohne Einsatz ({count})",
+    "planTomorrow": "Morgen",
+    "planMore": "{count} weitere — zur Einsatzplanung"
   },
   "my": {
     "title": "Mein Bereich",

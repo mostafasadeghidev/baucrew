@@ -135,7 +135,10 @@
     "moveDownShort": "Down",
     "makeHalfShort": "Half",
     "makeFullShort": "Full",
-    "dragHint": "Drag to move"
+    "dragHint": "Drag to move",
+    "planCandidates": "Commissioned, nobody on it tomorrow ({count})",
+    "planTomorrow": "Tomorrow",
+    "planMore": "{count} more — to the schedule"
   },
   "my": {
     "title": "My area",

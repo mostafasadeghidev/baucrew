@@ -15,6 +15,7 @@ import { getOpenOffers, getStockShortages, getYearRevenueOrHistory, STALE_OFFER_
 import { WidgetFrame } from './widget-frame'
 import { WidgetGrid } from './widget-grid'
 import { resetDashboardLayout } from './actions'
+import { PlanEntryButton } from '../projects/[id]/plan-entry-button'
 
 export default async function DashboardPage({
   searchParams,
@@ -216,6 +217,58 @@ export default async function DashboardPage({
     needs('revenueMonth') && monthIndex === 0 ? getYearRevenueOrHistory(currentYear - 1) : null,
   ])
 
+  /**
+   * Planning from the overview: the cards for today and tomorrow open the
+   * schedule's own dialog on their day, so an assignment is made where the
+   * gap was noticed. What the dialog needs is read only when one of the two
+   * cards is shown.
+   */
+  const planning = needs('today') || needs('tomorrow')
+  const [planProjects, planEmployees, planVehicles, planAbsences] = planning
+    ? await Promise.all([
+        db.project.findMany({
+          where: { status: { in: ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] } },
+          orderBy: { number: 'desc' },
+          select: {
+            id: true,
+            number: true,
+            name: true,
+            status: true,
+            city: true,
+            plannedStart: true,
+            customer: { select: { name: true } },
+          },
+        }),
+        db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
+        db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+        db.absence.findMany({
+          where: { startDate: { lt: addDays(tomorrow, 1) }, endDate: { gte: today } },
+          select: { employeeId: true, startDate: true, endDate: true, type: true },
+        }),
+      ])
+    : [[], [], [], []]
+  const planOptions = {
+    projects: planProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` })),
+    employees: planEmployees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() })),
+    vehicles: planVehicles.map((v) => ({ value: v.id, label: v.name })),
+    absences: planAbsences.map((a) => ({
+      employeeId: a.employeeId,
+      start: iso(a.startDate),
+      end: iso(a.endDate),
+      label: tAbsences(`type${a.type}` as 'typeVACATION'),
+    })),
+  }
+  /**
+   * What is commissioned and has nobody on it tomorrow — the jobs the office
+   * is looking for when it opens that card. The ones that should have started
+   * come first, then by planned start; a job without one goes last.
+   */
+  const CANDIDATES = 8
+  const scheduledTomorrow = new Set(tomorrowEntries.map((entry) => entry.project.id))
+  const tomorrowCandidates = planProjects
+    .filter((p) => ['APPROVED', 'PLANNED', 'IN_PROGRESS'].includes(p.status) && !scheduledTomorrow.has(p.id))
+    .sort((a, b) => (a.plannedStart?.getTime() ?? Infinity) - (b.plannedStart?.getTime() ?? Infinity))
+
   const thisMonthRevenue = revenueYear?.months[monthIndex]?.total ?? 0
   const prevMonthRevenue =
     monthIndex === 0
@@ -414,7 +467,10 @@ export default async function DashboardPage({
 
     today: (
 <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-        <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">{t('todaysSchedule')}</h2>
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+          <h2 className="text-sm font-semibold">{t('todaysSchedule')}</h2>
+          <PlanEntryButton date={iso(today)} {...planOptions} />
+        </div>
         {todayEntries.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted">{t('noEntriesToday')}</p>
         ) : (
@@ -459,7 +515,10 @@ export default async function DashboardPage({
 
     tomorrow: (
       <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-        <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">{t('tomorrowSchedule')}</h2>
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+          <h2 className="text-sm font-semibold">{t('tomorrowSchedule')}</h2>
+          <PlanEntryButton date={iso(tomorrow)} {...planOptions} />
+        </div>
         {tomorrowEntries.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted">{t('noEntriesTomorrow')}</p>
         ) : (
@@ -483,6 +542,39 @@ export default async function DashboardPage({
               </li>
             ))}
           </ul>
+        )}
+        {/* The jobs that are commissioned and have nobody on them tomorrow,
+            each one click from the dialog that puts somebody there. */}
+        {tomorrowCandidates.length > 0 && (
+          <details className="border-t border-border" open={tomorrowEntries.length === 0}>
+            <summary className="cursor-pointer select-none px-4 py-2 text-xs font-medium text-muted hover:text-foreground">
+              {t('planCandidates', { count: tomorrowCandidates.length })}
+            </summary>
+            <ul className="divide-y divide-border border-t border-border">
+              {tomorrowCandidates.slice(0, CANDIDATES).map((project) => (
+                <li key={project.id} className="flex items-center justify-between gap-3 px-4 py-2 text-sm">
+                  <div className="min-w-0">
+                    <Link href={`/projects/${project.id}`} className="block truncate font-medium text-accent hover:underline">
+                      {project.number} — {project.name}
+                    </Link>
+                    <p className="truncate text-xs text-muted">
+                      {[project.customer.name, project.city, project.plannedStart ? dateFmt.format(project.plannedStart) : null]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  </div>
+                  <PlanEntryButton projectId={project.id} date={iso(tomorrow)} label={t('planTomorrow')} quiet {...planOptions} />
+                </li>
+              ))}
+            </ul>
+            {tomorrowCandidates.length > CANDIDATES && (
+              <p className="border-t border-border px-4 py-2 text-xs text-muted">
+                <Link href={`/schedule?week=${iso(tomorrow)}`} className="hover:text-foreground hover:underline">
+                  {t('planMore', { count: tomorrowCandidates.length - CANDIDATES })} →
+                </Link>
+              </p>
+            )}
+          </details>
         )}
       </section>
     ),

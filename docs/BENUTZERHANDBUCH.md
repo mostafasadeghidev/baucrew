@@ -100,8 +100,8 @@ Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 - **Wetter:** Regenwarnung für Außenarbeiten in den nächsten Tagen (Schwelle einstellbar unter Einstellungen → Wetterwarnung; Quelle Open-Meteo/DWD).
 - **Bereitstellung heute:** Ist im Lager schon alles für heute gepackt? **Zur Bereitstellung →** öffnet die Unterseite mit jedem Einsatz, seiner Packliste und dem Status jedes Artikels (mit ← → für andere Tage); der Lagerbildschirm wird über die Übersicht geöffnet.
 - **Projekte mit offener Zuordnung:** Projekte, denen noch Team oder Fahrzeug fehlt.
-- **Heutige Einsätze:** Wer ist heute wo, womit, ab wann.
-- **Einsätze morgen:** dasselbe für den nächsten Tag — der Blick, den man abends braucht.
+- **Heutige Einsätze:** Wer ist heute wo, womit, ab wann. **+ Einsatz planen** öffnet den Dialog der Einsatzplanung gleich für heute.
+- **Einsätze morgen:** dasselbe für den nächsten Tag — der Blick, den man abends braucht. **+ Einsatz planen** plant direkt für morgen; darunter klappt **Beauftragt, morgen ohne Einsatz** die beauftragten, geplanten und laufenden Projekte auf, auf denen morgen niemand steht — **+ Morgen** neben einem Projekt öffnet den Dialog mit Projekt, Team und Fahrzeug vorbelegt. Abwesende Mitarbeiter sind dort markiert.
 - **Diese Woche auf einen Blick:** Montag bis Freitag nebeneinander mit den Projekten je Tag (heute ist hervorgehoben).
 - **Checklisten — gemeldete Probleme:** was die Kollegen auf der Baustelle als Problem angehakt haben, mit ihrer Notiz.
 - **Diese Woche fällig:** Projekte, die in dieser Woche fällig sind — nach **Fällig am**, und wo keines eingetragen ist, nach dem geplanten Ende; überfällige stehen rot.
