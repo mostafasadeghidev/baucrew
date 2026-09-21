@@ -1006,7 +1006,9 @@
     "extraTitle": "Not in the sheet",
     "hintOwnPeopleSheet": "Sum of this month's lines in the year plan (sheet), own crew — exactly as in the sheet. A line with a project links to it; one without a project exists only in the sheet.",
     "hintSubSheet": "Sum of this month's SUB lines in the year plan — jobs carried out by a subcontractor.",
-    "hintExtra": "Projects with a planned start in this month that are not in the year plan. They do not count towards the month and year totals, so the figures match the sheet — add them to the sheet or tie them to a line in the plan match."
+    "hintExtra": "Projects with a planned start in this month that are not in the year plan. They do not count towards the month and year totals, so the figures match the sheet — add them to the sheet or tie them to a line in the plan match.",
+    "chartOpenMonth": "open the month's jobs",
+    "chartClickHint": "Click a month to see the jobs behind it."
   },
   "sheet": {
     "title": "Work order",

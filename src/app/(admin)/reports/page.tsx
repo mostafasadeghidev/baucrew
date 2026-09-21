@@ -497,6 +497,22 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       running: quarterYear === currentYear && Math.floor(todayMonth / 3) === row.index,
     }
   })
+  /**
+   * A bar is a way in: the month of its year on the Planumsatz tab, where the
+   * jobs behind the figure stand one line each, every line a link to its
+   * project. How that tab draws its months goes along.
+   */
+  const monthHrefs = Object.fromEntries(
+    [year, ...compareYears].map((y) => [
+      y,
+      Array.from({ length: 12 }, (_, m) => {
+        const query = new URLSearchParams({ tab: 'revenue', year: String(y), period: String(m + 1) })
+        if (layoutParam) query.set('layout', layoutParam)
+        if (perParam) query.set('per', perParam)
+        return `/reports?${query.toString()}`
+      }),
+    ])
+  )
   const chartTitle =
     compareYears.length === 1 && compareYears[0] === year - 1
       ? t('chartTitle', { year, prev: year - 1 })
@@ -685,6 +701,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   {compareYears.length > 0 && (
                     <InfoHint text={t('chartCompareHint', { year })} className="ml-1.5" wide />
                   )}
+                  <span className="ml-2 text-xs font-normal text-muted print:hidden">{t('chartClickHint')}</span>
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                   <ChartModePicker
@@ -716,6 +733,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 compare={compareSeries}
                 mode={chartMode}
                 labels={shortMonths}
+                monthHrefs={monthHrefs}
+                openLabel={t('chartOpenMonth')}
                 legend={{
                   own: t('legendOwn', { year }),
                   sub: t('legendSub', { year }),

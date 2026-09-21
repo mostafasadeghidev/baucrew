@@ -1006,7 +1006,9 @@
     "extraTitle": "Nicht in der Tabelle",
     "hintOwnPeopleSheet": "Summe der Zeilen der Jahresplanung (Tabelle) für diesen Monat, eigene Leute — genau wie in der Tabelle. Eine Zeile mit Projekt verlinkt dorthin; eine ohne Projekt steht nur in der Tabelle.",
     "hintSubSheet": "Summe der SUB-Zeilen der Jahresplanung für diesen Monat — Aufträge, die ein Subunternehmer ausführt.",
-    "hintExtra": "Projekte mit geplantem Start in diesem Monat, die in der Jahresplanung nicht stehen. Sie zählen nicht in die Monats- und Jahressumme, damit die Zahlen der Tabelle entsprechen — in die Tabelle eintragen oder im Planabgleich einer Zeile zuordnen."
+    "hintExtra": "Projekte mit geplantem Start in diesem Monat, die in der Jahresplanung nicht stehen. Sie zählen nicht in die Monats- und Jahressumme, damit die Zahlen der Tabelle entsprechen — in die Tabelle eintragen oder im Planabgleich einer Zeile zuordnen.",
+    "chartOpenMonth": "Aufträge des Monats öffnen",
+    "chartClickHint": "Klick auf einen Monat zeigt die Aufträge dahinter."
   },
   "sheet": {
     "title": "Arbeitsauftrag",

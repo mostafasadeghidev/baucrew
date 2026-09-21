@@ -51,11 +51,18 @@
  * seam between own crew and SUB stays a straight line instead of two clipped
  * corners.
  *
+ * A month can be a way in: given `monthHrefs`, a click on a bar — or on the
+ * month, where the whole column answers — leads to the jobs behind the figure,
+ * and Enter does the same from the keyboard. A finger has no hover, so its
+ * first tap shows the figures and only a second tap on the same spot follows
+ * the link.
+ *
  * The browser's `<title>` tooltip is deliberately not used — it waits about a
  * second, cannot be styled and never appears on a touchscreen.
  */
 
 import { Fragment, useId, useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { formatCurrency, PRICE_MASK } from '@/lib/format'
 import { usePricesHidden } from '@/components/price-visibility'
 import { linePath, monthRuns } from '@/lib/chart-path'
@@ -220,6 +227,8 @@ export function RevenueChart({
   legend,
   locale,
   highlightRange,
+  monthHrefs,
+  openLabel,
 }: {
   /** The year the months belong to — it takes its place among the others. */
   year: number
@@ -246,10 +255,16 @@ export function RevenueChart({
   locale: string
   /** 0-11 inclusive range: dim all months outside it. */
   highlightRange?: { from: number; to: number } | null
+  /** Where a month of a year leads, twelve addresses a year; a year left out has no way in. */
+  monthHrefs?: Record<number, string[]>
+  /** Said to a screen reader after a month's figures: "Aufträge öffnen". */
+  openLabel?: string
 }) {
+  const router = useRouter()
   // Two sources, kept apart: a mouse crossing the chart must not wipe out what
   // the keyboard put up, and letting go of one must fall back to the other.
   const [hover, setHover] = useState<Spot | null>(null)
+  const skipClick = useRef(false)
   const [focused, setFocused] = useState<Spot | null>(null)
   const pointed = hover ?? focused
 
@@ -449,21 +464,41 @@ export function RevenueChart({
    * sixty. The bars answer the pointer alone; a keyboard reaches everything
    * they hold through the month they belong to.
    */
-  const catchProps = (spot: Spot, focusable: boolean) => ({
-    fill: 'transparent',
-    tabIndex: focusable ? 0 : -1,
-    role: 'img',
-    'aria-label': focusable ? spokenOf(spot) : undefined,
-    'aria-hidden': focusable ? undefined : true,
-    strokeWidth: 2,
-    className: `cursor-default outline-none ${
-      focusable ? 'focus-visible:fill-foreground/[0.06] focus-visible:stroke-accent' : ''
-    }`,
-    onPointerEnter: () => setHover(spot),
-    onPointerDown: () => setHover(spot),
-    onFocus: focusable ? () => setFocused(spot) : undefined,
-    onBlur: focusable ? () => setFocused(null) : undefined,
-  })
+  /** Where a spot leads: its bar's year, or the year on screen where the whole month answers. */
+  const hrefOf = (spot: Spot): string | null => {
+    const lane = spot.bar != null ? lanes[spot.bar] : null
+    return monthHrefs?.[lane ? lane.year : year]?.[spot.month] ?? null
+  }
+  const catchProps = (spot: Spot, focusable: boolean) => {
+    const href = hrefOf(spot)
+    return {
+      fill: 'transparent',
+      tabIndex: focusable ? 0 : -1,
+      role: href && focusable ? 'link' : 'img',
+      'aria-label': focusable ? `${spokenOf(spot)}${href && openLabel ? ` — ${openLabel}` : ''}` : undefined,
+      'aria-hidden': focusable ? undefined : true,
+      strokeWidth: 2,
+      className: `${href ? 'cursor-pointer' : 'cursor-default'} outline-none ${
+        focusable ? 'focus-visible:fill-foreground/[0.06] focus-visible:stroke-accent' : ''
+      }`,
+      onPointerEnter: () => setHover(spot),
+      onPointerDown: (e: React.PointerEvent) => {
+        // A finger's first tap is its hover: the figures, not the link.
+        const same = hover?.month === spot.month && hover?.bar === spot.bar
+        skipClick.current = e.pointerType === 'touch' && !same
+        setHover(spot)
+      },
+      onClick: href
+        ? () => {
+            if (skipClick.current) return
+            router.push(href)
+          }
+        : undefined,
+      onKeyDown: href && focusable ? (e: React.KeyboardEvent) => e.key === 'Enter' && router.push(href) : undefined,
+      onFocus: focusable ? () => setFocused(spot) : undefined,
+      onBlur: focusable ? () => setFocused(null) : undefined,
+    }
+  }
 
   /**
    * One stroke per year, oldest first so the newest lies on top. A run of
