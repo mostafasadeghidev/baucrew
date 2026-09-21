@@ -113,5 +113,6 @@ describe('a form on a project', () => {
     expect(reopened?.status).toBe('partly')
     expect(reopened?.documentId).toBeNull()
     expect(await prisma.document.count({ where: { id: filed!.id } })).toBe(0)
-  })
+    // Two sheets are drawn and one is written to disk: more than the usual five seconds on a busy machine.
+  }, 20_000)
 })

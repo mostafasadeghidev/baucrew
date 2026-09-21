@@ -51,11 +51,13 @@
  * seam between own crew and SUB stays a straight line instead of two clipped
  * corners.
  *
- * A month can be a way in: given `monthHrefs`, a click on a bar — or on the
- * month, where the whole column answers — leads to the jobs behind the figure,
- * and Enter does the same from the keyboard. A finger has no hover, so its
- * first tap shows the figures and only a second tap on the same spot follows
- * the link.
+ * A month can be opened: inside a `MonthDetailProvider` a click on a bar — or
+ * on the month, where the whole column answers — lists the jobs behind the
+ * figure right under the chart (see `month-detail.tsx`), a second click puts
+ * the list away, and Enter does the same from the keyboard. The month that is
+ * open keeps a frame in the chart, so list and bar are seen to belong together.
+ * Without a provider, `monthHrefs` makes the same click a link instead; a
+ * finger's first tap then shows the figures and only the second follows it.
  *
  * The browser's `<title>` tooltip is deliberately not used — it waits about a
  * second, cannot be styled and never appears on a touchscreen.
@@ -63,6 +65,7 @@
 
 import { Fragment, useId, useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useMonthDetail } from '@/components/month-detail'
 import { formatCurrency, PRICE_MASK } from '@/lib/format'
 import { usePricesHidden } from '@/components/price-visibility'
 import { linePath, monthRuns } from '@/lib/chart-path'
@@ -261,6 +264,7 @@ export function RevenueChart({
   openLabel?: string
 }) {
   const router = useRouter()
+  const detail = useMonthDetail()
   // Two sources, kept apart: a mouse crossing the chart must not wipe out what
   // the keyboard put up, and letting go of one must fall back to the other.
   const [hover, setHover] = useState<Spot | null>(null)
@@ -469,16 +473,22 @@ export function RevenueChart({
     const lane = spot.bar != null ? lanes[spot.bar] : null
     return monthHrefs?.[lane ? lane.year : year]?.[spot.month] ?? null
   }
+  /** The year a spot stands for: its bar's, or the year on screen where the whole month answers. */
+  const yearOf = (spot: Spot) => (spot.bar != null ? (lanes[spot.bar]?.year ?? year) : year)
   const catchProps = (spot: Spot, focusable: boolean) => {
-    const href = hrefOf(spot)
+    const opens = detail !== null
+    const href = opens ? null : hrefOf(spot)
+    const act = opens ? () => detail.toggle({ year: yearOf(spot), month: spot.month }) : href ? () => router.push(href) : null
+    const isOpen = opens && detail.open?.month === spot.month && detail.open.year === yearOf(spot)
     return {
       fill: 'transparent',
       tabIndex: focusable ? 0 : -1,
-      role: href && focusable ? 'link' : 'img',
-      'aria-label': focusable ? `${spokenOf(spot)}${href && openLabel ? ` — ${openLabel}` : ''}` : undefined,
+      role: focusable && act ? (opens ? 'button' : 'link') : 'img',
+      'aria-expanded': focusable && opens ? isOpen : undefined,
+      'aria-label': focusable ? `${spokenOf(spot)}${act && openLabel ? ` — ${openLabel}` : ''}` : undefined,
       'aria-hidden': focusable ? undefined : true,
       strokeWidth: 2,
-      className: `${href ? 'cursor-pointer' : 'cursor-default'} outline-none ${
+      className: `${act ? 'cursor-pointer' : 'cursor-default'} outline-none ${
         focusable ? 'focus-visible:fill-foreground/[0.06] focus-visible:stroke-accent' : ''
       }`,
       onPointerEnter: () => setHover(spot),
@@ -488,13 +498,21 @@ export function RevenueChart({
         skipClick.current = e.pointerType === 'touch' && !same
         setHover(spot)
       },
-      onClick: href
+      onClick: act
         ? () => {
-            if (skipClick.current) return
-            router.push(href)
+            // Leaving the page waits for a finger's second tap; opening the list under the chart does not.
+            if (!opens && skipClick.current) return
+            act()
           }
         : undefined,
-      onKeyDown: href && focusable ? (e: React.KeyboardEvent) => e.key === 'Enter' && router.push(href) : undefined,
+      onKeyDown:
+        act && focusable
+          ? (e: React.KeyboardEvent) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return
+              e.preventDefault()
+              act()
+            }
+          : undefined,
       onFocus: focusable ? () => setFocused(spot) : undefined,
       onBlur: focusable ? () => setFocused(null) : undefined,
     }
@@ -651,8 +669,23 @@ export function RevenueChart({
           const x0 = groupX(i)
           const dim = highlightRange != null && (i < highlightRange.from || i > highlightRange.to)
           const here = active?.month === i
+          // The month whose jobs are listed under the chart: framed — its bar
+          // alone where every bar answers for itself, else the whole month.
+          const openLane = detail?.open?.month === i ? lanes.findIndex((lane) => lane.year === detail.open!.year) : -1
+          const openBox = openLane === -1 ? null : detailed ? column(i, openLane) : { x: padL + slot * i + 2, width: slot - 4 }
           return (
             <g key={i} opacity={dim ? 0.35 : 1} className="pointer-events-none">
+              {openBox && (
+                <rect
+                  x={openBox.x}
+                  y={padT - 2}
+                  width={openBox.width}
+                  height={plotH + 4}
+                  rx={6}
+                  className="fill-accent/10 stroke-accent"
+                  strokeWidth={1.5}
+                />
+              )}
               {here && (
                 <rect
                   x={active.bar == null ? padL + slot * i + 2 : column(i, active.bar).x}

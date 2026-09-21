@@ -37,6 +37,7 @@ import { pricesHidden } from '@/lib/price-visibility'
 import { addDays, todayUtc } from '@/lib/dates'
 import { usualCrew, USUAL_CREW_DAYS } from '@/lib/cockpit'
 import { RevenueChart } from '@/components/revenue-chart'
+import { MonthDetailPanel, MonthDetailProvider, type MonthDetailData, type MonthDetailLine } from '@/components/month-detail'
 import { ParamTabs } from '@/components/param-tabs'
 import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { LiveSelect } from '@/components/live-search'
@@ -513,6 +514,40 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       }),
     ])
   )
+  /**
+   * The jobs behind every month of every year in the chart, in words: what a
+   * click on a month lists under the chart. The year on screen comes from its
+   * own loader, the compared ones from the year totals — the same loader, so a
+   * month's list adds up to the month's bar.
+   */
+  const detailLine = (p: { key: string; id: string; number: string; name: string; customer: string; price: number | null; fromSheet?: boolean }): MonthDetailLine => ({
+    key: p.key,
+    number: p.number,
+    name: p.name,
+    customer: p.customer,
+    amount: p.price != null ? money(p.price) : null,
+    href: p.fromSheet ? null : `/projects/${p.id}`,
+  })
+  const monthDetails: Record<number, MonthDetailData[]> = onCompare
+    ? Object.fromEntries(
+        [year, ...compareYears].map((y) => {
+          const row = (yearTotals ?? []).find((r) => r.year === y)
+          const lines = y === year && revenue ? revenue.months.map((m) => ({ own: m.own, sub: m.sub })) : (row?.lines ?? [])
+          const sums = y === year && revenue ? revenue.months.map((m) => ({ own: m.ownTotal, sub: m.subTotal, total: m.total })) : (row?.months ?? [])
+          return [
+            y,
+            Array.from({ length: 12 }, (_, m): MonthDetailData => ({
+              own: (lines[m]?.own ?? []).map(detailLine),
+              sub: (lines[m]?.sub ?? []).map(detailLine),
+              ownTotal: money(sums[m]?.own ?? 0),
+              subTotal: money(sums[m]?.sub ?? 0),
+              total: money(sums[m]?.total ?? 0),
+              href: monthHrefs[y]?.[m] ?? '/reports?tab=revenue',
+            })),
+          ]
+        })
+      )
+    : {}
   const chartTitle =
     compareYears.length === 1 && compareYears[0] === year - 1
       ? t('chartTitle', { year, prev: year - 1 })
@@ -690,6 +725,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       {/* ── Vergleich: the year against other years ───────── */}
       {onCompare && revenue && (
+        <MonthDetailProvider>
         <div className="space-y-4">
           {/* The two stretch to the same height, and the chart takes
               whatever height is left over inside its card. */}
@@ -794,6 +830,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </div>
           </div>
 
+          {/* The jobs of the month that was clicked in the chart — right under it. */}
+          <MonthDetailPanel data={monthDetails} monthNames={monthNames.long} />
+
           {yearBars.length > 1 && (
             <div className={`${card} p-4`}>
               <h2 className="mb-3 text-sm font-semibold">{t('yearComparison')}</h2>
@@ -846,6 +885,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </div>
           )}
         </div>
+        </MonthDetailProvider>
       )}
 
       {/* ── Aufträge & Baustellen ──────────────────────────── */}

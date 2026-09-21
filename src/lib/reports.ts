@@ -290,6 +290,8 @@ export type YearTotal = {
    * each other and still show each one's split.
    */
   months: Array<{ own: number; sub: number; total: number }>
+  /** The lines behind each month — what a click on the month in the chart lists. */
+  lines: Array<{ own: RevenueProject[]; sub: RevenueProject[] }>
   /** True when the figures are the imported planning sheet's own lines. */
   sheetLed: boolean
 }
@@ -308,6 +310,7 @@ export async function getYearTotals(years: number[]): Promise<YearTotal[]> {
     sub: r.months.reduce((sum, m) => sum + m.subTotal, 0),
     total: r.yearTotal,
     months: r.months.map((m) => ({ own: m.ownTotal, sub: m.subTotal, total: m.total })),
+    lines: r.months.map((m) => ({ own: m.own, sub: m.sub })),
     sheetLed: r.sheetLed,
   }))
 }
