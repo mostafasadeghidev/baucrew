@@ -16,7 +16,7 @@ import { deleteProject, setProjectStatus, updateProject } from '../actions'
 import { ProjectForm } from '../project-form'
 import { ProjectBarActions } from './edit-all-button'
 import { SheetClose } from '../card-sheet'
-import { SheetSidebar } from '../sheet-sidebar'
+import { SheetAddBar } from '../sheet-add-bar'
 import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
 import { todayUtc } from '@/lib/dates'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
@@ -418,7 +418,15 @@ export async function ProjectDetail({
     ),
   }
 
-  // The cards themselves — the page stacks them, the sheet puts a column beside them.
+  /**
+   * The cards of the project, with the talk about it in a column on their
+   * right. The column takes its room from the cards, so they pair off one
+   * step later than they would alone: on the page, which shares the window
+   * with the sidebar, from 2xl; in the sheet, which has the window's width to
+   * itself, from xl. Below the width the column appears at, the comments go
+   * under the cards and the cards pair off as they always did.
+   */
+  const pairs = sheet ? 'md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2' : 'lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2'
   const body = (
     <>
       <ProjectForm
@@ -426,6 +434,7 @@ export async function ProjectDetail({
         cancelHref={sheet?.returnTo ?? `/projects/${project.id}`}
         title={project.name}
         showPrice={showPrice}
+        pairFrom={sheet ? 'xl' : '2xl'}
         inline={{
           views,
           labels: { edit: tc('edit'), save: tc('save'), cancel: tc('cancel') },
@@ -487,7 +496,7 @@ export async function ProjectDetail({
         }}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className={`grid gap-6 ${pairs}`}>
         {/* Tools & materials — no overflow-hidden: the picker dropdown must escape the card */}
         {showPrice && (
           <ProjectAddOns
@@ -603,6 +612,7 @@ export async function ProjectDetail({
           files={project.documents.map((d) => ({
             id: d.id,
             filename: d.filename,
+            mimeType: d.mimeType,
             size: d.size,
             source: d.source,
             visibleToCrew: d.visibleToCrew,
@@ -646,19 +656,31 @@ export async function ProjectDetail({
             </ul>
           )}
         </section>
-
-        {/* The team talking on the project — the whole width, under everything. */}
-        <div id="comments" className="scroll-mt-24 lg:col-span-2">
-          <ProjectComments
-            projectId={project.id}
-            comments={comments}
-            people={people}
-            add={addProjectComment}
-            remove={deleteProjectComment}
-          />
-        </div>
       </div>
     </>
+  )
+
+  /**
+   * The team talking on the project — office and site manager — beside the
+   * work rather than under it. It holds to the top of the window while the
+   * cards scroll past, as tall as the window lets it be.
+   */
+  const talk = (
+    <aside
+      id="comments"
+      className={`min-w-0 scroll-mt-24 ${
+        sheet ? 'lg:sticky lg:top-20 lg:max-h-[calc(100vh-8rem)]' : 'xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)]'
+      } flex flex-col`}
+    >
+      <ProjectComments
+        projectId={project.id}
+        comments={comments}
+        people={people}
+        add={addProjectComment}
+        remove={deleteProjectComment}
+        column
+      />
+    </aside>
   )
 
   // What a Trello card says under its title: who, which labels, when, how much.
@@ -820,26 +842,26 @@ export async function ProjectDetail({
       </PageHint>
       {meta}
 
-      {/* Over the board the project reads like a Trello card: what it is made
-          of on the left, what can be added to it on the right. */}
-      {sheet ? (
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_13rem]">
-          <div className="min-w-0 space-y-6">{body}</div>
-          <SheetSidebar
-            labels={{
-              heading: t('sheetAddToCard'),
-              members: t('sheetMembers'),
-              labels: t('sheetLabels'),
-              checklist: t('sheetChecklist'),
-              dates: t('sheetDates'),
-              attachment: t('sheetAttachment'),
-              comment: t('sheetComment'),
-            }}
-          />
-        </div>
-      ) : (
-        body
+      {/* Over the board the project reads like a Trello card: under the title
+          what can be added to it, then what it is made of on the left and the
+          talk about it on the right. */}
+      {sheet && (
+        <SheetAddBar
+          labels={{
+            heading: t('sheetAddToCard'),
+            members: t('sheetMembers'),
+            labels: t('sheetLabels'),
+            checklist: t('sheetChecklist'),
+            dates: t('sheetDates'),
+            attachment: t('sheetAttachment'),
+            comment: t('sheetComment'),
+          }}
+        />
       )}
+      <div className={`grid items-start gap-6 ${sheet ? 'lg:grid-cols-[minmax(0,1fr)_22rem]' : 'xl:grid-cols-[minmax(0,1fr)_22rem]'}`}>
+        <div className="min-w-0 space-y-6">{body}</div>
+        {talk}
+      </div>
 
     </div>
   )

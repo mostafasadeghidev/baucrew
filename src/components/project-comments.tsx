@@ -10,9 +10,14 @@
  *
  * Drawn on the project page, in the card sheet over the board and on the
  * crew's phone; each hands in the actions it may use.
+ *
+ * Beside a project — `column` — it is the talk next to the work, the way a
+ * Trello card keeps its comments on the right: as tall as the window lets it
+ * be, the comments scrolling inside it with the newest in view, and the box to
+ * write in always at its foot.
  */
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Send, X } from 'lucide-react'
@@ -49,6 +54,7 @@ export function ProjectComments({
   canMarkOffice = true,
   frame = true,
   large = false,
+  column = false,
 }: {
   projectId: string
   comments: CommentRow[]
@@ -62,6 +68,8 @@ export function ProjectComments({
   frame?: boolean
   /** Larger type and targets, for the phone. */
   large?: boolean
+  /** A column beside the project: it fills the height it is given and scrolls inside. */
+  column?: boolean
 }) {
   const t = useTranslations('projects')
   const tc = useTranslations('common')
@@ -74,6 +82,14 @@ export function ProjectComments({
   const [removing, setRemoving] = useState<CommentRow | null>(null)
   const area = useRef<HTMLTextAreaElement>(null)
   const office = useRef<HTMLInputElement>(null)
+  const scroller = useRef<HTMLDivElement>(null)
+
+  // The newest comment is the last one; a column that opened on the oldest
+  // would hide the very line somebody was sent here to read.
+  useEffect(() => {
+    const el = scroller.current
+    if (column && el) el.scrollTop = el.scrollHeight
+  }, [column, comments.length])
 
   const matches = pick ? mentionMatches(pick.query, people) : []
   const body = large ? 'text-base' : 'text-sm'
@@ -234,7 +250,10 @@ export function ProjectComments({
           <ul
             role="listbox"
             aria-label={t('commentMentionHint')}
-            className="absolute left-0 top-full z-20 mt-1 w-64 overflow-hidden rounded-lg border border-border bg-surface p-1 shadow-xl"
+            // In a column the box stands at the foot of the window: the names go up.
+            className={`absolute left-0 z-20 w-64 overflow-hidden rounded-lg border border-border bg-surface p-1 shadow-xl ${
+              column ? 'bottom-full mb-1' : 'top-full mt-1'
+            }`}
           >
             {matches.map((person, i) => (
               <li key={person.id}>
@@ -306,16 +325,22 @@ export function ProjectComments({
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface shadow-sm">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
-        <div>
+    <section className={`rounded-xl border border-border bg-surface shadow-sm ${column ? 'flex max-h-[inherit] min-h-0 flex-col' : ''}`}>
+      <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
+        <div className="min-w-0">
           <h2 className="text-sm font-semibold">{t('commentsTitle')}</h2>
           <p className="mt-0.5 text-xs text-muted">{t('commentsHint')}</p>
         </div>
         {comments.length > 0 && <span className="text-xs tabular-nums text-muted">{comments.length}</span>}
       </div>
-      {list}
-      {form}
+      {column ? (
+        <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {list}
+        </div>
+      ) : (
+        list
+      )}
+      <div className="shrink-0">{form}</div>
       {dialog}
     </section>
   )

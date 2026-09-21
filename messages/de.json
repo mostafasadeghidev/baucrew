@@ -28,7 +28,8 @@
     "pagination": "Seitennavigation",
     "clear": "Auswahl entfernen",
     "undo": "Rückgängig",
-    "dismiss": "Ausblenden"
+    "dismiss": "Ausblenden",
+    "close": "Schließen"
   },
   "auth": {
     "loginTitle": "Anmeldung",
@@ -1401,7 +1402,10 @@
     "crewShort": "Team",
     "officeShort": "Büro",
     "crewCanSee": "Das Team sieht diese Datei im Mitarbeiter-Bereich. Klicken, um sie nur fürs Büro zu behalten.",
-    "officeOnly": "Nur das Büro sieht diese Datei. Klicken, um sie fürs Team freizugeben."
+    "officeOnly": "Nur das Büro sieht diese Datei. Klicken, um sie fürs Team freizugeben.",
+    "preview": "Vorschau öffnen",
+    "openInTab": "In neuem Tab öffnen",
+    "download": "Herunterladen"
   },
   "time": {
     "title": "Zeiterfassung (14 Tage)",

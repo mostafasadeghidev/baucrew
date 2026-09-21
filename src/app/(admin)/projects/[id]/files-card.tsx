@@ -2,13 +2,15 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { Eye, EyeOff, FileText } from 'lucide-react'
 import { DeleteButton } from '@/components/delete-button'
 import { btn } from '@/components/ui/button'
-import { formatFileSize } from '@/lib/files'
+import { formatFileSize, previewKind } from '@/lib/files'
 import { FileUpload } from './file-upload'
+import { FilePreview } from './file-preview'
 import { deleteProjectFile, toggleFileVisibility } from './file-actions'
 
 export type FileRow = {
   id: string
   filename: string
+  mimeType: string
   size: number
   source: string
   visibleToCrew: boolean
@@ -43,13 +45,12 @@ export async function FilesCard({ projectId, files }: { projectId: string; files
             {files.map((file) => (
               <li key={file.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
                 <FileText className="h-4 w-4 shrink-0 text-muted" aria-hidden />
-                <a
-                  href={`/api/files/${file.id}`}
-                  target="_blank"
-                  className="min-w-0 flex-1 truncate font-medium text-accent hover:underline"
-                >
-                  {file.filename}
-                </a>
+                <FilePreview
+                  id={file.id}
+                  filename={file.filename}
+                  kind={previewKind(file.mimeType)}
+                  labels={{ preview: t('preview'), openInTab: t('openInTab'), download: t('download'), close: tc('close') }}
+                />
                 <span className="shrink-0 text-xs text-muted">
                   {formatFileSize(file.size)} · {fmt.format(file.createdAt)}
                   {file.uploadedBy && ` · ${file.uploadedBy.username}`}

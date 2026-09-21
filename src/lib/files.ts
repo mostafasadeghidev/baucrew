@@ -45,6 +45,23 @@ export function mimeFromName(name: string): string | null {
   return ext ? (TYPE_BY_EXTENSION[ext] ?? null) : null
 }
 
+/** How a browser can draw a stored file inside the page. */
+export type PreviewKind = 'pdf' | 'image' | 'text'
+
+/**
+ * Whether a file can be looked at inside the project, by its type. Only what
+ * every browser draws on its own: a PDF, the three picture formats they all
+ * read, plain text. HEIC is a picture no browser but Safari opens, and a table
+ * or a Word file has to be downloaded whatever is done here.
+ */
+export function previewKind(mimeType: string): PreviewKind | null {
+  const type = mimeType.trim().toLowerCase()
+  if (type === 'application/pdf') return 'pdf'
+  if (type === 'image/png' || type === 'image/jpeg' || type === 'image/webp') return 'image'
+  if (type === 'text/plain') return 'text'
+  return null
+}
+
 /** Keeps the extension, drops anything path- or header-hostile. */
 export function safeFileName(name: string): string {
   const trimmed = name.split(/[\\/]/).pop()?.trim() || 'datei'

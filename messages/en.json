@@ -28,7 +28,8 @@
     "pagination": "Pagination",
     "clear": "Clear selection",
     "undo": "Undo",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "close": "Close"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -1401,7 +1402,10 @@
     "crewShort": "Crew",
     "officeShort": "Office",
     "crewCanSee": "The crew sees this file in the worker area. Click to keep it office-only.",
-    "officeOnly": "Only the office sees this file. Click to share it with the crew."
+    "officeOnly": "Only the office sees this file. Click to share it with the crew.",
+    "preview": "Open preview",
+    "openInTab": "Open in a new tab",
+    "download": "Download"
   },
   "time": {
     "title": "Time tracking (14 days)",

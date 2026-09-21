@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { absenceCoversDay, absentEmployeesOn } from '@/lib/absences'
 import { detectAbsenceConflicts, type ConflictEntry } from '@/lib/schedule-conflicts'
-import { formatFileSize, safeFileName, storageKeyFor, validateUpload, MAX_FILE_SIZE } from '@/lib/files'
+import { formatFileSize, previewKind, safeFileName, storageKeyFor, validateUpload, MAX_FILE_SIZE } from '@/lib/files'
 
 const d = (iso: string) => new Date(`${iso}T00:00:00Z`)
 
@@ -73,5 +73,17 @@ describe('file uploads', () => {
     expect(formatFileSize(500)).toBe('500 B')
     expect(formatFileSize(2048)).toBe('2 KB')
     expect(formatFileSize(3 * 1024 * 1024)).toBe('3.0 MB')
+  })
+
+  it('previews only what every browser draws on its own', () => {
+    expect(previewKind('application/pdf')).toBe('pdf')
+    expect(previewKind('image/jpeg')).toBe('image')
+    expect(previewKind('IMAGE/PNG ')).toBe('image')
+    expect(previewKind('text/plain')).toBe('text')
+    // A picture only one browser opens, a table, and a page that could run script.
+    expect(previewKind('image/heic')).toBeNull()
+    expect(previewKind('application/vnd.ms-excel')).toBeNull()
+    expect(previewKind('text/html')).toBeNull()
+    expect(previewKind('image/svg+xml')).toBeNull()
   })
 })

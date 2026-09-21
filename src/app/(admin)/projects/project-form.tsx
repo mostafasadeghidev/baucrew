@@ -148,7 +148,8 @@ function Section({
     <section
       id={anchor}
       className={`scroll-mt-24 rounded-xl border border-border bg-surface p-5 shadow-sm ${
-        wide ? 'xl:col-span-2' : ''
+        // Every column there is, however many that is at this width.
+        wide ? 'col-span-full' : ''
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -344,6 +345,7 @@ export function ProjectForm({
   extraSection,
   customerAddresses = {},
   inline,
+  pairFrom = 'xl',
 }: {
   action: (prev: ProjectFormState, formData: FormData) => Promise<ProjectFormState>
   initial: ProjectFormValues
@@ -382,6 +384,11 @@ export function ProjectForm({
     /** The pencil's name, and the words on the two buttons. */
     labels: { edit: string; save: string; cancel: string }
   }
+  /**
+   * The width from which the cards stand in pairs. One step later where a
+   * column beside the form takes room from it.
+   */
+  pairFrom?: 'xl' | '2xl'
 }) {
   const t = useTranslations('projects')
   const tc = useTranslations('common')
@@ -585,7 +592,7 @@ export function ProjectForm({
       key={formKey}
       id={inline ? PROJECT_FORM_ID : undefined}
       action={formAction}
-      className="grid items-start gap-6 xl:grid-cols-2"
+      className={`grid items-start gap-6 ${pairFrom === '2xl' ? '2xl:grid-cols-2' : 'xl:grid-cols-2'}`}
     >
       {inline ? null : (
       <FormHead
@@ -594,7 +601,7 @@ export function ProjectForm({
         cancelLabel={tc('cancel')}
         cancelHref={cancelHref}
         pending={pending}
-        className="xl:col-span-2"
+        className="col-span-full"
         extra={headExtra}
       />
       )}
@@ -879,7 +886,7 @@ export function ProjectForm({
       </Section>
 
       {state.error && (
-        <p role="alert" className="text-sm text-danger xl:col-span-2">
+        <p role="alert" className="text-sm text-danger col-span-full">
           {state.error === 'saveFailed' ? tc('saveFailed') : t(state.error)}
         </p>
       )}
