@@ -26,6 +26,7 @@ export function YearComparePicker({
   label,
   maxHint,
   noneLabel,
+  emptyHint,
   dense = false,
 }: {
   /** Every year that may be chosen, the year on screen excluded. */
@@ -40,6 +41,8 @@ export function YearComparePicker({
   maxHint: string
   /** What the dense button says when no year is ticked, e.g. "keine". */
   noneLabel?: string
+  /** Said in the list when there is no year to offer: "Kein weiteres Jahr mit Daten". */
+  emptyHint?: string
   /**
    * Smaller, for a card that stands the picker beside another one: two
    * controls of the same weight compete, and this one is the second question.
@@ -132,7 +135,12 @@ export function YearComparePicker({
           </div>
         )
       })}
-      {full && (
+      {options.length === 0 && emptyHint && (
+        <div onClick={(e) => e.stopPropagation()} className="max-w-52 px-2 py-1.5 text-xs text-muted">
+          {emptyHint}
+        </div>
+      )}
+      {full && options.length > 0 && (
         <div onClick={(e) => e.stopPropagation()} className="px-2 pb-1 pt-1.5 text-[11px] text-muted">
           {maxHint}
         </div>

@@ -11,6 +11,7 @@ import {
   parseCompareYears,
   carryCompareYears,
   compareTones,
+  yearsWithData,
   percentChange,
   planReached,
   siteMonthRows,
@@ -373,6 +374,29 @@ describe('parseCompareYears', () => {
 
   it('offers no comparison when the year before is not on the list', () => {
     expect(parseCompareYears(undefined, 2022, allowed)).toEqual([])
+  })
+})
+
+describe('yearsWithData', () => {
+  const offered = [2027, 2026, 2025, 2024, 2023, 2022]
+  const totals = [
+    { year: 2027, total: 0 },
+    { year: 2026, total: 2400 },
+    { year: 2025, total: 2200 },
+    { year: 2024, total: 0 },
+    { year: 2023, total: 1500 },
+  ]
+
+  it('offers the years that have something in them, in the order they were offered', () => {
+    expect(yearsWithData(offered, totals)).toEqual([2026, 2025, 2023])
+  })
+
+  it('keeps a year that is ticked, or that a card stands on, whatever it holds', () => {
+    expect(yearsWithData(offered, totals, [2022, 2027])).toEqual([2027, 2026, 2025, 2023, 2022])
+  })
+
+  it('offers nothing where nothing is known', () => {
+    expect(yearsWithData(offered, [])).toEqual([])
   })
 })
 

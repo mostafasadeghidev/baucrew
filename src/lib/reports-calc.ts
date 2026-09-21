@@ -452,6 +452,19 @@ export function parseCompareYears(
 }
 
 /**
+ * The years a comparison offers: the ones that have something to compare —
+ * a year without a euro in it adds an empty bar to every month and a line to
+ * the legend that says nothing, and takes the width from the bars that do.
+ * A year that is ticked stays on offer whatever it holds, so a tick that came
+ * in on an old link can still be taken away; `keep` is for those, and for the
+ * year a card stands on. Newest first, as they were offered.
+ */
+export function yearsWithData(offered: number[], totals: Array<{ year: number; total: number }>, keep: number[] = []): number[] {
+  const filled = new Set(totals.filter((t) => t.total > 0).map((t) => t.year))
+  return offered.filter((y) => filled.has(y) || keep.includes(y))
+}
+
+/**
  * The comparison as the address has to carry it once the year on screen moves
  * from one year to another.
  *

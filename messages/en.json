@@ -1012,7 +1012,8 @@
     "monthJobs": "{count, plural, =0 {no jobs} one {# job} other {# jobs}}",
     "monthEmpty": "No job stands in this month.",
     "monthOpenFull": "Open in planned revenue",
-    "monthSheetLine": "Line of the year plan with no project tied to it"
+    "monthSheetLine": "Line of the year plan with no project tied to it",
+    "compareEmpty": "No other year has figures."
   },
   "sheet": {
     "title": "Work order",

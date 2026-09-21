@@ -24,6 +24,7 @@ import {
   parseCompareYears,
   carryCompareYears,
   compareTones,
+  yearsWithData,
   quarterBreakdown,
   bestQuarter,
   siteKey,
@@ -451,7 +452,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const MAX_QUARTER_COMPARE = 2
   const chartMode: 'bars' | 'line' | 'linear' | 'area' =
     chartParam === 'line' || chartParam === 'linear' || chartParam === 'area' ? chartParam : 'bars'
-  const compareYears = parseCompareYears(compareParam, year, comparisonYears, MAX_COMPARE)
+  /**
+   * The years worth comparing: those with a figure in them. A comparison
+   * nobody chose is the year before only if that year has one; a year named in
+   * the address is taken as named — and stays in the list so it can be unticked.
+   */
+  const filledYears = yearsWithData(comparisonYears, yearTotals ?? [])
+  const compareYears = parseCompareYears(compareParam, year, compareParam === undefined ? filledYears : comparisonYears, MAX_COMPARE)
+  const compareOptions = yearsWithData(comparisonYears, yearTotals ?? [], compareYears).filter((y) => y !== year)
   const tones = compareTones(year, comparisonYears)
   const compareSeries = onCompare
     ? compareYears
@@ -472,7 +480,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     : []
   const monthsOfYear = (y: number): number[] =>
     y === year ? monthTotals : ((yearTotals ?? []).find((r) => r.year === y)?.months ?? []).map((m) => m.total)
-  const quarterCompareYears = parseCompareYears(quarterCompareParam, quarterYear, comparisonYears, MAX_QUARTER_COMPARE)
+  const quarterCompareYears = parseCompareYears(
+    quarterCompareParam,
+    quarterYear,
+    quarterCompareParam === undefined ? filledYears : comparisonYears,
+    MAX_QUARTER_COMPARE
+  )
+  const quarterCompareOptions = yearsWithData(comparisonYears, yearTotals ?? [], quarterCompareYears).filter((y) => y !== quarterYear)
+  // The year the quarter card stands on: the ones with a figure, the page's own and the card's own.
+  const quarterYearOptions = yearsWithData(comparisonYears, yearTotals ?? [], [year, quarterYear])
   const quarterRows = onCompare
     ? quarterBreakdown(
         monthsOfYear(quarterYear),
@@ -751,11 +767,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     ]}
                   />
                   <YearComparePicker
-                    options={comparisonYears.filter((y) => y !== year)}
+                    options={compareOptions}
                     selected={compareYears}
                     max={MAX_COMPARE}
                     label={t('compareYears')}
                     maxHint={t('compareMax', { count: MAX_COMPARE })}
+                    emptyHint={t('compareEmpty')}
                   />
                 </div>
               </div>
@@ -795,13 +812,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     param="qyear"
                     label={t('quarterYear')}
                     value={quarterYear === year ? '' : String(quarterYear)}
-                    options={comparisonYears.map((y) => ({ value: y === year ? '' : String(y), label: String(y) }))}
+                    options={quarterYearOptions.map((y) => ({ value: y === year ? '' : String(y), label: String(y) }))}
                     carry={quarterCarry}
                     dense
                   />
                   <span className="text-xs text-muted">{t('quarterVersus')}</span>
                   <YearComparePicker
-                    options={comparisonYears.filter((y) => y !== quarterYear)}
+                    options={quarterCompareOptions}
+                    emptyHint={t('compareEmpty')}
                     selected={quarterCompareYears}
                     param="qcompare"
                     max={MAX_QUARTER_COMPARE}

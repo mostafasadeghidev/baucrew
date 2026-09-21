@@ -1012,7 +1012,8 @@
     "monthJobs": "{count, plural, =0 {keine Aufträge} one {# Auftrag} other {# Aufträge}}",
     "monthEmpty": "In diesem Monat steht kein Auftrag.",
     "monthOpenFull": "Im Planumsatz öffnen",
-    "monthSheetLine": "Zeile der Jahresplanung ohne verknüpftes Projekt"
+    "monthSheetLine": "Zeile der Jahresplanung ohne verknüpftes Projekt",
+    "compareEmpty": "Kein weiteres Jahr mit Zahlen."
   },
   "sheet": {
     "title": "Arbeitsauftrag",
