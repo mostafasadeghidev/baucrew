@@ -66,7 +66,7 @@ export default async function ProjectsPage({
       if (value) params.set(key, value)
     redirect(`/projects?${params.toString()}`)
   }
-  const [t, tStatus, tTemplates, tChecklists, tDrafts, tc, locale] = await Promise.all([
+  const [t, tStatus, tTemplates, tChecklists, tDrafts, tc, locale, tForms] = await Promise.all([
     getTranslations('projects'),
     getTranslations('status'),
     getTranslations('templates'),
@@ -74,6 +74,7 @@ export default async function ProjectsPage({
     getTranslations('drafts'),
     getTranslations('common'),
     getLocale(),
+    getTranslations('forms'),
   ])
   const hidePrices = await pricesHidden()
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
@@ -456,6 +457,9 @@ export default async function ProjectsPage({
               className={btn.outline}
             >
               {tChecklists('templatesTitle')}
+            </Link>
+            <Link href="/projects/forms" className={btn.outline}>
+              {tForms('templatesTitle')}
             </Link>
             <Link
               href="/projects/templates"

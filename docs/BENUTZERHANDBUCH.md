@@ -198,6 +198,7 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 - Darunter das **Suchfeld** (Nummer, Name, Kunde, Ort).
 - Die Spalte **Auftragswert** sehen nur Konten mit Finanzfreigabe.
 - **Vorlagen** oben rechts führt zu den Projektvorlagen (Kapitel 12).
+- **Formularvorlagen** oben rechts führt zu den Vorlagen für Abnahmeprotokolle und andere Formulare (siehe *Formulare und Unterschriften*).
 
 ### Das Board — und mehrere davon
 
@@ -319,6 +320,40 @@ klappen unter **Behoben (n)** zusammen. Auf der Board-Karte zeigt ein rotes
 Ist ein Webhook eingerichtet (Ereignisse *Mangel gemeldet* und *Mangel
 behoben*), erfährt die Automation beides und kann zum Beispiel die Bauleitung
 in Telegram benachrichtigen.
+
+### Formulare und Unterschriften
+
+Die Karte **Formulare** auf der Projektseite ersetzt das Abnahmeprotokoll auf
+Papier: Vorlage wählen → **Formular anlegen**. Das Formular öffnet sich auf
+einer eigenen, großen Seite — gedacht fürs Tablet oder Handy auf der
+Baustelle — und ist schon vorbelegt mit dem, was das Projekt weiß:
+Projektnummer und -name, Kunde, Baustellenadresse, Bauleitung, Gewerke, das
+heutige Datum und die **offenen Mängel**. Alles bleibt änderbar; **Speichern**
+sichert den Stand.
+
+**Unterschreiben:** Unter den Feldern steht für jede Person, die das Formular
+nennt (z. B. *Auftraggeber* und *Auftragnehmer*), ein Feld mit
+**Unterschreiben**. Name in Druckbuchstaben eintragen, mit Finger, Stift oder
+Maus unterschreiben, **Unterschrift übernehmen**. Pflichtfelder müssen vorher
+ausgefüllt sein. Mit der **ersten Unterschrift ist das Formular gesperrt** —
+eine Unterschrift gilt für genau das, was auf dem Blatt stand. Mit der
+**letzten** legt BauCrew das Formular als **PDF** bei den Dateien des Projekts
+ab (mit Logo, allen Angaben, den Unterschriften samt Name und Zeitpunkt und
+einer Prüfsumme). **PDF ansehen** und **PDF herunterladen** gehen jederzeit,
+auch für einen Entwurf — zum Drucken oder Versenden.
+
+Muss nach der Unterschrift etwas korrigiert werden, entfernt das **Büro** die
+Unterschrift (**Unterschrift entfernen**): Das Formular ist wieder offen, das
+abgelegte PDF wird gelöscht, und es wird neu unterschrieben. Jeder Schritt
+steht im Änderungsprotokoll.
+
+**Vorlagen bauen:** Unter **Projekte → Formularvorlagen** legen Sie eigene
+Formulare an: Felder der Reihe nach — *Überschrift*, *Text (kurz/lang)*,
+*Datum*, *Häkchen*, *Auswahl* —, je Feld die **Vorbelegung** aus dem Projekt
+und ob es ein **Pflichtfeld** ist; darunter, wer unterschreibt (eine Zeile je
+Person, höchstens vier). Das **Abnahmeprotokoll** ist von Anfang an da und
+lässt sich anpassen. Eine geänderte Vorlage gilt für neue Formulare; bereits
+angelegte behalten ihre Felder.
 
 ### Dateien am Projekt
 
@@ -682,6 +717,14 @@ bei Bedarf ein paar Worte dazu und gleich ein **Foto**. Offene Mängel stehen
 mit ihren Fotos in der Einsatzkarte; ist einer behoben, genügt ein Tipp auf den
 Kreis davor. Einen eigenen, noch offenen Mangel kann man mit dem ✕ wieder
 löschen.
+
+### Formulare auf der Baustelle
+
+Unter **Formulare** in der Einsatzkarte legt die Bauleitung das
+**Abnahmeprotokoll** direkt vor Ort an, füllt es aus und lässt den Kunden auf
+dem Handy oder Tablet unterschreiben. Nach der letzten Unterschrift liegt das
+PDF beim Projekt — das Büro sieht es sofort. Unterschriften entfernen und
+Formulare löschen kann nur das Büro.
 
 ### Erfasste Zeit auf dem Projekt
 

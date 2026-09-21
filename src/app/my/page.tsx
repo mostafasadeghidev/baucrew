@@ -18,6 +18,8 @@ import { canDeleteComment } from '@/lib/comments'
 import { initials, swatchOf } from '@/lib/board-cards'
 import { addMyComment, deleteMyComment } from './actions'
 import { ProjectDefects } from '@/components/project-defects'
+import { ProjectForms } from '@/components/project-forms'
+import { formStatus, parseSigners } from '@/lib/forms'
 import { SitePhotos } from '@/components/site-photos'
 import { defectRows } from '@/lib/defects'
 import { defectListSelect } from '@/lib/defects-db'
@@ -35,7 +37,7 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, tDefects, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, tDefects, tForms, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
     getTranslations('checklists'),
@@ -44,6 +46,7 @@ export default async function MyAreaPage({
     getTranslations('today'),
     getTranslations('projects'),
     getTranslations('defects'),
+    getTranslations('forms'),
     getLocale(),
   ])
 
@@ -76,6 +79,11 @@ export default async function MyAreaPage({
                 },
                 // What is not right on the site — the crew reports it and ticks it off.
                 defects: { select: defectListSelect },
+                // Protocols to fill in and have signed on the site.
+                forms: {
+                  orderBy: { createdAt: 'desc' },
+                  select: { id: true, title: true, signers: true, createdAt: true, signatures: { select: { slot: true } } },
+                },
                 checklists: {
                   orderBy: { createdAt: 'asc' },
                   include: {
@@ -138,6 +146,10 @@ export default async function MyAreaPage({
         mentionablePeople(),
       ])
     : [[], null, [], null, [], []]
+  // What a new form can be made from — an acceptance protocol, say.
+  const formTemplates = employeeId
+    ? await db.formTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } })
+    : []
   const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
   const jobsPerDay = new Map<string, number>()
@@ -413,6 +425,31 @@ export default async function MyAreaPage({
                   projectId={p.id}
                   defects={defectRows(p.defects, user, today, (d) => formatDate(d, locale))}
                   office={user.role !== 'EMPLOYEE'}
+                  frame={false}
+                  large
+                />
+              </div>
+            </div>
+
+            {/* Forms: an acceptance protocol is filled in and signed where the customer is */}
+            <div className="border-t border-border px-4 py-3">
+              <p className="text-xs uppercase tracking-wide text-muted">{tForms('heading')}</p>
+              <div className="mt-1">
+                <ProjectForms
+                  projectId={p.id}
+                  forms={p.forms.map((form) => {
+                    const signers = parseSigners(form.signers)
+                    const slots = form.signatures.map((s) => s.slot)
+                    return {
+                      id: form.id,
+                      title: form.title,
+                      status: formStatus(signers, slots),
+                      signed: slots.length,
+                      signers: signers.length,
+                      made: formatDate(form.createdAt, locale),
+                    }
+                  })}
+                  templates={formTemplates.map((tp) => ({ value: tp.id, label: tp.name }))}
                   frame={false}
                   large
                 />

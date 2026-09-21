@@ -25,6 +25,8 @@ import { MergeButton } from './merge-button'
 import { ChecklistSection } from './checklist-section'
 import { FilesCard } from './files-card'
 import { ProjectDefects } from '@/components/project-defects'
+import { ProjectForms } from '@/components/project-forms'
+import { formStatus, parseSigners } from '@/lib/forms'
 import { defectRows } from '@/lib/defects'
 import { defectListSelect } from '@/lib/defects-db'
 import { btn } from '@/components/ui/button'
@@ -108,6 +110,18 @@ export async function ProjectDetail({
       },
       // What is not right on the site, with its photos.
       defects: { select: defectListSelect },
+      // Protocols and other forms: which there are and how far each is signed.
+      forms: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          signers: true,
+          createdAt: true,
+          createdBy: { select: { username: true, employee: { select: { firstName: true, lastName: true } } } },
+          signatures: { select: { slot: true } },
+        },
+      },
       // The team's comments, oldest first, with who wrote each.
       notes: {
         orderBy: { createdAt: 'asc' },
@@ -143,7 +157,7 @@ export async function ProjectDetail({
     notFound()
   }
 
-  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people] =
+  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people, formTemplates] =
     await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
     db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
@@ -180,6 +194,8 @@ export async function ProjectDetail({
       : Promise.resolve([]),
     // Everybody a comment can name with @.
     mentionablePeople(),
+    // What a new form can be made from.
+    db.formTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } }),
   ])
   const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { dateStyle: 'short', timeStyle: 'short' })
   const comments: CommentRow[] = project.notes.map((note) => {
@@ -617,6 +633,26 @@ export async function ProjectDetail({
             defects={defectRows(project.defects, user, todayUtc(), (d) => formatDate(d, locale))}
             assignees={allEmployees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
             office
+          />
+        </div>
+
+        <div id="forms" className="scroll-mt-24">
+          <ProjectForms
+            projectId={project.id}
+            forms={project.forms.map((form) => {
+              const signers = parseSigners(form.signers)
+              const slots = form.signatures.map((s) => s.slot)
+              return {
+                id: form.id,
+                title: form.title,
+                status: formStatus(signers, slots),
+                signed: slots.length,
+                signers: signers.length,
+                made: [form.createdBy ? displayName(form.createdBy) : null, formatDate(form.createdAt, locale)].filter(Boolean).join(' · '),
+              }
+            })}
+            templates={formTemplates.map((tp) => ({ value: tp.id, label: tp.name }))}
+            manageHref="/projects/forms"
           />
         </div>
 

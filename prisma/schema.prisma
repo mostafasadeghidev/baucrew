@@ -39,6 +39,8 @@ model User {
   notes             Note[]
   uploadedDocuments Document[]         @relation("DocumentUploader")
   reportedDefects   Defect[]           @relation("DefectReporter")
+  createdForms      FilledForm[]       @relation("FormCreator")
+  takenSignatures   FormSignature[]    @relation("SignatureTakenBy")
   resolvedDefects   Defect[]           @relation("DefectResolver")
   timeEntryEdits    TimeEntry[]        @relation("TimeEntryEditor")
   deviceHandouts    DeviceAssignment[] @relation("DeviceAssignmentEditor")
@@ -307,6 +309,7 @@ model Project {
   notes           Note[]
   documents       Document[]
   defects         Defect[]
+  forms           FilledForm[]
   timeEntries     TimeEntry[]
   checklists      ProjectChecklist[]
   devices         DeviceAssignment[]
@@ -772,10 +775,82 @@ model Document {
   /// deleted leaves its photos on the project.
   defectId      String?
   defect        Defect?  @relation(fields: [defectId], references: [id], onDelete: SetNull)
+  /// The signed form this PDF is the paper of.
+  form          FilledForm?
   createdAt     DateTime @default(now())
 
   @@index([projectId])
   @@index([defectId])
+}
+
+/// A form the office builds once — an acceptance protocol, say — and fills in
+/// per project. `fields` and `signers` are JSON, read and written through
+/// src/lib/forms.ts and nowhere else.
+model FormTemplate {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  /// FormField[]: the fields in order — headings, texts, dates, ticks, choices.
+  fields      Json
+  /// string[]: who signs, in order — "Auftraggeber", "Auftragnehmer".
+  signers     Json
+  active      Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  forms       FilledForm[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+/// A form filled in on a project. It carries its own copy of the template's
+/// fields and signers, taken when it was made: a template edited later must
+/// not rewrite a protocol that is already signed.
+model FilledForm {
+  id          String          @id @default(cuid())
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  templateId  String?
+  template    FormTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  title       String
+  fields      Json
+  signers     Json
+  /// Record<fieldId, string | boolean>
+  values      Json
+  createdById String?
+  createdBy   User?           @relation("FormCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  /// The PDF kept on the project once everybody has signed.
+  documentId  String?         @unique
+  document    Document?       @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  signatures  FormSignature[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([projectId])
+}
+
+/// One signature on a form, drawn on a screen. With it: the name typed beside
+/// it, a digest of exactly what was signed, when, and the account the device
+/// was signed in with — the customer has none, the site manager holding the
+/// tablet does.
+model FormSignature {
+  id         String     @id @default(cuid())
+  formId     String
+  form       FilledForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  /// Which of the form's signers: the place in `signers`.
+  slot       Int
+  /// The signer's role as the form called it when it was signed.
+  role       String
+  /// The name typed beside the signature.
+  name       String
+  /// The drawing, a PNG in base64 — text, so a backup carries it as it is.
+  image      String
+  /// SHA-256 of the form's content at the moment of signing.
+  digest     String
+  signedAt   DateTime   @default(now())
+  takenById  String?
+  takenBy    User?      @relation("SignatureTakenBy", fields: [takenById], references: [id], onDelete: SetNull)
+  userAgent  String?
+
+  @@unique([formId, slot])
 }
 
 /// Something on the site that is not right and has to be put right — a Mangel:
