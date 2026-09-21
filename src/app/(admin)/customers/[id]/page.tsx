@@ -8,6 +8,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { formatDate } from '@/lib/format'
 import { deleteCustomer } from '../actions'
 import { btn } from '@/components/ui/button'
+import { PhoneLink } from '@/components/phone-link'
 
 export default async function CustomerDetailPage({
   params,
@@ -39,11 +40,11 @@ export default async function CustomerDetailPage({
   })
   if (!customer) notFound()
 
-  const rows: Array<[string, string | null]> = [
+  const rows: Array<[string, React.ReactNode]> = [
     [t('number'), customer.number],
     [t('company'), customer.company],
     [t('contactPerson'), customer.contactPerson],
-    [t('phone'), customer.phone],
+    [t('phone'), <PhoneLink key="phone" value={customer.phone} />],
     [t('email'), customer.email],
     [t('street'), customer.street],
     [t('postalCode'), customer.postalCode],

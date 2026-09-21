@@ -46,6 +46,7 @@ import { daysOut } from '@/lib/devices'
 import { ProjectDevicesEditor } from './project-devices'
 import { getProjectDevices } from '../../devices/actions'
 import { orderValue } from '@/lib/reports'
+import { PhoneLink } from '@/components/phone-link'
 
 /** The bar's place in the card sheet: it holds to the top of the sheet's own scroll. */
 function SheetHead({ children }: { children: React.ReactNode }) {
@@ -334,7 +335,7 @@ export async function ProjectDetail({
         {row(t('street'), project.street || '—')}
         {row(t('postalCode'), project.postalCode || '—')}
         {row(t('city'), project.city || '—')}
-        {row(t('phone'), project.phone || '—')}
+        {row(t('phone'), <PhoneLink value={project.phone || project.customer.phone} />)}
         {row(t('contact'), project.contact || '—')}
       </dl>
     ),

@@ -8,6 +8,7 @@ import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { listSkills } from './actions'
 import { SkillManager } from './skill-manager'
 import { btn } from '@/components/ui/button'
+import { PhoneLink } from '@/components/phone-link'
 
 export default async function EmployeesPage({
   searchParams,
@@ -119,7 +120,7 @@ export default async function EmployeesPage({
                       </Link>
                     </td>
                     <td className="truncate px-4 py-3 text-muted" title={e.phone ?? undefined}>
-                      {e.phone ?? '—'}
+                      <PhoneLink value={e.phone} />
                     </td>
                     <td className="break-words px-4 py-3">
                       <span className="flex flex-wrap gap-1">

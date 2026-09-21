@@ -6,6 +6,7 @@ import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/p
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { btn } from '@/components/ui/button'
+import { PhoneLink } from '@/components/phone-link'
 
 export default async function CustomersPage({
   searchParams,
@@ -98,7 +99,7 @@ export default async function CustomersPage({
                     </td>
                     <td className="break-words px-4 py-3 text-muted">{c.company ?? '—'}</td>
                     <td className="truncate px-4 py-3 text-muted" title={c.phone ?? undefined}>
-                      {c.phone ?? '—'}
+                      <PhoneLink value={c.phone} />
                     </td>
                     <td className="break-words px-4 py-3 text-muted">{c.city ?? '—'}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{c._count.projects}</td>
