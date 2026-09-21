@@ -47,7 +47,7 @@ export default async function SettingsPage({
   const tab = ["accounts", "categories", "data"].includes(tabParam ?? "")
     ? (tabParam as string)
     : "";
-  const [t, tNav, tRoles, tc, tImport, tImportPlan, tImportExcel, tStatus, tProjects] =
+  const [t, tNav, tRoles, tc, tImport, tImportPlan, tImportExcel, tStatus, tProjects, tImportMaster] =
     await Promise.all([
       getTranslations("settings"),
       getTranslations("nav"),
@@ -58,6 +58,7 @@ export default async function SettingsPage({
       getTranslations("importExcel"),
       getTranslations("status"),
       getTranslations("projects"),
+      getTranslations("importMaster"),
     ]);
 
   const [users, categories, branding] = await Promise.all([
@@ -465,6 +466,13 @@ export default async function SettingsPage({
           <Card title={tImportExcel("title")} description={tImportExcel("hint")}>
             <Link href="/settings/import-excel" className={btn.outline}>
               {tImportExcel("settingsLink")}
+            </Link>
+          </Card>
+
+          {/* Customers, employees, vehicles */}
+          <Card title={tImportMaster("title")} description={tImportMaster("hint")}>
+            <Link href="/settings/import-master" className={btn.outline}>
+              {tImportMaster("settingsLink")}
             </Link>
           </Card>
 

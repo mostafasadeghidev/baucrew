@@ -197,6 +197,7 @@ Kundenseite → **Bearbeiten**. Löschen geht nur, solange der Kunde keine Proje
 ![Reiter Zur Vorbereitung](screenshots/32-projekte-vorbereitung.png)
 - Darunter das **Suchfeld** (Nummer, Name, Kunde, Ort).
 - Die Spalte **Auftragswert** sehen nur Konten mit Finanzfreigabe.
+- In der **Liste** ist der Status ein Menü — und daneben steht der übliche nächste Schritt als ein Klick (**✓ Abgeschlossen** bei einem laufenden Projekt, **✓ Abgerechnet** bei einem abgeschlossenen, dann **✓ Bezahlt**). *Abgeschlossen* fragt vorher nach, weil damit auch das tatsächliche Ende gesetzt wird.
 - **Vorlagen** oben rechts führt zu den Projektvorlagen (Kapitel 12).
 - **Formularvorlagen** oben rechts führt zu den Vorlagen für Abnahmeprotokolle und andere Formulare (siehe *Formulare und Unterschriften*).
 
@@ -394,6 +395,34 @@ sich **als Profil speichern** — die Datei vom nächsten Monat braucht dann nur
 noch zwei Klicks. Jede Zeile wird ein Entwurf; eine Zeile mit zugeordneter
 externer Nummer aktualisiert beim erneuten Import ihren Entwurf, statt ihn zu
 doppeln.
+
+### Stammdaten importieren: Kunden, Mitarbeiter, Fahrzeuge
+
+**Einstellungen → Daten → Stammdaten importieren** holt die Listen, die es
+schon gibt — aus der Angebotssoftware, aus Excel — einmal herein, statt sie
+abzutippen. Oben wählen Sie, **was** importiert wird (*Kunden*, *Mitarbeiter*
+oder *Fahrzeuge*), dann die Datei (.xlsx oder .csv). Die Spalten werden aus den
+Überschriften **vorbelegt** (*Kd.-Nr.*, *Name*, *Straße*, *PLZ*, *Ort*,
+*Telefon* …) — kurz prüfen, die Vorschau darunter zeigt die ersten Zeilen.
+
+- **Kunden:** Name, Kundennummer, Firma, Ansprechpartner, Telefon, E-Mail,
+  Adresse, Notizen. Ein Kunde wird an der **Kundennummer** wiedererkannt, sonst
+  am Namen.
+- **Mitarbeiter:** Vor- und Nachname (oder eine Spalte mit dem ganzen Namen,
+  *Vorname Nachname* oder *Nachname, Vorname*), Telefon, E-Mail, Notizen —
+  mehr braucht die Planung nicht. Konten entstehen dabei nicht.
+- **Fahrzeuge:** Name, Kennzeichen, Typ, Notizen; wiedererkannt am Kennzeichen.
+
+Was schon da ist, wird **ergänzt, nicht verdoppelt**: leere Felder füllt der
+Import, was im Büro eingetragen wurde, bleibt — außer Sie setzen den Haken
+**Vorhandene Angaben überschreiben**. Am Ende steht, wie viele Zeilen neu
+angelegt, ergänzt, unverändert oder (ohne Namen) übersprungen wurden. Dieselbe
+Datei ein zweites Mal zu importieren ändert nichts.
+
+**Telefonnummern** sind im Büro anklickbar — in der Kunden- und
+Mitarbeiterliste, auf der Kundenseite und in der Adresskarte des Projekts: Der
+Klick übergibt die Nummer an das Programm, das am PC fürs Telefonieren
+zuständig ist (in der Regel das Softphone der Telefonanlage).
 
 ### Priorität und Anfragequelle
 
@@ -753,7 +782,7 @@ Buchungen **nachgetragen**, damit man sie von den gestoppten unterscheiden kann.
 
 Die Reiter:
 
-- **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in vier Stufen (*Angebote offen* · *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*), das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr) und daneben die Karte **Umsatz je Quartal**: Q1 bis Q4 als Ring, in der Mitte das **beste Quartal** mit seinem Anteil am Jahr. Darunter steht jedes Quartal mit seiner Summe, seinem Anteil und der Veränderung gegenüber demselben Quartal der Vergleichsjahre — voreingestellt das Vorjahr, über **Vergleichsjahre** rechts oben in der Karte sind bis zu zwei andere Jahre wählbar. Ein Klick auf eine Quartalszeile setzt dieses Quartal als Zeitraum für die ganze Seite, ein zweiter nimmt ihn zurück. Ist eine **Jahresplanung** eingelesen, liegt im Monatsdiagramm über jedem Monat zusätzlich eine **gestrichelte Linie** auf Höhe des Planumsatzes.
+- **Übersicht:** Umsatz des Zeitraums mit **Vergleich zum Vorjahr** (gleicher Zeitraum), SUB-Anteil, **Offener Auftragsbestand** in vier Stufen (*Angebote offen* · *Beauftragt (sicher)* · *In Ausführung* · *Geplant / offen*), das **Monatsdiagramm** (blau = dieses Jahr, dunkel eigene Leute / hell SUB; grau = Vorjahr) und daneben die Karte **Umsatz je Quartal**: Q1 bis Q4 als Ring, in der Mitte das **beste Quartal** mit seinem Anteil am Jahr. Darunter steht jedes Quartal mit seiner Summe, seinem Anteil und der Veränderung gegenüber demselben Quartal der Vergleichsjahre — voreingestellt das Vorjahr, über **Vergleichsjahre** rechts oben in der Karte sind bis zu zwei andere Jahre wählbar. Ein Klick auf eine Quartalszeile setzt dieses Quartal als Zeitraum für die ganze Seite, ein zweiter nimmt ihn zurück. Ist eine **Jahresplanung** eingelesen, liegt im Monatsdiagramm über jedem Monat zusätzlich eine **gestrichelte Linie** auf Höhe des Planumsatzes. Ein **Klick auf einen Monat** im Diagramm — oder auf einen einzelnen Balken, wenn mehrere Jahre verglichen werden — öffnet diesen Monat im Reiter *Planumsatz*: dort stehen die Aufträge hinter der Zahl, jede Zeile führt zum Projekt.
 - **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt).
   Projekte **ohne geplanten Start** gehören zu keinem Monat: sie stehen in einer eigenen Karte
   *Ohne Termin* mit ihrer Summe und zählen erst in die Monate und die Jahressumme, wenn ein
