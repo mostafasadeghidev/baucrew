@@ -26,6 +26,8 @@ import { suggestStatus } from './trello'
 import { INVOICE_KIND, invoicePartOf, suggestedInvoiceAmount, type InvoicePart } from './invoices'
 import { COMMENT_MAX } from './comments'
 import { createComment, displayName } from './comments-db'
+import { DEFECT_LOCATION_MAX, DEFECT_TEXT_MAX, DEFECT_TITLE_MAX, parseDefectInput } from './defects'
+import { createDefect, defectListSelect, setDefectResolved } from './defects-db'
 import { mimeFromName, safeFileName, storageKeyFor, validateUpload } from './files'
 import { saveStoredFile } from './file-storage'
 
@@ -789,6 +791,90 @@ export async function addComment(user: CurrentUser, idOrNumber: string, input: z
   revalidatePath(`/projects/${projectId}`)
   const row = await db.note.findUnique({ where: { id: result.id }, select: commentSelect })
   return row ? commentDto(row) : null
+}
+
+// ── Defects ───────────────────────────────────────────────────────────
+
+export const defectInput = z.object({
+  title: z.string().trim().min(1).max(DEFECT_TITLE_MAX),
+  description: text(DEFECT_TEXT_MAX),
+  /** Where on the site: "Bad OG, Decke". */
+  location: text(DEFECT_LOCATION_MAX),
+  dueDate: isoDate.optional(),
+  /** The employee who puts it right. */
+  assigneeId: z.string().min(1).optional(),
+})
+
+export const defectPatchInput = z.object({ resolved: z.boolean() }).strict()
+
+const defectApiSelect = { ...defectListSelect, projectId: true, assigneeId: true } as const
+
+type DefectApiRow = {
+  id: string
+  projectId: string
+  title: string
+  description: string | null
+  location: string | null
+  dueDate: Date | null
+  createdAt: Date
+  resolvedAt: Date | null
+  assigneeId: string | null
+  assignee: { firstName: string; lastName: string } | null
+  reportedBy: { username: string; employee: { firstName: string; lastName: string } | null } | null
+  resolvedBy: { username: string; employee: { firstName: string; lastName: string } | null } | null
+  photos: Array<{ id: string; filename: string }>
+}
+
+const defectDto = (d: DefectApiRow) => ({
+  id: d.id,
+  projectId: d.projectId,
+  title: d.title,
+  description: d.description,
+  location: d.location,
+  dueDate: day(d.dueDate),
+  open: d.resolvedAt === null,
+  assignee: d.assignee && d.assigneeId ? { id: d.assigneeId, name: `${d.assignee.firstName} ${d.assignee.lastName}`.trim() } : null,
+  reportedAt: d.createdAt.toISOString(),
+  reportedBy: d.reportedBy ? displayName(d.reportedBy) : null,
+  resolvedAt: d.resolvedAt ? d.resolvedAt.toISOString() : null,
+  resolvedBy: d.resolvedBy ? displayName(d.resolvedBy) : null,
+  /** The photos, each readable at `/api/files/{id}` with a session. */
+  photos: d.photos,
+})
+
+/** The defects of a project, the open ones first. */
+export async function listDefects(user: CurrentUser, idOrNumber: string) {
+  assertManagement(user)
+  const projectId = await projectIdOf(idOrNumber)
+  const rows = await db.defect.findMany({
+    where: { projectId },
+    orderBy: [{ resolvedAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
+    select: defectApiSelect,
+  })
+  return rows.map(defectDto)
+}
+
+/** A defect reported by an automation, as the key's user. Raises `defect.reported`. */
+export async function addDefect(user: CurrentUser, idOrNumber: string, input: z.infer<typeof defectInput>, actor?: EventActor) {
+  assertManagement(user)
+  const projectId = await projectIdOf(idOrNumber)
+  const defect = parseDefectInput(input)
+  if (!defect) throw new ApiError(400, 'invalid', 'title is required.')
+  const result = await createDefect({ projectId, reporterId: user.id, defect, actor: actorFor(user, actor) })
+  if ('error' in result) throw new ApiError(404, 'notFound', 'No such project.')
+  revalidatePath(`/projects/${projectId}`)
+  const row = await db.defect.findUnique({ where: { id: result.id }, select: defectApiSelect })
+  return row ? defectDto(row) : null
+}
+
+/** Put right, or open again. Raises `defect.resolved` the moment it is put right. */
+export async function patchDefect(user: CurrentUser, defectId: string, input: z.infer<typeof defectPatchInput>, actor?: EventActor) {
+  assertManagement(user)
+  const result = await setDefectResolved({ id: defectId, userId: user.id, resolved: input.resolved, actor: actorFor(user, actor) })
+  if ('error' in result) throw new ApiError(404, 'notFound', 'No such defect.')
+  revalidatePath(`/projects/${result.projectId}`)
+  const row = await db.defect.findUnique({ where: { id: defectId }, select: defectApiSelect })
+  return row ? defectDto(row) : null
 }
 
 // ── Files ─────────────────────────────────────────────────────────────

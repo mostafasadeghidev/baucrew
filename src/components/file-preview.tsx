@@ -1,10 +1,11 @@
 'use client'
 
 /**
- * A project file's name. For what a browser can draw — a PDF, a picture, plain
- * text — a click opens it over the project instead of sending the reader to
- * another tab: an offer is read beside the project it belongs to, and closing
- * it lands back where the reader was. Anything else opens in a tab as before.
+ * A project file's name — or, for a picture, its thumbnail. For what a browser
+ * can draw — a PDF, a picture, plain text — a click opens it over the project
+ * instead of sending the reader to another tab: an offer is read beside the
+ * project it belongs to, and closing it lands back where the reader was.
+ * Anything else opens in a tab as before.
  */
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
@@ -21,12 +22,18 @@ export function FilePreview({
   filename,
   kind,
   labels,
+  thumb = false,
+  thumbClass = 'h-20 w-20',
 }: {
   id: string
   filename: string
   /** How the browser can draw it; null when it cannot. */
   kind: PreviewKind | null
   labels: { preview: string; openInTab: string; download: string; close: string }
+  /** A picture shown as a small tile of itself rather than by name. */
+  thumb?: boolean
+  /** The tile's size, as classes. */
+  thumbClass?: string
 }) {
   const [open, setOpen] = useState(false)
   // A portal needs the document; the server has none.
@@ -64,9 +71,23 @@ export function FilePreview({
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} title={labels.preview} className={nameClass}>
-        {filename}
-      </button>
+      {thumb && kind === 'image' ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          title={filename}
+          aria-label={`${labels.preview}: ${filename}`}
+          className={`${thumbClass} shrink-0 overflow-hidden rounded-md border border-border bg-subtle transition-shadow hover:ring-2 hover:ring-accent`}
+        >
+          {/* A stored upload behind a session: not a static asset the image optimiser could fetch. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={href} alt={filename} loading="lazy" className="h-full w-full object-cover" />
+        </button>
+      ) : (
+        <button type="button" onClick={() => setOpen(true)} title={labels.preview} className={nameClass}>
+          {filename}
+        </button>
+      )}
       {open &&
         mounted &&
         createPortal(
@@ -92,7 +113,6 @@ export function FilePreview({
               </div>
               {kind === 'image' ? (
                 <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-subtle p-3">
-                  {/* A stored upload behind a session: not a static asset the image optimiser could fetch. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={href} alt={filename} className="max-h-full max-w-full object-contain" />
                 </div>

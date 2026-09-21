@@ -11,7 +11,8 @@ import { createHmac } from 'crypto'
 /**
  * The events an endpoint can listen for. `invoice.ready`: the office marked
  * one of a job's two invoices ready. `comment.created`: somebody wrote on a
- * project, naming people with @ perhaps.
+ * project, naming people with @ perhaps. `defect.reported` and
+ * `defect.resolved`: a defect was noted on a site, and put right.
  */
 export const WEBHOOK_EVENTS = [
   'project.created',
@@ -20,6 +21,8 @@ export const WEBHOOK_EVENTS = [
   'project.deleted',
   'invoice.ready',
   'comment.created',
+  'defect.reported',
+  'defect.resolved',
 ] as const
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]
 

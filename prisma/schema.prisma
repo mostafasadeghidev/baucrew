@@ -38,6 +38,8 @@ model User {
   auditLogs         AuditLog[]
   notes             Note[]
   uploadedDocuments Document[]         @relation("DocumentUploader")
+  reportedDefects   Defect[]           @relation("DefectReporter")
+  resolvedDefects   Defect[]           @relation("DefectResolver")
   timeEntryEdits    TimeEntry[]        @relation("TimeEntryEditor")
   deviceHandouts    DeviceAssignment[] @relation("DeviceAssignmentEditor")
   readyInvoices     ProjectInvoice[]   @relation("InvoiceReadyBy")
@@ -139,6 +141,7 @@ model Employee {
   managedTemplates    ProjectTemplate[]       @relation("TemplateManager")
   absences            Absence[]
   timeEntries         TimeEntry[]
+  assignedDefects     Defect[]                @relation("DefectAssignee")
 }
 
 /// Holiday, sick leave and other absences — the planner warns about them.
@@ -303,6 +306,7 @@ model Project {
   scheduleEntries ScheduleEntry[]
   notes           Note[]
   documents       Document[]
+  defects         Defect[]
   timeEntries     TimeEntry[]
   checklists      ProjectChecklist[]
   devices         DeviceAssignment[]
@@ -764,9 +768,42 @@ model Document {
   visibleToCrew Boolean  @default(false)
   uploadedById  String?
   uploadedBy    User?    @relation("DocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  /// The defect this photo shows, when it was taken for one. A defect that is
+  /// deleted leaves its photos on the project.
+  defectId      String?
+  defect        Defect?  @relation(fields: [defectId], references: [id], onDelete: SetNull)
   createdAt     DateTime @default(now())
 
   @@index([projectId])
+  @@index([defectId])
+}
+
+/// Something on the site that is not right and has to be put right — a Mangel:
+/// noticed by the crew or the office, shown with photos, given to somebody, and
+/// open until it is marked done. Open is `resolvedAt` being empty; there is no
+/// status beside it to fall out of step.
+model Defect {
+  id           String    @id @default(cuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  /// Where on the site: "Bad OG, Decke".
+  location     String?
+  /// The day it has to be put right by.
+  dueDate      DateTime? @db.Date
+  assigneeId   String?
+  assignee     Employee? @relation("DefectAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  reportedById String?
+  reportedBy   User?     @relation("DefectReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?     @relation("DefectResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  photos       Document[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([projectId, resolvedAt])
 }
 
 // Small app-wide key/value settings (e.g. the uploaded company logo)

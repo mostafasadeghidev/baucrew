@@ -254,6 +254,62 @@ export async function announceCommentCreated(noteId: string, actor: EventActor):
   }
 }
 
+/**
+ * A defect was noted on a site, or put right. The body carries the defect —
+ * what, where, by when, who has it, how many photos — and the project around
+ * it, so a message can say which site without asking again.
+ */
+export async function announceDefect(
+  defectId: string,
+  event: 'defect.reported' | 'defect.resolved',
+  actor: EventActor
+): Promise<void> {
+  try {
+    const defect = await db.defect.findUnique({
+      where: { id: defectId },
+      select: {
+        id: true,
+        projectId: true,
+        title: true,
+        description: true,
+        location: true,
+        dueDate: true,
+        createdAt: true,
+        resolvedAt: true,
+        assignee: { select: { id: true, firstName: true, lastName: true } },
+        reportedBy: { select: personSelect },
+        resolvedBy: { select: personSelect },
+        _count: { select: { photos: true } },
+      },
+    })
+    if (!defect) return
+    const row = await loadRow(defect.projectId)
+    if (!row) return
+    const since = statusSinceOf(await lastStatusChange(row.id), row.sourceCreatedAt, row.createdAt)
+    await emitEvent(event, {
+      defect: {
+        id: defect.id,
+        title: defect.title,
+        description: defect.description,
+        location: defect.location,
+        dueDate: day(defect.dueDate),
+        assignee: defect.assignee
+          ? { id: defect.assignee.id, name: `${defect.assignee.firstName} ${defect.assignee.lastName}`.trim() }
+          : null,
+        photos: defect._count.photos,
+        reportedAt: defect.createdAt.toISOString(),
+        reportedBy: defect.reportedBy ? personBody(defect.reportedBy) : null,
+        resolvedAt: defect.resolvedAt ? defect.resolvedAt.toISOString() : null,
+        resolvedBy: defect.resolvedBy ? personBody(defect.resolvedBy) : null,
+      },
+      project: projectBody(row, since),
+      actor,
+    })
+  } catch (e) {
+    console.error('defect event failed', e)
+  }
+}
+
 /** Since when each project has stood in its status, for many at once. */
 export async function statusSinceFor(
   rows: Array<{ id: string; sourceCreatedAt: Date | null; createdAt: Date }>

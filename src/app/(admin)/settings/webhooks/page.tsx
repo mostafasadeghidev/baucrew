@@ -19,6 +19,8 @@ const EVENT_LABEL = {
   'project.deleted': 'webhookEventDeleted',
   'invoice.ready': 'webhookEventInvoiceReady',
   'comment.created': 'webhookEventComment',
+  'defect.reported': 'webhookEventDefectReported',
+  'defect.resolved': 'webhookEventDefectResolved',
 } as const
 
 /**

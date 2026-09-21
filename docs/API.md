@@ -53,6 +53,9 @@ knows each project's record there, as a *link* (`system` + `externalId`).
 | DELETE | `/api/v1/projects/{id}/invoices/{part}` | Take the ready mark back; nothing is raised |
 | GET | `/api/v1/projects/{id}/comments` | The comments on the project, oldest first: `{ id, body, office, createdAt, author, mentions }` |
 | POST | `/api/v1/projects/{id}/comments` | Write a comment as the key's user — "Angebot versendet", say: `{ "body": "…", "office": false }`. `@name` in the body names an account; the users named come back in `mentions`. Raises `comment.created` |
+| GET | `/api/v1/projects/{id}/defects` | The defects of the project, the open ones first: `{ id, title, description, location, dueDate, open, assignee, reportedAt, reportedBy, resolvedAt, resolvedBy, photos }` |
+| POST | `/api/v1/projects/{id}/defects` | Report a defect as the key's user: `{ "title": "…", "location": "…", "description": "…", "dueDate": "2026-10-01", "assigneeId": "…" }`, all but `title` optional; an `assigneeId` nobody has gives nobody. Raises `defect.reported` |
+| PATCH | `/api/v1/defects/{id}` | `{ "resolved": true }` puts it right and raises `defect.resolved`; `false` opens it again, silently. Marking what is marked changes nothing |
 | POST | `/api/v1/projects/{id}/files` | Add a file: multipart form data, field `file` (PDF, images, Office, CSV, text; ≤25 MB). A file without a type gets one from its name |
 | GET | `/api/v1/customers` | Customers by `q` (name, number, company, town), `limit` |
 | POST | `/api/v1/customers` | Create a customer: `name`, optional `number` (the customer's number in the office's books), `company`, `contactPerson`, `phone`, `email`, `street`, `postalCode`, `city`, `notes` |
@@ -130,6 +133,8 @@ secret, sends a test, and lists the recent deliveries with their answers.
 | `project.updated` | Name, customer, site manager, dates, price or order value (follow-on offers), sub-contract flag, address or description changed |
 | `project.deleted` | A project was deleted, or merged into another (`mergedInto`) |
 | `invoice.ready` | The office marked one of the job's two invoices ready — on the project page or over the API. `data.invoice` is `{ part, kind, number, amount, readyAt }`; marking it again changes it without a second event |
+| `defect.reported` | A defect was noted on a site — by the crew from the phone, by the office, or over the API. `data.defect` is `{ id, title, description, location, dueDate, assignee: { id, name }, photos, reportedAt, reportedBy, resolvedAt, resolvedBy }`; `photos` counts what was attached when the event was raised — the crew's photos follow the report by a few seconds |
+| `defect.resolved` | A defect was ticked off as put right. Same body, with `resolvedAt` and `resolvedBy`. Opening it again raises nothing |
 | `comment.created` | Somebody wrote on the project. `data.comment` is `{ id, body, office, createdAt, author: { id, username, name }, mentions: [{ id, username, name }] }` — the people named with `@`, so an automation can reach them |
 
 The Trello board import in Settings raises no events: what it brings comes

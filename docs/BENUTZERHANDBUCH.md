@@ -304,6 +304,22 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 
 ---
 
+### Mängel am Projekt
+
+Die Karte **Mängel** auf der Projektseite sammelt, was auf der Baustelle nicht
+in Ordnung ist — gemeldet vom Büro oder von der Kolonne am Handy. Beim Melden
+legt das Büro zusätzlich fest, **wer zuständig** ist und **bis wann** der
+Mangel behoben sein soll (gelb in den letzten drei Tagen, rot danach). Fotos
+hängen direkt am Mangel; ein Klick öffnet sie in der Vorschau, das Kamerafeld
+daneben fügt weitere hinzu. Der Kreis vor dem Mangel hakt ihn als **behoben**
+ab — mit Name und Datum; das Büro kann ihn wieder öffnen. Behobene Mängel
+klappen unter **Behoben (n)** zusammen. Auf der Board-Karte zeigt ein rotes
+⚠ mit Zahl die offenen Mängel.
+
+Ist ein Webhook eingerichtet (Ereignisse *Mangel gemeldet* und *Mangel
+behoben*), erfährt die Automation beides und kann zum Beispiel die Bauleitung
+in Telegram benachrichtigen.
+
 ### Dateien am Projekt
 
 Auf der Projektseite gibt es die Karte **Dateien**: Pläne, Angebots-PDFs und
@@ -311,7 +327,9 @@ Fotos werden hochgeladen (PDF, Bilder, Excel, Word · max. 25 MB) und liegen am
 Projekt. Jede Datei hat einen Schalter **Büro / Team**: Neue Dateien sieht nur
 das Büro; erst mit einem Klick auf **Team** erscheint sie im
 Mitarbeiter-Bereich beim Einsatz — so bleiben Angebote mit Preisen automatisch
-beim Büro.
+beim Büro. **Fotos** stehen oben als Kacheln, mit Datum und wer sie
+hochgeladen hat; Fotos *von der Baustelle* und Fotos zu einem **Mangel** sind
+so gekennzeichnet und für das Team von Anfang an sichtbar.
 
 Ein Klick auf den Dateinamen öffnet die **Vorschau** über dem Projekt: PDFs,
 Bilder (PNG, JPG, WebP) und Textdateien werden direkt angezeigt, ohne das
@@ -645,6 +663,25 @@ Stunde**, für die Nachkalkulation ohne jedes Excel.
 Gibt das Büro eine Projekt-Datei für das Team frei, erscheint sie in der
 Einsatzkarte unter **Dateien** — ein Tipp öffnet sie. Ohne Freigabe sieht das
 Team nichts, Preise bleiben beim Büro.
+
+### Baustellenfotos
+
+In jeder Einsatzkarte steht **Baustellenfotos** mit dem Knopf **Foto
+aufnehmen**: Er öffnet die Kamera (oder die Galerie), mehrere Bilder auf einmal
+gehen auch. Das Handy verkleinert jedes Foto vor dem Senden (längste Seite
+2000 Pixel) — so kommt es auch über ein schwaches Netz an. Die Fotos liegen
+sofort am Projekt, das Büro sieht sie in der Karte **Dateien** als Kacheln mit
+dem Hinweis *von der Baustelle*. Mitarbeiter können nur Bilder hochladen, und
+nur zu Projekten, auf denen sie eingeplant sind oder zum Team gehören.
+
+### Mängel melden und abhaken
+
+Unter **Mängel** meldet die Kolonne, was auf der Baustelle nicht stimmt:
+**Mangel melden** → kurz beschreiben (*Riss in der Decke*), **Wo?** (*Bad OG*),
+bei Bedarf ein paar Worte dazu und gleich ein **Foto**. Offene Mängel stehen
+mit ihren Fotos in der Einsatzkarte; ist einer behoben, genügt ein Tipp auf den
+Kreis davor. Einen eigenen, noch offenen Mangel kann man mit dem ✕ wieder
+löschen.
 
 ### Erfasste Zeit auf dem Projekt
 

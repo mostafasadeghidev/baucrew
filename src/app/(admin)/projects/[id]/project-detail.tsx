@@ -24,6 +24,9 @@ import { PlanEntryButton } from './plan-entry-button'
 import { MergeButton } from './merge-button'
 import { ChecklistSection } from './checklist-section'
 import { FilesCard } from './files-card'
+import { ProjectDefects } from '@/components/project-defects'
+import { defectRows } from '@/lib/defects'
+import { defectListSelect } from '@/lib/defects-db'
 import { btn } from '@/components/ui/button'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
@@ -103,6 +106,8 @@ export async function ProjectDetail({
         orderBy: { startedAt: 'desc' },
         include: { employee: { select: { id: true, firstName: true, lastName: true } } },
       },
+      // What is not right on the site, with its photos.
+      defects: { select: defectListSelect },
       // The team's comments, oldest first, with who wrote each.
       notes: {
         orderBy: { createdAt: 'asc' },
@@ -606,6 +611,15 @@ export async function ProjectDetail({
           </div>
         </section>
 
+        <div id="defects" className="scroll-mt-24">
+          <ProjectDefects
+            projectId={project.id}
+            defects={defectRows(project.defects, user, todayUtc(), (d) => formatDate(d, locale))}
+            assignees={allEmployees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
+            office
+          />
+        </div>
+
         <div id="files" className="scroll-mt-24">
         <FilesCard
           projectId={project.id}
@@ -613,6 +627,7 @@ export async function ProjectDetail({
             id: d.id,
             filename: d.filename,
             mimeType: d.mimeType,
+            defect: d.defectId !== null,
             size: d.size,
             source: d.source,
             visibleToCrew: d.visibleToCrew,

@@ -45,7 +45,7 @@ beforeAll(async () => {
       name: TAG,
       url: `http://127.0.0.1:${port}/hook`,
       secret: SECRET,
-      events: ['project.created', 'project.status_changed', 'project.updated', 'invoice.ready', 'comment.created'],
+      events: ['project.created', 'project.status_changed', 'project.updated', 'invoice.ready', 'comment.created', 'defect.reported', 'defect.resolved'],
     },
   })
   endpointId = endpoint.id
@@ -241,5 +241,45 @@ describe('comments', () => {
       actor: { type: 'api', userId },
     })
     await expect(addComment(user, made.project.id, { body: '   ', office: false })).rejects.toBeDefined()
+  })
+})
+
+describe('defects', () => {
+  it('reports one, puts it right once, and tells the automation both times', async () => {
+    const { addDefect, listDefects, patchDefect, upsertProjectByLink } = await import('@/lib/api-service')
+    const { processDueDeliveries } = await import('@/lib/webhooks')
+    await processDueDeliveries(100)
+    received.length = 0
+
+    const made = await upsertProjectByLink(user, 'trello', `${TAG}-card-defect`, {
+      name: `${TAG} Mangel Musterhaus`,
+      customer: { name: `${TAG} Muster GmbH`, company: null, contactPerson: null, phone: null, email: null, street: null, postalCode: null, city: null },
+    })
+    const reported = await addDefect(user, made.project.number, {
+      title: 'Riss in der Decke',
+      location: 'Bad OG',
+      description: null,
+      dueDate: '2026-10-01',
+      assigneeId: 'nobody-with-this-id',
+    })
+    // Somebody who is not there is nobody, not an error.
+    expect(reported).toMatchObject({ title: 'Riss in der Decke', location: 'Bad OG', dueDate: '2026-10-01', open: true, assignee: null, photos: [] })
+
+    const done = await patchDefect(user, reported!.id, { resolved: true })
+    expect(done).toMatchObject({ open: false, resolvedBy: TAG })
+    // Marked twice is marked once; opened again is no news.
+    await patchDefect(user, reported!.id, { resolved: true })
+    await patchDefect(user, reported!.id, { resolved: false })
+    expect((await listDefects(user, made.project.id)).map((d) => [d.id, d.open])).toEqual([[reported!.id, true]])
+
+    await processDueDeliveries()
+    const told = received.map((r) => JSON.parse(r.raw)).filter((body) => String(body.event).startsWith('defect.'))
+    expect(told.map((body) => body.event)).toEqual(['defect.reported', 'defect.resolved'])
+    expect(told[0].data).toMatchObject({
+      defect: { id: reported!.id, title: 'Riss in der Decke', location: 'Bad OG', dueDate: '2026-10-01', photos: 0 },
+      project: { id: made.project.id },
+      actor: { type: 'api', userId },
+    })
+    await expect(patchDefect(user, 'no-such-defect', { resolved: true })).rejects.toBeDefined()
   })
 })

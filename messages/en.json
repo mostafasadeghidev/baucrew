@@ -380,7 +380,8 @@
     "cardCustomerNumber": "Customer number",
     "cardCreated": "Created on",
     "kanbanAddTemplate": "Template",
-    "kanbanAddNoTemplate": "No template"
+    "kanbanAddNoTemplate": "No template",
+    "cardDefects": "{count, plural, one {# open defect} other {# open defects}}"
   },
   "employees": {
     "title": "Employees",
@@ -648,7 +649,9 @@
     "optionAdd": "Add entry",
     "optionBuiltIn": "Built-in",
     "leadSourcesTitle": "Lead sources",
-    "leadSourcesHint": "Where requests come from (phone, e-mail, Instagram …) — picked on the project."
+    "leadSourcesHint": "Where requests come from (phone, e-mail, Instagram …) — picked on the project.",
+    "webhookEventDefectReported": "Defect reported",
+    "webhookEventDefectResolved": "Defect put right"
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -1408,7 +1411,14 @@
     "officeOnly": "Only the office sees this file. Click to share it with the crew.",
     "preview": "Open preview",
     "openInTab": "Open in a new tab",
-    "download": "Download"
+    "download": "Download",
+    "photos": "Photos ({count})",
+    "fromSite": "from the site",
+    "ofDefect": "defect",
+    "photoAdd": "Take a photo",
+    "photoSending": "Photo {done} of {total} …",
+    "photoFailed": "{count, plural, one {One photo could not be uploaded.} other {# photos could not be uploaded.}}",
+    "sitePhotos": "Site photos"
   },
   "time": {
     "title": "Time tracking (14 days)",
@@ -1600,5 +1610,36 @@
     "importLinks": "Import links",
     "importDone": "{applied, plural, one {# line} other {# lines}} linked · {alreadyLinked} were linked already · {missingProject} without a matching project · {missingLine} without a matching line.",
     "importInvalid": "This is not a links file from the plan match."
+  },
+  "defects": {
+    "heading": "Defects",
+    "hint": "What is not right on the site — with a photo, who has it, by when. Tick it off once it is put right.",
+    "none": "No defects reported.",
+    "noneOpen": "Every defect has been put right.",
+    "openCount": "{count, plural, one {# open defect} other {# open defects}}",
+    "doneCount": "Put right ({count})",
+    "report": "Report a defect",
+    "sending": "Sending …",
+    "title": "What is not right?",
+    "titlePlaceholder": "e.g. crack in the ceiling",
+    "titleRequired": "Please say briefly what is not right.",
+    "location": "Where?",
+    "locationPlaceholder": "e.g. bathroom upstairs, ceiling",
+    "description": "Description",
+    "dueDate": "To be put right by",
+    "dueBy": "by {date}",
+    "assignee": "Responsible",
+    "assigneePlaceholder": "Search employees …",
+    "assigneeNone": "No employee found.",
+    "photo": "Photo",
+    "addPhoto": "Add a photo",
+    "photosPicked": "{count, plural, one {# photo chosen} other {# photos chosen}}",
+    "photoFailed": "{count, plural, one {One photo could not be uploaded.} other {# photos could not be uploaded.}}",
+    "markDone": "Tick off as put right",
+    "reopen": "Open again",
+    "reportedBy": "Reported: {who}",
+    "resolvedBy": "Put right: {who}",
+    "deleteTitle": "Delete this defect?",
+    "notAllowed": "That is not allowed on this project."
   }
 }

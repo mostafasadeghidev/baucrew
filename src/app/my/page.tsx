@@ -17,6 +17,11 @@ import { displayName, mentionablePeople } from '@/lib/comments-db'
 import { canDeleteComment } from '@/lib/comments'
 import { initials, swatchOf } from '@/lib/board-cards'
 import { addMyComment, deleteMyComment } from './actions'
+import { ProjectDefects } from '@/components/project-defects'
+import { SitePhotos } from '@/components/site-photos'
+import { defectRows } from '@/lib/defects'
+import { defectListSelect } from '@/lib/defects-db'
+import { previewKind } from '@/lib/files'
 
 /**
  * The worker's own day on the phone: week strip, one card per assignment with
@@ -30,7 +35,7 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, tDefects, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
     getTranslations('checklists'),
@@ -38,6 +43,7 @@ export default async function MyAreaPage({
     getTranslations('time'),
     getTranslations('today'),
     getTranslations('projects'),
+    getTranslations('defects'),
     getLocale(),
   ])
 
@@ -65,9 +71,11 @@ export default async function MyAreaPage({
                 },
                 documents: {
                   where: { visibleToCrew: true },
-                  select: { id: true, filename: true },
+                  select: { id: true, filename: true, mimeType: true, defectId: true },
                   orderBy: { createdAt: 'asc' },
                 },
+                // What is not right on the site — the crew reports it and ticks it off.
+                defects: { select: defectListSelect },
                 checklists: {
                   orderBy: { createdAt: 'asc' },
                   include: {
@@ -382,12 +390,41 @@ export default async function MyAreaPage({
               )}
             </div>
 
+            {/* Photos of the site — taken here, seen by the office at once. A
+                defect's photos stand with the defect below. */}
+            <div className="border-t border-border px-4 py-3">
+              <p className="text-xs uppercase tracking-wide text-muted">{tFiles('sitePhotos')}</p>
+              <div className="mt-2">
+                <SitePhotos
+                  projectId={p.id}
+                  photos={p.documents
+                    .filter((doc) => previewKind(doc.mimeType) === 'image' && doc.defectId === null)
+                    .map((doc) => ({ id: doc.id, filename: doc.filename }))}
+                  large
+                />
+              </div>
+            </div>
+
+            {/* Defects: report one with a photo, tick it off when it is put right */}
+            <div className="border-t border-border px-4 py-3">
+              <p className="text-xs uppercase tracking-wide text-muted">{tDefects('heading')}</p>
+              <div className="mt-1">
+                <ProjectDefects
+                  projectId={p.id}
+                  defects={defectRows(p.defects, user, today, (d) => formatDate(d, locale))}
+                  office={user.role !== 'EMPLOYEE'}
+                  frame={false}
+                  large
+                />
+              </div>
+            </div>
+
             {/* Documents the office shared with the crew (never with prices) */}
-            {p.documents.length > 0 && (
+            {p.documents.some((doc) => previewKind(doc.mimeType) !== 'image') && (
               <div className="border-t border-border px-4 py-3">
                 <p className="text-xs uppercase tracking-wide text-muted">{tFiles('title')}</p>
                 <ul className="mt-2 space-y-1.5">
-                  {p.documents.map((doc) => (
+                  {p.documents.filter((doc) => previewKind(doc.mimeType) !== 'image').map((doc) => (
                     <li key={doc.id}>
                       <a
                         href={`/api/files/${doc.id}`}

@@ -380,7 +380,8 @@
     "cardCustomerNumber": "Kundennummer",
     "cardCreated": "Angelegt am",
     "kanbanAddTemplate": "Vorlage",
-    "kanbanAddNoTemplate": "Ohne Vorlage"
+    "kanbanAddNoTemplate": "Ohne Vorlage",
+    "cardDefects": "{count, plural, one {# offener Mangel} other {# offene Mängel}}"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -648,7 +649,9 @@
     "optionAdd": "Eintrag hinzufügen",
     "optionBuiltIn": "Standard",
     "leadSourcesTitle": "Anfragequellen",
-    "leadSourcesHint": "Woher Anfragen kommen (Telefon, E-Mail, Instagram …) — Auswahl im Projekt."
+    "leadSourcesHint": "Woher Anfragen kommen (Telefon, E-Mail, Instagram …) — Auswahl im Projekt.",
+    "webhookEventDefectReported": "Mangel gemeldet",
+    "webhookEventDefectResolved": "Mangel behoben"
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -1408,7 +1411,14 @@
     "officeOnly": "Nur das Büro sieht diese Datei. Klicken, um sie fürs Team freizugeben.",
     "preview": "Vorschau öffnen",
     "openInTab": "In neuem Tab öffnen",
-    "download": "Herunterladen"
+    "download": "Herunterladen",
+    "photos": "Fotos ({count})",
+    "fromSite": "von der Baustelle",
+    "ofDefect": "Mangel",
+    "photoAdd": "Foto aufnehmen",
+    "photoSending": "Foto {done} von {total} …",
+    "photoFailed": "{count, plural, one {Ein Foto konnte nicht hochgeladen werden.} other {# Fotos konnten nicht hochgeladen werden.}}",
+    "sitePhotos": "Baustellenfotos"
   },
   "time": {
     "title": "Zeiterfassung (14 Tage)",
@@ -1600,5 +1610,36 @@
     "importLinks": "Zuordnungen importieren",
     "importDone": "{applied, plural, one {# Zeile} other {# Zeilen}} verknüpft · {alreadyLinked} waren schon verknüpft · {missingProject} ohne passendes Projekt · {missingLine} ohne passende Zeile.",
     "importInvalid": "Das ist keine Zuordnungsdatei aus dem Planabgleich."
+  },
+  "defects": {
+    "heading": "Mängel",
+    "hint": "Was auf der Baustelle nicht stimmt — mit Foto, zuständig, bis wann. Abhaken, wenn es behoben ist.",
+    "none": "Keine Mängel gemeldet.",
+    "noneOpen": "Alle Mängel sind behoben.",
+    "openCount": "{count, plural, one {# offener Mangel} other {# offene Mängel}}",
+    "doneCount": "Behoben ({count})",
+    "report": "Mangel melden",
+    "sending": "Wird gesendet …",
+    "title": "Was ist nicht in Ordnung?",
+    "titlePlaceholder": "z. B. Riss in der Decke",
+    "titleRequired": "Bitte kurz beschreiben, was nicht stimmt.",
+    "location": "Wo?",
+    "locationPlaceholder": "z. B. Bad OG, Decke",
+    "description": "Beschreibung",
+    "dueDate": "Zu beheben bis",
+    "dueBy": "bis {date}",
+    "assignee": "Zuständig",
+    "assigneePlaceholder": "Mitarbeiter suchen …",
+    "assigneeNone": "Kein Mitarbeiter gefunden.",
+    "photo": "Foto",
+    "addPhoto": "Foto hinzufügen",
+    "photosPicked": "{count, plural, one {# Foto gewählt} other {# Fotos gewählt}}",
+    "photoFailed": "{count, plural, one {Ein Foto konnte nicht hochgeladen werden.} other {# Fotos konnten nicht hochgeladen werden.}}",
+    "markDone": "Als behoben abhaken",
+    "reopen": "Wieder öffnen",
+    "reportedBy": "Gemeldet: {who}",
+    "resolvedBy": "Behoben: {who}",
+    "deleteTitle": "Mangel löschen?",
+    "notAllowed": "Das ist für dieses Projekt nicht erlaubt."
   }
 }

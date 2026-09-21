@@ -7,6 +7,7 @@ import { audit } from '@/lib/audit'
 import { LATE_ENTRY_DAYS, validInterval } from '@/lib/time-entries'
 import { canDeleteComment, type CommentResult } from '@/lib/comments'
 import { createComment } from '@/lib/comments-db'
+import { canBookOn } from '@/lib/crew-access'
 import { ProjectItemStatus } from '@/generated/prisma/enums'
 
 const ITEM_STATUSES = Object.keys(ProjectItemStatus) as ProjectItemStatus[]
@@ -103,25 +104,6 @@ export async function deleteMyComment(noteId: string): Promise<CommentResult> {
 // ── Time tracking (start/stop on the phone) ─────────────────
 
 export type TimeResult = { error?: 'notAllowed' | 'saveFailed' | 'invalidRange' | 'outOfRange' }
-
-/** May this employee book time on that project today? Same rule as the packing list. */
-async function canBookOn(projectId: string, employeeId: string): Promise<boolean> {
-  const now = new Date()
-  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1))
-  const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7))
-  const [inTeam, scheduled] = await Promise.all([
-    db.projectEmployee.count({ where: { projectId, employeeId } }),
-    db.scheduleEntry.count({
-      where: {
-        projectId,
-        cancelledAt: null,
-        date: { gte: from, lte: to },
-        employees: { some: { employeeId } },
-      },
-    }),
-  ])
-  return inTeam > 0 || scheduled > 0
-}
 
 /** Starts the clock on a project; a still-running interval is closed first. */
 export async function startMyTime(projectId: string): Promise<TimeResult> {
