@@ -53,9 +53,10 @@
  *
  * A month can be opened: inside a `MonthDetailProvider` a click on a bar — or
  * on the month, where the whole column answers — lists the jobs behind the
- * figure right under the chart (see `month-detail.tsx`), a second click puts
- * the list away, and Enter does the same from the keyboard. The month that is
- * open keeps a frame in the chart, so list and bar are seen to belong together.
+ * figure right under the chart — every year of the chart side by side (see
+ * `month-detail.tsx`) — a second click puts the lists away, and Enter does the
+ * same from the keyboard. The month that is open keeps a frame in the chart, so
+ * lists and bars are seen to belong together.
  * Without a provider, `monthHrefs` makes the same click a link instead; a
  * finger's first tap then shows the figures and only the second follows it.
  *
@@ -669,10 +670,9 @@ export function RevenueChart({
           const x0 = groupX(i)
           const dim = highlightRange != null && (i < highlightRange.from || i > highlightRange.to)
           const here = active?.month === i
-          // The month whose jobs are listed under the chart: framed — its bar
-          // alone where every bar answers for itself, else the whole month.
-          const openLane = detail?.open?.month === i ? lanes.findIndex((lane) => lane.year === detail.open!.year) : -1
-          const openBox = openLane === -1 ? null : detailed ? column(i, openLane) : { x: padL + slot * i + 2, width: slot - 4 }
+          // The month whose jobs are listed under the chart is framed whole:
+          // the lists under it are every year's, whichever bar was clicked.
+          const openBox = detail?.open?.month === i ? { x: padL + slot * i + 2, width: slot - 4 } : null
           return (
             <g key={i} opacity={dim ? 0.35 : 1} className="pointer-events-none">
               {openBox && (

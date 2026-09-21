@@ -549,15 +549,18 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         [year, ...compareYears].map((y) => {
           const row = (yearTotals ?? []).find((r) => r.year === y)
           const lines = y === year && revenue ? revenue.months.map((m) => ({ own: m.own, sub: m.sub })) : (row?.lines ?? [])
+          // The largest first: what a month is made of is read from the top.
+          const bySize = <T extends { price: number | null }>(list: T[]) => [...list].sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
           const sums = y === year && revenue ? revenue.months.map((m) => ({ own: m.ownTotal, sub: m.subTotal, total: m.total })) : (row?.months ?? [])
           return [
             y,
             Array.from({ length: 12 }, (_, m): MonthDetailData => ({
-              own: (lines[m]?.own ?? []).map(detailLine),
-              sub: (lines[m]?.sub ?? []).map(detailLine),
+              own: bySize(lines[m]?.own ?? []).map(detailLine),
+              sub: bySize(lines[m]?.sub ?? []).map(detailLine),
               ownTotal: money(sums[m]?.own ?? 0),
               subTotal: money(sums[m]?.sub ?? 0),
               total: money(sums[m]?.total ?? 0),
+              totalValue: sums[m]?.total ?? 0,
               href: monthHrefs[y]?.[m] ?? '/reports?tab=revenue',
             })),
           ]
@@ -849,7 +852,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           </div>
 
           {/* The jobs of the month that was clicked in the chart — right under it. */}
-          <MonthDetailPanel data={monthDetails} monthNames={monthNames.long} />
+          <MonthDetailPanel
+            data={monthDetails}
+            // The chart's own order: newest first, the year on screen among the others.
+            years={[year, ...compareYears].sort((a, b) => b - a)}
+            baseYear={year}
+            tones={Object.fromEntries(tones)}
+            monthNames={monthNames.long}
+          />
 
           {yearBars.length > 1 && (
             <div className={`${card} p-4`}>

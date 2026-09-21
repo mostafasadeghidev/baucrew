@@ -1008,12 +1008,19 @@
     "hintSubSheet": "Sum of this month's SUB lines in the year plan — jobs carried out by a subcontractor.",
     "hintExtra": "Projects with a planned start in this month that are not in the year plan. They do not count towards the month and year totals, so the figures match the sheet — add them to the sheet or tie them to a line in the plan match.",
     "chartOpenMonth": "show the month's jobs",
-    "chartClickHint": "Click a month to list the jobs behind it underneath.",
+    "chartClickHint": "Click a month to list the jobs of every compared year underneath.",
     "monthJobs": "{count, plural, =0 {no jobs} one {# job} other {# jobs}}",
     "monthEmpty": "No job stands in this month.",
     "monthOpenFull": "Open in planned revenue",
     "monthSheetLine": "Line of the year plan with no project tied to it",
-    "compareEmpty": "No other year has figures."
+    "compareEmpty": "No other year has figures.",
+    "monthYearsCompared": "{count} years compared",
+    "monthClicked": "clicked",
+    "monthAbove": "{year} is {percent} % above",
+    "monthBelow": "{year} is {percent} % below",
+    "monthLevel": "level with {year}",
+    "monthMore": "+ {count} more",
+    "monthLess": "Show fewer"
   },
   "sheet": {
     "title": "Work order",
