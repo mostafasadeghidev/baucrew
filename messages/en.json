@@ -381,7 +381,8 @@
     "cardCreated": "Created on",
     "kanbanAddTemplate": "Template",
     "kanbanAddNoTemplate": "No template",
-    "cardDefects": "{count, plural, one {# open defect} other {# open defects}}"
+    "cardDefects": "{count, plural, one {# open defect} other {# open defects}}",
+    "listNextStep": "Next step: {status}"
   },
   "employees": {
     "title": "Employees",

@@ -381,7 +381,8 @@
     "cardCreated": "Angelegt am",
     "kanbanAddTemplate": "Vorlage",
     "kanbanAddNoTemplate": "Ohne Vorlage",
-    "cardDefects": "{count, plural, one {# offener Mangel} other {# offene Mängel}}"
+    "cardDefects": "{count, plural, one {# offener Mangel} other {# offene Mängel}}",
+    "listNextStep": "Nächster Schritt: {status}"
   },
   "employees": {
     "title": "Mitarbeiter",

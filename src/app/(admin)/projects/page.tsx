@@ -5,7 +5,9 @@ import { redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement, canViewFinancials } from '@/lib/authz'
-import { StatusBadge, STATUS_STYLES } from '@/components/status-badge'
+import { STATUS_STYLES } from '@/components/status-badge'
+import { nextStatus } from '@/lib/status-flow'
+import { ListStatus } from './list-status'
 import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
@@ -583,14 +585,15 @@ export default async function ProjectsPage({
         ) : (
           <>
           <div className="overflow-x-auto">
-            <table className={`w-full table-fixed text-sm ${showPrice ? 'min-w-[1096px]' : 'min-w-[936px]'}`}>
+            <table className={`w-full table-fixed text-sm ${showPrice ? 'min-w-[1176px]' : 'min-w-[1016px]'}`}>
               <colgroup>
                 <col className="w-28" />
                 <col />
                 <col className="w-[16%]" />
                 <col className="w-40" />
-                <col className="w-40" />
-                <col className="w-40" />
+                <col className="w-36" />
+                {/* Wide enough for the status menu and the next step beside it. */}
+                <col className="w-64" />
                 {showPrice && <col className="w-36" />}
               </colgroup>
               <thead>
@@ -657,7 +660,16 @@ export default async function ProjectsPage({
                         {formatDate(p.plannedStart, locale)}
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge status={p.status} />
+                        {/* The badge is a menu, and beside it the usual next step is one click. */}
+                        <ListStatus
+                          projectId={p.id}
+                          projectLabel={`${p.number} — ${p.name}`}
+                          status={p.status}
+                          next={nextStatus(p.status) ? { value: nextStatus(p.status)!, label: tStatus(nextStatus(p.status) as ProjectStatus) } : null}
+                          options={STATUSES.map((s) => ({ value: s, label: tStatus(s) }))}
+                          colorClass={STATUS_STYLES[p.status]}
+                          confirmNext={nextStatus(p.status) === 'COMPLETED'}
+                        />
                       </td>
                       {showPrice && (
                         <td className="px-4 py-3 text-right tabular-nums">
