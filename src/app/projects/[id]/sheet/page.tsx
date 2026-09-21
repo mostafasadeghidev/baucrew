@@ -11,6 +11,8 @@ import { PrintButton } from '@/components/print-button'
 import { BackButton } from '@/components/back-button'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
+import { parseSheetOptions } from '@/lib/sheet-options'
+import { SheetOptionsBar } from './sheet-options'
 
 function Checkbox({ checked, label }: { checked: boolean; label: string }) {
   return (
@@ -41,14 +43,17 @@ export default async function ProjectSheetPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  /** `entry` = work order for one assignment (its team, vehicles and date). */
-  searchParams: Promise<{ entry?: string }>
+  /**
+   * `entry` = work order for one assignment (its team, vehicles and date);
+   * `types`, `only`, `notes` = what this printout shows (src/lib/sheet-options.ts).
+   */
+  searchParams: Promise<{ entry?: string; types?: string; only?: string; notes?: string }>
 }) {
   // The sheet contains no financial data, so employees may open it too —
   // but only for operationally relevant projects (see guard below).
   const user = await requireUser()
   const { id } = await params
-  const { entry: entryId } = await searchParams
+  const { entry: entryId, ...printParams } = await searchParams
   const [t, tc, locale] = await Promise.all([
     getTranslations('sheet'),
     getTranslations('common'),
@@ -120,7 +125,12 @@ export default async function ProjectSheetPage({
     }
   }
 
-  const assignedCategoryIds = new Set(project.workCategories.map((wc) => wc.workCategoryId))
+  // What this printout ticks: the project's own work types unless the office
+  // chose others for the day — and, on request, only those are printed.
+  const ownCategoryIds = project.workCategories.map((wc) => wc.workCategoryId)
+  const printOptions = parseSheetOptions(printParams, ownCategoryIds, allCategories.map((c) => c.id))
+  const assignedCategoryIds = new Set(printOptions.types)
+  const printedCategories = printOptions.only ? allCategories.filter((c) => assignedCategoryIds.has(c.id)) : allCategories
   const categoryLabel = (c: { nameDe: string; nameEn: string }) =>
     locale === 'en' ? c.nameEn : c.nameDe
   const address = [
@@ -158,6 +168,22 @@ export default async function ProjectSheetPage({
         <BackButton label={tc('back')} />
         <PrintButton label={t('print')} />
       </div>
+
+      {/* The office chooses what this printout shows; the crew gets the sheet as it is. */}
+      {user.role !== 'EMPLOYEE' && (
+        <SheetOptionsBar
+          options={printOptions}
+          own={ownCategoryIds}
+          categories={allCategories.map((c) => ({ id: c.id, label: categoryLabel(c) }))}
+          labels={{
+            heading: t('printOptions'),
+            types: t('printTypesHint'),
+            only: t('printOnlyTicked'),
+            notes: t('printDescription'),
+            reset: t('printReset'),
+          }}
+        />
+      )}
 
       {/* A4 sheet — always black on white */}
       <div className="rounded-lg border border-border bg-white p-8 text-sm text-black shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
@@ -241,7 +267,7 @@ export default async function ProjectSheetPage({
             </div>
             {/* Fixed 3-column grid so every row lines up with the one above */}
             <div className="grid flex-1 grid-cols-3 gap-y-1.5 px-2 py-1.5">
-              {allCategories.map((c) => (
+              {printedCategories.map((c) => (
                 <Checkbox key={c.id} checked={assignedCategoryIds.has(c.id)} label={categoryLabel(c)} />
               ))}
             </div>
@@ -314,7 +340,8 @@ export default async function ProjectSheetPage({
 
         <div className="mt-4 border border-black">
           <p className="border-b border-black px-2 py-1.5 font-semibold">{t('notes')}</p>
-          <p className="min-h-24 whitespace-pre-wrap px-2 py-1.5">{project.description ?? ''}</p>
+          {/* Empty unless asked for: the box is the crew's, to write in on the site. */}
+          <p className="min-h-24 whitespace-pre-wrap px-2 py-1.5">{printOptions.notes ? (project.description ?? '') : ''}</p>
         </div>
       </div>
     </div>

@@ -1028,7 +1028,12 @@
     "materials": "Material list",
     "notes": "Further notes",
     "print": "Print / PDF",
-    "backToProject": "Back to project"
+    "backToProject": "Back to project",
+    "printOptions": "For this printout",
+    "printTypesHint": "Which kind of work is ticked — prefilled with the project's trades.",
+    "printOnlyTicked": "Print the ticked work types only",
+    "printDescription": "Print the project's description into the notes box",
+    "printReset": "Reset"
   },
   "today": {
     "title": "Daily preparation",

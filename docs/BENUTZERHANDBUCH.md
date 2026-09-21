@@ -471,9 +471,11 @@ Die Position kommt aus der **Adresse des Projekts**. Wurde beim Anlegen ein Ort 
 
 ![Arbeitsauftrag](screenshots/06-arbeitsauftrag.png)
 
-Der Arbeitsauftrag ist das A4-Blatt fürs Fahrzeug und die Baustelle: Firmenlogo, Projektnummer, Kunde, Baustellenadresse mit Telefon, Ansprechpartner, Termine, Baustellenverantwortlicher, Fahrzeuge, Team, angekreuzte Arbeiten, Werkzeug- und Materialliste zum Abhaken, Beschreibung, Unterschriftsfelder. **Keine Preise, keine internen Notizen.**
+Der Arbeitsauftrag ist das A4-Blatt fürs Fahrzeug und die Baustelle: Firmenlogo, Projektnummer, Kunde, Baustellenadresse mit Telefon, Ansprechpartner, Termine, Baustellenverantwortlicher, Fahrzeuge, Team, angekreuzte Arbeiten, Werkzeug- und Materialliste zum Abhaken, ein Notizfeld. **Keine Preise, keine internen Notizen.**
 
 **So öffnen Sie ihn:** Projektseite → Druckersymbol · Karte im Wochenplan → Druckersymbol · Tagesvorbereitung im Lager · Mein Bereich am Handy.
+
+**Für diesen Ausdruck** (über dem Blatt, nur fürs Büro sichtbar, wird nie mitgedruckt): Hier wählen Sie, welche **Art der Arbeit** angekreuzt wird — vorbelegt mit den Gewerken des Projekts; an dem Tag, an dem nur die Maler fahren, bleibt nur *Malern* angekreuzt. **Nur die angekreuzten Arbeiten drucken** lässt die übrige Liste weg. Das **Notizfeld bleibt leer** — es gehört der Kolonne für Notizen von der Baustelle; mit **Projektbeschreibung in das Notizfeld drucken** kommt die Beschreibung des Projekts hinein, wenn sie für die Baustelle gedacht ist. Die Wahl steht in der Adresse und bleibt beim Neuladen erhalten; **Zurücksetzen** stellt den Standard wieder her.
 
 **So drucken Sie:** Knopf **Drucken** oben (oder Strg+P). Im Druckfenster können Sie statt Drucker „Als PDF speichern“ wählen. **← Zurück** bringt Sie zur vorherigen Seite.
 

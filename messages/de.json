@@ -1028,7 +1028,12 @@
     "materials": "Materialliste",
     "notes": "Weitere Notizen",
     "print": "Drucken / PDF",
-    "backToProject": "Zum Projekt"
+    "backToProject": "Zum Projekt",
+    "printOptions": "Für diesen Ausdruck",
+    "printTypesHint": "Welche Art der Arbeit angekreuzt wird — vorbelegt mit den Gewerken des Projekts.",
+    "printOnlyTicked": "Nur die angekreuzten Arbeiten drucken",
+    "printDescription": "Projektbeschreibung in das Notizfeld drucken",
+    "printReset": "Zurücksetzen"
   },
   "today": {
     "title": "Tagesvorbereitung",
