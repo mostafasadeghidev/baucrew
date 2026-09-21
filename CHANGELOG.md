@@ -3,6 +3,46 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.41.0] — 2026-09-21
+
+### Added
+- **A month in the revenue chart opens the jobs behind it, right under the
+  chart.** On the Vergleich tab a click on a month opens a column for every
+  year in the chart, in the chart's order and colours: the month's total, how
+  many jobs, how far the year on screen stands above or below that year, then
+  the jobs — own crew and SUB apart, the largest first, each a link to its
+  project. A column shows the first six and *+ n weitere* the rest; they stand
+  three to a row on a wide screen and under each other on a narrow one. Where a
+  single year's bar was clicked, that year's column is the one marked. Tab,
+  year and comparison stay as they are and nothing is loaded — the lines come
+  with the page. *Im Planumsatz öffnen* still leads to the full month view.
+- **Customers, employees and vehicles come in from a spreadsheet.**
+  Einstellungen → Daten → *Stammdaten importieren* takes an .xlsx or .csv; the
+  columns are mapped from the file's own headers (*Kd.-Nr.*, *Straße*, *PLZ*,
+  *Mobil* …) and checked against a preview. A row that fits a record already
+  there fills it in instead of making a second one — a customer by its number,
+  else its name; an employee by first and last name; a vehicle by its plate —
+  and what the office entered stays unless the import is told to overwrite.
+- **The status is changed in the list.** The badge is the same menu as on the
+  project's page, and beside it the usual next step is one click —
+  *Abgeschlossen*, *Abgerechnet*, *Bezahlt*. Finishing a job asks first.
+- **The work order is printed for the day.** Above the sheet, for the office
+  only: which work types are ticked (prefilled with the project's own), whether
+  the rest of the list is printed at all, and whether the project's description
+  goes into the notes box.
+- **A phone number is a link that dials** in the office area — customer and
+  employee lists, the customer's page, the project's address card. On the
+  office PC the click goes to whatever answers `tel:` there, usually the
+  telephone system's softphone.
+
+### Changed
+- **The comparison offers only the years that have figures in them** — over
+  the monthly chart and in the quarter card. A year that is already ticked
+  stays in the list so it can be unticked; a comparison nobody chose is the
+  year before only if that year has figures.
+- The work order's notes box is empty unless the description is asked for: the
+  box is the crew's, to write in on the site.
+
 ## [1.40.0] — 2026-09-21
 
 ### Added
