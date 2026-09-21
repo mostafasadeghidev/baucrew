@@ -16,6 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: branding.companyName,
     description: 'Einsatz- und Projektverwaltung',
+    // See the note on <html translate="no"> below.
+    other: { google: 'notranslate' },
   }
 }
 
@@ -28,7 +30,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { accentColor } = await getBranding()
   const accentCss = `:root,.dark{--accent:${accentColor};--accent-hover:${shiftColor(accentColor, -18)};--ring:${accentColor};}`
   return (
-    <html lang={locale} className={`${geistSans.variable} h-full`} suppressHydrationWarning>
+    /*
+     * Not for the browser to translate. A page translator (Chrome's own, or an
+     * extension) takes every text node out and puts a <font> in its place;
+     * React still holds the node that is gone, and the next update of that
+     * spot — an invoice marked ready, a comment sent — dies with "insertBefore:
+     * the node … is not a child of this node", taking the page with it. The
+     * app speaks its own languages (the menu, top right), so nothing is lost:
+     * `translate="no"` is the standard's word for it, the `notranslate` class
+     * and the google meta tag are the ones Chrome's translator listens to.
+     */
+    <html lang={locale} translate="no" className={`${geistSans.variable} notranslate h-full`} suppressHydrationWarning>
       <head>
         <Script id="theme-init" strategy="beforeInteractive">
           {themeInit}
