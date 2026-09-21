@@ -3,6 +3,104 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.40.0] — 2026-09-21
+
+### Added
+- **Forms on a project, signed on a screen.** Under Projekte →
+  *Formularvorlagen* the office builds a form once: its fields in order —
+  heading, short and long text, date, tick, choice — each with a prefill from
+  the project and a required mark, and who signs (up to four). The
+  **Abnahmeprotokoll** is there from the start. On the project page and on the
+  crew's phone a form is made from a template and opens on a page of its own,
+  large and with nothing of the office around it; it starts with what the
+  project knows — number, name, customer, customer number, site, site manager,
+  trades, today, the open defects, the own company — and stays editable. A
+  form keeps its own copy of the template's fields, so a template edited later
+  does not rewrite a protocol that is already signed.
+- **Digital signatures.** Drawn with a finger, a pen or the mouse, the name
+  typed beside it. Required fields first; what was typed is saved before the
+  pad opens. The first signature locks the form; every signature keeps a
+  SHA-256 digest of exactly what was signed, the time and the account the
+  device was signed in with, and a form whose content no longer fits its
+  signatures says so. The office can take a signature away to correct
+  something — the crew cannot.
+- **The form as a PDF** (pdf-lib, new dependency): logo, fields, the signatures
+  side by side with name and time, the digest and page numbers at the foot.
+  Open or download at any time, a draft marked as one; with the last signature
+  it is filed with the project's documents.
+- **Defects (Mängel).** What is not right on a site: a title, where, a
+  description, photos, who puts it right and by when, open until it is ticked
+  off — with the name and the day. The office reports and assigns them on the
+  project page; the crew reports them from the phone with a photo and ticks
+  them off. The board card counts the open ones. API: `GET`/`POST
+  /api/v1/projects/{id}/defects`, `PATCH /api/v1/defects/{id}`; webhooks
+  `defect.reported` and `defect.resolved` — an endpoint that listened for every
+  event so far hears these too.
+- **Photos from the site.** *Baustellenfotos* in every assignment on the phone:
+  one button opens the camera or the gallery, several pictures at once. A
+  picture is drawn smaller before it leaves the phone (long edge 2000 px), so
+  it arrives over a site's network. The crew uploads pictures only, and only
+  onto projects it works on. The Dateien card shows pictures as tiles.
+- **A file is looked at inside the project.** A click on a file's name opens a
+  PDF, a PNG/JPG/WebP picture or plain text over the project, with open-in-tab,
+  download and close; Escape closes the viewer and leaves the card's sheet
+  under it open.
+- **Fällig am.** A project has the day its work is due by, apart from the
+  planned end. Set in the planning card, shown in the card's sheet and on the
+  board card with a clock — amber in the last week, red once it has passed.
+  *Diese Woche fällig* on the dashboard goes by it. The API takes and gives
+  `dueDate`; webhooks carry it.
+- **Kundennummer.** A customer has the number the office's own books know them
+  by — searchable in the customer list and over the API, filled in by an
+  automation where it is empty.
+- **An assignment is planned from the dashboard.** The cards for today and
+  tomorrow carry *+ Einsatz planen*, which opens the schedule's dialog on that
+  day. Under tomorrow's entries, *Beauftragt, morgen ohne Einsatz* lists the
+  commissioned, planned and running projects nobody stands on tomorrow, each
+  with *+ Morgen*: the dialog opens with the project, its crew and vehicles,
+  and whoever is away marked.
+- **A card made from a template.** *Karte hinzufügen* offers the project
+  templates; the card gets what the long form would have given it —
+  description, trade, site manager and crew, vehicles, machines, tools and
+  materials, checklists. The choice stays while the box is open.
+
+### Changed
+- **The comments stand in a column beside the project**, on the project page
+  and in the card's sheet — the talk between office and site manager next to
+  the work. The column holds to the top of the window, scrolls inside with the
+  newest comment in view and keeps the box to write in at its foot; where the
+  window is too narrow it goes back under the cards. *Zur Karte hinzufügen*
+  moved from the sheet's right-hand column to a row under the title, and the
+  sheet is a little wider.
+- **List and board answer to the same filters.** The filter beside the search
+  (person, trade, urgent) stands in the list as well, and the switch between
+  the two views takes everything along — search, year, board, filter and the
+  status tab. A status brought along leaves only its own columns on the board,
+  with a chip that says so and takes it off again.
+- **The board card says more:** the customer's number, the site on one line —
+  street, postal code, town — the day the project was made beside its number,
+  and the order's worth with add-ons, as is the list's sum.
+- The backup holds defects, form templates, forms and signatures.
+
+### Fixed
+- **The years of the Vergleich tab.** A link that spells the running year out
+  left the year picker showing next year while the page stood on this one (the
+  plan page had the same fault). Moving the page to another year dropped the
+  running year from a chart it was just standing in; the years ticked now stay
+  and the year that was on screen joins them, through the picker, the year
+  bars and the quarter rows alike. The year bars keep the comparison and the
+  chart's form. A compared year keeps its colour whatever else is ticked.
+- **A page translator crashed the app.** Chrome's own translator, or an
+  extension, replaces every text node; the next update of that spot — an
+  invoice marked ready, say — ended in "insertBefore: the node … is not a child
+  of this node". The app speaks its own languages, so the page now says
+  `translate="no"` (with the `notranslate` class and the google meta tag).
+
+### Upgrade
+- `docker compose up -d --build` applies three migrations on start: the due
+  date and the customer number, the defects, the forms and signatures (with the
+  standard Abnahmeprotokoll). Nothing to do by hand.
+
 ## [1.39.0] — 2026-09-17
 
 ### Added
