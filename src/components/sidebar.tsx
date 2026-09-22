@@ -10,6 +10,7 @@ import {
   CalendarDays,
   ChevronsUpDown,
   Handshake,
+  HardHat,
   LayoutDashboard,
   LogOut,
   Menu as MenuIcon,
@@ -40,6 +41,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard, site: true },
       { href: '/projects', key: 'projects', icon: Building2, site: true },
+      { href: '/sites', key: 'sites', icon: HardHat, site: true },
       { href: '/schedule', key: 'schedule', icon: CalendarDays, site: true },
       { href: '/reports', key: 'reports', icon: PieChart },
     ],

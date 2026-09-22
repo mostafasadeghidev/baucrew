@@ -17,7 +17,7 @@ Dieses Handbuch ist für alle geschrieben, die BauCrew zum ersten Mal benutzen �
 
 1. [Was ist BauCrew?](#1-was-ist-baucrew)
 2. [Der erste Tag: Anmelden und zurechtfinden](#2-der-erste-tag-anmelden-und-zurechtfinden)
-3. [Wer darf was? Die drei Rollen](#3-wer-darf-was-die-drei-rollen)
+3. [Wer darf was? Die Rollen](#3-wer-darf-was-die-rollen)
 4. [Schnellstart: In 10 Minuten vom Auftrag zum Wochenplan](#4-schnellstart-in-10-minuten-vom-auftrag-zum-wochenplan)
 5. [Kunden](#5-kunden)
 6. [Projekte](#6-projekte)
@@ -113,7 +113,7 @@ Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 
 ---
 
-## 3. Wer darf was? Die drei Rollen
+## 3. Wer darf was? Die Rollen
 
 Jedes Benutzerkonto hat eine Rolle. Sie bestimmt, was jemand sieht und darf.
 
@@ -121,7 +121,7 @@ Jedes Benutzerkonto hat eine Rolle. Sie bestimmt, was jemand sieht und darf.
 |---|---|---|
 | **Administrator** | Geschäftsführung | alles — inklusive Preise, Umsätze, Benutzerkonten, Einstellungen, Löschen |
 | **Büro / Verwaltung** | Büromitarbeiter, Disposition | Kunden, Projekte, Planung, Lager, Mitarbeiter, Fahrzeuge bearbeiten. **Preise nur, wenn der Administrator „Finanzdaten sichtbar“ freigibt.** |
-| **Bauleitung** | Wer eine Baustelle führt | die Übersicht, die eigenen Projekte (als Bauleitung oder im Team) mit allem, was daran hängt — Aufgaben, Mängel, Fotos, Formulare, Kommentare des Teams — und die Einsatzplanung. **Keine Preise**, keine Stammdaten, keine Einstellungen, keine Kommentare „nur fürs Büro“. Das Konto muss mit dem Mitarbeiter verknüpft sein, sonst sieht es kein Projekt. |
+| **Bauleitung** | Wer eine Baustelle führt | die Übersicht, die Seite **Baustellen**, die eigenen Projekte (als Bauleitung oder im Team) mit allem, was daran hängt — Aufgaben, Mängel, Fotos, Formulare, Kommentare des Teams — und die Einsatzplanung. **Keine Preise**, keine Stammdaten, keine Einstellungen, keine Kommentare „nur fürs Büro“. Das Konto muss mit dem Mitarbeiter verknüpft sein, sonst sieht es kein Projekt. |
 | **Mitarbeiter** | Leute auf der Baustelle | nur den eigenen Handy-Bereich („Mein Bereich“), die Tagesvorbereitung im Lager und den Arbeitsauftrag ihrer Einsätze. **Nie Preise.** |
 
 Preise werden Mitarbeitern nicht nur ausgeblendet — sie werden gar nicht erst an ihr Handy geschickt. Auch auf dem Arbeitsauftrag stehen keine Preise und keine internen Notizen.
@@ -444,6 +444,31 @@ Im Projektformular lassen sich zwei kleine Felder setzen: **Priorität**
 (Normal / Hoch / Niedrig — bei *Hoch* steht in der Projektliste ein rotes **!**
 vor dem Namen) und **Anfrage über** (Telefon, E-Mail, Instagram … — die Liste
 ist unter Einstellungen → Arbeitsbereiche → Anfragequellen anpassbar).
+
+## 6a. Baustellen — was gerade gebaut wird
+
+**Wo:** Menü → **Baustellen**. Eine Seite für die Bauleitung: alle Projekte,
+die gerade **in Ausführung** sind, und darunter die, die in den nächsten
+14 Tagen beginnen. Niemand trägt hier etwas ein — ein Projekt steht hier von
+selbst, sobald sein Status auf „In Ausführung“ steht, und verschwindet mit
+„Abgeschlossen“.
+
+Jede Baustelle zeigt auf einen Blick:
+
+- Nummer, Name, Status, Kunde und Adresse; wer die Bauleitung hat und wie
+  viele im Team sind.
+- **Nächster Einsatz** (Klick öffnet die Woche in der Einsatzplanung) — oder,
+  wenn nichts mehr geplant ist, der letzte Einsatz bzw. der geplante Beginn.
+- Was noch daran hängt, als anklickbare Zähler: offene **Aufgaben** und
+  **Mängel** (in Klammern rot, wie viele davon überfällig sind), **Formulare**
+  ohne vollständige Unterschrift, **Checklisten** (abgehakt/gesamt) und die
+  **Fotos** von der Baustelle. Jeder Zähler springt direkt in den passenden
+  Abschnitt der Projektseite.
+- Rechts oben gelbe Hinweise, wenn etwas nicht stimmt: *Mängel überfällig*,
+  *Aufgaben überfällig*, *Unterschrift offen*, *Kein Team*, *Nichts geplant*.
+
+Das Suchfeld filtert beim Tippen nach Nummer, Name, Ort oder Kunde. Die
+Bauleitung (Rolle) sieht hier nur ihre eigenen Baustellen.
 
 ## 7. Einsatzplanung (der Wochenplan)
 
