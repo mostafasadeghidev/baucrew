@@ -25,6 +25,9 @@ import { MergeButton } from './merge-button'
 import { ChecklistSection } from './checklist-section'
 import { FilesCard } from './files-card'
 import { ProjectDefects } from '@/components/project-defects'
+import { ProjectTasks } from '@/components/project-tasks'
+import { taskRows } from '@/lib/tasks'
+import { taskListSelect } from '@/lib/tasks-db'
 import { ProjectForms } from '@/components/project-forms'
 import { formStatus, parseSigners } from '@/lib/forms'
 import { defectRows } from '@/lib/defects'
@@ -111,6 +114,8 @@ export async function ProjectDetail({
       },
       // What is not right on the site, with its photos.
       defects: { select: defectListSelect },
+      // What somebody has to do apart from the trades' work.
+      tasks: { select: taskListSelect },
       // Protocols and other forms: which there are and how far each is signed.
       forms: {
         orderBy: { createdAt: 'desc' },
@@ -627,6 +632,15 @@ export async function ProjectDetail({
             />
           </div>
         </section>
+
+        <div id="tasks" className="scroll-mt-24">
+          <ProjectTasks
+            projectId={project.id}
+            tasks={taskRows(project.tasks, { id: user.id, role: user.role, employeeId: user.employee?.id ?? null }, todayUtc(), (d) => formatDate(d, locale))}
+            assignees={allEmployees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
+            office
+          />
+        </div>
 
         <div id="defects" className="scroll-mt-24">
           <ProjectDefects

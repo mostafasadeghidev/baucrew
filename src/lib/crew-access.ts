@@ -24,3 +24,13 @@ export async function canBookOn(projectId: string, employeeId: string): Promise<
   ])
   return inTeam > 0 || scheduled > 0
 }
+
+/**
+ * May this user do work on that project — tick a task, report a defect, sign
+ * a form? The office on any; an employee on the ones the phone offers them,
+ * by the rule above.
+ */
+export async function canWorkOn(user: { role: string; employee: { id: string } | null }, projectId: string): Promise<boolean> {
+  if (user.role !== 'EMPLOYEE') return true
+  return Boolean(user.employee) && (await canBookOn(projectId, user.employee!.id))
+}

@@ -246,7 +246,7 @@ export default async function ProjectsPage({
           team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
           workCategories: { select: { workCategory: { select: { id: true, nameDe: true, nameEn: true, color: true } } } },
           checklists: { select: { items: { select: { ok: true } } } },
-          _count: { select: { documents: true, notes: true, defects: { where: { resolvedAt: null } } } },
+          _count: { select: { documents: true, notes: true, defects: { where: { resolvedAt: null } }, tasks: { where: { doneAt: null } } } },
         },
         orderBy: { number: 'desc' },
       })
@@ -308,6 +308,7 @@ export default async function ProjectsPage({
           files: p._count.documents,
           comments: p._count.notes,
           defects: p._count.defects,
+          tasks: p._count.tasks,
           people: people.slice(0, FACES).map((e) => {
             const name = `${e.firstName} ${e.lastName}`.trim()
             return { initials: initials(name), name, swatch: swatchOf(e.id), manager: e.manager }

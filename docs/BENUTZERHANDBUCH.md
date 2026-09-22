@@ -306,6 +306,19 @@ Die Automatik geht **nur vorwärts** (nie von *In Ausführung* zurück auf *Gepl
 
 ---
 
+### Aufgaben am Projekt
+
+Die Karte **Aufgaben** hält fest, was außer der Arbeit selbst zu tun ist —
+Gerüst bestellen, Farbe mit dem Kunden abklären, Fotos ans Büro schicken.
+**Aufgabe hinzufügen** → kurz sagen, was zu tun ist, dazu **wer** (ein
+Mitarbeiter) und **bis wann**; der Kreis davor hakt sie als erledigt ab, mit
+Name und Datum. Erledigte Aufgaben klappen unter **Erledigt (n)** zusammen. Auf
+der Board-Karte zählt ✓ die offenen Aufgaben. Die Kolonne sieht die Aufgaben
+ihres Einsatzes am Handy, hakt sie ab und trägt selbst welche ein (ohne
+Zuständigen und Termin — das bleibt beim Büro); was einem Mitarbeiter
+persönlich zugeteilt ist, steht in „Mein Bereich“ ganz oben unter **Aufgaben
+für mich**, über alle Projekte hinweg.
+
 ### Mängel am Projekt
 
 Die Karte **Mängel** auf der Projektseite sammelt, was auf der Baustelle nicht

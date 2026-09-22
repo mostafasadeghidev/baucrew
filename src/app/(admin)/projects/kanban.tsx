@@ -50,7 +50,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { CalendarDays, Clock, GripVertical, MapPin, TriangleAlert, ListChecks, MessageSquare, Paperclip, Pencil, Plus, Undo2, X } from 'lucide-react'
+import { CalendarDays, CircleCheck, Clock, GripVertical, MapPin, TriangleAlert, ListChecks, MessageSquare, Paperclip, Pencil, Plus, Undo2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { moveColumn } from '@/lib/boards'
 import { LABEL_BAR, LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
@@ -99,6 +99,8 @@ export type KanbanCard = {
   comments: number
   /** Defects on the site that are still open. */
   defects: number
+  /** Tasks not ticked off yet. */
+  tasks: number
   /** Site manager first, then the team — the first few, with how many more. */
   people: Array<{ initials: string; name: string; swatch: number; manager: boolean }>
   more: number
@@ -951,7 +953,7 @@ export function ProjectsKanban({
                     )}
                     {/* What the card carries: the dates, coloured when they press;
                         the checklist, files and notes as small counts; the value. */}
-                    {(card.dates || card.due || card.checklist || card.files > 0 || card.comments > 0 || card.defects > 0 || card.price) && (
+                    {(card.dates || card.due || card.checklist || card.files > 0 || card.comments > 0 || card.defects > 0 || card.tasks > 0 || card.price) && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
                         {card.dates && (
                           <span
@@ -988,6 +990,12 @@ export function ProjectsKanban({
                           >
                             <ListChecks className="h-3 w-3 shrink-0" aria-hidden />
                             {card.checklist.done}/{card.checklist.total}
+                          </span>
+                        )}
+                        {card.tasks > 0 && (
+                          <span title={t('cardTasks', { count: card.tasks })} className="inline-flex items-center gap-1 tabular-nums">
+                            <CircleCheck className="h-3 w-3 shrink-0" aria-hidden />
+                            {card.tasks}
                           </span>
                         )}
                         {card.defects > 0 && (

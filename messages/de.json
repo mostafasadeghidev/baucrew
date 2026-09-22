@@ -382,7 +382,8 @@
     "kanbanAddTemplate": "Vorlage",
     "kanbanAddNoTemplate": "Ohne Vorlage",
     "cardDefects": "{count, plural, one {# offener Mangel} other {# offene Mängel}}",
-    "listNextStep": "Nächster Schritt: {status}"
+    "listNextStep": "Nächster Schritt: {status}",
+    "cardTasks": "{count, plural, one {# offene Aufgabe} other {# offene Aufgaben}}"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -1790,5 +1791,31 @@
     "field_lastName": "Nachname",
     "field_licensePlate": "Kennzeichen",
     "field_type": "Fahrzeugtyp"
+  },
+  "tasks": {
+    "heading": "Aufgaben",
+    "hint": "Was außer der Arbeit selbst zu tun ist — Gerüst bestellen, Farbe abklären, Fotos schicken. Abhaken, wenn es erledigt ist.",
+    "none": "Keine Aufgaben.",
+    "noneOpen": "Alle Aufgaben sind erledigt.",
+    "openCount": "{count, plural, one {# offene Aufgabe} other {# offene Aufgaben}}",
+    "doneCount": "Erledigt ({count})",
+    "mine": "{count, plural, one {Eine Aufgabe für mich} other {# Aufgaben für mich}}",
+    "add": "Aufgabe hinzufügen",
+    "title": "Was ist zu tun?",
+    "titlePlaceholder": "z. B. Gerüst für Montag bestellen",
+    "titleRequired": "Bitte kurz sagen, was zu tun ist.",
+    "description": "Details",
+    "dueDate": "Bis wann",
+    "dueBy": "bis {date}",
+    "assignee": "Wer",
+    "assigneePlaceholder": "Mitarbeiter suchen …",
+    "assigneeNone": "Kein Mitarbeiter gefunden.",
+    "you": "ich",
+    "markDone": "Als erledigt abhaken",
+    "reopen": "Wieder öffnen",
+    "madeBy": "Angelegt: {who}",
+    "doneBy": "Erledigt: {who}",
+    "deleteTitle": "Aufgabe löschen?",
+    "notAllowed": "Das ist für dieses Projekt nicht erlaubt."
   }
 }

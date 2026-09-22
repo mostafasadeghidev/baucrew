@@ -18,6 +18,9 @@ import { canDeleteComment } from '@/lib/comments'
 import { initials, swatchOf } from '@/lib/board-cards'
 import { addMyComment, deleteMyComment } from './actions'
 import { ProjectDefects } from '@/components/project-defects'
+import { ProjectTasks } from '@/components/project-tasks'
+import { taskRows } from '@/lib/tasks'
+import { taskListSelect } from '@/lib/tasks-db'
 import { ProjectForms } from '@/components/project-forms'
 import { formStatus, parseSigners } from '@/lib/forms'
 import { SitePhotos } from '@/components/site-photos'
@@ -37,7 +40,7 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, tDefects, tForms, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, tDefects, tForms, tTasks, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
     getTranslations('checklists'),
@@ -47,6 +50,7 @@ export default async function MyAreaPage({
     getTranslations('projects'),
     getTranslations('defects'),
     getTranslations('forms'),
+    getTranslations('tasks'),
     getLocale(),
   ])
 
@@ -57,6 +61,7 @@ export default async function MyAreaPage({
   const daysBack = Math.round((today.getTime() - day.getTime()) / 86_400_000)
   const canAddLate = daysBack >= 0 && daysBack <= LATE_ENTRY_DAYS
   const employeeId = user.employee?.id
+  const reader = { id: user.id, role: user.role, employeeId: employeeId ?? null }
   const monday = mondayOf(day)
 
   const [entries, next, weekEntries, openTime, todayTime, people] = employeeId
@@ -79,6 +84,7 @@ export default async function MyAreaPage({
                 },
                 // What is not right on the site — the crew reports it and ticks it off.
                 defects: { select: defectListSelect },
+                tasks: { select: taskListSelect },
                 // Protocols to fill in and have signed on the site.
                 forms: {
                   orderBy: { createdAt: 'desc' },
@@ -146,6 +152,15 @@ export default async function MyAreaPage({
         mentionablePeople(),
       ])
     : [[], null, [], null, [], []]
+  // The open tasks given to me, on any project.
+  const myTasks = employeeId
+    ? await db.projectTask.findMany({
+        where: { assigneeId: employeeId, doneAt: null },
+        select: { ...taskListSelect, project: { select: { id: true, number: true, name: true } } },
+        orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
+        take: 20,
+      })
+    : []
   // What a new form can be made from — an acceptance protocol, say.
   const formTemplates = employeeId
     ? await db.formTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } })
@@ -202,6 +217,16 @@ export default async function MyAreaPage({
         nextWeek={addDays(monday, 7)}
         weekLabel={`KW ${isoWeek(monday)}`}
       />
+
+      {/* What was given to me, on whatever project — before the day's jobs, so it is not missed. */}
+      {myTasks.length > 0 && (
+        <section className="rounded-xl border border-accent/40 bg-surface p-4 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-muted">{tTasks('mine', { count: myTasks.length })}</p>
+          <div className="mt-1">
+            <ProjectTasks tasks={taskRows(myTasks, reader, today, (d) => formatDate(d, locale))} office={false} frame={false} large compact />
+          </div>
+        </section>
+      )}
 
       {/* The shared warehouse login has no own assignments — send it to the screen */}
       {!employeeId && (
@@ -412,6 +437,20 @@ export default async function MyAreaPage({
                   photos={p.documents
                     .filter((doc) => previewKind(doc.mimeType) === 'image' && doc.defectId === null)
                     .map((doc) => ({ id: doc.id, filename: doc.filename }))}
+                  large
+                />
+              </div>
+            </div>
+
+            {/* Tasks on the job: tick them off, add what the customer asked for */}
+            <div className="border-t border-border px-4 py-3">
+              <p className="text-xs uppercase tracking-wide text-muted">{tTasks('heading')}</p>
+              <div className="mt-1">
+                <ProjectTasks
+                  projectId={p.id}
+                  tasks={taskRows(p.tasks, reader, today, (d) => formatDate(d, locale))}
+                  office={user.role !== 'EMPLOYEE'}
+                  frame={false}
                   large
                 />
               </div>

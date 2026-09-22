@@ -382,7 +382,8 @@
     "kanbanAddTemplate": "Template",
     "kanbanAddNoTemplate": "No template",
     "cardDefects": "{count, plural, one {# open defect} other {# open defects}}",
-    "listNextStep": "Next step: {status}"
+    "listNextStep": "Next step: {status}",
+    "cardTasks": "{count, plural, one {# open task} other {# open tasks}}"
   },
   "employees": {
     "title": "Employees",
@@ -1790,5 +1791,31 @@
     "field_lastName": "Last name",
     "field_licensePlate": "Licence plate",
     "field_type": "Vehicle type"
+  },
+  "tasks": {
+    "heading": "Tasks",
+    "hint": "What has to be done apart from the work itself — order the scaffold, settle the colour, send the photos. Tick it off when it is done.",
+    "none": "No tasks.",
+    "noneOpen": "Every task is done.",
+    "openCount": "{count, plural, one {# open task} other {# open tasks}}",
+    "doneCount": "Done ({count})",
+    "mine": "{count, plural, one {One task for me} other {# tasks for me}}",
+    "add": "Add a task",
+    "title": "What has to be done?",
+    "titlePlaceholder": "e.g. order the scaffold for Monday",
+    "titleRequired": "Please say briefly what has to be done.",
+    "description": "Details",
+    "dueDate": "By when",
+    "dueBy": "by {date}",
+    "assignee": "Who",
+    "assigneePlaceholder": "Search employees …",
+    "assigneeNone": "No employee found.",
+    "you": "me",
+    "markDone": "Tick off as done",
+    "reopen": "Open again",
+    "madeBy": "Added: {who}",
+    "doneBy": "Done: {who}",
+    "deleteTitle": "Delete this task?",
+    "notAllowed": "That is not allowed on this project."
   }
 }
