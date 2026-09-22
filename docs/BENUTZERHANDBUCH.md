@@ -827,6 +827,20 @@ Die Reiter:
   *Ohne Termin* mit ihrer Summe und zählen erst in die Monate und die Jahressumme, wenn ein
   Termin eingetragen ist — unter *Datenqualität* sind sie alle aufgeführt. Ist eine **Jahresplanung** eingelesen (Kapitel 15), ist die Tabelle die Zahl: jede Monatskarte zeigt die Zeilen der Jahresplanung mit ihren Beträgen — Monat für Monat so, wie die Tabelle sie führt. Eine Zeile, die im Planabgleich einem Projekt zugeordnet ist, verlinkt dorthin; eine ohne Projekt steht nur in der Tabelle. Projekte mit Start in diesem Monat, die in der Tabelle nicht stehen, sind darunter unter *Nicht in der Tabelle* aufgeführt und zählen nicht in die Summen, damit die Monate der Tabelle entsprechen. Das kleine ⓘ neben *Eigene Leute*, *SUB* und *Nicht in der Tabelle* erklärt die Zahl; ein Hinweis über den Monaten nennt die Quelle. Ein Jahr ohne Jahresplanung wird weiter aus den Projekten gebaut (Startmonat, Auftragswert). Baustellen, die in der Tabelle noch auf keinen Monat gelegt sind (Spalte *Baustellen für <Jahr>*), stehen als eigene Zeile unter der Überschrift — sie gehören zu keiner Monatskarte. Für ein Jahr, aus dem in BauCrew gar keine Projekte erfasst sind, sagt der Hinweis über den Monaten, dass die Zahlen ein **Rückblick** aus der Tabelle sind; ein Projekt, das später für so ein Jahr angelegt wird, ändert die Monatszahlen nicht, sondern erscheint unter *Nicht in der Tabelle*, bis es in der Tabelle steht oder einer Zeile zugeordnet ist. Der Jahresvergleich oben rechts und die Karte *Umsatz diesen Monat* auf dem Dashboard lesen dieselben Zahlen. Auslastung, Kunden und Datenqualität zeigen weiterhin nur, was in BauCrew erfasst ist.
 
+- **Pipeline:** was auf dem Weg zum Auftrag ist, Stand heute — drei Spalten
+  **Anfrage**, **Angebot erstellt** und **Beauftragt** (noch nicht geplant), jede
+  mit Anzahl und Summe. In jeder Spalte steht das Projekt oben, das am längsten
+  darin sitzt; *seit n Tagen* rechnet ab der letzten Statusänderung. Sitzt ein
+  Projekt zu lange (Anfrage 7, Angebot 21, Auftrag 30 Tage), bekommt seine Karte
+  einen gelben Rand und die Spalte zählt es als *lange offen*. Auf jeder Karte
+  das Statusmenü und der **Haken für den nächsten Schritt** wie in der
+  Projektliste — ein Angebot wird von hier aus beauftragt, ohne es zu öffnen; die
+  Karte wandert dann in die nächste Spalte. Darüber vier Kacheln fürs laufende
+  Jahr (nach der Jahreszahl in der Projektnummer): **offen in der Pipeline**,
+  **gewonnen** (alles ab *Beauftragt*), **verloren** (*Storniert*) und die
+  **Abschlussquote** — gewonnen gegen entschieden. Beträge nur, wer Finanzdaten
+  sehen darf.
+
 ![CRM — Plan vs. Ist](screenshots/26-berichte-projekte.png)
 
 - **Planabgleich** (unter *Umsatz*, wenn eine Jahresplanung eingelesen ist): Die Karte

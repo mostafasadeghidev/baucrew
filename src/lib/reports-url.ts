@@ -1,8 +1,8 @@
 /**
  * Where an old address of the CRM page belongs now.
  *
- * The page had eight tabs and has six: Heute, Vergleich, Aufträge & Baustellen,
- * Planumsatz, Auslastung and Datenlücken. A bookmark, a link on the dashboard or
+ * The page had eight tabs and has seven: Heute, Vergleich, Aufträge & Baustellen,
+ * Pipeline, Planumsatz, Auslastung and Datenlücken. A bookmark, a link on the dashboard or
  * an address somebody sent
  * must still land on the tab that took over the old one's content — not on an
  * empty page, and not on the wrong year. Returns the new address, or null when
@@ -12,7 +12,7 @@
  */
 
 /** The current tabs, in the order they stand; the empty value is Heute. */
-export const REPORT_TABS = ['', 'compare', 'jobs', 'revenue', 'utilization', 'quality'] as const
+export const REPORT_TABS = ['', 'compare', 'jobs', 'pipeline', 'revenue', 'utilization', 'quality'] as const
 export type ReportTab = (typeof REPORT_TABS)[number]
 
 /** The time frame travels with every redirect. */
@@ -62,6 +62,7 @@ export function resolveReportsUrl(params: Record<string, string | undefined>): s
       return hadComparison && params.view === undefined ? toComparison() : null
     case 'compare':
     case 'jobs':
+    case 'pipeline':
     case 'utilization':
     case 'quality':
       return null

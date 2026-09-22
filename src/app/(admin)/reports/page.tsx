@@ -10,6 +10,7 @@ import {
   getDataGaps,
   getOpenMoney,
   getOpenOffers,
+  getPipeline,
   getToday,
   getYearPlan,
   getYearRevenueOrHistory,
@@ -75,6 +76,7 @@ import { RevenueMatrix } from './revenue-matrix'
 import { OrderSituation } from './order-situation'
 import { TodayView } from './today-view'
 import { JobsView } from './jobs-view'
+import { PipelineView } from './pipeline-view'
 import { UsageView } from './usage-view'
 import { GapsView } from './gaps-view'
 
@@ -174,6 +176,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const comparisonYears = Array.from({ length: 6 }, (_, i) => currentYear + 1 - i)
   const onToday = tab === ''
   const onJobs = tab === 'jobs'
+  const onPipeline = tab === 'pipeline'
   const onRevenue = tab === 'revenue' && showFinancials
   const onCompare = tab === 'compare' && showFinancials
   const onUsage = tab === 'utilization'
@@ -197,6 +200,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     plan,
     openOffers,
     usage,
+    pipeline,
   ] = await Promise.all([
     // Every tab carries the Datenlücken count on its tab.
     getDataGaps(today),
@@ -216,6 +220,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     onRevenue || onCompare ? getYearPlan(year) : null,
     onRevenue ? getOpenOffers() : null,
     onUsage ? getCrewUsage(year, range) : null,
+    // The pipeline stands on today and the running year, whatever the pickers say.
+    onPipeline ? getPipeline(today, currentYear) : null,
   ])
 
   // ── Formatting helpers ───────────────────────────────────
@@ -640,6 +646,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     { value: '', label: t('tabToday') },
     ...(showFinancials ? [{ value: 'compare', label: t('tabCompare') }] : []),
     { value: 'jobs', label: t('tabJobs') },
+    { value: 'pipeline', label: t('tabPipeline') },
     ...(showFinancials ? [{ value: 'revenue', label: t('tabPlan') }] : []),
     { value: 'utilization', label: t('tabUtilization') },
     { value: 'quality', label: t('tabGaps'), count: gaps.count },
@@ -651,6 +658,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       ? t('introCompare')
       : onJobs
         ? t('introJobs')
+        : onPipeline
+          ? t('introPipeline')
         : tab === 'revenue'
           ? t('introPlan')
           : onUsage
@@ -925,6 +934,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           today={today}
           sitesView={sitesParam === 'kanban' ? 'kanban' : 'cards'}
         />
+      )}
+
+      {/* ── Pipeline: on the way to becoming a job ─────────── */}
+      {onPipeline && pipeline && (
+        <PipelineView columns={pipeline.columns} funnel={pipeline.funnel} showFinancials={showFinancials} locale={locale} year={currentYear} />
       )}
 
       {/* ── Planumsatz ───────────────────────────────────── */}

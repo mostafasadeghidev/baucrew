@@ -24,6 +24,7 @@ import {
   type SiteGroup,
 } from './cockpit'
 import { dataGapReport, type GapReport } from './data-gaps'
+import { PIPELINE_STAGES, pipelineColumns, yearFunnel, type PipelineColumn, type YearFunnel } from './pipeline'
 import { getHistoryCutoff } from './history-db'
 
 export type RevenueProject = {
@@ -497,6 +498,67 @@ export async function getOpenOffers(): Promise<{ offers: OpenOffer[]; total: num
     total: offers.reduce((sum, o) => sum + (o.price ?? 0), 0),
     staleCount: offers.filter((o) => o.ageDays >= STALE_OFFER_DAYS).length,
   }
+}
+
+// ── Pipeline: what is on its way to becoming a job ──
+
+/**
+ * The three pipeline columns as of today, and the running year's funnel.
+ * How long a project has sat in its column is read off the audit log — the
+ * last status change that put it there — and, where none is written, off the
+ * day the project was created.
+ */
+export async function getPipeline(today: Date, year: number): Promise<{ columns: PipelineColumn[]; funnel: YearFunnel }> {
+  const [open, arrived] = await Promise.all([
+    db.project.findMany({
+      where: { status: { in: [...PIPELINE_STAGES] } },
+      select: {
+        id: true,
+        number: true,
+        name: true,
+        status: true,
+        price: true,
+        plannedStart: true,
+        createdAt: true,
+        customer: { select: { name: true } },
+        addOns: { select: { amount: true } },
+      },
+    }),
+    // The year a project came in is the year in its number: an import writes
+    // its own day into createdAt, the number keeps the true one.
+    db.project.findMany({
+      where: { number: { startsWith: `${year}-` } },
+      select: { status: true, price: true, addOns: { select: { amount: true } } },
+    }),
+  ])
+  const changes = open.length
+    ? await db.auditLog.findMany({
+        where: { entity: 'Project', entityId: { in: open.map((p) => p.id) }, action: { in: ['project.status', 'project.status.auto'] } },
+        select: { entityId: true, newValue: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      })
+    : []
+  // The newest change per project that led to where it stands now.
+  const since = new Map<string, Date>()
+  for (const c of changes) {
+    const project = open.find((p) => p.id === c.entityId)
+    if (project && c.newValue === project.status && !since.has(c.entityId)) since.set(c.entityId, c.createdAt)
+  }
+  const columns = pipelineColumns(
+    open.map((p) => ({
+      id: p.id,
+      number: p.number,
+      name: p.name,
+      customer: p.customer.name,
+      status: p.status,
+      price: orderValue(p.price, p.addOns),
+      plannedStart: p.plannedStart,
+      since: since.get(p.id) ?? p.createdAt,
+    })),
+    today
+  )
+  const funnel = yearFunnel(arrived.map((p) => ({ status: p.status, price: orderValue(p.price, p.addOns) })))
+  return { columns, funnel }
 }
 
 // ── Heute: the company today, out of what is already entered ──

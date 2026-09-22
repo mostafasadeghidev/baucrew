@@ -465,6 +465,8 @@ export async function setProjectStatus(id: string, status: string): Promise<{ er
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
   revalidatePath('/dashboard')
+  // The pipeline moves a card by its status.
+  revalidatePath('/reports')
   return {}
 }
 
