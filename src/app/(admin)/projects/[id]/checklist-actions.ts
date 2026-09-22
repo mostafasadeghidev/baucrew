@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { requireManagement, requireUser } from '@/lib/authz'
+import { requireStaff, requireUser } from '@/lib/authz'
+import { canWorkOn } from '@/lib/crew-access'
 import { audit } from '@/lib/audit'
 
 export type ChecklistResult = { error?: 'notAllowed' | 'saveFailed'; savedAt?: number }
@@ -12,7 +13,7 @@ export async function addProjectChecklist(
   projectId: string,
   input: { templateId?: string; name?: string }
 ): Promise<ChecklistResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const name = (input.name ?? '').trim().slice(0, 200)
 
   let items: Array<{ text: string; sortOrder: number }> = []
@@ -49,7 +50,7 @@ export async function addProjectChecklist(
 }
 
 export async function removeProjectChecklist(checklistId: string): Promise<ChecklistResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const checklist = await db.projectChecklist.findUnique({
     where: { id: checklistId },
     select: { projectId: true, name: true },
@@ -96,7 +97,7 @@ export async function addChecklistItem(checklistId: string, text: string): Promi
 }
 
 export async function removeChecklistItem(itemId: string): Promise<ChecklistResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const item = await db.projectChecklistItem.findUnique({
     where: { id: itemId },
     select: { text: true, checklist: { select: { projectId: true } } },
@@ -154,30 +155,5 @@ export async function setChecklistItem(
   return { savedAt: Date.now() }
 }
 
-/**
- * Management may always edit; an employee only on projects they are on the
- * crew of or scheduled for around now (same rule as the packing list).
- */
-async function mayEditChecklist(
-  user: { role: string; employee: { id: string } | null },
-  projectId: string
-): Promise<boolean> {
-  if (user.role !== 'EMPLOYEE') return true
-  if (!user.employee) return true // shared warehouse account (kiosk)
-  const employeeId = user.employee.id
-  const now = new Date()
-  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1))
-  const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7))
-  const [inTeam, scheduled] = await Promise.all([
-    db.projectEmployee.count({ where: { projectId, employeeId } }),
-    db.scheduleEntry.count({
-      where: {
-        projectId,
-        cancelledAt: null,
-        date: { gte: from, lte: to },
-        employees: { some: { employeeId } },
-      },
-    }),
-  ])
-  return inTeam > 0 || scheduled > 0
-}
+/** Who may tick and edit a project's checklists: whoever may work on the project (src/lib/crew-access.ts). */
+const mayEditChecklist = canWorkOn

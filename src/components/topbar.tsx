@@ -7,6 +7,7 @@ import { MobileNav } from './sidebar'
 export async function Topbar({
   username,
   role,
+  roleKey,
   isAdmin,
   brandName,
   hasLogo,
@@ -14,6 +15,7 @@ export async function Topbar({
 }: {
   username: string
   role: string
+  roleKey: string
   isAdmin: boolean
   brandName: string
   hasLogo: boolean
@@ -28,6 +30,7 @@ export async function Topbar({
         hasLogo={hasLogo}
         username={username}
         role={role}
+        roleKey={roleKey}
         priceSwitch={priceSwitch}
       />
     </header>

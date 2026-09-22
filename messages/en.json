@@ -303,6 +303,7 @@
     "basicData": "Basic data",
     "addressSection": "Site address",
     "planningSection": "Dates and price",
+    "planningSectionDates": "Dates",
     "assignmentSection": "Assignment",
     "descriptionSection": "Description and notes",
     "overview": "Overview",
@@ -653,12 +654,14 @@
     "leadSourcesTitle": "Lead sources",
     "leadSourcesHint": "Where requests come from (phone, e-mail, Instagram …) — picked on the project.",
     "webhookEventDefectReported": "Defect reported",
-    "webhookEventDefectResolved": "Defect put right"
+    "webhookEventDefectResolved": "Defect put right",
+    "roleHintSiteManager": "Site manager: their own projects, the schedule and the overview — no prices, no master data or settings. The account must be linked to an employee."
   },
   "roles": {
     "ADMIN": "Administrator",
     "MANAGER": "Office / management",
-    "EMPLOYEE": "Employee"
+    "EMPLOYEE": "Employee",
+    "SITE_MANAGER": "Site manager"
   },
   "reports": {
     "title": "CRM",

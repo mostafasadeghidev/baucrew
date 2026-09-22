@@ -1,8 +1,10 @@
 import { getTranslations } from 'next-intl/server'
 import { createEmployee, listSkills } from '../actions'
 import { EmployeeForm } from '../employee-form'
+import { requireManagement } from '@/lib/authz'
 
 export default async function NewEmployeePage() {
+  await requireManagement()
   const [t, skills] = await Promise.all([getTranslations('employees'), listSkills()])
 
   return (

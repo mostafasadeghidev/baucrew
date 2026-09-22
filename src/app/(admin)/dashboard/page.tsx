@@ -7,7 +7,8 @@ import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, iso, isoWeek, mondayOf, todayUtc } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
 import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
-import { canViewFinancials, requireManagement } from '@/lib/authz'
+import { canViewFinancials, requireStaff } from '@/lib/authz'
+import { projectScope } from '@/lib/project-scope'
 import { allowedLayout, parseLayout, type DashboardWidget } from '@/lib/dashboard-layout'
 import { formatCurrency } from '@/lib/format'
 import { pricesHidden } from '@/lib/price-visibility'
@@ -27,7 +28,7 @@ export default async function DashboardPage({
     getTranslations('schedule'),
     getTranslations('absences'),
     getLocale(),
-    requireManagement(),
+    requireStaff(),
     searchParams,
   ])
   // Every user arranges the overview for themselves; `edit` turns the handles on.
@@ -41,6 +42,9 @@ export default async function DashboardPage({
   const tomorrow = addDays(today, 1)
   const monday = mondayOf(today)
   const weekEnd = addDays(monday, 5)
+  // A site manager's overview is their sites; the office's is the company's.
+  const scope = projectScope(user) ?? {}
+  const scoped = { project: scope }
 
   const [
     activeProjects,
@@ -51,11 +55,11 @@ export default async function DashboardPage({
     weekAbsences,
     attentionProjects,
   ] = await Promise.all([
-    db.project.count({ where: { status: 'IN_PROGRESS' } }),
-    db.project.count({ where: { status: 'PLANNED' } }),
+    db.project.count({ where: { status: 'IN_PROGRESS', ...scope } }),
+    db.project.count({ where: { status: 'PLANNED', ...scope } }),
     db.customer.count(),
     db.scheduleEntry.findMany({
-      where: { date: { gte: today, lt: tomorrow }, cancelledAt: null },
+      where: { date: { gte: today, lt: tomorrow }, cancelledAt: null, ...scoped },
       include: {
         project: {
           include: {
@@ -69,7 +73,7 @@ export default async function DashboardPage({
       orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
     }),
     db.scheduleEntry.findMany({
-      where: { date: { gte: monday, lt: weekEnd }, cancelledAt: null },
+      where: { date: { gte: monday, lt: weekEnd }, cancelledAt: null, ...scoped },
       include: {
         project: {
           select: {
@@ -94,6 +98,7 @@ export default async function DashboardPage({
       where: {
         status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] },
         OR: [{ team: { none: {} } }, { vehicles: { none: {} } }],
+        AND: [scope],
         plannedStart: { lte: addDays(today, 14) },
       },
       select: {
@@ -168,14 +173,14 @@ export default async function DashboardPage({
   ] = await Promise.all([
     needs('tomorrow')
       ? db.scheduleEntry.findMany({
-          where: { date: tomorrow, cancelledAt: null },
+          where: { date: tomorrow, cancelledAt: null, ...scoped },
           include: entryInclude,
           orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
         })
       : [],
     needs('checklists')
       ? db.projectChecklistItem.findMany({
-          where: { ok: false, checklist: { project: { status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] } } } },
+          where: { ok: false, checklist: { project: { status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] }, ...scope } } },
           select: {
             id: true,
             text: true,
@@ -188,7 +193,7 @@ export default async function DashboardPage({
       : [],
     needs('checklists')
       ? db.projectChecklistItem.count({
-          where: { ok: false, checklist: { project: { status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] } } } },
+          where: { ok: false, checklist: { project: { status: { in: ['PLANNED', 'IN_PROGRESS', 'APPROVED'] }, ...scope } } },
         })
       : 0,
     needs('dueThisWeek')
@@ -201,6 +206,7 @@ export default async function DashboardPage({
               { dueDate: { not: null, lt: addDays(monday, 7) } },
               { dueDate: null, plannedEnd: { not: null, lt: addDays(monday, 7) } },
             ],
+            AND: [scope],
           },
           select: { id: true, number: true, name: true, plannedEnd: true, dueDate: true },
         }).then((rows) =>
@@ -227,7 +233,7 @@ export default async function DashboardPage({
   const [planProjects, planEmployees, planVehicles, planAbsences] = planning
     ? await Promise.all([
         db.project.findMany({
-          where: { status: { in: ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] } },
+          where: { status: { in: ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] }, ...scope },
           orderBy: { number: 'desc' },
           select: {
             id: true,

@@ -9,14 +9,14 @@ import { deleteUser } from '../../settings/actions'
 import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
 
-const ROLES = ['EMPLOYEE', 'MANAGER', 'ADMIN'] as const
+const ROLES = ['EMPLOYEE', 'SITE_MANAGER', 'MANAGER', 'ADMIN'] as const
 const inputClass =
   'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 export type AccountInfo = {
   id: string
   username: string
-  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE'
+  role: 'ADMIN' | 'MANAGER' | 'SITE_MANAGER' | 'EMPLOYEE'
   canViewFinancials: boolean
   active: boolean
 } | null

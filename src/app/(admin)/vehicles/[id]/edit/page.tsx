@@ -3,12 +3,14 @@ import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { updateVehicle } from '../../actions'
 import { VehicleForm } from '../../vehicle-form'
+import { requireManagement } from '@/lib/authz'
 
 export default async function EditVehiclePage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireManagement()
   const { id } = await params
   const t = await getTranslations('vehicles')
   const vehicle = await db.vehicle.findUnique({ where: { id } })

@@ -1,7 +1,8 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
-import { requireManagement, canViewFinancials } from '@/lib/authz'
+import { requireStaff, canViewFinancials } from '@/lib/authz'
+import { canSeeProject } from '@/lib/project-scope'
 import { toDateInputValue } from '@/lib/format'
 import { updateProject } from '../../actions'
 import { ProjectForm } from '../../project-form'
@@ -13,7 +14,7 @@ export default async function EditProjectPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const { id } = await params
   const t = await getTranslations('projects')
   const locale = await getLocale()
@@ -61,6 +62,7 @@ export default async function EditProjectPage({
     }),
   ])
   if (!project) notFound()
+  if (!(await canSeeProject(user, project.id))) redirect('/projects')
 
   const showPrice = canViewFinancials(user)
 

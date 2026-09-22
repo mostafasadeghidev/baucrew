@@ -1,8 +1,10 @@
 import { getTranslations } from 'next-intl/server'
 import { createCustomer } from '../actions'
 import { CustomerForm } from '../customer-form'
+import { requireManagement } from '@/lib/authz'
 
 export default async function NewCustomerPage() {
+  await requireManagement()
   const t = await getTranslations('customers')
 
   return (

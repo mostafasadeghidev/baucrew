@@ -303,6 +303,7 @@
     "basicData": "Grunddaten",
     "addressSection": "Baustellenadresse",
     "planningSection": "Termine und Preis",
+    "planningSectionDates": "Termine",
     "assignmentSection": "Zuordnung",
     "descriptionSection": "Beschreibung und Notizen",
     "overview": "Übersicht",
@@ -653,12 +654,14 @@
     "leadSourcesTitle": "Anfragequellen",
     "leadSourcesHint": "Woher Anfragen kommen (Telefon, E-Mail, Instagram …) — Auswahl im Projekt.",
     "webhookEventDefectReported": "Mangel gemeldet",
-    "webhookEventDefectResolved": "Mangel behoben"
+    "webhookEventDefectResolved": "Mangel behoben",
+    "roleHintSiteManager": "Bauleitung: die eigenen Projekte, die Einsatzplanung und die Übersicht — ohne Preise, ohne Stammdaten und Einstellungen. Das Konto muss mit einem Mitarbeiter verknüpft sein."
   },
   "roles": {
     "ADMIN": "Administrator",
     "MANAGER": "Büro / Verwaltung",
-    "EMPLOYEE": "Mitarbeiter"
+    "EMPLOYEE": "Mitarbeiter",
+    "SITE_MANAGER": "Bauleitung"
   },
   "reports": {
     "title": "CRM",

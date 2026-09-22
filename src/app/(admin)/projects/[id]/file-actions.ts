@@ -2,15 +2,17 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { requireManagement } from '@/lib/authz'
+import { requireStaff } from '@/lib/authz'
+import { canWorkOn } from '@/lib/crew-access'
 import { audit } from '@/lib/audit'
 import { deleteStoredFile } from '@/lib/file-storage'
 
 /** Show/hide a file for the crew accounts (worker area, kiosk). */
 export async function toggleFileVisibility(fileId: string): Promise<void> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const doc = await db.document.findUnique({ where: { id: fileId } })
   if (!doc) return
+  if (!(await canWorkOn(user, doc.projectId))) return
   await db.document.update({
     where: { id: fileId },
     data: { visibleToCrew: !doc.visibleToCrew },
@@ -33,9 +35,10 @@ export async function deleteProjectFile(
   _prev: { error?: string },
   _formData: FormData
 ): Promise<{ error?: string }> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const doc = await db.document.findUnique({ where: { id: fileId } })
   if (!doc) return { error: 'saveFailed' }
+  if (!(await canWorkOn(user, doc.projectId))) return { error: 'saveFailed' }
   await db.document.delete({ where: { id: fileId } })
   await deleteStoredFile(doc.path)
   await audit({

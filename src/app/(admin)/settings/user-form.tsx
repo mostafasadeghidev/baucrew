@@ -15,7 +15,7 @@ export type UserFormValues = {
   employeeId: string
 }
 
-const ROLES = ['ADMIN', 'MANAGER', 'EMPLOYEE'] as const
+const ROLES = ['ADMIN', 'MANAGER', 'SITE_MANAGER', 'EMPLOYEE'] as const
 
 const inputClass =
   'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
@@ -99,6 +99,7 @@ export function UserForm({
               ))}
             </Select>
             {isSelf && <input type="hidden" name="role" value={initial.role} />}
+            <p className="mt-1 text-xs text-muted">{t('roleHintSiteManager')}</p>
           </div>
           <div>
             <label className="block text-sm font-medium">{t('linkedEmployee')}</label>

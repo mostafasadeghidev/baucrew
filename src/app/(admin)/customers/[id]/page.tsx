@@ -9,12 +9,14 @@ import { formatDate } from '@/lib/format'
 import { deleteCustomer } from '../actions'
 import { btn } from '@/components/ui/button'
 import { PhoneLink } from '@/components/phone-link'
+import { requireManagement } from '@/lib/authz'
 
 export default async function CustomerDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireManagement()
   const { id } = await params
   const [t, tc, locale] = await Promise.all([
     getTranslations('customers'),

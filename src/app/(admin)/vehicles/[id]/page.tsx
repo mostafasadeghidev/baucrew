@@ -11,6 +11,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { formatDate } from '@/lib/format'
 import { deleteVehicle, setVehicleStatus } from '../actions'
 import { btn } from '@/components/ui/button'
+import { requireManagement } from '@/lib/authz'
 
 function todayUtc() {
   const now = new Date()
@@ -22,6 +23,7 @@ export default async function VehicleDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireManagement()
   const { id } = await params
   const [t, tc, tStatus, locale] = await Promise.all([
     getTranslations('vehicles'),

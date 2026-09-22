@@ -742,7 +742,8 @@ export function ProjectForm({
         <TextField label={t('contact')} name="contact" defaultValue={initial.contact} />
       </Section>
 
-      <Section title={t('planningSection')} {...card('planning')}>
+      {/* Whoever is not shown the price is not promised one in the title either. */}
+      <Section title={t(showPrice ? 'planningSection' : 'planningSectionDates')} {...card('planning')}>
         {/* Planning looks forward: a new project cannot start in the past. */}
         <TextField
           label={t('plannedStart')}

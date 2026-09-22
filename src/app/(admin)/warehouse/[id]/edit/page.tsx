@@ -7,12 +7,14 @@ import { DeleteButton } from '@/components/delete-button'
 import { deleteItem, updateItem } from '../../actions'
 import { listCategories } from '../../actions'
 import { ItemForm } from '../../item-form'
+import { requireManagement } from '@/lib/authz'
 
 export default async function EditItemPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireManagement()
   const { id } = await params
   const [t, tc, categories, kinds, locale] = await Promise.all([
     getTranslations('warehouse'),

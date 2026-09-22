@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { db } from '@/lib/db'
-import { requireAdmin, requireManagement, canViewFinancials } from '@/lib/authz'
+import { requireAdmin, requireManagement, requireStaff, canViewFinancials } from '@/lib/authz'
+import { canSeeProject } from '@/lib/project-scope'
 import { audit } from '@/lib/audit'
 import { planChecklistChanges } from '@/lib/project-checklists'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
@@ -341,7 +342,8 @@ export async function updateProject(
   _prev: ProjectFormState,
   formData: FormData
 ): Promise<ProjectFormState> {
-  const user = await requireManagement()
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
   const parsed = parseProjectForm(formData)
   if (!parsed.success) return { error: formErrorKey(parsed.error.issues) }
 
@@ -438,7 +440,8 @@ export async function updateProject(
 // ── Quick status change (detail page header) ─────────────────
 
 export async function setProjectStatus(id: string, status: string): Promise<{ error?: string }> {
-  const user = await requireManagement()
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
   if (!(status in ProjectStatus)) return { error: 'saveFailed' }
   const before = await db.project.findUnique({
     where: { id },
@@ -474,7 +477,7 @@ export async function setProjectStatus(id: string, status: string): Promise<{ er
  * the company records.
  */
 export async function setBoardOrder(boardId: string, statuses: string[]): Promise<{ error?: string }> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   if (!(await saveColumnOrder(boardId, statuses))) return { error: 'notFound' }
   await audit({ userId: user.id, action: 'board.columns', entity: 'Board', entityId: boardId, newValue: statuses.join(',') })
   revalidatePath('/projects')
@@ -484,7 +487,7 @@ export async function setBoardOrder(boardId: string, statuses: string[]): Promis
 
 /** Which board this browser opened last, so the projects page comes back to it. */
 export async function rememberBoard(boardId: string): Promise<void> {
-  await requireManagement()
+  await requireStaff()
   const store = await cookies()
   store.set(BOARD_COOKIE, boardId, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
 }
@@ -499,7 +502,7 @@ export async function addProjectItem(
   catalogItemId: string,
   quantity: number | null
 ): Promise<{ error?: 'itemAlreadyAdded' | 'saveFailed' }> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   if (!catalogItemId) return { error: 'saveFailed' }
   const qty =
     quantity != null && Number.isFinite(quantity) && quantity >= 0 && quantity <= 999_999_999
@@ -528,7 +531,7 @@ export async function addProjectItem(
 }
 
 export async function removeProjectItem(projectId: string, projectItemId: string): Promise<void> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const item = await db.projectItem.findUnique({
     where: { id: projectItemId },
     include: { catalogItem: { select: { name: true } } },
@@ -550,7 +553,7 @@ export async function setProjectItemStatus(
   projectItemId: string,
   status: string
 ): Promise<void> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   if (!ITEM_STATUSES.includes(status as ItemStatus)) return
   const item = await db.projectItem.findUnique({
     where: { id: projectItemId },
@@ -846,7 +849,7 @@ async function applyTemplate(projectId: string, templateId: string) {
 }
 
 export async function quickAddProject(status: string, formData: FormData): Promise<QuickAddResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const name = String(formData.get('name') ?? '').trim().slice(0, 300)
   const templateId = String(formData.get('templateId') ?? '').trim()
   const customerId = String(formData.get('customerId') ?? '').trim()
@@ -858,6 +861,10 @@ export async function quickAddProject(status: string, formData: FormData): Promi
     const input = createProjectInput.parse({ name, status, ...(customerId ? { customerId } : { customerName }) })
     const project = await createProjectRecord(user, input, { type: 'user', userId: user.id })
     if (templateId) await applyTemplate(project.id, templateId)
+    // A site manager's own card: named on it from the start, or it would vanish from their board.
+    if (user.role === 'SITE_MANAGER' && user.employee && !templateId) {
+      await db.project.update({ where: { id: project.id }, data: { managerId: user.employee.id } })
+    }
   } catch (e) {
     console.error('quick add failed', e)
     return { error: 'saveFailed' }
@@ -871,7 +878,8 @@ export async function quickUpdateProject(
   id: string,
   changes: { name?: string; urgent?: boolean }
 ): Promise<{ error?: 'nameRequired' | 'saveFailed' }> {
-  const user = await requireManagement()
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
   const project = await db.project.findUnique({ where: { id }, select: { name: true, priority: true } })
   if (!project) return { error: 'saveFailed' }
   const data: { name?: string; priority?: string | null } = {}

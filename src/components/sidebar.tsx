@@ -30,7 +30,7 @@ import { HidePricesToggle } from './price-visibility'
 import { RailTip } from './ui/rail-tip'
 import { SIDEBAR_COOKIE, SIDEBAR_COOKIE_MAX_AGE, sidebarCookieValue } from '@/lib/sidebar'
 
-type NavItem = { href: string; key: string; icon: typeof LayoutDashboard }
+type NavItem = { href: string; key: string; icon: typeof LayoutDashboard; /** Where a site manager may go; the office everywhere. */ site?: boolean }
 type NavGroup = { labelKey: string; items: NavItem[] }
 
 /** Two groups, in the spirit of a shadcn sidebar: daily work vs. master data. */
@@ -38,9 +38,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     labelKey: 'groupWork',
     items: [
-      { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
-      { href: '/projects', key: 'projects', icon: Building2 },
-      { href: '/schedule', key: 'schedule', icon: CalendarDays },
+      { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard, site: true },
+      { href: '/projects', key: 'projects', icon: Building2, site: true },
+      { href: '/schedule', key: 'schedule', icon: CalendarDays, site: true },
       { href: '/reports', key: 'reports', icon: PieChart },
     ],
   },
@@ -56,15 +56,26 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ]
 
+/** What the menu offers: a site manager the pages that are theirs, the office everything. */
+function groupsFor(roleKey: string): NavGroup[] {
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: roleKey === 'SITE_MANAGER' ? group.items.filter((item) => item.site) : group.items,
+  })).filter((group) => group.items.length > 0)
+}
+
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/')
 }
 
 function NavLinks({
+  groups,
   pathname,
   onNavigate,
   collapsed = false,
 }: {
+  /** The groups this user gets — a site manager fewer than the office. */
+  groups: NavGroup[]
   pathname: string
   onNavigate?: () => void
   /** Folded to a rail: icons only, each named by a tooltip beside it. */
@@ -73,7 +84,7 @@ function NavLinks({
   const t = useTranslations('nav')
   return (
     <div className={`flex-1 overflow-y-auto py-2 ${collapsed ? 'px-1.5' : 'px-2'}`}>
-      {NAV_GROUPS.map((group) => (
+      {groups.map((group) => (
         <div key={group.labelKey} className="mb-2">
           {collapsed ? (
             // The group's name has nowhere to go on a rail; a hairline keeps
@@ -209,6 +220,7 @@ export function Sidebar({
   hasLogo,
   username,
   role,
+  roleKey,
   defaultCollapsed = false,
   priceSwitch,
 }: {
@@ -217,9 +229,12 @@ export function Sidebar({
   hasLogo: boolean
   username: string
   role: string
+  /** The role as the database names it — a site manager sees only their pages in the menu. */
+  roleKey: string
   defaultCollapsed?: boolean
   priceSwitch: boolean
 }) {
+  const groups = groupsFor(roleKey)
   const pathname = usePathname()
   const t = useTranslations('nav')
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
@@ -300,7 +315,7 @@ export function Sidebar({
             </button>
           </RailTip>
         </div>
-        <NavLinks pathname={pathname} collapsed={collapsed} />
+        <NavLinks groups={groups} pathname={pathname} collapsed={collapsed} />
         <UserMenu username={username} role={role} isAdmin={isAdmin} priceSwitch={priceSwitch} collapsed={collapsed} />
       </div>
     </aside>
@@ -314,6 +329,7 @@ export function MobileNav({
   hasLogo,
   username,
   role,
+  roleKey,
   priceSwitch,
 }: {
   isAdmin: boolean
@@ -321,9 +337,11 @@ export function MobileNav({
   hasLogo: boolean
   username: string
   role: string
+  roleKey: string
   priceSwitch: boolean
 }) {
   const pathname = usePathname()
+  const groups = groupsFor(roleKey)
   const [open, setOpen] = useState(false)
   const tNav = useTranslations('nav')
 
@@ -379,7 +397,7 @@ export function MobileNav({
                 <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
-            <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+            <NavLinks groups={groups} pathname={pathname} onNavigate={() => setOpen(false)} />
             <UserMenu username={username} role={role} isAdmin={isAdmin} priceSwitch={priceSwitch} />
           </aside>
         </div>

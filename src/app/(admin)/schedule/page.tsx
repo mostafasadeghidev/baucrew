@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { showsWeekend, weekendParam, weekendSuffix } from '@/lib/schedule-weekend'
 import { db } from '@/lib/db'
-import { requireManagement } from '@/lib/authz'
+import { requireStaff } from '@/lib/authz'
 import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflicts'
 import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
 import { addDays, addMonths, iso, isoWeek, mondayOf, monthStart, utcDate } from '@/lib/dates'
@@ -64,7 +64,7 @@ export default async function SchedulePage({
 }: {
   searchParams: Promise<{ week?: string; view?: string; weekend?: string; next?: string; new?: string }>
 }) {
-  await requireManagement()
+  await requireStaff()
   const { week, view, weekend, next, new: openNew } = await searchParams
   const [t, tVehicleStatus, tAbsences, locale] = await Promise.all([
     getTranslations('schedule'),

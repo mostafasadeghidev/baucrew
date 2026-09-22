@@ -6,12 +6,14 @@ import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { btn } from '@/components/ui/button'
 import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { requireManagement } from '@/lib/authz'
 
 export default async function VehiclesPage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string }>
 }) {
+  await requireManagement()
   const { page: pageParam } = await searchParams
   const [t, tc] = await Promise.all([getTranslations('vehicles'), getTranslations('common')])
   const page = parsePage(pageParam)

@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { audit } from '@/lib/audit'
 import { previewKind, safeFileName, storageKeyFor, validateUpload } from '@/lib/files'
 import { saveStoredFile } from '@/lib/file-storage'
-import { canBookOn } from '@/lib/crew-access'
+import { canWorkOn } from '@/lib/crew-access'
 
 /**
  * Upload one file onto a project.
@@ -21,9 +21,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!user) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   const { id: projectId } = await ctx.params
   const crew = user.role === 'EMPLOYEE'
-  if (crew && (!user.employee || !(await canBookOn(projectId, user.employee.id)))) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-  }
+  if (!(await canWorkOn(user, projectId))) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   const project = await db.project.findUnique({ where: { id: projectId }, select: { id: true } })
   if (!project) return NextResponse.json({ error: 'notFound' }, { status: 404 })
 

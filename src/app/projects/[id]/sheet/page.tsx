@@ -5,6 +5,7 @@ import QRCode from 'qrcode'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/authz'
+import { canSeeProject } from '@/lib/project-scope'
 import { getBranding } from '@/lib/branding'
 import { formatDate } from '@/lib/format'
 import { PrintButton } from '@/components/print-button'
@@ -124,6 +125,8 @@ export default async function ProjectSheetPage({
       if (scheduled === 0) redirect('/my')
     }
   }
+  // A site manager prints the work orders of their own projects.
+  if (user.role === 'SITE_MANAGER' && !(await canSeeProject(user, project.id))) redirect('/projects')
 
   // What this printout ticks: the project's own work types unless the office
   // chose others for the day — and, on request, only those are printed.

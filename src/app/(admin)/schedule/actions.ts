@@ -5,7 +5,7 @@ import { getLocale } from 'next-intl/server'
 import type { ChecklistRow } from '@/components/checklist'
 import { formatDate } from '@/lib/format'
 import { db } from '@/lib/db'
-import { requireManagement } from '@/lib/authz'
+import { requireStaff } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { getProjectDevices } from '../devices/actions'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
@@ -28,7 +28,7 @@ function revalidateBoard(projectId?: string) {
 }
 
 export async function createScheduleEntry(input: EntryInput): Promise<EntryResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const parsed = entrySchema.safeParse(input)
   if (!parsed.success) return { error: entryErrorKey(parsed.error.issues) }
   const result = await createEntries(user.id, parsed.data)
@@ -48,7 +48,7 @@ export async function completeProjectFromEntry(
   /** Take the days planned after this one out of the schedule (reversible). */
   removeLaterDays = true
 ): Promise<{ error?: string; removed?: number }> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const entry = await db.scheduleEntry.findUnique({
     where: { id: entryId },
     include: { project: { select: { id: true, number: true, status: true, actualStart: true, actualEnd: true } } },
@@ -109,7 +109,7 @@ export async function completeProjectFromEntry(
  * completion are put back into the plan.
  */
 export async function reopenProject(projectId: string): Promise<{ error?: string; restored?: number }> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const p = await db.project.findUnique({
     where: { id: projectId },
     select: { id: true, number: true, status: true, actualStart: true },
@@ -143,7 +143,7 @@ export async function reopenProject(projectId: string): Promise<{ error?: string
 
 /** How many days after this assignment are still planned (for the confirmation). */
 export async function countLaterDays(entryId: string): Promise<number> {
-  await requireManagement()
+  await requireStaff()
   const entry = await db.scheduleEntry.findUnique({ where: { id: entryId }, select: { projectId: true, date: true } })
   if (!entry) return 0
   return db.scheduleEntry.count({
@@ -152,7 +152,7 @@ export async function countLaterDays(entryId: string): Promise<number> {
 }
 
 export async function updateScheduleEntry(id: string, input: EntryInput): Promise<EntryResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const parsed = entrySchema.safeParse(input)
   if (!parsed.success) {
     return {
@@ -319,7 +319,7 @@ export async function updateScheduleEntry(id: string, input: EntryInput): Promis
 }
 
 export async function moveScheduleEntry(id: string, newDate: string): Promise<EntryResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return { error: 'saveFailed' }
   const before = await db.scheduleEntry.findUnique({
     where: { id },
@@ -383,7 +383,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
   /** Templates a new checklist can be copied from. */
   checklistTemplates: Array<{ id: string; name: string }>
 } | null> {
-  await requireManagement()
+  await requireStaff()
   const project = await db.project.findUnique({
     where: { id: projectId },
     select: {
@@ -465,7 +465,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
 }
 
 export async function deleteScheduleEntry(id: string): Promise<void> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const entry = await db.scheduleEntry.findUnique({
     where: { id },
     include: { project: { select: { number: true } } },
@@ -487,7 +487,7 @@ export async function deleteScheduleEntry(id: string): Promise<void> {
  * (it belongs to the project, like the tool/material list).
  */
 export async function setProjectManager(projectId: string, managerId: string): Promise<{ error?: string }> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const project = await db.project.findUnique({
     where: { id: projectId },
     select: { managerId: true, number: true },
@@ -519,7 +519,7 @@ export async function setProjectManager(projectId: string, managerId: string): P
  * note) onto another day instead of moving it.
  */
 export async function copyScheduleEntry(id: string, date: string): Promise<EntryResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'saveFailed' }
   const entry = await db.scheduleEntry.findUnique({
     where: { id },

@@ -12,12 +12,14 @@ import { listCategories } from './actions'
 import { CategoryManager } from './category-manager'
 import { btn } from '@/components/ui/button'
 import { daysOut } from '@/lib/devices'
+import { requireManagement } from '@/lib/authz'
 
 export default async function WarehousePage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; kind?: string; page?: string }>
 }) {
+  await requireManagement()
   const { q, kind, page: pageParam } = await searchParams
   const [t, tc, tDevices, locale, kinds] = await Promise.all([
     getTranslations('warehouse'),

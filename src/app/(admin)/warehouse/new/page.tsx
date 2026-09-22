@@ -3,8 +3,10 @@ import { getOptionList } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { createItem, listCategories } from '../actions'
 import { ItemForm } from '../item-form'
+import { requireManagement } from '@/lib/authz'
 
 export default async function NewItemPage() {
+  await requireManagement()
   const [t, categories, kinds, locale] = await Promise.all([
     getTranslations('warehouse'),
     listCategories(),

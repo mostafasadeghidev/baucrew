@@ -9,12 +9,14 @@ import { listSkills } from './actions'
 import { SkillManager } from './skill-manager'
 import { btn } from '@/components/ui/button'
 import { PhoneLink } from '@/components/phone-link'
+import { requireManagement } from '@/lib/authz'
 
 export default async function EmployeesPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; page?: string }>
 }) {
+  await requireManagement()
   const { q, page: pageParam } = await searchParams
   const [t, tc, tRoles] = await Promise.all([
     getTranslations('employees'),

@@ -11,9 +11,13 @@ datasource db {
 // Auth & Users
 // ─────────────────────────────────────────────
 
+/// ADMIN and MANAGER are the office; SITE_MANAGER (Bauleitung) runs the sites
+/// they are named on — their projects, the schedule, the overview, never a
+/// price; EMPLOYEE is the crew on the phone.
 enum Role {
   ADMIN
   MANAGER
+  SITE_MANAGER
   EMPLOYEE
 }
 

@@ -121,6 +121,7 @@ Jedes Benutzerkonto hat eine Rolle. Sie bestimmt, was jemand sieht und darf.
 |---|---|---|
 | **Administrator** | Geschäftsführung | alles — inklusive Preise, Umsätze, Benutzerkonten, Einstellungen, Löschen |
 | **Büro / Verwaltung** | Büromitarbeiter, Disposition | Kunden, Projekte, Planung, Lager, Mitarbeiter, Fahrzeuge bearbeiten. **Preise nur, wenn der Administrator „Finanzdaten sichtbar“ freigibt.** |
+| **Bauleitung** | Wer eine Baustelle führt | die Übersicht, die eigenen Projekte (als Bauleitung oder im Team) mit allem, was daran hängt — Aufgaben, Mängel, Fotos, Formulare, Kommentare des Teams — und die Einsatzplanung. **Keine Preise**, keine Stammdaten, keine Einstellungen, keine Kommentare „nur fürs Büro“. Das Konto muss mit dem Mitarbeiter verknüpft sein, sonst sieht es kein Projekt. |
 | **Mitarbeiter** | Leute auf der Baustelle | nur den eigenen Handy-Bereich („Mein Bereich“), die Tagesvorbereitung im Lager und den Arbeitsauftrag ihrer Einsätze. **Nie Preise.** |
 
 Preise werden Mitarbeitern nicht nur ausgeblendet — sie werden gar nicht erst an ihr Handy geschickt. Auch auf dem Arbeitsauftrag stehen keine Preise und keine internen Notizen.

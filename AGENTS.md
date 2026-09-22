@@ -21,7 +21,13 @@ customers, employees, vehicles, scheduling, warehouse, work orders, reports.
 - **Auth**: custom session auth in `src/lib/auth.ts` (hashed tokens in the
   `Session` table, httpOnly cookie). `src/proxy.ts` only checks cookie
   presence; real authorization is server-side via `src/lib/authz.ts`
-  (`requireUser`, `requireManagement`, `requireAdmin`, `canViewFinancials`).
+  (`requireUser`, `requireStaff`, `requireManagement`, `requireAdmin`,
+  `canViewFinancials`). Roles: ADMIN and MANAGER are the office
+  (`requireManagement`); SITE_MANAGER (Bauleitung) gets the admin area's
+  frame, the overview, the projects it is named on and the schedule
+  (`requireStaff`, narrowed by `src/lib/project-scope.ts`), never prices or
+  master data; EMPLOYEE is the crew on `/my`. Per-project writes from any
+  role go through `canWorkOn` in `src/lib/crew-access.ts`.
   Financial data (project price, revenue) must never reach EMPLOYEE users or
   managers without `canViewFinancials` — filter in queries and DTOs, not only
   in the UI.

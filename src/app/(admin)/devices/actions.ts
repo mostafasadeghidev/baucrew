@@ -3,7 +3,8 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { requireManagement } from '@/lib/authz'
+import { requireManagement, requireStaff } from '@/lib/authz'
+import { canSeeProject } from '@/lib/project-scope'
 import { audit } from '@/lib/audit'
 import type { SaveState } from '@/components/saved-form'
 import { deviceState } from '@/lib/devices'
@@ -161,7 +162,8 @@ export type NeedResult = { error?: 'alreadyAdded' | 'saveFailed' }
 
 /** Adds a machine to the list a project needs (no handout yet). */
 export async function addProjectDevice(projectId: string, deviceId: string): Promise<NeedResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, projectId))) return { error: 'saveFailed' }
   if (!deviceId) return { error: 'saveFailed' }
   try {
     await db.projectDevice.create({ data: { projectId, deviceId } })
@@ -183,7 +185,8 @@ export async function addProjectDevice(projectId: string, deviceId: string): Pro
 }
 
 export async function removeProjectDevice(projectId: string, deviceId: string): Promise<NeedResult> {
-  const user = await requireManagement()
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, projectId))) return { error: 'saveFailed' }
   await db.projectDevice.deleteMany({ where: { projectId, deviceId } })
   await audit({
     userId: user.id,
@@ -202,7 +205,8 @@ export async function getProjectDevices(projectId: string): Promise<{
   rows: Array<{ id: string; name: string; inventoryNo: string | null; state: 'free' | 'here' | 'busy'; where: string }>
   options: Array<{ value: string; label: string }>
 }> {
-  await requireManagement()
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, projectId))) return { rows: [], options: [] }
   const [needs, all] = await Promise.all([
     db.projectDevice.findMany({
       where: { projectId },

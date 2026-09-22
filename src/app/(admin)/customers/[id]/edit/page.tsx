@@ -3,12 +3,14 @@ import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { updateCustomer } from '../../actions'
 import { CustomerForm } from '../../customer-form'
+import { requireManagement } from '@/lib/authz'
 
 export default async function EditCustomerPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireManagement()
   const { id } = await params
   const t = await getTranslations('customers')
   const customer = await db.customer.findUnique({ where: { id } })

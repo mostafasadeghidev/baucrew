@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { NoteText } from '@/components/ui/note-text'
 import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
-import { requireManagement, canViewFinancials } from '@/lib/authz'
+import { requireStaff, canViewFinancials, isOffice } from '@/lib/authz'
+import { canSeeProject } from '@/lib/project-scope'
 import { STATUS_STYLES } from '@/components/status-badge'
 import { QuickStatus } from '@/components/quick-status'
 import { ReopenButton } from './reopen-button'
@@ -72,7 +73,7 @@ export async function ProjectDetail({
   /** Set when shown over the board: where a save and a cancel return to. */
   sheet?: { returnTo: string } | null
 }) {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const [t, tc, tSheet, tStatus, tChecklists, tDevices, locale, lists] = await Promise.all([
     getTranslations('projects'),
     getTranslations('common'),
@@ -130,6 +131,8 @@ export async function ProjectDetail({
       },
       // The team's comments, oldest first, with who wrote each.
       notes: {
+        // What the office keeps to itself is not a site manager's to read.
+        ...(isOffice(user) ? {} : { where: { visibility: 'TEAM' as const } }),
         orderBy: { createdAt: 'asc' },
         include: { author: { select: { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } } },
       },
@@ -162,6 +165,8 @@ export async function ProjectDetail({
       )
     notFound()
   }
+  // A site manager opens the projects they are named on and no other.
+  if (!(await canSeeProject(user, project.id))) redirect('/projects')
 
   const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people, formTemplates] =
     await Promise.all([
@@ -744,6 +749,7 @@ export async function ProjectDetail({
         people={people}
         add={addProjectComment}
         remove={deleteProjectComment}
+        canMarkOffice={isOffice(user)}
         column
       />
     </aside>
@@ -901,9 +907,13 @@ export async function ProjectDetail({
         />
       </Head>
       <PageHint>
-        <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
-          {project.customer.name}
-        </Link>
+        {isOffice(user) ? (
+          <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
+            {project.customer.name}
+          </Link>
+        ) : (
+          <span>{project.customer.name}</span>
+        )}
         {address && <> · {address}</>}
       </PageHint>
       {meta}

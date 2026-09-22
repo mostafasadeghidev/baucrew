@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
-import { requireManagement } from '@/lib/authz'
+import { requireStaff } from '@/lib/authz'
 import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
 import { formatDate } from '@/lib/format'
 import { VehicleStatusBadge } from '@/components/vehicle-status-badge'
@@ -20,7 +20,7 @@ export default async function TodayOverviewPage({
 }: {
   searchParams: Promise<{ date?: string }>
 }) {
-  await requireManagement()
+  await requireStaff()
   const { date: dateParam } = await searchParams
   const [t, tNav, tS, locale] = await Promise.all([
     getTranslations('dashboard'),

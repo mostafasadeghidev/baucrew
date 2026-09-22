@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { requireManagement } from '@/lib/authz'
+import { requireStaff } from '@/lib/authz'
 import {
   DASHBOARD_WIDGETS,
   moveWidget,
@@ -24,7 +24,7 @@ function widgetFrom(formData: FormData): DashboardWidget | null {
  * plain forms — no client component needed for the edit mode.
  */
 export async function changeDashboardLayout(formData: FormData) {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const widget = widgetFrom(formData)
   if (!widget) return
   const op = String(formData.get('op') ?? '')
@@ -46,7 +46,7 @@ export async function changeDashboardLayout(formData: FormData) {
 
 /** New order after a drag & drop; the client sends the ids top to bottom. */
 export async function saveDashboardOrder(orderedIds: string[]) {
-  const user = await requireManagement()
+  const user = await requireStaff()
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) return
   const next = reorderLayout(parseLayout(user.dashboardLayout), orderedIds.map(String))
   await db.user.update({
@@ -58,7 +58,7 @@ export async function saveDashboardOrder(orderedIds: string[]) {
 
 /** Back to the layout everybody starts with. */
 export async function resetDashboardLayout() {
-  const user = await requireManagement()
+  const user = await requireStaff()
   await db.user.update({ where: { id: user.id }, data: { dashboardLayout: null } })
   revalidatePath('/dashboard')
 }

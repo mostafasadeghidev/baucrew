@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { ArrowLeft } from 'lucide-react'
-import { requireUser } from '@/lib/authz'
+import { isOffice, requireUser } from '@/lib/authz'
 import { getBranding } from '@/lib/branding'
-import { canBookOn } from '@/lib/crew-access'
+import { canWorkOn } from '@/lib/crew-access'
 import { loadFilledForm } from '@/lib/forms-db'
 import { BrandMark } from '@/components/brand-mark'
 import { FilledFormEditor } from '@/components/filled-form'
@@ -24,18 +24,20 @@ export default async function FormPage({ params }: { params: Promise<{ id: strin
   const { id } = await params
   const [form, t, locale, branding] = await Promise.all([loadFilledForm(id), getTranslations('forms'), getLocale(), getBranding()])
   if (!form) notFound()
-  const office = user.role !== 'EMPLOYEE'
-  if (!office && (!user.employee || !(await canBookOn(form.projectId, user.employee.id)))) redirect('/my')
+  // The office may take a signature away; a site manager fills in and signs like the crew, on their own sites.
+  const office = isOffice(user)
+  const staff = user.role !== 'EMPLOYEE'
+  if (!(await canWorkOn(user, form.projectId))) redirect(staff ? '/projects' : '/my')
 
   const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Berlin' })
-  const back = office ? `/projects/${form.projectId}` : '/my'
+  const back = staff ? `/projects/${form.projectId}` : '/my'
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl">
       <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-2.5">
         <Link href={back} className="flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
           <ArrowLeft className="h-4 w-4" aria-hidden />
-          {office ? t('backToProject') : t('backToMy')}
+          {staff ? t('backToProject') : t('backToMy')}
         </Link>
         <BrandMark hasLogo={branding.hasLogo} name={branding.companyName} imgClassName="h-7" />
       </header>

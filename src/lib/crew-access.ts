@@ -1,5 +1,6 @@
 import 'server-only'
 import { db } from './db'
+import { canSeeProject } from './project-scope'
 
 /**
  * May this employee work on that project from the phone — book time, write a
@@ -27,10 +28,11 @@ export async function canBookOn(projectId: string, employeeId: string): Promise<
 
 /**
  * May this user do work on that project — tick a task, report a defect, sign
- * a form? The office on any; an employee on the ones the phone offers them,
- * by the rule above.
+ * a form? The office on any; a site manager on the ones they are named on; an
+ * employee on the ones the phone offers them, by the rule above.
  */
 export async function canWorkOn(user: { role: string; employee: { id: string } | null }, projectId: string): Promise<boolean> {
-  if (user.role !== 'EMPLOYEE') return true
+  if (user.role === 'ADMIN' || user.role === 'MANAGER') return true
+  if (user.role === 'SITE_MANAGER') return canSeeProject(user, projectId)
   return Boolean(user.employee) && (await canBookOn(projectId, user.employee!.id))
 }

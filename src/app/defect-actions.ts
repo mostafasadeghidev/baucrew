@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/authz'
-import { canBookOn } from '@/lib/crew-access'
+import { canWorkOn } from '@/lib/crew-access'
 import { canDeleteDefect, parseDefectInput, type DefectResult } from '@/lib/defects'
 import { createDefect, removeDefect, setDefectResolved } from '@/lib/defects-db'
 
@@ -19,13 +19,6 @@ import { createDefect, removeDefect, setDefectResolved } from '@/lib/defects-db'
  * - Delete: the office any; the crew its own report while it is still open.
  */
 
-type Who = Awaited<ReturnType<typeof requireUser>>
-
-async function mayWorkOn(user: Who, projectId: string): Promise<boolean> {
-  if (user.role !== 'EMPLOYEE') return true
-  return Boolean(user.employee) && (await canBookOn(projectId, user.employee!.id))
-}
-
 function refresh(projectId: string) {
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/projects')
@@ -34,7 +27,7 @@ function refresh(projectId: string) {
 
 export async function reportDefect(projectId: string, formData: FormData): Promise<DefectResult> {
   const user = await requireUser()
-  if (!(await mayWorkOn(user, projectId))) return { error: 'notAllowed' }
+  if (!(await canWorkOn(user, projectId))) return { error: 'notAllowed' }
   const office = user.role !== 'EMPLOYEE'
   const defect = parseDefectInput({
     title: formData.get('title'),
@@ -54,7 +47,7 @@ export async function resolveDefect(id: string, resolved: boolean): Promise<Defe
   const user = await requireUser()
   const defect = await db.defect.findUnique({ where: { id }, select: { projectId: true } })
   if (!defect) return { error: 'notFound' }
-  if (!(await mayWorkOn(user, defect.projectId))) return { error: 'notAllowed' }
+  if (!(await canWorkOn(user, defect.projectId))) return { error: 'notAllowed' }
   if (!resolved && user.role === 'EMPLOYEE') return { error: 'notAllowed' }
   const result = await setDefectResolved({ id, userId: user.id, resolved, actor: { type: 'user', userId: user.id } })
   if ('error' in result) return { error: 'notFound' }
@@ -66,7 +59,7 @@ export async function deleteDefect(id: string): Promise<DefectResult> {
   const user = await requireUser()
   const defect = await db.defect.findUnique({ where: { id }, select: { projectId: true, reportedById: true, resolvedAt: true } })
   if (!defect) return { error: 'notFound' }
-  if (!canDeleteDefect(user, defect) || !(await mayWorkOn(user, defect.projectId))) return { error: 'notAllowed' }
+  if (!canDeleteDefect(user, defect) || !(await canWorkOn(user, defect.projectId))) return { error: 'notAllowed' }
   const result = await removeDefect(id, user.id)
   if ('error' in result) return { error: 'notFound' }
   refresh(result.projectId)

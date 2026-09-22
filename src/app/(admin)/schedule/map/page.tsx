@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { CloudRain, MapPin } from 'lucide-react'
 import { db } from '@/lib/db'
-import { requireManagement } from '@/lib/authz'
+import { requireStaff } from '@/lib/authz'
 import { addDays, iso, mondayOf, todayUtc, utcDate } from '@/lib/dates'
 import { getRainWarnings } from '@/lib/weather'
 import { geocodeCity } from '@/lib/geocode'
@@ -54,7 +54,7 @@ export default async function ScheduleMapPage({
     getLocale(),
     searchParams,
   ])
-  await requireManagement()
+  await requireStaff()
   // The week board's weekend choice rides along, so going back to it keeps it.
   const weekendQuery = weekendSuffix(sp.weekend)
 

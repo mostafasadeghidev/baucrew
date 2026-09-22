@@ -3,12 +3,14 @@ import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { listSkills, updateEmployee } from '../../actions'
 import { EmployeeForm } from '../../employee-form'
+import { requireManagement } from '@/lib/authz'
 
 export default async function EditEmployeePage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireManagement()
   const { id } = await params
   const [t, skills] = await Promise.all([getTranslations('employees'), listSkills()])
   const employee = await db.employee.findUnique({ where: { id } })

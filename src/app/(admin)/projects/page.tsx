@@ -4,7 +4,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
-import { requireManagement, canViewFinancials } from '@/lib/authz'
+import { requireStaff, canViewFinancials, isOffice } from '@/lib/authz'
+import { projectScope } from '@/lib/project-scope'
 import { STATUS_STYLES } from '@/components/status-badge'
 import { nextStatus } from '@/lib/status-flow'
 import { ListStatus } from './list-status'
@@ -52,7 +53,7 @@ export default async function ProjectsPage({
     card?: string
   }>
 }) {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, card } = await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
@@ -171,7 +172,9 @@ export default async function ProjectsPage({
   }
   // Everything but the status tab: the search, the year and the filter. The
   // filter's own OR must not overwrite the search's — two wheres, both.
-  const whereWithoutStatus: Prisma.ProjectWhereInput = { AND: [{ ...searchWhere, ...yearWhere }, filterWhere] }
+  // A site manager's list is the projects they are named on; the office's is every one.
+  const scope = projectScope(user) ?? {}
+  const whereWithoutStatus: Prisma.ProjectWhereInput = { AND: [{ ...searchWhere, ...yearWhere }, filterWhere, scope] }
   const where: Prisma.ProjectWhereInput = { AND: [statusWhere, whereWithoutStatus] }
   /**
    * A status tab that came along from the list leaves only its own columns on
@@ -207,8 +210,8 @@ export default async function ProjectsPage({
     query && years !== ALL_YEARS
       ? db.project.count({
           where: kanban
-            ? { AND: [searchWhere, filterWhere, narrowed ? statusWhere : {}], status: { in: shownStatuses } }
-            : { AND: [statusWhere, searchWhere, filterWhere] },
+            ? { AND: [searchWhere, filterWhere, scope, narrowed ? statusWhere : {}], status: { in: shownStatuses } }
+            : { AND: [statusWhere, searchWhere, filterWhere, scope] },
         })
       : Promise.resolve(0),
   ])
@@ -447,7 +450,7 @@ export default async function ProjectsPage({
           <div className="flex items-center gap-2">
             {/* The Excel import lives in Einstellungen → Daten, with the other
                 two importers. It is set up once, not reached for daily. */}
-            {draftCount > 0 && (
+            {isOffice(user) && draftCount > 0 && (
               <Link href="/projects/drafts" className={`${btn.outline} gap-1.5`}>
                 {tDrafts('title')}
                 <span className="rounded-full bg-accent px-1.5 text-xs font-semibold text-accent-foreground">
@@ -455,27 +458,23 @@ export default async function ProjectsPage({
                 </span>
               </Link>
             )}
-            <Link
-              href="/projects/checklists"
-              className={btn.outline}
-            >
-              {tChecklists('templatesTitle')}
-            </Link>
-            <Link href="/projects/forms" className={btn.outline}>
-              {tForms('templatesTitle')}
-            </Link>
-            <Link
-              href="/projects/templates"
-              className={btn.outline}
-            >
-              {tTemplates('title')}
-            </Link>
-            <Link
-              href="/projects/new"
-              className={btn.primary}
-            >
-              {t('newProject')}
-            </Link>
+            {/* Templates and new projects are the office's; a site manager adds a card on the board. */}
+            {isOffice(user) && (
+              <>
+                <Link href="/projects/checklists" className={btn.outline}>
+                  {tChecklists('templatesTitle')}
+                </Link>
+                <Link href="/projects/forms" className={btn.outline}>
+                  {tForms('templatesTitle')}
+                </Link>
+                <Link href="/projects/templates" className={btn.outline}>
+                  {tTemplates('title')}
+                </Link>
+                <Link href="/projects/new" className={btn.primary}>
+                  {t('newProject')}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </StickyHead>

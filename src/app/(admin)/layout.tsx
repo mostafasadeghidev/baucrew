@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { Mentions } from '@/components/mentions'
 import { getTranslations } from 'next-intl/server'
-import { canViewFinancials, requireManagement } from '@/lib/authz'
+import { canViewFinancials, requireStaff } from '@/lib/authz'
 import { pricesHidden } from '@/lib/price-visibility'
 import { PricesHiddenProvider } from '@/components/price-visibility'
 import { getBranding } from '@/lib/branding'
@@ -13,7 +13,7 @@ import { syncProjectsInProgress } from '@/lib/project-lifecycle'
 import { SIDEBAR_COOKIE, isSidebarCollapsed } from '@/lib/sidebar'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireManagement()
+  const user = await requireStaff()
   const branding = await getBranding()
   const tRoles = await getTranslations('roles')
   // Read here, not in the browser: the sidebar arrives at the width it was
@@ -37,6 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           hasLogo={branding.hasLogo}
           username={user.username}
           role={tRoles(user.role)}
+          roleKey={user.role}
           defaultCollapsed={sidebarCollapsed}
           priceSwitch={seesPrices}
         />
@@ -44,6 +45,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Topbar
             username={user.username}
             role={tRoles(user.role)}
+            roleKey={user.role}
             isAdmin={user.role === 'ADMIN'}
             brandName={branding.companyName}
             hasLogo={branding.hasLogo}

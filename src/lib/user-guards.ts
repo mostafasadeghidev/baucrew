@@ -16,7 +16,7 @@ export type DeleteUserBlock = 'selfDelete' | 'lastAdmin'
  */
 export function deleteUserBlockReason(input: {
   actorId: string
-  target: { id: string; role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE'; active: boolean }
+  target: { id: string; role: 'ADMIN' | 'MANAGER' | 'SITE_MANAGER' | 'EMPLOYEE'; active: boolean }
   /** Number of active ADMIN accounts other than the target. */
   otherActiveAdmins: number
 }): DeleteUserBlock | null {

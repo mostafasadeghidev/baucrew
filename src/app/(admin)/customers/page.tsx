@@ -7,12 +7,14 @@ import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { btn } from '@/components/ui/button'
 import { PhoneLink } from '@/components/phone-link'
+import { requireManagement } from '@/lib/authz'
 
 export default async function CustomersPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; page?: string }>
 }) {
+  await requireManagement()
   const { q, page: pageParam } = await searchParams
   const t = await getTranslations('customers')
   const query = q?.trim() ?? ''

@@ -2,10 +2,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { readStoredFile } from '@/lib/file-storage'
+import { canWorkOn } from '@/lib/crew-access'
 
 /**
- * Download a project file. Management sees everything; crew accounts only get
- * files the office marked as visible — offers with prices stay office-only.
+ * Download a project file. The office sees everything; a site manager the files
+ * of their own projects; crew accounts only get files the office marked as
+ * visible — offers with prices stay office-only.
  */
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
@@ -15,6 +17,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   const doc = await db.document.findUnique({ where: { id } })
   if (!doc) return NextResponse.json({ error: 'notFound' }, { status: 404 })
   if (user.role === 'EMPLOYEE' && !doc.visibleToCrew) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+  if (user.role === 'SITE_MANAGER' && !(await canWorkOn(user, doc.projectId))) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 

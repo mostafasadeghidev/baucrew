@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
-import { requireManagement } from '@/lib/authz'
+import { requireStaff } from '@/lib/authz'
 import { addDays, iso, todayUtc, utcDate } from '@/lib/dates'
 import { StockWarning } from '@/components/stock-warning'
 import { btn } from '@/components/ui/button'
@@ -23,7 +23,7 @@ export default async function PackingOverviewPage({
 }: {
   searchParams: Promise<{ date?: string }>
 }) {
-  await requireManagement()
+  await requireStaff()
   const { date: dateParam } = await searchParams
   const [t, tNav, tToday, tItem, tSheet, locale] = await Promise.all([
     getTranslations('dashboard'),
