@@ -1066,6 +1066,14 @@ export async function ProjectDetail({
           {planned.length > 0 ? planned.join(' – ') : '—'}
         </p>
       </div>
+      {project.pausedAt && (
+        <div>
+          <p className={metaHead}>{t('rule_paused')}</p>
+          <p className="mt-1 inline-flex min-h-7 items-center rounded bg-amber-500/15 px-1.5 text-sm text-amber-700 dark:text-amber-400">
+            {t('cardPausedSince', { date: formatDate(project.pausedAt, locale) })}
+          </p>
+        </div>
+      )}
       {project.dueDate && (
         <div>
           <p className={metaHead}>{t('dueDate')}</p>

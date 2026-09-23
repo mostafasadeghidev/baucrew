@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/authz'
 import { getBoards } from '@/lib/boards-db'
 import { ALL_PROJECT_STATUSES, type ProjectStatusKey } from '@/lib/prep-tab'
 import { BOARD_BACKGROUNDS, BOARD_NAME_MAX, COLUMN_TITLE_MAX } from '@/lib/boards'
+import { columnRuleKey } from '@/lib/board-rules'
 import { STATUS_STYLES } from '@/components/status-badge'
 import { Card } from '@/components/ui/card'
 import { DeleteButton } from '@/components/delete-button'
@@ -25,22 +26,43 @@ const inputClass =
  */
 export default async function BoardsPage() {
   await requireAdmin()
-  const [t, tNav, tStatus, tc, boards] = await Promise.all([
+  const [t, tNav, tStatus, tc, tProjects, boards] = await Promise.all([
     getTranslations('settings'),
     getTranslations('nav'),
     getTranslations('status'),
     getTranslations('common'),
+    getTranslations('projects'),
     getBoards(),
   ])
+  /** A rule list as the board names it: its own title, else the rule's name. */
+  const ruleRows = (columns: Array<{ id: string; status: string; title: string | null; rule: string | null }>) => {
+    const ruled = columns.filter((c) => columnRuleKey(c.rule))
+    if (ruled.length === 0) return null
+    return (
+      <div className="text-sm">
+        <p className="text-muted">{t('boardRuleColumns')}</p>
+        <ul className="mt-1 flex flex-wrap gap-1.5">
+          {ruled.map((c) => (
+            <li key={c.id} className="rounded-full border border-border px-2.5 py-0.5 text-xs">
+              {c.title ?? tProjects(`rule_${c.rule}` as 'rule_paused')}
+              <span className="ml-1 text-muted">· {tStatus(c.status as ProjectStatusKey)}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-1 text-xs text-muted">{t('boardRuleColumnsHint')}</p>
+      </div>
+    )
+  }
 
   /** The nine statuses, the board's own first in their order, as rows of tick, name and own title. */
   const columnRows = (
-    columns: Array<{ status: string; title: string | null }>,
+    columns: Array<{ status: string; title: string | null; rule?: string | null }>,
     tickAll: boolean,
     /** Keeps the ids apart — the same nine rows stand once per board on the page. */
     prefix: string
   ) => {
-    const has = new Map(columns.map((c) => [c.status, c]))
+    // The plain lists only: a rule list is the board's own business.
+    const has = new Map(columns.filter((c) => !columnRuleKey(c.rule)).map((c) => [c.status, c]))
     const rows: ProjectStatusKey[] = [
       ...columns.map((c) => c.status as ProjectStatusKey),
       ...ALL_PROJECT_STATUSES.filter((s) => !has.has(s)),
@@ -149,6 +171,7 @@ export default async function BoardsPage() {
               </label>
               {backgroundPicker(board.background, board.id)}
               {columnRows(board.columns, false, board.id)}
+              {ruleRows(board.columns)}
               <button type="submit" className={btn.primarySm}>
                 {tc('save')}
               </button>

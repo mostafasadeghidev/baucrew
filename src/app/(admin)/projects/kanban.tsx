@@ -126,7 +126,11 @@ const DATE_TONE = {
 }
 
 export type KanbanColumn = {
+  /** The board column's own id — what the board tells its lists apart by. */
+  id: string
   status: string
+  /** A list that holds only some of its status's cards (src/lib/board-rules.ts), or null for the plain list. */
+  rule: string | null
   label: string
   /** How many the column holds. */
   count: number
@@ -157,26 +161,26 @@ type Grab =
   | { kind: 'maybe-column'; pointerId: number; status: string; el: HTMLElement; x: number; y: number; timer: ReturnType<typeof setTimeout> | null }
   | { kind: 'column'; pointerId: number; status: string; x: number; y: number; ghost: HTMLElement | null; el: HTMLElement }
 
-/** Where the carried card is going: which list, and before which of its cards. */
-type Slot = { status: string; index: number }
+/** Where the carried card is going: which list (by id), and before which of its cards. */
+type Slot = { column: string; index: number }
 
 /** The card taken out of wherever it is and put into `slot`. */
 function placed(columns: KanbanColumn[], card: KanbanCard, slot: Slot): KanbanColumn[] {
   return columns.map((column) => {
     const rest = column.cards.filter((c) => c.id !== card.id)
-    if (column.status !== slot.status) return rest.length === column.cards.length ? column : { ...column, cards: rest, count: rest.length }
+    if (column.id !== slot.column) return rest.length === column.cards.length ? column : { ...column, cards: rest, count: rest.length }
     const cards = [...rest]
-    cards.splice(Math.min(slot.index, cards.length), 0, { ...card, status: slot.status })
+    cards.splice(Math.min(slot.index, cards.length), 0, { ...card, status: column.status })
     return { ...column, cards, count: cards.length }
   })
 }
 
-/** The cards either side of `id` in its column — what the server places it between. */
-function neighbours(columns: KanbanColumn[], id: string): { status: string; prev: string | null; next: string | null } | null {
+/** The list `id` stands in, and the cards either side of it — what the server places it between. */
+function neighbours(columns: KanbanColumn[], id: string): { column: KanbanColumn; prev: string | null; next: string | null } | null {
   for (const column of columns) {
     const at = column.cards.findIndex((c) => c.id === id)
     if (at === -1) continue
-    return { status: column.status, prev: column.cards[at - 1]?.id ?? null, next: column.cards[at + 1]?.id ?? null }
+    return { column, prev: column.cards[at - 1]?.id ?? null, next: column.cards[at + 1]?.id ?? null }
   }
   return null
 }
@@ -204,8 +208,8 @@ export function ProjectsKanban({
   onGround: boolean
   /** The statuses that ask before they are set, e.g. COMPLETED and CANCELLED. */
   confirmFor: string[]
-  /** The statuses this board has no list for yet, for "+ Weitere Liste". */
-  addable: Array<{ value: string; label: string }>
+  /** The lists this board does not have yet, for "+ Weitere Liste": a status, or a rule's list. */
+  addable: Array<{ value: string; rule: string | null; label: string }>
   /** Whether the reader may rename, add, sort and take away lists — the office. */
   canEditBoard: boolean
   /** The way to Einstellungen → Boards, for those who may go there. */
@@ -277,7 +281,7 @@ export function ProjectsKanban({
    * step or two behind what is on the screen — and what was saved was then not
    * what the person had just arranged. This is always current.
    */
-  const order = useRef<string[]>(columns.map((c) => c.status))
+  const order = useRef<string[]>(columns.map((c) => c.id))
 
   // The page reloads under us after a move; take the server's word for it
   // unless something is in the air.
@@ -292,24 +296,30 @@ export function ProjectsKanban({
   // drag, or the server answering. Written here rather than during the render
   // itself, which is not a place a ref may be touched.
   useEffect(() => {
-    order.current = board.map((c) => c.status)
+    order.current = board.map((c) => c.id)
   }, [board])
 
-  const labelOf = (status: string) => board.find((c) => c.status === status)?.label ?? status
+  const labelOf = (columnId: string) => board.find((c) => c.id === columnId)?.label ?? columnId
 
   /** The board is what `after` says; the server is told where the card now stands. */
   const commit = (card: KanbanCard, after: KanbanColumn[], before: KanbanColumn[], remember = true) => {
     const place = neighbours(after, card.id)
+    const was = neighbours(before, card.id)
     if (!place) return
     setBoard(after)
     setError(null)
-    setUndo(remember ? { card, to: place.status, before } : null)
+    setUndo(remember ? { card, to: place.column.id, before } : null)
     startTransition(async () => {
-      const result = await moveCard(card.id, place.status, { prev: place.prev, next: place.next })
+      const result = await moveCard(
+        card.id,
+        place.column.status,
+        { prev: place.prev, next: place.next },
+        { from: was?.column.rule ?? null, to: place.column.rule }
+      )
       if (result?.error) {
         setBoard(before)
         setUndo(null)
-        setError(labels.saveFailed)
+        setError(result.error === 'ruleRefused' ? t('kanbanRuleRefused') : labels.saveFailed)
         return
       }
       router.refresh()
@@ -321,22 +331,24 @@ export function ProjectsKanban({
     const before = lifted.current ?? board
     const after = board
     lifted.current = null
-    const to = neighbours(after, card.id)?.status ?? card.status
-    const same = to === card.status
-    if (same && JSON.stringify(before.map((c) => c.cards.map((x) => x.id))) === JSON.stringify(after.map((c) => c.cards.map((x) => x.id)))) return
-    if (!same && confirmFor.includes(to)) {
-      setAsk({ card, status: to, label: labelOf(to), before, after })
+    const target = neighbours(after, card.id)?.column
+    if (!target) return
+    const same = target.status === card.status
+    if (JSON.stringify(before.map((c) => c.cards.map((x) => x.id))) === JSON.stringify(after.map((c) => c.cards.map((x) => x.id)))) return
+    if (!same && confirmFor.includes(target.status)) {
+      setAsk({ card, status: target.status, label: target.label, before, after })
       return
     }
     commit(card, after, before)
   }
 
   /** A move from a card's quick menu: to the top of another list. */
-  function requestMove(card: KanbanCard, status: string) {
-    if (card.status === status) return
+  function requestMove(card: KanbanCard, columnId: string) {
+    const target = board.find((c) => c.id === columnId)
+    if (!target || neighbours(board, card.id)?.column.id === columnId) return
     const before = board
-    const after = placed(board, card, { status, index: 0 })
-    if (confirmFor.includes(status)) setAsk({ card, status, label: labelOf(status), before, after })
+    const after = placed(board, card, { column: columnId, index: 0 })
+    if (target.status !== card.status && confirmFor.includes(target.status)) setAsk({ card, status: target.status, label: target.label, before, after })
     else commit(card, after, before)
   }
 
@@ -373,13 +385,13 @@ export function ProjectsKanban({
   }
 
   /** A list's name typed over: it changes at once, and goes back if the server says no. */
-  const rename = (status: string, value: string) => {
+  const rename = (columnId: string, value: string) => {
     const before = board
     const title = value.trim()
-    setBoard((current) => current.map((column) => (column.status === status && title ? { ...column, label: title } : column)))
+    setBoard((current) => current.map((column) => (column.id === columnId && title ? { ...column, label: title } : column)))
     setError(null)
     startTransition(async () => {
-      const result = await renameColumn(boardId, status, title)
+      const result = await renameColumn(columnId, title)
       if (result?.error) {
         setBoard(before)
         setError(labels.saveFailed)
@@ -439,6 +451,7 @@ export function ProjectsKanban({
   // pointer sends its click to the board, not to the name under it — and is
   // followed on the window until then.
 
+  /** The id of the list under a point. */
   function columnAtPoint(x: number, y: number): string | null {
     const column = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-board-column]')
     return column?.dataset.boardColumn ?? null
@@ -450,18 +463,18 @@ export function ProjectsKanban({
    * the grey space runs ahead of the pointer the way Trello's does.
    */
   function trackCard(card: KanbanCard, x: number, y: number) {
-    const status = columnAtPoint(x, y)
-    if (!status) return
-    const el = scroller.current?.querySelector<HTMLElement>(`[data-board-column="${status}"] [data-board-cards]`)
+    const columnId = columnAtPoint(x, y)
+    if (!columnId) return
+    const el = scroller.current?.querySelector<HTMLElement>(`[data-board-column="${columnId}"] [data-board-cards]`)
     const middles = el
       ? [...el.querySelectorAll<HTMLElement>('[data-board-card]:not([data-board-slot])')].map((c) => {
           const r = c.getBoundingClientRect()
           return (r.top + r.bottom) / 2
         })
       : []
-    const next: Slot = { status, index: insertIndex(middles, y) }
+    const next: Slot = { column: columnId, index: insertIndex(middles, y) }
     const current = slot.current
-    if (current && current.status === next.status && current.index === next.index) return
+    if (current && current.column === next.column && current.index === next.index) return
     slot.current = next
     setBoard((columns) => placed(columns, card, next))
   }
@@ -480,7 +493,7 @@ export function ProjectsKanban({
       const next = moveColumn(order.current, state.status, target)
       if (next === order.current) return
       order.current = next
-      setBoard((current) => next.map((s) => current.find((c) => c.status === s)!).filter(Boolean))
+      setBoard((current) => next.map((id) => current.find((c) => c.id === id)!).filter(Boolean))
     }
   }
 
@@ -558,8 +571,8 @@ export function ProjectsKanban({
     const height = el.getBoundingClientRect().height
     grab.current = { kind: 'card', pointerId, card, x, y, ghost, el }
     lifted.current = board
-    const column = board.find((c) => c.status === card.status)
-    slot.current = { status: card.status, index: Math.max(0, column?.cards.findIndex((c) => c.id === card.id) ?? 0) }
+    const from = neighbours(board, card.id)?.column
+    slot.current = { column: from?.id ?? '', index: Math.max(0, from?.cards.findIndex((c) => c.id === card.id) ?? 0) }
     capture(pointerId)
     setDragging({ id: card.id, height })
   }
@@ -845,16 +858,16 @@ export function ProjectsKanban({
         }`}
       >
         {board.map((column) => {
-          const limit = shown[column.status] ?? CARDS_AT_A_TIME
+          const limit = shown[column.id] ?? CARDS_AT_A_TIME
           const hidden = column.cards.length - limit
-          if (collapsed.includes(column.status)) {
+          if (collapsed.includes(column.id)) {
             // Folded to a strip: its name down the side, its count, and a click to open it again.
             return (
               <button
-                key={column.status}
+                key={column.id}
                 type="button"
-                data-board-column={column.status}
-                onClick={() => toggleCollapsed(column.status)}
+                data-board-column={column.id}
+                onClick={() => toggleCollapsed(column.id)}
                 title={t('kanbanExpand')}
                 className={`flex max-h-full w-10 shrink-0 flex-col items-center gap-2 py-2 ${LIST} hover:bg-[#e6e8ec] dark:hover:bg-[#1b1e21]`}
               >
@@ -868,10 +881,10 @@ export function ProjectsKanban({
           }
           return (
             <div
-              key={column.status}
-              data-board-column={column.status}
+              key={column.id}
+              data-board-column={column.id}
               className={`flex max-h-full w-[272px] shrink-0 flex-col overflow-hidden ${LIST} ${
-                movingColumn === column.status ? 'opacity-40' : ''
+                movingColumn === column.id ? 'opacity-40' : ''
               }`}
             >
               {/* The head does not scroll with the cards. It is the list's
@@ -879,7 +892,7 @@ export function ProjectsKanban({
                   typed over in place; its menu holds the rest. */}
               <div
                 data-board-head
-                onPointerDown={(e) => onHeadPointerDown(e, column.status)}
+                onPointerDown={(e) => onHeadPointerDown(e, column.id)}
                 className={`flex shrink-0 items-center gap-1 px-2 pb-1 pt-2 ${canEditBoard ? 'cursor-grab active:cursor-grabbing' : ''}`}
               >
                 {details && (
@@ -887,33 +900,34 @@ export function ProjectsKanban({
                     <span className="block h-2 w-2 rounded-full bg-current" />
                   </span>
                 )}
-                {renamingList?.status === column.status ? (
+                {renamingList?.status === column.id ? (
                   <input
                     autoFocus
                     value={renamingList.value}
                     maxLength={40}
                     aria-label={t('kanbanRenameList')}
-                    onChange={(e) => setRenamingList({ status: column.status, value: e.target.value })}
+                    onChange={(e) => setRenamingList({ status: column.id, value: e.target.value })}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault()
-                        if (renamingList.value.trim() !== column.label) rename(column.status, renamingList.value)
+                        if (renamingList.value.trim() !== column.label) rename(column.id, renamingList.value)
                         setRenamingList(null)
                       } else if (e.key === 'Escape') setRenamingList(null)
                     }}
                     onBlur={() => {
-                      if (renamingList.value.trim() && renamingList.value.trim() !== column.label) rename(column.status, renamingList.value)
+                      if (renamingList.value.trim() && renamingList.value.trim() !== column.label) rename(column.id, renamingList.value)
                       setRenamingList(null)
                     }}
                     className="min-w-0 flex-1 select-text rounded-md border border-accent bg-background px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 ) : (
                   <h3
-                    onClick={canEditBoard ? () => setRenamingList({ status: column.status, value: column.label }) : undefined}
-                    title={canEditBoard ? t('kanbanRenameList') : undefined}
+                    onClick={canEditBoard ? () => setRenamingList({ status: column.id, value: column.label }) : undefined}
+                    title={column.rule ? `${t(`rule_${column.rule}` as 'rule_paused')} · ${t('kanbanRuleList')}` : canEditBoard ? t('kanbanRenameList') : undefined}
                     className={`min-w-0 flex-1 truncate rounded-md px-2 py-1 text-sm font-semibold ${canEditBoard ? 'cursor-text' : ''}`}
                   >
                     {column.label}
+                    {column.rule && <span className="ml-1.5 align-middle text-[10px] font-medium uppercase tracking-wide text-muted">{t('kanbanRuleMark')}</span>}
                   </h3>
                 )}
                 <span className="shrink-0 text-xs tabular-nums text-muted">{column.cards.length}</span>
@@ -922,12 +936,12 @@ export function ProjectsKanban({
                   <button type="button" role="menuitem" className={menuItemClass} onClick={() => { closeAdd(); setAdding(column.status) }}>
                     {t('kanbanAddCard')}
                   </button>
-                  <button type="button" role="menuitem" className={menuItemClass} onClick={() => toggleCollapsed(column.status)}>
+                  <button type="button" role="menuitem" className={menuItemClass} onClick={() => toggleCollapsed(column.id)}>
                     {t('kanbanCollapse')}
                   </button>
                   {canEditBoard && (
                     <>
-                      <button type="button" role="menuitem" className={menuItemClass} onClick={() => setRenamingList({ status: column.status, value: column.label })}>
+                      <button type="button" role="menuitem" className={menuItemClass} onClick={() => setRenamingList({ status: column.id, value: column.label })}>
                         {t('kanbanRenameList')}
                       </button>
                       <MenuSeparator />
@@ -938,7 +952,7 @@ export function ProjectsKanban({
                         </button>
                       ))}
                       <MenuSeparator />
-                      <button type="button" role="menuitem" className={`${menuItemClass} text-danger`} onClick={() => setRemoving({ status: column.status, label: column.label })}>
+                      <button type="button" role="menuitem" className={`${menuItemClass} text-danger`} onClick={() => setRemoving({ status: column.id, label: column.label })}>
                         {t('kanbanRemoveList')}
                       </button>
                       {settingsHref && (
@@ -1026,9 +1040,9 @@ export function ProjectsKanban({
                         <MenuSeparator />
                         <div className="px-2 pb-0.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted">{t('cardMoveTo')}</div>
                         {board
-                          .filter((target) => target.status !== card.status)
+                          .filter((target) => target.id !== column.id)
                           .map((target) => (
-                            <button key={target.status} type="button" role="menuitem" className={menuItemClass} onClick={() => requestMove(card, target.status)}>
+                            <button key={target.id} type="button" role="menuitem" className={menuItemClass} onClick={() => requestMove(card, target.id)}>
                               {target.label}
                             </button>
                           ))}
@@ -1197,7 +1211,7 @@ export function ProjectsKanban({
                     onClick={() =>
                       setShown((current) => ({
                         ...current,
-                        [column.status]: limit + CARDS_AT_A_TIME,
+                        [column.id]: limit + CARDS_AT_A_TIME,
                       }))
                     }
                     className="w-full rounded-md px-1 py-1.5 text-center text-[11px] text-muted transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
@@ -1319,9 +1333,15 @@ export function ProjectsKanban({
               }
             >
               <MenuLabel>{t('kanbanAddListWhich')}</MenuLabel>
-              {addable.map((status) => (
-                <button key={status.value} type="button" role="menuitem" className={menuItemClass} onClick={() => runOnServer(() => addColumn(boardId, status.value))}>
-                  {status.label}
+              {addable.map((option) => (
+                <button
+                  key={`${option.value}:${option.rule ?? ''}`}
+                  type="button"
+                  role="menuitem"
+                  className={menuItemClass}
+                  onClick={() => runOnServer(() => addColumn(boardId, option.value, option.rule))}
+                >
+                  {option.label}
                 </button>
               ))}
             </Menu>
@@ -1399,7 +1419,7 @@ export function ProjectsKanban({
         cancelLabel={labels.cancel}
         pending={pending}
         onConfirm={() => {
-          if (removing) runOnServer(() => removeColumn(boardId, removing.status))
+          if (removing) runOnServer(() => removeColumn(removing.status))
           setRemoving(null)
         }}
         onCancel={() => setRemoving(null)}

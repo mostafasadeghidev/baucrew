@@ -48,6 +48,20 @@ Rules that hold:
   card). A deleted photo takes the cover with it (`SetNull`).
 - **The backup** restores projects without their covers and writes the covers
   once the documents are in — the one pair of tables that point at each other.
+- **A list may follow a rule** (`BoardColumn.rule`, `src/lib/board-rules.ts`),
+  so a board can have the client's lists that were not a status: **Pause**
+  (running jobs on hold — `Project.pausedAt`), **Nächstes Jahr** (orders whose
+  planned start lies in a later year), **Warteliste** (orders with low
+  priority), **Abschlag gestellt** (running sites whose first invoice was
+  marked ready). A rule list shows the cards of its status the rule picks;
+  the plain list of that status shows the rest. Columns are told apart by
+  their id now (two lists can share a status), the order is saved as ids, and
+  a rule list is added and removed on the board itself ("+ Weitere Liste"),
+  never from the settings form, which touches plain lists only. Dropping a
+  card into a rule list does what the rule says (on hold, low priority, planned
+  for 1 January next year when it had no later date) and dropping it out
+  undoes it, except next year's list, whose dates are the office's; the invoice
+  list refuses a drop — it fills by itself.
 - **The card back** (the sheet over the board) is laid out like Trello's: the
   cover across the top; title, status, members, labels, dates; the "add to
   card" row; then, one under the other, the description, a folded line
@@ -66,8 +80,14 @@ Rules that hold:
   index), `Project.coverDocumentId` ↔ `Document.coverOf`
 - `prisma/migrations/20260924090000_trello_board/migration.sql` — the
   columns, the index, the foreign key; boards without a ground get `blue`
+- `prisma/migrations/20260924120000_board_rule_columns/migration.sql` —
+  `BoardColumn.rule`, the unique (board, status) dropped for an index,
+  `Project.pausedAt`
 - `src/lib/board-order.ts` — new (pure): `positionBetween`, `tooClose`,
   `orderCards`, `renumbered`, `insertIndex`, `sortedBy`, `COLUMN_SORTS`
+- `src/lib/board-rules.ts` — new (pure): `COLUMN_RULES`, `RULE_STATUS`,
+  `ruleMatches`, `columnFor`, `dropPatch`; `tests/unit/board-rules.test.ts`
+- `src/lib/boards.ts` — `cleanColumnOrder` takes column ids
 - `src/lib/boards-db.ts` — `renameBoardColumn`, `addBoardColumn`,
   `removeBoardColumn`
 - `src/lib/backup.ts` — covers in a second pass
@@ -106,6 +126,11 @@ Rules that hold:
 2. Roll the database back:
 
    ```sql
+   ALTER TABLE "Project" DROP COLUMN "pausedAt";
+   ALTER TABLE "BoardColumn" DROP COLUMN "rule";
+   DROP INDEX "BoardColumn_boardId_idx";
+   CREATE UNIQUE INDEX "BoardColumn_boardId_status_key" ON "BoardColumn"("boardId", "status");
+   DELETE FROM "_prisma_migrations" WHERE "migration_name" = '20260924120000_board_rule_columns';
    ALTER TABLE "Project" DROP CONSTRAINT "Project_coverDocumentId_fkey";
    DROP INDEX "Project_coverDocumentId_key";
    DROP INDEX "Project_archivedAt_idx";

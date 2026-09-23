@@ -19,6 +19,9 @@ export const BOARD_COOKIE = 'project-board'
 
 export type BoardColumnDef = { status: ProjectStatusKey; title: string | null }
 
+/** How a column is told apart on the board and in the order it is dragged into: by its own id. */
+export const COLUMN_ID = /^[a-z0-9]{10,40}$/
+
 /**
  * The grounds a board can stand on, the way Trello offers them: plain colours
  * and a few gradients. Kept as CSS rather than classes — a key is stored, and
@@ -106,9 +109,9 @@ export function columnsFromForm(
   })
 }
 
-/** The order a board was dragged into: its statuses, unique, in that order. */
-export function cleanColumnOrder(statuses: unknown): ProjectStatusKey[] {
-  return Array.isArray(statuses) ? unique(statuses.filter(isProjectStatus)) : []
+/** The order a board was dragged into: its columns' ids, unique, in that order. */
+export function cleanColumnOrder(ids: unknown): string[] {
+  return Array.isArray(ids) ? unique(ids.filter((id): id is string => typeof id === 'string' && COLUMN_ID.test(id))) : []
 }
 
 /**

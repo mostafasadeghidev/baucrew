@@ -22,6 +22,7 @@ import { createProject as createProjectRecord, createProjectInput } from '@/lib/
 import { BOARD_COOKIE, COLUMN_TITLE_MAX } from '@/lib/boards'
 import { addBoardColumn, removeBoardColumn, renameBoardColumn, saveColumnOrder } from '@/lib/boards-db'
 import { isColumnSort, orderCards, positionBetween, renumbered, sortedBy, tooClose } from '@/lib/board-order'
+import { columnRuleKey, dropPatch } from '@/lib/board-rules'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -498,12 +499,38 @@ async function changeStatus(user: { id: string }, id: string, status: string): P
 export async function moveCard(
   id: string,
   status: string,
-  neighbors: { prev: string | null; next: string | null }
+  neighbors: { prev: string | null; next: string | null },
+  /** The rules of the list the card left and the list it landed in — null for a plain list. */
+  rules: { from: string | null; to: string | null } = { from: null, to: null }
 ): Promise<{ error?: string }> {
   const user = await requireStaff()
   if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  // What the rule of the target list asks of the card, beyond its status.
+  const facts = await db.project.findUnique({
+    where: { id },
+    select: { pausedAt: true, plannedStart: true, priority: true, invoices: { where: { part: 1 }, select: { id: true } } },
+  })
+  if (!facts) return { error: 'saveFailed' }
+  const patch = dropPatch(
+    columnRuleKey(rules.from),
+    columnRuleKey(rules.to),
+    { pausedAt: facts.pausedAt, plannedStart: facts.plannedStart, priority: facts.priority, invoice1: facts.invoices.length > 0 },
+    new Date()
+  )
+  if (patch === 'refused') return { error: 'ruleRefused' }
   const moved = await changeStatus(user, id, status)
   if (moved.error) return moved
+  if (Object.keys(patch).length > 0) {
+    await db.project.update({ where: { id }, data: patch })
+    await audit({
+      userId: user.id,
+      action: 'project.rule',
+      entity: 'Project',
+      entityId: id,
+      oldValue: rules.from ?? undefined,
+      newValue: rules.to ?? undefined,
+    })
+  }
   const [prev, next] = await Promise.all([
     neighbors.prev ? db.project.findUnique({ where: { id: neighbors.prev }, select: { id: true, status: true, boardPosition: true } }) : null,
     neighbors.next ? db.project.findUnique({ where: { id: neighbors.next }, select: { id: true, status: true, boardPosition: true } }) : null,
@@ -572,34 +599,39 @@ export async function archiveProject(id: string, archived: boolean): Promise<{ e
 }
 
 /** A column's name typed over on the board; blank gives it the status's name back. */
-export async function renameColumn(boardId: string, status: string, title: string): Promise<{ error?: string }> {
+export async function renameColumn(columnId: string, title: string): Promise<{ error?: string }> {
   const user = await requireManagement()
-  if (!(status in ProjectStatus)) return { error: 'saveFailed' }
   const name = title.trim().slice(0, COLUMN_TITLE_MAX)
-  if (!(await renameBoardColumn(boardId, status, name || null))) return { error: 'notFound' }
-  await audit({ userId: user.id, action: 'board.column.rename', entity: 'Board', entityId: boardId, newValue: `${status}: ${name}` })
+  const boardId = await renameBoardColumn(columnId, name || null)
+  if (!boardId) return { error: 'notFound' }
+  await audit({ userId: user.id, action: 'board.column.rename', entity: 'Board', entityId: boardId, newValue: `${columnId}: ${name}` })
   revalidatePath('/projects')
   revalidatePath('/settings/boards')
   return {}
 }
 
-/** A column added at the right end of the board, for a status it does not show yet. */
-export async function addColumn(boardId: string, status: string): Promise<{ error?: string }> {
+/**
+ * A column added at the right end of the board: a status's plain list, or a
+ * rule's list — the paused jobs, next year's orders (src/lib/board-rules.ts).
+ */
+export async function addColumn(boardId: string, status: string, rule: string | null = null): Promise<{ error?: string }> {
   const user = await requireManagement()
-  if (!(status in ProjectStatus)) return { error: 'saveFailed' }
-  if (!(await addBoardColumn(boardId, status))) return { error: 'saveFailed' }
-  await audit({ userId: user.id, action: 'board.column.add', entity: 'Board', entityId: boardId, newValue: status })
+  const ruleKey = columnRuleKey(rule)
+  if (rule && !ruleKey) return { error: 'saveFailed' }
+  if (!ruleKey && !(status in ProjectStatus)) return { error: 'saveFailed' }
+  if (!(await addBoardColumn(boardId, status, ruleKey))) return { error: 'saveFailed' }
+  await audit({ userId: user.id, action: 'board.column.add', entity: 'Board', entityId: boardId, newValue: ruleKey ? `${status}:${ruleKey}` : status })
   revalidatePath('/projects')
   revalidatePath('/settings/boards')
   return {}
 }
 
 /** A column taken off the board; its projects stay, on every board that still shows their status. */
-export async function removeColumn(boardId: string, status: string): Promise<{ error?: string }> {
+export async function removeColumn(columnId: string): Promise<{ error?: string }> {
   const user = await requireManagement()
-  if (!(status in ProjectStatus)) return { error: 'saveFailed' }
-  if (!(await removeBoardColumn(boardId, status))) return { error: 'lastColumn' }
-  await audit({ userId: user.id, action: 'board.column.remove', entity: 'Board', entityId: boardId, oldValue: status })
+  const boardId = await removeBoardColumn(columnId)
+  if (!boardId) return { error: 'lastColumn' }
+  await audit({ userId: user.id, action: 'board.column.remove', entity: 'Board', entityId: boardId, oldValue: columnId })
   revalidatePath('/projects')
   revalidatePath('/settings/boards')
   return {}
@@ -613,10 +645,10 @@ export async function removeColumn(boardId: string, status: string): Promise<{ e
  * Management rather than admin: this is arranging a desk, not changing what
  * the company records.
  */
-export async function setBoardOrder(boardId: string, statuses: string[]): Promise<{ error?: string }> {
+export async function setBoardOrder(boardId: string, columnIds: string[]): Promise<{ error?: string }> {
   const user = await requireStaff()
-  if (!(await saveColumnOrder(boardId, statuses))) return { error: 'notFound' }
-  await audit({ userId: user.id, action: 'board.columns', entity: 'Board', entityId: boardId, newValue: statuses.join(',') })
+  if (!(await saveColumnOrder(boardId, columnIds))) return { error: 'notFound' }
+  await audit({ userId: user.id, action: 'board.columns', entity: 'Board', entityId: boardId, newValue: columnIds.join(',') })
   revalidatePath('/projects')
   revalidatePath('/settings/boards')
   return {}

@@ -44,11 +44,13 @@ describe('boards', () => {
     ])
   })
 
-  it('takes the order a board was dragged into; a column left out keeps its place after the ones named', async () => {
-    expect(await saveColumnOrder(boardId, ['APPROVED', 'NOPE', 'LEAD'])).toBe(true)
+  it('takes the order a board was dragged into, as column ids; a column left out keeps its place after the ones named', async () => {
+    const before = (await getBoards()).find((b) => b.id === boardId)!
+    const idOf = (status: string) => before.columns.find((c) => c.status === status)!.id
+    expect(await saveColumnOrder(boardId, [idOf('APPROVED'), 'NOPE', idOf('LEAD')])).toBe(true)
     const board = (await getBoards()).find((b) => b.id === boardId)
     expect(board?.columns.map((c) => c.status)).toEqual(['APPROVED', 'LEAD', 'QUOTED'])
-    expect(await saveColumnOrder('no-such-board', ['LEAD'])).toBe(false)
+    expect(await saveColumnOrder('no-such-board', [idOf('LEAD')])).toBe(false)
   })
 
   it('replaces the columns as the settings form sent them, names included', async () => {

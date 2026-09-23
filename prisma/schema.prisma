@@ -309,6 +309,8 @@ model Project {
   /// Put away, the way a Trello card is archived: off the board and the list,
   /// still a project everywhere else. Null while it is out.
   archivedAt      DateTime?
+  /// On hold: a running job the crew has left for a while. Null while it runs.
+  pausedAt        DateTime?
   /// The picture on the front of the card, one of the project's own photos.
   coverDocumentId String?   @unique
   cover           Document? @relation("ProjectCover", fields: [coverDocumentId], references: [id], onDelete: SetNull)
@@ -957,10 +959,13 @@ model BoardColumn {
   status    ProjectStatus
   /// The column's own name on this board, when it is not the status's — "Angebot fertig" for QUOTED, say.
   title     String?
+  /// A list that holds only some of a status's cards — the paused ones, the
+  /// ones for next year (src/lib/board-rules.ts); null is the plain list.
+  rule      String?
   /// Left to right, as the board was dragged into.
   sortOrder Int           @default(0)
 
-  @@unique([boardId, status])
+  @@index([boardId])
 }
 
 model AppSetting {

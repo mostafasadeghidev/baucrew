@@ -63,9 +63,9 @@ describe('columnsFromForm', () => {
 })
 
 describe('cleanColumnOrder', () => {
-  it('keeps statuses, once each, in the order given', () => {
-    expect(cleanColumnOrder(['PAID', 'LEAD', 'PAID', 'NOPE', 7])).toEqual(['PAID', 'LEAD'])
-    expect(cleanColumnOrder('LEAD')).toEqual([])
+  it('keeps column ids, once each, in the order given', () => {
+    expect(cleanColumnOrder(['cmabcdefgh0001', 'cmabcdefgh0002', 'cmabcdefgh0001', 'NOPE!', 7])).toEqual(['cmabcdefgh0001', 'cmabcdefgh0002'])
+    expect(cleanColumnOrder('cmabcdefgh0001')).toEqual([])
   })
 })
 

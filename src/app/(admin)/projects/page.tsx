@@ -30,6 +30,7 @@ import { ProjectsKanban, type KanbanColumn } from './kanban'
 import { BoardMenu } from './board-menu'
 import { ArchiveButton } from './archive-button'
 import { orderCards } from '@/lib/board-order'
+import { COLUMN_RULES, columnFor, columnRuleKey, RULE_STATUS } from '@/lib/board-rules'
 import { StatusBadge } from '@/components/status-badge'
 import { ProjectYearPicker } from './year-picker'
 import { BoardTabs } from './board-tabs'
@@ -260,6 +261,8 @@ export default async function ProjectsPage({
           boardPosition: true,
           coverDocumentId: true,
           description: true,
+          pausedAt: true,
+          invoices: { where: { part: 1 }, select: { id: true } },
           customer: { select: { name: true, number: true } },
           manager: { select: { id: true, firstName: true, lastName: true } },
           team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
@@ -277,15 +280,33 @@ export default async function ProjectsPage({
   // Which statuses get a column, and what each is called, is the board's own
   // (Einstellungen → Boards); a project stands on every board with a column
   // for its status.
-  const columns: KanbanColumn[] = (board?.columns ?? []).filter((column) => shownStatuses.includes(column.status as ProjectStatus)).map((column) => {
+  const boardColumns = (board?.columns ?? []).filter((column) => shownStatuses.includes(column.status as ProjectStatus))
+  const columnKeys = boardColumns.map((c) => ({ key: c.id, status: c.status, rule: c.rule }))
+  /** A rule's name on a list: "Pause", "Nächstes Jahr" … */
+  const ruleLabel = (rule: string) => t(`rule_${rule}` as 'rule_paused')
+  // Where each card stands: the rule column that picks it, else the plain one of its status.
+  const columnOf = new Map<string, string>()
+  for (const p of boardProjects) {
+    const target = columnFor(
+      columnKeys,
+      p.status,
+      { pausedAt: p.pausedAt, plannedStart: p.plannedStart, priority: p.priority, invoice1: p.invoices.length > 0 },
+      currentYear
+    )
+    if (target) columnOf.set(p.id, target.key)
+  }
+  const columns: KanbanColumn[] = boardColumns.map((column) => {
     const value = column.status as ProjectStatus
     // In the order they were put: the placed cards by their place, the rest newest first.
-    const own = orderCards(boardProjects.filter((p) => p.status === value).map((p) => ({ ...p, position: p.boardPosition })))
+    const own = orderCards(boardProjects.filter((p) => columnOf.get(p.id) === column.id).map((p) => ({ ...p, position: p.boardPosition })))
     // The order's worth: the price and what was added to it since.
     const sum = own.reduce((total, p) => total + (orderValue(p.price, p.addOns) ?? 0), 0)
+    const rule = columnRuleKey(column.rule)
     return {
+      id: column.id,
       status: value,
-      label: columnLabel(column, tStatus(value)),
+      rule,
+      label: columnLabel(column, rule ? ruleLabel(rule) : tStatus(value)),
       count: own.length,
       sum: showPrice && sum > 0 ? formatCurrency(sum, locale, { hidden: hidePrices }) : null,
       badgeClass: STATUS_STYLES[value],
@@ -340,8 +361,18 @@ export default async function ProjectsPage({
       }),
     }
   })
-  // The statuses the board has no list for yet — what "+ Weitere Liste" offers.
-  const addable = STATUSES.filter((s) => !boardStatuses.includes(s)).map((s) => ({ value: s, label: tStatus(s) }))
+  // What "+ Weitere Liste" offers: the statuses the board has no plain list
+  // for, and the rule lists it does not have yet — each named with its status.
+  const has = (status: string, rule: string | null) =>
+    (board?.columns ?? []).some((c) => c.status === status && (columnRuleKey(c.rule) ?? null) === rule)
+  const addable = [
+    ...STATUSES.filter((s) => !has(s, null)).map((s) => ({ value: s, rule: null as string | null, label: tStatus(s) })),
+    ...COLUMN_RULES.filter((rule) => !has(RULE_STATUS[rule], rule)).map((rule) => ({
+      value: RULE_STATUS[rule],
+      rule: rule as string | null,
+      label: `${ruleLabel(rule)} (${tStatus(RULE_STATUS[rule] as ProjectStatus)})`,
+    })),
+  ]
   // The archive: what was put away, newest first, for the panel beside the board.
   const archivedProjects =
     kanban && archived === '1'
