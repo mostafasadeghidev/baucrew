@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil } from 'lucide-react'
+import { Pencil, ChevronRight } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Combobox } from '@/components/combobox'
 import { MultiCombobox } from '@/components/multi-combobox'
@@ -346,6 +346,7 @@ export function ProjectForm({
   customerAddresses = {},
   inline,
   pairFrom = 'xl',
+  fold,
 }: {
   action: (prev: ProjectFormState, formData: FormData) => Promise<ProjectFormState>
   initial: ProjectFormValues
@@ -389,6 +390,12 @@ export function ProjectForm({
    * column beside the form takes room from it.
    */
   pairFrom?: 'xl' | '2xl'
+  /**
+   * The card back the way Trello lays it out: the description first, and the
+   * other four cards folded under this title, opened by a click — or by the
+   * bar and the "add to card" row, which open what they reach for.
+   */
+  fold?: { title: string }
 }) {
   const t = useTranslations('projects')
   const tc = useTranslations('common')
@@ -470,9 +477,12 @@ export function ProjectForm({
    * an input that keeps its own value.
    */
   const [formKey, setFormKey] = useState(0)
+  /** Whether the folded cards are shown; anything that opens one of them opens the fold. */
+  const [unfolded, setUnfolded] = useState(false)
   const openCard = (key: ProjectSectionKey) => {
     setOpenCards((o) => ({ ...o, [key]: true }))
     setMode('card')
+    if (key !== 'description') setUnfolded(true)
   }
 
   // The bar tells the form to open or to give up; the form tells the bar what
@@ -482,6 +492,7 @@ export function ProjectForm({
     const openAll = () => {
       setOpenCards({ basic: true, address: true, planning: true, assignment: true, description: true })
       setMode('all')
+      setUnfolded(true)
     }
     const openOne = (event: Event) => {
       const key = (event as CustomEvent<ProjectSectionKey>).detail
@@ -607,6 +618,21 @@ export function ProjectForm({
       )}
       {templateId && <input type="hidden" name="templateId" value={templateId} />}
       {draftId && <input type="hidden" name="draftId" value={draftId} />}
+      {/* Folded: the four cards of facts under one line, which a click opens.
+          They are drawn either way — a hidden field still travels with the
+          form — so saving the description cannot empty the rest. */}
+      {fold && (
+        <button
+          type="button"
+          onClick={() => setUnfolded((u) => !u)}
+          aria-expanded={unfolded}
+          className="order-2 col-span-full flex w-full items-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-left text-sm font-semibold shadow-sm transition-colors hover:bg-surface-hover"
+        >
+          <ChevronRight className={`h-4 w-4 shrink-0 text-muted transition-transform ${unfolded ? 'rotate-90' : ''}`} aria-hidden />
+          {fold.title}
+        </button>
+      )}
+      <div className={fold ? `order-3 col-span-full grid items-start gap-6 ${pairFrom === '2xl' ? '2xl:grid-cols-2' : 'xl:grid-cols-2'} ${unfolded ? '' : 'hidden'}` : 'contents'}>
       <Section title={t('basicData')} {...card('basic')}>
         <TextField label={t('name')} name="name" defaultValue={initial.name} required />
         <div>
@@ -857,8 +883,12 @@ export function ProjectForm({
         />
       </Section>
 
+      </div>
+
       {extraSection}
 
+      {/* First on the card back, the way Trello puts it: what the job is. */}
+      <div className={fold ? 'order-1 col-span-full' : 'contents'}>
       <Section title={t('descriptionSection')} wide {...card('description')}>
         <div className="sm:col-span-2">
           <label htmlFor="description" className="block text-sm font-medium">
@@ -885,6 +915,7 @@ export function ProjectForm({
           />
         </div>
       </Section>
+      </div>
 
       {state.error && (
         <p role="alert" className="text-sm text-danger col-span-full">

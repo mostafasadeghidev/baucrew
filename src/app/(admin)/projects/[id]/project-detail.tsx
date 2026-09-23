@@ -43,7 +43,7 @@ import { ProjectComments, type CommentRow } from '@/components/project-comments'
 import { addProjectComment, deleteProjectComment } from './comment-actions'
 import { displayName, mentionablePeople } from '@/lib/comments-db'
 import { canDeleteComment } from '@/lib/comments'
-import { Clock } from 'lucide-react'
+import { ChevronRight, Clock } from 'lucide-react'
 import { dateTone, dueTone, initials, labelSwatch, swatchOf } from '@/lib/board-cards'
 import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
 import { ProjectTimeSummary } from './time-summary'
@@ -52,6 +52,7 @@ import { ProjectDevicesEditor } from './project-devices'
 import { getProjectDevices } from '../../devices/actions'
 import { orderValue } from '@/lib/reports'
 import { PhoneLink } from '@/components/phone-link'
+import { historyLines } from '@/lib/card-history'
 
 /** The bar's place in the card sheet: it holds to the top of the sheet's own scroll. */
 function SheetHead({ children }: { children: React.ReactNode }) {
@@ -75,13 +76,14 @@ export async function ProjectDetail({
   sheet?: { returnTo: string } | null
 }) {
   const user = await requireStaff()
-  const [t, tc, tSheet, tStatus, tChecklists, tDevices, locale, lists] = await Promise.all([
+  const [t, tc, tSheet, tStatus, tChecklists, tDevices, tHistory, locale, lists] = await Promise.all([
     getTranslations('projects'),
     getTranslations('common'),
     getTranslations('sheet'),
     getTranslations('status'),
     getTranslations('checklists'),
     getTranslations('devices'),
+    getTranslations('history'),
     getLocale(),
     getOptionLists(),
   ])
@@ -169,7 +171,7 @@ export async function ProjectDetail({
   // A site manager opens the projects they are named on and no other.
   if (!(await canSeeProject(user, project.id))) redirect('/projects')
 
-  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people, formTemplates] =
+  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people, formTemplates, auditEntries] =
     await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
     db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
@@ -208,8 +210,21 @@ export async function ProjectDetail({
     mentionablePeople(),
     // What a new form can be made from.
     db.formTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } }),
+    // The story of the card, newest first — what Trello calls its activity.
+    db.auditLog.findMany({
+      where: { entity: 'Project', entityId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+      select: { action: true, field: true, oldValue: true, newValue: true, createdAt: true, user: { select: { username: true } } },
+    }),
   ])
   const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { dateStyle: 'short', timeStyle: 'short' })
+  // Money never reaches the story: an invoice line names the invoice, not the amount — and not the site manager.
+  const history = historyLines(
+    auditEntries.filter((e) => canViewFinancials(user) || !e.action.startsWith('project.invoice')),
+    (key, values) => tHistory(key as 'created', values),
+    (status) => (status in ProjectStatus ? tStatus(status as ProjectStatus) : status)
+  ).slice(0, 25)
   const comments: CommentRow[] = project.notes.map((note) => {
     const name = note.author ? displayName(note.author) : null
     return {
@@ -468,6 +483,7 @@ export async function ProjectDetail({
         title={project.name}
         showPrice={showPrice}
         pairFrom={sheet ? 'xl' : '2xl'}
+        fold={sheet ? { title: t('sheetProjectData') } : undefined}
         inline={{
           views,
           labels: { edit: tc('edit'), save: tc('save'), cancel: tc('cancel') },
@@ -529,6 +545,220 @@ export async function ProjectDetail({
         }}
       />
 
+      {sheet ? (
+        // The card back in Trello's order: what is attached, the checklists,
+        // what is open, the forms, the days planned — one under the other — and
+        // the office's blocks folded under one line at the end.
+        <div className="grid gap-6">
+        <div id="files" className="scroll-mt-24">
+        <FilesCard
+          projectId={project.id}
+          coverId={project.coverDocumentId}
+          files={project.documents.map((d) => ({
+            id: d.id,
+            filename: d.filename,
+            mimeType: d.mimeType,
+            defect: d.defectId !== null,
+            size: d.size,
+            source: d.source,
+            visibleToCrew: d.visibleToCrew,
+            createdAt: d.createdAt,
+            uploadedBy: d.uploadedBy,
+          }))}
+        />
+        </div>
+
+        {/* Site checklists — ticked off on site, saved with who and when */}
+        <section id="checklists" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">
+          <div className="border-b border-border px-5 py-3">
+            <h2 className="text-sm font-semibold">{tChecklists('title')}</h2>
+            <p className="mt-0.5 text-xs text-muted">{tChecklists('hint')}</p>
+          </div>
+          <div className="p-5">
+            <ChecklistSection
+              projectId={project.id}
+              templates={checklistTemplates}
+              checklists={project.checklists.map((c) => ({
+                id: c.id,
+                name: c.name,
+                items: c.items.map((i) => ({
+                  id: i.id,
+                  text: i.text,
+                  ok: i.ok,
+                  note: i.note,
+                  checkedBy: i.checkedBy ? `${i.checkedBy.firstName} ${i.checkedBy.lastName}`.trim() : null,
+                  checkedAt: i.checkedAt ? formatDate(i.checkedAt, locale) : null,
+                })),
+              }))}
+            />
+          </div>
+        </section>
+
+        <div id="tasks" className="scroll-mt-24">
+          <ProjectTasks
+            projectId={project.id}
+            tasks={taskRows(project.tasks, { id: user.id, role: user.role, employeeId: user.employee?.id ?? null }, todayUtc(), (d) => formatDate(d, locale))}
+            assignees={allEmployees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
+            office
+          />
+        </div>
+
+        <div id="defects" className="scroll-mt-24">
+          <ProjectDefects
+            projectId={project.id}
+            defects={defectRows(project.defects, user, todayUtc(), (d) => formatDate(d, locale))}
+            assignees={allEmployees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
+            office
+          />
+        </div>
+
+        <div id="forms" className="scroll-mt-24">
+          <ProjectForms
+            projectId={project.id}
+            forms={project.forms.map((form) => {
+              const signers = parseSigners(form.signers)
+              const slots = form.signatures.map((s) => s.slot)
+              return {
+                id: form.id,
+                title: form.title,
+                status: formStatus(signers, slots),
+                signed: slots.length,
+                signers: signers.length,
+                made: [form.createdBy ? displayName(form.createdBy) : null, formatDate(form.createdAt, locale)].filter(Boolean).join(' · '),
+              }
+            })}
+            templates={formTemplates.map((tp) => ({ value: tp.id, label: tp.name }))}
+            manageHref="/projects/forms"
+          />
+        </div>
+
+        {/* Schedule (read-only here) */}
+        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+          <div className="flex items-center justify-between border-b border-border px-5 py-3">
+            <h2 className="text-sm font-semibold">{t('scheduleTitle')}</h2>
+            <PlanEntryButton
+              projectId={project.id}
+              projects={[{ value: project.id, label: `${project.number} — ${project.name}` }]}
+              employees={allEmployees.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName}`.trim() }))}
+              vehicles={allVehicles.map((v) => ({ value: v.id, label: v.name }))}
+            />
+          </div>
+          {project.scheduleEntries.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-muted">{t('noScheduleEntries')}</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {project.scheduleEntries.map((entry) => (
+                <li key={entry.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2.5 text-sm">
+                  <span className="font-medium tabular-nums">{formatDate(entry.date, locale)}</span>
+                  {(entry.startTime || entry.endTime) && <span className="text-muted">{[entry.startTime, entry.endTime].filter(Boolean).join('–')}</span>}
+                  {entry.vehicles.length > 0 && (
+                    <span className="text-muted">
+                      {entry.vehicles.map((ev) => ev.vehicle.name).join(', ')}
+                    </span>
+                  )}
+                  <span className="text-muted">
+                    {entry.employees
+                      .map((ee) => `${ee.employee.firstName} ${ee.employee.lastName}`)
+                      .join(', ')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <details className="group rounded-xl border border-border bg-surface shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-90" aria-hidden />
+            {t('sheetMoreData')}
+          </summary>
+          <div className="grid gap-6 border-t border-border p-5">
+        {/* `#material`: the CRM's missing-material lists link straight here. */}
+        <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">
+          <div className="border-b border-border px-5 py-3">
+            <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
+          </div>
+          <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} />
+        </section>
+
+        {/* Machines this site needs — same shape as the tools/materials list */}
+        <section className="rounded-xl border border-border bg-surface shadow-sm">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
+            <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
+            <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+              {tDevices('openDevices')} <span aria-hidden>→</span>
+            </Link>
+          </div>
+          <ProjectDevicesEditor
+            projectId={project.id}
+            devices={deviceRows}
+            options={deviceOptions}
+          />
+          {project.devices.length > 0 && (
+            <div className="border-t border-border px-5 py-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                {tDevices('onProject')}
+              </h3>
+              <ul className="mt-2 space-y-1 text-sm">
+                {project.devices.map((handout) => (
+                  <li key={handout.id} className="flex flex-wrap items-baseline gap-x-2">
+                    <Link
+                      href={`/devices/${handout.device.id}`}
+                      className="font-medium text-accent hover:underline"
+                    >
+                      {handout.device.name}
+                    </Link>
+                    {handout.device.inventoryNo && (
+                      <span className="text-xs tabular-nums text-muted">
+                        {handout.device.inventoryNo}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted">
+                      {tDevices('sinceDays', { days: daysOut(handout.takenAt, new Date()) })}
+                      {handout.note && ` · ${handout.note}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+
+        {/* Hours booked on this project — plan vs. reality while it still runs */}
+        <ProjectTimeSummary
+          entries={project.timeEntries.map((e) => ({
+            id: e.id,
+            startedAt: e.startedAt,
+            endedAt: e.endedAt,
+            source: e.source,
+            note: e.note,
+            employee: e.employee,
+          }))}
+          orderValue={showPrice ? orderValue(project.price, project.addOns) : null}
+          showPrice={showPrice}
+        />
+
+        {/* Tools & materials — no overflow-hidden: the picker dropdown must escape the card */}
+        {showPrice && (
+          <ProjectAddOns
+            projectId={project.id}
+            totalLabel={formatCurrency(addOnTotal, locale, { hidden: hidePrices })}
+            addOns={project.addOns.map((a) => ({
+              id: a.id,
+              label: a.label,
+              amount: Number(a.amount),
+              amountLabel: formatCurrency(Number(a.amount), locale, { hidden: hidePrices }),
+              dateLabel: formatDate(a.date, locale),
+            }))}
+          />
+        )}
+
+        {/* The two invoices; marking one ready lets the automation draft the e-mail. */}
+        {showPrice && <ProjectInvoices projectId={project.id} rows={invoiceRows} amountField={!hidePrices} />}
+
+          </div>
+        </details>
+      </div>
+      ) : (
       <div className={`grid gap-6 ${pairs}`}>
         {/* Tools & materials — no overflow-hidden: the picker dropdown must escape the card */}
         {showPrice && (
@@ -730,9 +960,9 @@ export async function ProjectDetail({
           )}
         </section>
       </div>
+      )}
     </>
   )
-
   /**
    * The team talking on the project — office and site manager — beside the
    * work rather than under it. It holds to the top of the window while the
@@ -754,6 +984,25 @@ export async function ProjectDetail({
         canMarkOffice={isOffice(user)}
         column
       />
+      {/* What happened to the card, under the talk about it — Trello's activity. */}
+      <details className="group mt-3 shrink-0 rounded-xl border border-border bg-surface shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-90" aria-hidden />
+          {t('sheetHistory')}
+        </summary>
+        {history.length === 0 ? (
+          <p className="border-t border-border px-4 py-3 text-xs text-muted">{t('sheetHistoryNone')}</p>
+        ) : (
+          <ul className="max-h-72 space-y-2 overflow-y-auto border-t border-border px-4 py-3 text-xs">
+            {history.map((line, i) => (
+              <li key={i}>
+                <span className="font-medium">{line.who ?? tHistory('system')}</span> {line.text}
+                <span className="ml-1 text-muted">{stamp.format(line.when)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </details>
     </aside>
   )
 
@@ -847,6 +1096,12 @@ export async function ProjectDetail({
 
   return (
     <div className="space-y-6">
+      {/* The picture on the front of the card, across the top of its back — the way Trello shows the cover. */}
+      {sheet && project.coverDocumentId && (
+        // The project's own photo, served by the app itself; next/image has nothing to optimise here.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`/api/files/${project.coverDocumentId}`} alt="" className="-mt-1 max-h-64 w-full rounded-lg bg-black/5 object-cover" />
+      )}
       <Head>
         <PageBar
           back={sheet ? undefined : { href: '/projects', label: t('title') }}

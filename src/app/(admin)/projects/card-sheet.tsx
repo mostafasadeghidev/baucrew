@@ -79,7 +79,7 @@ export function CardSheet({ children }: { children: ReactNode }) {
   return createPortal(
     <div className="fixed inset-0 z-[70] overflow-y-auto">
       <div aria-hidden className="fixed inset-0 bg-black/50" />
-      <div className="relative mx-auto my-4 w-full max-w-7xl px-4 sm:my-8">
+      <div className="relative mx-auto my-4 w-full max-w-5xl px-4 sm:my-8">
         <div role="dialog" aria-modal="true" className="rounded-xl border border-border bg-background p-5 shadow-2xl">
           {children}
         </div>

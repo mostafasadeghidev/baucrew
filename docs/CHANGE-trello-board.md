@@ -48,6 +48,17 @@ Rules that hold:
   card). A deleted photo takes the cover with it (`SetNull`).
 - **The backup** restores projects without their covers and writes the covers
   once the documents are in — the one pair of tables that point at each other.
+- **The card back** (the sheet over the board) is laid out like Trello's: the
+  cover across the top; title, status, members, labels, dates; the "add to
+  card" row; then, one under the other, the description, a folded line
+  "Projektdaten" holding the four fact cards (opened by a click, by
+  "Bearbeiten" and by the add-to-card buttons), the files, checklists, tasks,
+  defects, forms, the planned days, and a folded line "Weitere Angaben"
+  (material, devices, time, add-ons, invoices). The comments stay in the
+  right column, with the card's **history** under them — the audit log in
+  plain words (`src/lib/card-history.ts`; invoice lines only for whoever sees
+  money). The sheet is narrower (`max-w-5xl`). The project's full page keeps
+  its side-by-side layout.
 
 ## Touched files
 
@@ -75,11 +86,16 @@ Rules that hold:
 - `src/app/(admin)/projects/page.tsx` — the board's frame and bar, the archive
   panel, archived cards left out, cards in their placed order
 - `src/app/(admin)/projects/[id]/project-detail.tsx` — archive/restore in the
-  bar, the banner; `[id]/files-card.tsx` — "Titelbild"
+  bar, the banner, the card back's order, the cover band, the history;
+  `[id]/files-card.tsx` — "Titelbild"
+- `src/app/(admin)/projects/project-form.tsx` — `fold`: the description first
+  and the four fact cards folded; `card-sheet.tsx` — narrower
+- `src/lib/card-history.ts` — new (pure), `tests/unit/card-history.test.ts`
 - `src/app/(admin)/sites/page.tsx`, `src/lib/reports.ts` — archived cards
   left out
 - `messages/de.json`, `messages/en.json` — `projects.kanban*`,
-  `projects.board*`, `projects.card*`, `files.*Cover`
+  `projects.board*`, `projects.card*`, `projects.sheet*`, `files.*Cover`,
+  the `history` group
 - `tests/unit/board-order.test.ts` — new; `tests/unit/backup-tables.test.ts`
   — the two-way pair
 - `docs/BENUTZERHANDBUCH.md`
