@@ -1,11 +1,11 @@
 import { getLocale, getTranslations } from 'next-intl/server'
-import { Eye, EyeOff, FileText } from 'lucide-react'
+import { Eye, EyeOff, FileText, Image as ImageIcon } from 'lucide-react'
 import { DeleteButton } from '@/components/delete-button'
 import { btn } from '@/components/ui/button'
 import { formatFileSize, previewKind } from '@/lib/files'
 import { FileUpload } from './file-upload'
 import { FilePreview } from '@/components/file-preview'
-import { deleteProjectFile, toggleFileVisibility } from './file-actions'
+import { deleteProjectFile, setProjectCover, toggleFileVisibility } from './file-actions'
 
 export type FileRow = {
   id: string
@@ -20,8 +20,23 @@ export type FileRow = {
   uploadedBy: { username: string } | null
 }
 
+/** The cover as a form action: it wants nothing back. */
+async function setCover(projectId: string, fileId: string | null) {
+  'use server'
+  await setProjectCover(projectId, fileId)
+}
+
 /** Plans, offer PDFs, photos — stored on the project, crew-visible on demand. */
-export async function FilesCard({ projectId, files }: { projectId: string; files: FileRow[] }) {
+export async function FilesCard({
+  projectId,
+  files,
+  coverId = null,
+}: {
+  projectId: string
+  files: FileRow[]
+  /** The photo on the front of the project's card, if one was chosen. */
+  coverId?: string | null
+}) {
   const [t, tc, locale] = await Promise.all([
     getTranslations('files'),
     getTranslations('common'),
@@ -67,7 +82,18 @@ export async function FilesCard({ projectId, files }: { projectId: string; files
                     {file.source === 'site' ? t('fromSite') : formatFileSize(file.size)}
                     {file.defect && ` · ${t('ofDefect')}`}
                   </p>
-                  <div className="mt-1 flex items-center gap-1">
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    {/* The picture on the front of the card — one of these, or none. */}
+                    <form action={setCover.bind(null, projectId, file.id === coverId ? null : file.id)}>
+                      <button
+                        type="submit"
+                        className={`${btn.outlineSm} h-6 gap-1 px-1.5 py-0 text-[11px] ${file.id === coverId ? 'text-accent' : 'text-muted'}`}
+                        title={file.id === coverId ? t('clearCover') : t('setCover')}
+                      >
+                        <ImageIcon className="h-3 w-3" aria-hidden />
+                        {file.id === coverId ? t('isCover') : t('setCover')}
+                      </button>
+                    </form>
                     <form action={toggleFileVisibility.bind(null, file.id)}>
                       <button
                         type="submit"

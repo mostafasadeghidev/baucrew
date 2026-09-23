@@ -63,16 +63,25 @@ export function isBackupFile(parsed: unknown): parsed is BackupFile {
  * done. Every session goes too — everyone signs in again. A table the file
  * does not have (an older backup) ends up empty. The files are written
  * afterwards; a document whose file is missing from the backup keeps its row.
+ *
+ * One pair points both ways: a document belongs to a project, and a project
+ * may wear one of its documents on its card. The projects go in without
+ * their covers and get them back once the documents are in.
  */
 export async function restoreFromBackup(backup: BackupFile): Promise<void> {
   const rows = (key: string): never[] => {
     const v = backup.tables[key]
     return Array.isArray(v) ? (v as never[]) : []
   }
+  const projects = rows('projects') as Array<{ id: string; coverDocumentId?: string | null }>
+  const covers = projects.filter((p) => p.coverDocumentId)
+  const data = (t: (typeof BACKUP_TABLES)[number]): never[] =>
+    t.key === 'projects' ? (projects.map((p) => ({ ...p, coverDocumentId: null })) as never[]) : rows(t.key)
   await db.$transaction([
     db.session.deleteMany(),
     ...[...BACKUP_TABLES].reverse().map((t) => delegate(t.model).deleteMany()),
-    ...BACKUP_TABLES.filter((t) => rows(t.key).length > 0).map((t) => delegate(t.model).createMany({ data: rows(t.key) })),
+    ...BACKUP_TABLES.filter((t) => rows(t.key).length > 0).map((t) => delegate(t.model).createMany({ data: data(t) })),
+    ...covers.map((p) => db.project.update({ where: { id: p.id }, data: { coverDocumentId: p.coverDocumentId } })),
   ] as never[])
 
   for (const file of backup.files ?? []) {

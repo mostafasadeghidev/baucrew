@@ -17,12 +17,15 @@ export function BoardTabs({
   current,
   ariaLabel,
   manage,
+  onGround = false,
 }: {
   boards: Array<{ id: string; name: string }>
   current: string
   ariaLabel: string
   /** The link to Einstellungen → Boards; null for those who may not go there. */
   manage: { href: string; label: string } | null
+  /** On a coloured ground the tabs are written in light on it, the way Trello's bar is. */
+  onGround?: boolean
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -34,6 +37,28 @@ export function BoardTabs({
     params.delete('page')
     params.delete('status')
     return `${pathname}?${params.toString()}`
+  }
+
+  if (onGround) {
+    return (
+      <nav aria-label={ariaLabel} role="tablist" className="flex min-w-0 items-center gap-1 overflow-x-auto">
+        {boards.map((board) => (
+          <Link
+            key={board.id}
+            href={hrefFor(board.id)}
+            replace
+            role="tab"
+            aria-selected={board.id === current}
+            onClick={() => void rememberBoard(board.id)}
+            className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+              board.id === current ? 'bg-white/90 text-neutral-900 shadow-sm' : 'text-white hover:bg-white/25'
+            }`}
+          >
+            {board.name}
+          </Link>
+        ))}
+      </nav>
+    )
   }
 
   return (

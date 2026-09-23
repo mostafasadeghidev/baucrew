@@ -19,8 +19,9 @@ import {
 } from '@/lib/project-events'
 import { cookies } from 'next/headers'
 import { createProject as createProjectRecord, createProjectInput } from '@/lib/api-service'
-import { BOARD_COOKIE } from '@/lib/boards'
-import { saveColumnOrder } from '@/lib/boards-db'
+import { BOARD_COOKIE, COLUMN_TITLE_MAX } from '@/lib/boards'
+import { addBoardColumn, removeBoardColumn, renameBoardColumn, saveColumnOrder } from '@/lib/boards-db'
+import { isColumnSort, orderCards, positionBetween, renumbered, sortedBy, tooClose } from '@/lib/board-order'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -442,6 +443,27 @@ export async function updateProject(
 export async function setProjectStatus(id: string, status: string): Promise<{ error?: string }> {
   const user = await requireStaff()
   if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const result = await changeStatus(user, id, status)
+  if (result.error) return result
+  refreshAfterStatus(id)
+  return {}
+}
+
+/** Everywhere a status shows: the board and list, the project, the overview, the CRM's pipeline. */
+function refreshAfterStatus(id: string) {
+  revalidatePath('/projects')
+  revalidatePath(`/projects/${id}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/sites')
+  revalidatePath('/reports')
+}
+
+/**
+ * The status change itself — from the project's own menu, from a card dropped
+ * in another column, from the pipeline. Nothing happens for the status the
+ * project already has.
+ */
+async function changeStatus(user: { id: string }, id: string, status: string): Promise<{ error?: string }> {
   if (!(status in ProjectStatus)) return { error: 'saveFailed' }
   const before = await db.project.findUnique({
     where: { id },
@@ -462,11 +484,124 @@ export async function setProjectStatus(id: string, status: string): Promise<{ er
     newValue: status,
   })
   await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
+  return {}
+}
+
+/**
+ * A card let go on the board: in this column, between these two neighbours.
+ * The column may be the one it was in (a re-ordering) or another (a status
+ * change and a place). The place is the midpoint between the neighbours'
+ * positions; where a neighbour has never been placed, or the gap between
+ * them is used up, the whole column is numbered afresh in the order it
+ * shows — once, after which every card in it has a place.
+ */
+export async function moveCard(
+  id: string,
+  status: string,
+  neighbors: { prev: string | null; next: string | null }
+): Promise<{ error?: string }> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const moved = await changeStatus(user, id, status)
+  if (moved.error) return moved
+  const [prev, next] = await Promise.all([
+    neighbors.prev ? db.project.findUnique({ where: { id: neighbors.prev }, select: { id: true, status: true, boardPosition: true } }) : null,
+    neighbors.next ? db.project.findUnique({ where: { id: neighbors.next }, select: { id: true, status: true, boardPosition: true } }) : null,
+  ])
+  // A neighbour that has left the column since the board was drawn counts for nothing.
+  const before = prev && prev.status === status ? prev : null
+  const after = next && next.status === status ? next : null
+  const unplaced = (before && before.boardPosition == null) || (after && after.boardPosition == null)
+  if (!unplaced && !tooClose(before?.boardPosition ?? null, after?.boardPosition ?? null)) {
+    await db.project.update({
+      where: { id },
+      data: { boardPosition: positionBetween(before?.boardPosition ?? null, after?.boardPosition ?? null) },
+    })
+  } else {
+    const column = await db.project.findMany({
+      where: { status: status as ProjectStatus, archivedAt: null, id: { not: id } },
+      select: { id: true, number: true, boardPosition: true },
+    })
+    const ordered = orderCards(column.map((c) => ({ ...c, position: c.boardPosition })))
+    const at = before ? ordered.findIndex((c) => c.id === before.id) + 1 : after ? ordered.findIndex((c) => c.id === after.id) : 0
+    ordered.splice(Math.max(0, at), 0, { id, number: '', position: null, boardPosition: null })
+    await db.$transaction(
+      renumbered(ordered).map((row) => db.project.update({ where: { id: row.id }, data: { boardPosition: row.position } }))
+    )
+  }
+  refreshAfterStatus(id)
+  return {}
+}
+
+/** A column put in order from its menu: by name, number, planned start or the day the card was made. */
+export async function sortColumn(status: string, by: string): Promise<{ error?: string }> {
+  await requireManagement()
+  if (!(status in ProjectStatus) || !isColumnSort(by)) return { error: 'saveFailed' }
+  const column = await db.project.findMany({
+    where: { status: status as ProjectStatus, archivedAt: null },
+    select: { id: true, name: true, number: true, plannedStart: true, createdAt: true },
+  })
+  await db.$transaction(
+    renumbered(sortedBy(column, by)).map((row) => db.project.update({ where: { id: row.id }, data: { boardPosition: row.position } }))
+  )
   revalidatePath('/projects')
-  revalidatePath(`/projects/${id}`)
-  revalidatePath('/dashboard')
-  // The pipeline moves a card by its status.
-  revalidatePath('/reports')
+  return {}
+}
+
+/**
+ * A card put away, or taken out again. Archived, it is off the board and
+ * the list — a Trello card in the archive — and still the project it was
+ * everywhere else: the schedule, the reports, its own page.
+ */
+export async function archiveProject(id: string, archived: boolean): Promise<{ error?: string }> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const project = await db.project.findUnique({ where: { id }, select: { number: true, name: true, archivedAt: true } })
+  if (!project) return { error: 'saveFailed' }
+  if (Boolean(project.archivedAt) === archived) return {}
+  await db.project.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } })
+  await audit({
+    userId: user.id,
+    action: archived ? 'project.archive' : 'project.restore',
+    entity: 'Project',
+    entityId: id,
+    newValue: `${project.number} ${project.name}`,
+  })
+  refreshAfterStatus(id)
+  return {}
+}
+
+/** A column's name typed over on the board; blank gives it the status's name back. */
+export async function renameColumn(boardId: string, status: string, title: string): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  if (!(status in ProjectStatus)) return { error: 'saveFailed' }
+  const name = title.trim().slice(0, COLUMN_TITLE_MAX)
+  if (!(await renameBoardColumn(boardId, status, name || null))) return { error: 'notFound' }
+  await audit({ userId: user.id, action: 'board.column.rename', entity: 'Board', entityId: boardId, newValue: `${status}: ${name}` })
+  revalidatePath('/projects')
+  revalidatePath('/settings/boards')
+  return {}
+}
+
+/** A column added at the right end of the board, for a status it does not show yet. */
+export async function addColumn(boardId: string, status: string): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  if (!(status in ProjectStatus)) return { error: 'saveFailed' }
+  if (!(await addBoardColumn(boardId, status))) return { error: 'saveFailed' }
+  await audit({ userId: user.id, action: 'board.column.add', entity: 'Board', entityId: boardId, newValue: status })
+  revalidatePath('/projects')
+  revalidatePath('/settings/boards')
+  return {}
+}
+
+/** A column taken off the board; its projects stay, on every board that still shows their status. */
+export async function removeColumn(boardId: string, status: string): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  if (!(status in ProjectStatus)) return { error: 'saveFailed' }
+  if (!(await removeBoardColumn(boardId, status))) return { error: 'lastColumn' }
+  await audit({ userId: user.id, action: 'board.column.remove', entity: 'Board', entityId: boardId, oldValue: status })
+  revalidatePath('/projects')
+  revalidatePath('/settings/boards')
   return {}
 }
 

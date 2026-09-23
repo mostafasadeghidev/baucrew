@@ -413,7 +413,30 @@
     "kanbanAddNoTemplate": "No template",
     "cardDefects": "{count, plural, one {# open defect} other {# open defects}}",
     "listNextStep": "Next step: {status}",
-    "cardTasks": "{count, plural, one {# open task} other {# open tasks}}"
+    "cardTasks": "{count, plural, one {# open task} other {# open tasks}}",
+    "kanbanAddList": "Add another list",
+    "kanbanAddListWhich": "Which status?",
+    "kanbanListMenu": "List actions",
+    "kanbanSortBy": "Sort list by",
+    "kanbanSortName": "Name",
+    "kanbanSortNumber": "Number (newest first)",
+    "kanbanSortStart": "Planned start",
+    "kanbanSortCreated": "Created",
+    "kanbanCollapse": "Collapse list",
+    "kanbanExpand": "Expand list",
+    "kanbanRenameList": "Rename list",
+    "kanbanRemoveList": "Remove list from board",
+    "kanbanRemoveListConfirm": "The list “{name}” leaves this board. Its projects stay – on every board that still shows their status.",
+    "kanbanRemoveListLast": "The last list stays: a board without a list is an empty board.",
+    "boardMenu": "Board menu",
+    "boardDetails": "Show card details",
+    "boardArchived": "Archived cards",
+    "boardArchivedNone": "Nothing in the archive.",
+    "boardArchivedOn": "archived on {date}",
+    "cardArchive": "Archive",
+    "cardRestore": "Send to board",
+    "cardArchivedBanner": "This card is archived (since {date}) – it is on no board and in no list. “Send to board” brings it back.",
+    "cardDescription": "Has a description"
   },
   "employees": {
     "title": "Employees",
@@ -1486,7 +1509,10 @@
     "photoAdd": "Take a photo",
     "photoSending": "Photo {done} of {total} …",
     "photoFailed": "{count, plural, one {One photo could not be uploaded.} other {# photos could not be uploaded.}}",
-    "sitePhotos": "Site photos"
+    "sitePhotos": "Site photos",
+    "setCover": "Cover",
+    "clearCover": "Remove cover",
+    "isCover": "Cover ✓"
   },
   "time": {
     "title": "Time tracking (14 days)",

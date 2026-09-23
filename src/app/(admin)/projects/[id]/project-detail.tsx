@@ -17,6 +17,7 @@ import { deleteProject, setProjectStatus, updateProject } from '../actions'
 import { ProjectForm } from '../project-form'
 import { ProjectBarActions } from './edit-all-button'
 import { SheetClose } from '../card-sheet'
+import { ArchiveButton } from '../archive-button'
 import { SheetAddBar } from '../sheet-add-bar'
 import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
 import { todayUtc } from '@/lib/dates'
@@ -679,6 +680,7 @@ export async function ProjectDetail({
         <div id="files" className="scroll-mt-24">
         <FilesCard
           projectId={project.id}
+          coverId={project.coverDocumentId}
           files={project.documents.map((d) => ({
             id: d.id,
             filename: d.filename,
@@ -887,6 +889,13 @@ export async function ProjectDetail({
               <Link href={`/projects/${project.id}/sheet`} className={btn.outlineSm}>
                 {tSheet('title')}
               </Link>
+              {/* Put away, the way a Trello card is archived: off the board, still a project. */}
+              <ArchiveButton
+                projectId={project.id}
+                archived={project.archivedAt !== null}
+                label={project.archivedAt ? t('cardRestore') : t('cardArchive')}
+                closeTo={sheet?.returnTo ?? null}
+              />
               {sheet && (
                 <Link href={`/projects/${project.id}`} className={btn.outlineSm}>
                   {t('cardOpenFull')}
@@ -916,6 +925,11 @@ export async function ProjectDetail({
         )}
         {address && <> · {address}</>}
       </PageHint>
+      {project.archivedAt && (
+        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 dark:text-amber-300">
+          {t('cardArchivedBanner', { date: stamp.format(project.archivedAt) })}
+        </p>
+      )}
       {meta}
 
       {/* Over the board the project reads like a Trello card: under the title

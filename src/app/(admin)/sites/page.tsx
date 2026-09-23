@@ -36,6 +36,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
     where: {
       AND: [
         scope,
+        { archivedAt: null },
         {
           OR: [
             { status: 'IN_PROGRESS' },

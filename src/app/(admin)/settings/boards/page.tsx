@@ -131,7 +131,7 @@ export default async function BoardsPage() {
               className={`${inputClass} mt-1 max-w-sm`}
             />
           </label>
-          {backgroundPicker(null, 'new')}
+          {backgroundPicker('blue', 'new')}
           {columnRows([], true, 'new')}
           <button type="submit" className={btn.primary}>
             {t('boardCreate')}

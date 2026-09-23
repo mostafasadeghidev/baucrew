@@ -511,7 +511,7 @@ export async function getOpenOffers(): Promise<{ offers: OpenOffer[]; total: num
 export async function getPipeline(today: Date, year: number): Promise<{ columns: PipelineColumn[]; funnel: YearFunnel }> {
   const [open, arrived] = await Promise.all([
     db.project.findMany({
-      where: { status: { in: [...PIPELINE_STAGES] } },
+      where: { status: { in: [...PIPELINE_STAGES] }, archivedAt: null },
       select: {
         id: true,
         number: true,

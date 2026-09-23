@@ -52,3 +52,27 @@ export async function deleteProjectFile(
   revalidatePath('/my')
   return {}
 }
+
+/**
+ * The picture on the front of the card — one of the project's own photos, or
+ * none again. What a Trello card calls its cover.
+ */
+export async function setProjectCover(projectId: string, fileId: string | null): Promise<{ error?: string }> {
+  const user = await requireStaff()
+  if (!(await canWorkOn(user, projectId))) return { error: 'saveFailed' }
+  if (fileId) {
+    const doc = await db.document.findUnique({ where: { id: fileId }, select: { projectId: true, mimeType: true, filename: true } })
+    if (!doc || doc.projectId !== projectId || !doc.mimeType.startsWith('image/')) return { error: 'saveFailed' }
+  }
+  await db.project.update({ where: { id: projectId }, data: { coverDocumentId: fileId } })
+  await audit({
+    userId: user.id,
+    action: fileId ? 'project.cover.set' : 'project.cover.clear',
+    entity: 'Project',
+    entityId: projectId,
+    newValue: fileId ?? undefined,
+  })
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/projects')
+  return {}
+}

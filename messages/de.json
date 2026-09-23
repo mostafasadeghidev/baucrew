@@ -413,7 +413,30 @@
     "kanbanAddNoTemplate": "Ohne Vorlage",
     "cardDefects": "{count, plural, one {# offener Mangel} other {# offene Mängel}}",
     "listNextStep": "Nächster Schritt: {status}",
-    "cardTasks": "{count, plural, one {# offene Aufgabe} other {# offene Aufgaben}}"
+    "cardTasks": "{count, plural, one {# offene Aufgabe} other {# offene Aufgaben}}",
+    "kanbanAddList": "Weitere Liste",
+    "kanbanAddListWhich": "Welcher Status?",
+    "kanbanListMenu": "Listenaktionen",
+    "kanbanSortBy": "Liste sortieren nach",
+    "kanbanSortName": "Name",
+    "kanbanSortNumber": "Nummer (neueste zuerst)",
+    "kanbanSortStart": "Geplanter Beginn",
+    "kanbanSortCreated": "Erstellt",
+    "kanbanCollapse": "Liste einklappen",
+    "kanbanExpand": "Liste ausklappen",
+    "kanbanRenameList": "Liste umbenennen",
+    "kanbanRemoveList": "Liste vom Board nehmen",
+    "kanbanRemoveListConfirm": "Die Liste „{name}“ verschwindet von diesem Board. Ihre Projekte bleiben – auf jedem Board, das ihren Status noch zeigt.",
+    "kanbanRemoveListLast": "Die letzte Liste bleibt: ein Board ohne Liste ist ein leeres Board.",
+    "boardMenu": "Board-Menü",
+    "boardDetails": "Kartendetails anzeigen",
+    "boardArchived": "Archivierte Karten",
+    "boardArchivedNone": "Nichts im Archiv.",
+    "boardArchivedOn": "archiviert am {date}",
+    "cardArchive": "Archivieren",
+    "cardRestore": "Wiederherstellen",
+    "cardArchivedBanner": "Diese Karte ist archiviert (seit {date}) – sie steht auf keinem Board und in keiner Liste. „Wiederherstellen“ holt sie zurück.",
+    "cardDescription": "Hat eine Beschreibung"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -1486,7 +1509,10 @@
     "photoAdd": "Foto aufnehmen",
     "photoSending": "Foto {done} von {total} …",
     "photoFailed": "{count, plural, one {Ein Foto konnte nicht hochgeladen werden.} other {# Fotos konnten nicht hochgeladen werden.}}",
-    "sitePhotos": "Baustellenfotos"
+    "sitePhotos": "Baustellenfotos",
+    "setCover": "Titelbild",
+    "clearCover": "Titelbild entfernen",
+    "isCover": "Titelbild ✓"
   },
   "time": {
     "title": "Zeiterfassung (14 Tage)",

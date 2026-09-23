@@ -20,11 +20,15 @@ describe('the backup', () => {
 
   it('lists parents before children', () => {
     const order = new Map(BACKUP_TABLES.map((t, i) => [t.model, i]))
+    // The one pair that points both ways: a project's cover is one of its own
+    // documents. The restore writes the covers in a second pass (lib/backup.ts).
+    const bothWays = [['Project', 'Document']]
     // Every `@relation(fields: [..], references: [..])` points at a parent.
     for (const [, model, body] of schema.matchAll(/^model (\w+) \{([\s\S]*?)^\}/gm)) {
       if (!order.has(model)) continue
       for (const [, parent] of body.matchAll(/^\s+\w+\s+(\w+)\??\s+@relation\(/gm)) {
         if (!order.has(parent)) continue
+        if (bothWays.some(([child, p]) => child === model && p === parent)) continue
         expect(order.get(parent)!, `${parent} must come before ${model}`).toBeLessThan(order.get(model)!)
       }
     }

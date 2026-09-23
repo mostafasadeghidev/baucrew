@@ -303,6 +303,16 @@ model Project {
   // Internal notes visible to management only
   internalNotes String?
 
+  /// Where the card stands in its column on the board, as somebody put it by
+  /// hand; cards without a place follow the placed ones, newest first.
+  boardPosition   Float?
+  /// Put away, the way a Trello card is archived: off the board and the list,
+  /// still a project everywhere else. Null while it is out.
+  archivedAt      DateTime?
+  /// The picture on the front of the card, one of the project's own photos.
+  coverDocumentId String?   @unique
+  cover           Document? @relation("ProjectCover", fields: [coverDocumentId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -330,6 +340,7 @@ model Project {
   @@index([customerId])
   @@index([status])
   @@index([externalSystem, externalId])
+  @@index([archivedAt])
 }
 
 /// A project's record in another system — its Trello card, its Wattro
@@ -785,6 +796,8 @@ model Document {
   defect        Defect?  @relation(fields: [defectId], references: [id], onDelete: SetNull)
   /// The signed form this PDF is the paper of.
   form          FilledForm?
+  /// The project whose card wears this picture on its front.
+  coverOf       Project? @relation("ProjectCover")
   createdAt     DateTime @default(now())
 
   @@index([projectId])

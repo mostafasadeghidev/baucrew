@@ -27,6 +27,10 @@ import { narrowedStatuses, opensBoard, projectsViewHref } from '@/lib/projects-v
 import { ALL_YEARS, belongsToYears, parseProjectYears, projectYearOptions } from '@/lib/project-years'
 import { todayUtc } from '@/lib/dates'
 import { ProjectsKanban, type KanbanColumn } from './kanban'
+import { BoardMenu } from './board-menu'
+import { ArchiveButton } from './archive-button'
+import { orderCards } from '@/lib/board-order'
+import { StatusBadge } from '@/components/status-badge'
 import { ProjectYearPicker } from './year-picker'
 import { BoardTabs } from './board-tabs'
 import { BoardFilter } from './board-filter'
@@ -51,10 +55,11 @@ export default async function ProjectsPage({
     label?: string
     urgent?: string
     card?: string
+    archived?: string
   }>
 }) {
   const user = await requireStaff()
-  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, card } = await searchParams
+  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, card, archived } = await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
   const page = parsePage(pageParam)
@@ -83,9 +88,17 @@ export default async function ProjectsPage({
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
   // This very address — where the open card's forms return to.
   const here = new URLSearchParams()
-  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, card }))
+  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, card, archived }))
     if (value) here.set(key, value)
   const returnTo = `/projects?${here.toString()}`
+  /** This address with the archive panel open, and without it. */
+  const archivedHref = (open: boolean) => {
+    const params = new URLSearchParams(here)
+    params.delete('card')
+    if (open) params.set('archived', '1')
+    else params.delete('archived')
+    return `/projects?${params.toString()}`
+  }
 
   const today = todayUtc()
   const currentYear = today.getUTCFullYear()
@@ -174,7 +187,7 @@ export default async function ProjectsPage({
   // filter's own OR must not overwrite the search's — two wheres, both.
   // A site manager's list is the projects they are named on; the office's is every one.
   const scope = projectScope(user) ?? {}
-  const whereWithoutStatus: Prisma.ProjectWhereInput = { AND: [{ ...searchWhere, ...yearWhere }, filterWhere, scope] }
+  const whereWithoutStatus: Prisma.ProjectWhereInput = { AND: [{ ...searchWhere, ...yearWhere }, filterWhere, scope, { archivedAt: null }] }
   const where: Prisma.ProjectWhereInput = { AND: [statusWhere, whereWithoutStatus] }
   /**
    * A status tab that came along from the list leaves only its own columns on
@@ -244,6 +257,9 @@ export default async function ProjectsPage({
           dueDate: true,
           sourceCreatedAt: true,
           createdAt: true,
+          boardPosition: true,
+          coverDocumentId: true,
+          description: true,
           customer: { select: { name: true, number: true } },
           manager: { select: { id: true, firstName: true, lastName: true } },
           team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
@@ -263,7 +279,8 @@ export default async function ProjectsPage({
   // for its status.
   const columns: KanbanColumn[] = (board?.columns ?? []).filter((column) => shownStatuses.includes(column.status as ProjectStatus)).map((column) => {
     const value = column.status as ProjectStatus
-    const own = boardProjects.filter((p) => p.status === value)
+    // In the order they were put: the placed cards by their place, the rest newest first.
+    const own = orderCards(boardProjects.filter((p) => p.status === value).map((p) => ({ ...p, position: p.boardPosition })))
     // The order's worth: the price and what was added to it since.
     const sum = own.reduce((total, p) => total + (orderValue(p.price, p.addOns) ?? 0), 0)
     return {
@@ -317,10 +334,24 @@ export default async function ProjectsPage({
             return { initials: initials(name), name, swatch: swatchOf(e.id), manager: e.manager }
           }),
           more: Math.max(0, people.length - FACES),
+          cover: p.coverDocumentId,
+          hasDescription: Boolean(p.description?.trim()),
         }
       }),
     }
   })
+  // The statuses the board has no list for yet — what "+ Weitere Liste" offers.
+  const addable = STATUSES.filter((s) => !boardStatuses.includes(s)).map((s) => ({ value: s, label: tStatus(s) }))
+  // The archive: what was put away, newest first, for the panel beside the board.
+  const archivedProjects =
+    kanban && archived === '1'
+      ? await db.project.findMany({
+          where: { AND: [scope, { archivedAt: { not: null } }] },
+          orderBy: { archivedAt: 'desc' },
+          take: 200,
+          select: { id: true, number: true, name: true, status: true, archivedAt: true, customer: { select: { name: true } } },
+        })
+      : []
   const allCount = statusCounts.reduce((sum, s) => sum + s._count._all, 0)
   const shownInYear = kanban ? boardProjects.filter((p) => shownStatuses.includes(p.status)).length : total
   const otherYearHits = query && years !== ALL_YEARS ? Math.max(0, searchInAllYears - shownInYear) : 0
@@ -425,25 +456,160 @@ export default async function ProjectsPage({
     </div>
   )
 
-  return (
+  /** A card opened over the board or the list: the project's page in a sheet, the board still underneath. It streams in after the board. */
+  const sheet = card && (
+    <CardSheet>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-between gap-3">
+            <p className="px-2 py-6 text-sm text-muted">{t('cardLoading')}</p>
+            <SheetClose />
+          </div>
+        }
+      >
+        <ProjectDetail id={card} sheet={{ returnTo }} />
+      </Suspense>
+    </CardSheet>
+  )
+
+  /** The office's own doors — drafts, templates — behind the board's menu; the site manager's board has none. */
+  const officeLinks = isOffice(user)
+    ? [
+        ...(draftCount > 0 ? [{ href: '/projects/drafts', label: tDrafts('title'), count: draftCount }] : []),
+        { href: '/projects/templates', label: tTemplates('title') },
+        { href: '/projects/checklists', label: tChecklists('templatesTitle') },
+        { href: '/projects/forms', label: tForms('templatesTitle') },
+      ]
+    : []
+  const ground = boardBackgroundCss(board?.background)
+  const onGround = ground !== null
+
+  if (kanban) {
     /*
-     * As a list the page is as long as its twenty rows and scrolls normally.
-     * As a board it is exactly as tall as the window and nothing on it scrolls
-     * but the inside of a column: a board whose columns grow with their
-     * contents is a board where the busiest column decides how far everybody
-     * scrolls, and where the column heads — the status and the count, the
-     * whole point of the thing — walk off the top of the window. It holds from
-     * the tablet up, which is where the board is actually used; on a phone it
-     * goes back to growing with its contents, because a column with its own
-     * scroll inside a screen that small is two scrolls fighting each other.
+     * The board the way Trello draws one: edge to edge on its own ground, a
+     * bar across the top with the boards, the search and the menu, and the
+     * lists under it. It is exactly as tall as the window and nothing on it
+     * scrolls but the inside of a list: a board whose lists grow with their
+     * contents is a board where the busiest list decides how far everybody
+     * scrolls, and where the heads walk off the top of the window. It holds
+     * from the tablet up, which is where the board is actually used; on a
+     * phone it goes back to growing with its contents, because a list with its
+     * own scroll inside a screen that small is two scrolls fighting each other.
      *
-     * Its sheet ends where the sidebar's panel ends, eight pixels above the
-     * window's edge: the page starts eight pixels down and is the window less
-     * both eights tall. The main area's bottom padding is wider than that, so
-     * the board gives back the difference — otherwise the page would be a
-     * little taller than the window and scroll for nothing.
+     * The main area pads the page; the board takes the padding back with
+     * negative margins so its ground reaches the edges, the way Trello's does.
      */
-    <div className={kanban ? 'flex flex-col gap-4 md:-mb-4 md:h-[calc(100vh-1rem)]' : 'space-y-4'}>
+    const bar = onGround
+      ? 'bg-black/25 text-white backdrop-blur-sm [&_input]:bg-white/90 [&_input]:text-foreground'
+      : 'border-b border-border bg-surface'
+    return (
+      <div
+        className="relative -mx-4 -mb-4 -mt-2 flex flex-col md:-mx-6 md:-mb-6 md:h-screen"
+        style={ground ? { background: ground } : undefined}
+      >
+        <div className={`flex shrink-0 flex-wrap items-center gap-2 px-3 py-2 ${bar}`}>
+          <BoardTabs
+            boards={boards.map((b) => ({ id: b.id, name: b.name }))}
+            current={board?.id ?? ''}
+            ariaLabel={t('boardTabs')}
+            manage={null}
+            onGround={onGround}
+          />
+          {statusChip}
+          <div className="ml-auto flex min-w-0 flex-wrap items-center gap-2">
+            {search}
+            {boardFilter}
+            {yearPicker}
+            <div className="flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
+              <Link
+                href={projectsViewHref('list', { q: query, year: yearParam, board: boardParam, status: narrowed ? status : undefined, member, label, urgent })}
+                className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
+              >
+                {t('viewList')}
+              </Link>
+              <span aria-current="page" className="whitespace-nowrap rounded-md bg-surface px-3 py-1.5 text-foreground shadow-sm">
+                {t('viewBoard')}
+              </span>
+            </div>
+            {isOffice(user) && (
+              <Link href="/projects/new" className={btn.primarySm}>
+                {t('newProject')}
+              </Link>
+            )}
+            <BoardMenu
+              onGround={onGround}
+              archivedHref={archivedHref(true)}
+              links={officeLinks}
+              settingsHref={user.role === 'ADMIN' ? '/settings/boards' : null}
+            />
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 px-3 pb-3 pt-2">
+          <ProjectsKanban
+            // A new board is a new component: what a column was showing
+            // beyond its first fifty belongs to the board it was on.
+            key={board?.id ?? 'none'}
+            boardId={board?.id ?? ''}
+            columns={columns}
+            customers={customerOptions.map((c) => ({ value: c.id, label: c.name }))}
+            templates={templateOptions.map((tp) => ({ value: tp.id, label: tp.name }))}
+            onGround={onGround}
+            confirmFor={['COMPLETED', 'CANCELLED']}
+            addable={addable}
+            canEditBoard={isOffice(user)}
+            settingsHref={user.role === 'ADMIN' ? '/settings/boards' : null}
+            labels={{
+              confirmTitle: t('kanbanConfirmTitle'),
+              confirmBody: t('kanbanConfirmBody'),
+              confirm: tc('confirm'),
+              cancel: tc('cancel'),
+              empty: t('kanbanEmpty'),
+              saveFailed: tc('saveFailed'),
+            }}
+          />
+        </div>
+
+        {/* The archive, the way Trello's menu opens it: a panel over the right
+            of the board, the cards that were put away, each with the way back. */}
+        {archived === '1' && (
+          <aside className="absolute inset-y-0 right-0 z-20 flex w-full max-w-sm flex-col border-l border-border bg-surface shadow-2xl">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+              <h2 className="text-sm font-semibold">{t('boardArchived')}</h2>
+              <Link href={archivedHref(false)} aria-label={tc('close')} title={tc('close')} className="rounded-md p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground">
+                <X className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
+            {archivedProjects.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-muted">{t('boardArchivedNone')}</p>
+            ) : (
+              <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
+                {archivedProjects.map((p) => (
+                  <li key={p.id} className="space-y-1.5 px-4 py-3 text-sm">
+                    <p className="flex flex-wrap items-center gap-2">
+                      <Link href={`/projects/${p.id}`} className="font-medium hover:underline">
+                        <span className="tabular-nums text-muted">{p.number}</span> {p.name}
+                      </Link>
+                      <StatusBadge status={p.status} />
+                    </p>
+                    <p className="text-xs text-muted">
+                      {p.customer.name} · {t('boardArchivedOn', { date: p.archivedAt ? dayMonthYear.format(p.archivedAt) : '—' })}
+                    </p>
+                    <ArchiveButton projectId={p.id} archived label={t('cardRestore')} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </aside>
+        )}
+
+        {sheet}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
       <StickyHead>
         <div className={pageToolbar}>
           <h1 className={pageTitle}>{t('title')}</h1>
@@ -479,7 +645,7 @@ export default async function ProjectsPage({
         </div>
       </StickyHead>
 
-      <PagePanel className={kanban ? 'flex min-h-0 flex-1 flex-col' : ''}>
+      <PagePanel>
         {/*
           Two choices about the same projects: the status tabs say which are
           shown, the year and the switch say which years and how they are
@@ -494,24 +660,6 @@ export default async function ProjectsPage({
           their own at the top, in both views alike.
         */}
         <div className="space-y-3 border-b border-border p-4">
-          {kanban ? (
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              {/* The boards first, the way Trello lines them up, and the search
-                  beside them: which board, then what on it. */}
-              <div className="order-2 flex min-w-0 flex-1 flex-wrap items-center gap-3 lg:order-1">
-                <BoardTabs
-                  boards={boards.map((b) => ({ id: b.id, name: b.name }))}
-                  current={board?.id ?? ''}
-                  ariaLabel={t('boardTabs')}
-                  manage={user.role === 'ADMIN' ? { href: '/settings/boards', label: t('boardsManage') } : null}
-                />
-                {search}
-                {boardFilter}
-                {statusChip}
-              </div>
-              {viewSwitch}
-            </div>
-          ) : (
             <>
               {/* Aligned at the top, not the middle: when there are more
                   status tabs than fit, their strip carries a scrollbar under
@@ -552,38 +700,8 @@ export default async function ProjectsPage({
                 {boardFilter}
               </div>
             </>
-          )}
         </div>
 
-        {kanban ? (
-          <div
-            className="min-h-0 flex-1 p-3"
-            // The board's own ground, the way Trello gives each board one; the
-            // lists float on it.
-            style={boardBackgroundCss(board?.background) ? { background: boardBackgroundCss(board?.background)! } : undefined}
-          >
-            <ProjectsKanban
-              // A new board is a new component: what a column was showing
-              // beyond its first fifty belongs to the board it was on.
-              key={board?.id ?? 'none'}
-              boardId={board?.id ?? ''}
-              columns={columns}
-              customers={customerOptions.map((c) => ({ value: c.id, label: c.name }))}
-              templates={templateOptions.map((tp) => ({ value: tp.id, label: tp.name }))}
-              onGround={boardBackgroundCss(board?.background) !== null}
-              confirmFor={['COMPLETED', 'CANCELLED']}
-              labels={{
-                confirmTitle: t('kanbanConfirmTitle'),
-                confirmBody: t('kanbanConfirmBody'),
-                confirm: tc('confirm'),
-                cancel: tc('cancel'),
-                empty: t('kanbanEmpty'),
-                saveFailed: tc('saveFailed'),
-              }}
-            />
-          </div>
-        ) : (
-          <>
           <div className="overflow-x-auto">
             <table className={`w-full table-fixed text-sm ${showPrice ? 'min-w-[1176px]' : 'min-w-[1016px]'}`}>
               <colgroup>
@@ -682,28 +800,11 @@ export default async function ProjectsPage({
               </tbody>
             </table>
           </div>
-          </>
-        )}
       </PagePanel>
 
-      {!kanban && <Pagination page={page} total={total} />}
+      <Pagination page={page} total={total} />
 
-      {/* A card opened over the board: the project's page in a sheet, the
-          board still underneath. It streams in after the board. */}
-      {card && (
-        <CardSheet>
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-between gap-3">
-                <p className="px-2 py-6 text-sm text-muted">{t('cardLoading')}</p>
-                <SheetClose />
-              </div>
-            }
-          >
-            <ProjectDetail id={card} sheet={{ returnTo }} />
-          </Suspense>
-        </CardSheet>
-      )}
+      {sheet}
     </div>
   )
 }

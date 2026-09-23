@@ -45,6 +45,32 @@ export async function saveColumnOrder(boardId: string, statuses: unknown): Promi
   return true
 }
 
+/** A column's own name on its board, typed over on the board itself; blank is the status's name. */
+export async function renameBoardColumn(boardId: string, status: string, title: string | null): Promise<boolean> {
+  const result = await db.boardColumn.updateMany({ where: { boardId, status: status as never }, data: { title } })
+  return result.count > 0
+}
+
+/** A column added at the right end of a board; false when the board already has it, or is not there. */
+export async function addBoardColumn(boardId: string, status: string): Promise<boolean> {
+  const board = await db.board.findUnique({
+    where: { id: boardId },
+    select: { columns: { select: { status: true, sortOrder: true } } },
+  })
+  if (!board || board.columns.some((c) => c.status === status)) return false
+  const last = Math.max(-1, ...board.columns.map((c) => c.sortOrder))
+  await db.boardColumn.create({ data: { boardId, status: status as never, sortOrder: last + 1 } })
+  return true
+}
+
+/** A column taken off a board — never its last one. */
+export async function removeBoardColumn(boardId: string, status: string): Promise<boolean> {
+  const count = await db.boardColumn.count({ where: { boardId } })
+  if (count <= 1) return false
+  const result = await db.boardColumn.deleteMany({ where: { boardId, status: status as never } })
+  return result.count > 0
+}
+
 /**
  * A board's columns as the settings form sent them: the ones left out go,
  * the others take the order and the names given.

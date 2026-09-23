@@ -65,7 +65,10 @@ projects and templates pick their lists), `docs/CHANGE-crm-tabs.md` (CRM page:
 eight tabs become Heute, Vergleich, Aufträge & Baustellen, Planumsatz,
 Auslastung, Datenlücken; old addresses redirect), `docs/CHANGE-project-boards.md`
 (the projects page's one board becomes several, each a set of status columns
-with names of their own; the old column setting becomes the first board). Add a new file there for similar
+with names of their own; the old column setting becomes the first board),
+`docs/CHANGE-trello-board.md` (the board drawn and moved like Trello's: a
+card's place in its list, the archive, the cover picture, the list menu, the
+board's own bar). Add a new file there for similar
 changes.
 
 ## Commands
