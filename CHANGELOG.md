@@ -3,6 +3,116 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.42.0] — 2026-09-24
+
+### Added
+- **The projects board is drawn and moved the way Trello draws one.** Edge to
+  edge on its own ground, a bar across the top with the boards as tabs, the
+  search, the filter, the year, list/board, *Neues Projekt* and the board's
+  menu; grey lists under it with a card that shows what a Trello card shows —
+  labels, a picture, the name, small marks for what hangs on it, the people on
+  it — and the rest of a project (customer, place, number, worth) behind
+  *Kartendetails*, remembered per browser and off by default. A card has a
+  place in its list: a dropped card stays where it was put, Escape puts it
+  back, and a list is sorted from its menu by name, number, planned start or
+  created. The lists are handled like Trello's — the head is the handle, the
+  name is typed over in place, the menu adds a card, sorts, folds the list to a
+  strip, renames it or takes it off the board, and *+ Weitere Liste* adds one.
+  While a card is dragged the others slide aside rather than jump, and the
+  card in hand glides into its slot. Every board stands on a ground; the ones
+  that had none were given Trello's blue.
+- **An archive.** *Archivieren* takes a card off the board, the list, the
+  sites page and the pipeline while it stays a project everywhere else. The
+  archive panel over the board is searched as it is typed into — number, name,
+  customer — and offers *Wiederherstellen*, and the administrator *Löschen*
+  for good. The project's own bar archives and restores as well, with a banner
+  while the project is away.
+- **A picture on a card's front.** *Titelbild* under one of the project's
+  photos puts it across the top of the card.
+- **The card back laid out like Trello's.** A card opened over the board
+  shows the cover, the title, the status, the members, labels and dates, the
+  add-to-card row, then the description, a folded line *Projektdaten* holding
+  the four cards of facts, the files with the photos as tiles, the checklists,
+  tasks, defects and forms, the planned days, and a folded line *Weitere
+  Angaben* for the office's blocks. Under the comments stands the card's
+  history in plain words — who moved it from where to where, archived it,
+  renamed it, attached a photo, ticked a task, reported a defect, had a form
+  signed. The project's own page keeps its layout.
+- **Karte kopieren** in a card's quick menu makes a copy the way Trello does:
+  the same customer, place, trades, people, vehicles, material, machines and
+  checklists, in the same list right under the original, with a fresh number
+  and no dates, money, files or talk. The copy opens for the touch-up it
+  needs, and its history says what it was copied from.
+- **Lists that follow a rule.** A list is still a status — that is what
+  dragging into it sets — but it may carry a rule as well: *Pause* beside the
+  running sites, the orders for next year, a waiting list of the low-priority
+  jobs, the running sites whose first invoice went out. Dropping a card into
+  such a list does what the rule says — puts the job on hold, marks it low
+  priority, plans it for 1 January next year — and dropping it out undoes it;
+  the invoice list refuses a drop and fills by itself once invoice 1 is marked
+  ready. A rule list is added and taken away on the board itself. The card
+  back says since when a job is on hold.
+- **The client's Trello board with one click.** Einstellungen → Boards →
+  *Board wie in Trello anlegen* makes *Aktuell laufende Baustellen* with the
+  ten lists of the board the office used to work on, three of them rule lists,
+  and opens it; the names are changed on the board afterwards like any list's.
+- **A filter that asks when a card is due**: overdue, due in the next week or
+  month, or without a day at all — neither a planned start nor a due date. It
+  lives in the address like the rest of the filter and follows the office
+  between the list and the board.
+- **Tasks on a project.** What has to be done apart from the trades' own work
+  — order the scaffold, settle the colour with the customer, send the photos —
+  has a place: a title, details, who has it and by when, open until it is
+  ticked off with the name and the day. The office adds and assigns them on
+  the project page; the crew sees the tasks of its assignment on the phone,
+  ticks them off and adds what the customer asked for. What is given to an
+  employee personally stands at the top of their phone page across every
+  project. The board card counts the open ones; the backup holds them.
+- **A site manager role — *Bauleitung*.** For the person who runs a site
+  without sitting in the office: the overview, the projects it is named on as
+  the site manager or in the crew, and the schedule. On a project it works
+  like the office — tasks, defects, photos, forms, checklists, files, the
+  machines the project needs, comments for the team — and it drags cards on
+  the board. It never sees a price, a customer list, master data or settings,
+  and cannot write a comment for the office only. Settings and the employee
+  page offer the role; the audit page filters by it.
+- **Baustellen — a page for the sites being built.** The projects in progress
+  and the ones starting within fourteen days, in one list without anybody
+  putting them there. Each site shows who leads it and how many are in the
+  crew, when the crew is next on it, and — as counters that open the matching
+  part of the project — its open tasks and defects with the overdue ones in
+  red, forms still waiting for a signature, checklists ticked over total, and
+  the photos from the site. Yellow flags call out what needs a look first. A
+  search field filters as you type. The office sees every site; a site
+  manager their own.
+- **A Pipeline tab in the CRM**, between Aufträge & Baustellen and Planumsatz.
+  Three columns — enquiry, offer written, order placed but not yet planned —
+  each with its count and its sum, the longest-sitting project at the top; a
+  project that has sat too long gets an amber edge and is counted in the
+  column's head. Every card carries the status menu and the one-click next
+  step, so an offer is confirmed from the pipeline without opening it. Over
+  the columns the running year in four tiles: open, won, lost, and the rate
+  between the two. Prices only for whoever may see them.
+
+### Changed
+- **Light is where the app opens.** The theme used to be the system's unless
+  chosen; it is light unless chosen — dark and *System* stay a click away and
+  are kept as choices — because the board is what the office sees first.
+- The card back is 1280 wide; the four cards of facts under *Projektdaten*
+  stand two abreast on a wide screen and one under the other below that.
+
+### Fixed
+- The fact rows of a card stay inside their card: a value shrinks, wraps, or
+  in a narrow card drops under its label instead of running out. A long word
+  in a card's name breaks inside the card.
+
+### Upgrade
+- `docker compose up -d --build` applies this release's migrations on start:
+  the site manager role, the tasks, the cards' places, the archive, the covers
+  and the boards' grounds, the rule lists and the hold date. Nothing to do by
+  hand. The office's Trello board is not made by a migration — it is one click
+  under Einstellungen → Boards.
+
 ## [1.41.0] — 2026-09-21
 
 ### Added
