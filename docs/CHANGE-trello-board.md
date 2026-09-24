@@ -62,6 +62,14 @@ Rules that hold:
   for 1 January next year when it had no later date) and dropping it out
   undoes it, except next year's list, whose dates are the office's; the invoice
   list refuses a drop — it fills by itself.
+- **The client's board with one click**: Einstellungen → Boards has "Board
+  wie in Trello anlegen", which makes "Aktuell laufende Baustellen" with the
+  ten lists of the Trello board (`src/lib/board-presets.ts`), three of them
+  rule lists. "Aufträge für <year>" is titled for next year at creation, as
+  the Trello list was.
+- **The filter asks when a card is due**, as Trello's does: overdue, due in
+  the next week or month (by "Fällig am"), or without a day at all (neither
+  planned start nor due date) — `due=` in the address, in both views.
 - **The card back** (the sheet over the board) is laid out like Trello's: the
   cover across the top; title, status, members, labels, dates; the "add to
   card" row; then, one under the other, the description, a folded line
@@ -87,6 +95,11 @@ Rules that hold:
   `orderCards`, `renumbered`, `insertIndex`, `sortedBy`, `COLUMN_SORTS`
 - `src/lib/board-rules.ts` — new (pure): `COLUMN_RULES`, `RULE_STATUS`,
   `ruleMatches`, `columnFor`, `dropPatch`; `tests/unit/board-rules.test.ts`
+- `src/lib/board-presets.ts` — new (pure): the sites board;
+  `tests/unit/board-presets.test.ts`; `boards-db.ts` `createBoardFromPreset`;
+  `settings/boards/actions.ts` `createPresetBoard`
+- `src/lib/board-cards.ts` — `DUE_FILTERS`, `dueFilterRange`, `due` in the
+  filter; `board-filter.tsx`, `projects-view.ts`
 - `src/lib/boards.ts` — `cleanColumnOrder` takes column ids
 - `src/lib/boards-db.ts` — `renameBoardColumn`, `addBoardColumn`,
   `removeBoardColumn`

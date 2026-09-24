@@ -12,7 +12,8 @@ import { DeleteButton } from '@/components/delete-button'
 import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
 import { SavedForm } from '@/components/saved-form'
 import { btn } from '@/components/ui/button'
-import { createBoard, deleteBoard, moveBoard, updateBoard } from './actions'
+import { createBoard, createPresetBoard, deleteBoard, moveBoard, updateBoard } from './actions'
+import { sitesPreset } from '@/lib/board-presets'
 
 const inputClass =
   'block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
@@ -44,7 +45,7 @@ export default async function BoardsPage() {
         <ul className="mt-1 flex flex-wrap gap-1.5">
           {ruled.map((c) => (
             <li key={c.id} className="rounded-full border border-border px-2.5 py-0.5 text-xs">
-              {c.title ?? tProjects(`rule_${c.rule}` as 'rule_paused')}
+              {c.title ?? tProjects(`rule_${c.rule}` as 'rule_paused', { year: new Date().getUTCFullYear() + 1 })}
               <span className="ml-1 text-muted">· {tStatus(c.status as ProjectStatusKey)}</span>
             </li>
           ))}
@@ -140,6 +141,25 @@ export default async function BoardsPage() {
         <PageBar back={{ href: '/settings', label: tNav('settings') }} title={t('boardsTitle')} />
       </StickyHead>
       <PageHint className="max-w-3xl">{t('boardsHint')}</PageHint>
+
+      {/* The client's Trello board, list for list, with one click. */}
+      <Card title={t('boardPresetTitle')} description={t('boardPresetHint')}>
+        <div className="space-y-3">
+          <ul className="flex flex-wrap gap-1.5">
+            {sitesPreset(new Date().getUTCFullYear()).columns.map((c, i) => (
+              <li key={i} className="rounded-full border border-border px-2.5 py-0.5 text-xs">
+                {c.title}
+                {c.rule && <span className="ml-1 text-muted">· {tProjects('kanbanRuleMark')}</span>}
+              </li>
+            ))}
+          </ul>
+          <form action={createPresetBoard.bind(null, 'sites')}>
+            <button type="submit" className={btn.primary}>
+              {t('boardPresetCreate')}
+            </button>
+          </form>
+        </div>
+      </Card>
 
       <Card title={t('boardNewTitle')} description={t('boardNewHint')}>
         <SavedForm action={createBoard} className="max-w-3xl space-y-4" resetOnSave errorText={t('boardErrorForm')}>

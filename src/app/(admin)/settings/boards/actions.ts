@@ -1,11 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { boardBackgroundKey, cleanBoardName, columnsFromForm } from '@/lib/boards'
-import { saveBoardColumns } from '@/lib/boards-db'
+import { createBoardFromPreset, saveBoardColumns } from '@/lib/boards-db'
+import { boardPreset, presetIsSound } from '@/lib/board-presets'
 import type { SaveState } from '@/components/saved-form'
 import type { DeleteState } from '@/components/delete-button'
 
@@ -64,6 +66,17 @@ export async function updateBoard(id: string, formData: FormData): Promise<SaveS
   })
   done()
   return { savedAt: Date.now() }
+}
+
+/** A board the way the client had it in Trello, with one click; it opens once it is made. */
+export async function createPresetBoard(key: string): Promise<void> {
+  const admin = await requireAdmin()
+  const preset = boardPreset(key, new Date().getUTCFullYear())
+  if (!preset || !presetIsSound(preset)) return
+  const id = await createBoardFromPreset(preset)
+  await audit({ userId: admin.id, action: 'board.create', entity: 'Board', entityId: id, newValue: `${preset.name} (${key})` })
+  done()
+  redirect(`/projects?board=${id}`)
 }
 
 /** The last board stays: a projects page with no board is a page with nothing on it. */

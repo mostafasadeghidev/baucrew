@@ -37,7 +37,7 @@ import { BoardTabs } from './board-tabs'
 import { BoardFilter } from './board-filter'
 import { CardSheet, SheetClose } from './card-sheet'
 import { ProjectDetail } from './[id]/project-detail'
-import { addressLine, dateTone, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
+import { addressLine, dateTone, dueFilterRange, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 import { orderValue } from '@/lib/reports'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
@@ -55,12 +55,13 @@ export default async function ProjectsPage({
     member?: string
     label?: string
     urgent?: string
+    due?: string
     card?: string
     archived?: string
   }>
 }) {
   const user = await requireStaff()
-  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, card, archived } = await searchParams
+  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, due, card, archived } = await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
   const page = parsePage(pageParam)
@@ -71,7 +72,7 @@ export default async function ProjectsPage({
   // cursor — so the list names itself once it is showing.
   if (!kanban && view !== 'list') {
     const params = new URLSearchParams({ view: 'list' })
-    for (const [key, value] of Object.entries({ q, status, page: pageParam, year: yearParam, board: boardParam, member, label, urgent }))
+    for (const [key, value] of Object.entries({ q, status, page: pageParam, year: yearParam, board: boardParam, member, label, urgent, due }))
       if (value) params.set(key, value)
     redirect(`/projects?${params.toString()}`)
   }
@@ -89,7 +90,7 @@ export default async function ProjectsPage({
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
   // This very address — where the open card's forms return to.
   const here = new URLSearchParams()
-  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, card, archived }))
+  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, due, card, archived }))
     if (value) here.set(key, value)
   const returnTo = `/projects?${here.toString()}`
   /** This address with the archive panel open, and without it. */
@@ -104,12 +105,20 @@ export default async function ProjectsPage({
   const today = todayUtc()
   const currentYear = today.getUTCFullYear()
   const years = parseProjectYears(yearParam, currentYear)
-  // The filter beside the search, in both views: one person, one trade, urgent only.
-  const filter = parseBoardFilter({ member, label, urgent })
+  // The filter beside the search, in both views: one person, one trade, urgent only, a due.
+  const filter = parseBoardFilter({ member, label, urgent, due })
+  const dueWhere = (): Prisma.ProjectWhereInput => {
+    if (!filter.due) return {}
+    const range = dueFilterRange(filter.due, today)
+    // "Ohne Termin": neither a planned start nor a day the work is due by.
+    if (filter.due === 'none') return { plannedStart: null, dueDate: null }
+    return { dueDate: { ...(range.from ? { gte: range.from } : {}), ...(range.to ? { lt: range.to } : {}) } }
+  }
   const filterWhere: Prisma.ProjectWhereInput = {
     ...(filter.member ? { OR: [{ managerId: filter.member }, { team: { some: { employeeId: filter.member } } }] } : {}),
     ...(filter.label ? { workCategories: { some: { workCategoryId: filter.label } } } : {}),
     ...(filter.urgent ? { priority: 'HIGH' } : {}),
+    ...dueWhere(),
   }
   const [prepTab, boards, dated, statusChanges, people, trades, customerOptions, templateOptions] = await Promise.all([
     getPrepTabConfig(),
@@ -282,8 +291,8 @@ export default async function ProjectsPage({
   // for its status.
   const boardColumns = (board?.columns ?? []).filter((column) => shownStatuses.includes(column.status as ProjectStatus))
   const columnKeys = boardColumns.map((c) => ({ key: c.id, status: c.status, rule: c.rule }))
-  /** A rule's name on a list: "Pause", "Nächstes Jahr" … */
-  const ruleLabel = (rule: string) => t(`rule_${rule}` as 'rule_paused')
+  /** A rule's name on a list: "Pause", "Nächstes Jahr (2027)" … */
+  const ruleLabel = (rule: string) => t(`rule_${rule}` as 'rule_paused', { year: currentYear + 1 })
   // Where each card stands: the rule column that picks it, else the plain one of its status.
   const columnOf = new Map<string, string>()
   for (const p of boardProjects) {
@@ -392,7 +401,7 @@ export default async function ProjectsPage({
     if (status) params.set('status', status)
     if (query) params.set('q', query)
     if (boardParam) params.set('board', boardParam)
-    for (const [key, value] of Object.entries({ member, label, urgent })) if (value) params.set(key, value)
+    for (const [key, value] of Object.entries({ member, label, urgent, due })) if (value) params.set(key, value)
     params.set('year', ALL_YEARS)
     return `/projects?${params.toString()}`
   })()
@@ -436,7 +445,7 @@ export default async function ProjectsPage({
     <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/40 bg-accent/10 py-0.5 pl-2.5 pr-1 text-xs font-medium text-accent">
       {t('boardStatusOnly', { status: statusFilter ? tStatus(statusFilter) : prepTab.label || t('tabPreparation') })}
       <Link
-        href={projectsViewHref('board', { q: query, year: yearParam, board: boardParam, member, label, urgent })}
+        href={projectsViewHref('board', { q: query, year: yearParam, board: boardParam, member, label, urgent, due })}
         aria-label={t('boardStatusClear')}
         title={t('boardStatusClear')}
         className="rounded-full p-0.5 hover:bg-accent/20"
@@ -476,6 +485,7 @@ export default async function ProjectsPage({
               member,
               label,
               urgent,
+              due,
             })}
             className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
           >
@@ -553,7 +563,7 @@ export default async function ProjectsPage({
             {yearPicker}
             <div className="flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
               <Link
-                href={projectsViewHref('list', { q: query, year: yearParam, board: boardParam, status: narrowed ? status : undefined, member, label, urgent })}
+                href={projectsViewHref('list', { q: query, year: yearParam, board: boardParam, status: narrowed ? status : undefined, member, label, urgent, due })}
                 className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
               >
                 {t('viewList')}

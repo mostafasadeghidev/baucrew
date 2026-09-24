@@ -442,13 +442,18 @@
     "sheetHistory": "Activity",
     "sheetHistoryNone": "Nothing has happened yet.",
     "rule_paused": "On hold",
-    "rule_nextYear": "Next year",
+    "rule_nextYear": "Next year ({year})",
     "rule_lowPriority": "Waiting list (low priority)",
     "rule_invoice1": "First invoice sent",
     "kanbanRuleMark": "Rule",
     "kanbanRuleList": "This list fills by a rule: it shows only the cards of its status the rule picks.",
     "kanbanRuleRefused": "A card arrives in this list by itself once invoice 1 is marked ready on the project – it cannot be dragged here.",
-    "cardPausedSince": "On hold since {date}"
+    "cardPausedSince": "On hold since {date}",
+    "boardFilterDue": "Due",
+    "boardFilterDueOverdue": "Overdue",
+    "boardFilterDueWeek": "Due in the next week",
+    "boardFilterDueMonth": "Due in the next month",
+    "boardFilterDueNone": "No dates"
   },
   "history": {
     "created": "created this card",
@@ -756,7 +761,10 @@
     "webhookEventDefectResolved": "Defect put right",
     "roleHintSiteManager": "Site manager: their own projects, the schedule and the overview — no prices, no master data or settings. The account must be linked to an employee.",
     "boardRuleColumns": "Rule lists on this board",
-    "boardRuleColumnsHint": "Lists by a rule – on hold, next year, waiting list, first invoice sent – are added on the board itself via “Add another list” and removed there."
+    "boardRuleColumnsHint": "Lists by a rule – on hold, next year, waiting list, first invoice sent – are added on the board itself via “Add another list” and removed there.",
+    "boardPresetTitle": "Create a board like in Trello",
+    "boardPresetHint": "The sites board, list for list, as it stood in Trello – three lists fill by a rule (on hold, next year, waiting list, first invoice). The names can be changed on the board.",
+    "boardPresetCreate": "Create the board “Aktuell laufende Baustellen”"
   },
   "roles": {
     "ADMIN": "Administrator",

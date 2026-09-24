@@ -94,9 +94,12 @@ describe('addressLine', () => {
 
 describe('the board filter', () => {
   it('reads the address and counts what is set', () => {
-    expect(parseBoardFilter({})).toEqual({ member: null, label: null, urgent: false })
+    expect(parseBoardFilter({})).toEqual({ member: null, label: null, urgent: false, due: null })
+    expect(parseBoardFilter({ due: 'week' }).due).toBe('week')
+    expect(parseBoardFilter({ due: 'someday' }).due).toBeNull()
+    expect(boardFilterCount(parseBoardFilter({ due: 'overdue' }))).toBe(1)
     const filter = parseBoardFilter({ member: ' e1 ', label: 'c1', urgent: '1' })
-    expect(filter).toEqual({ member: 'e1', label: 'c1', urgent: true })
+    expect(filter).toEqual({ member: 'e1', label: 'c1', urgent: true, due: null })
     expect(boardFilterCount(filter)).toBe(3)
     expect(boardFilterCount(parseBoardFilter({ urgent: 'yes' }))).toBe(0)
   })

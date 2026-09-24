@@ -923,7 +923,7 @@ export function ProjectsKanban({
                 ) : (
                   <h3
                     onClick={canEditBoard ? () => setRenamingList({ status: column.id, value: column.label }) : undefined}
-                    title={column.rule ? `${t(`rule_${column.rule}` as 'rule_paused')} · ${t('kanbanRuleList')}` : canEditBoard ? t('kanbanRenameList') : undefined}
+                    title={column.rule ? `${t(`rule_${column.rule}` as 'rule_paused', { year: new Date().getFullYear() + 1 })} · ${t('kanbanRuleList')}` : canEditBoard ? t('kanbanRenameList') : undefined}
                     className={`min-w-0 flex-1 truncate rounded-md px-2 py-1 text-sm font-semibold ${canEditBoard ? 'cursor-text' : ''}`}
                   >
                     {column.label}
@@ -1078,7 +1078,7 @@ export function ProjectsKanban({
                         href={openHref(card.id)}
                         scroll={false}
                         draggable={false}
-                        className="block pr-5 text-sm leading-snug text-foreground hover:text-accent"
+                        className="block break-words pr-5 text-sm leading-snug text-foreground hover:text-accent"
                       >
                         {card.name}
                       </Link>

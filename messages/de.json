@@ -442,13 +442,18 @@
     "sheetHistory": "Verlauf",
     "sheetHistoryNone": "Noch nichts geschehen.",
     "rule_paused": "Pause",
-    "rule_nextYear": "Nächstes Jahr",
+    "rule_nextYear": "Nächstes Jahr ({year})",
     "rule_lowPriority": "Warteliste (niedrige Priorität)",
     "rule_invoice1": "Abschlag gestellt",
     "kanbanRuleMark": "Regel",
     "kanbanRuleList": "Diese Liste füllt sich nach einer Regel: Sie zeigt nur die Karten ihres Status, auf die die Regel zutrifft.",
     "kanbanRuleRefused": "In diese Liste kommt eine Karte von selbst, sobald Rechnung 1 am Projekt als bereit gemeldet ist – ziehen geht hier nicht.",
-    "cardPausedSince": "Pause seit {date}"
+    "cardPausedSince": "Pause seit {date}",
+    "boardFilterDue": "Fällig",
+    "boardFilterDueOverdue": "Überfällig",
+    "boardFilterDueWeek": "In der nächsten Woche fällig",
+    "boardFilterDueMonth": "Im nächsten Monat fällig",
+    "boardFilterDueNone": "Ohne Termin"
   },
   "history": {
     "created": "hat die Karte angelegt",
@@ -756,7 +761,10 @@
     "webhookEventDefectResolved": "Mangel behoben",
     "roleHintSiteManager": "Bauleitung: die eigenen Projekte, die Einsatzplanung und die Übersicht — ohne Preise, ohne Stammdaten und Einstellungen. Das Konto muss mit einem Mitarbeiter verknüpft sein.",
     "boardRuleColumns": "Regel-Listen auf diesem Board",
-    "boardRuleColumnsHint": "Listen nach einer Regel – Pause, nächstes Jahr, Warteliste, Abschlag gestellt – werden auf dem Board selbst über „Weitere Liste“ hinzugefügt und dort wieder entfernt."
+    "boardRuleColumnsHint": "Listen nach einer Regel – Pause, nächstes Jahr, Warteliste, Abschlag gestellt – werden auf dem Board selbst über „Weitere Liste“ hinzugefügt und dort wieder entfernt.",
+    "boardPresetTitle": "Board wie in Trello anlegen",
+    "boardPresetHint": "Das Baustellen-Board, Liste für Liste, wie es in Trello stand – drei Listen füllen sich nach einer Regel (Pause, nächstes Jahr, Warteliste, Abschlag). Die Namen lassen sich auf dem Board ändern.",
+    "boardPresetCreate": "Board „Aktuell laufende Baustellen“ anlegen"
   },
   "roles": {
     "ADMIN": "Administrator",

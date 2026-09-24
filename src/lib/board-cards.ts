@@ -103,20 +103,51 @@ export function addressLine(street: string | null, postalCode: string | null, ci
   return line || null
 }
 
-/** The filter above the board: one person, one trade, urgent only — each in the address. */
-export type BoardFilter = { member: string | null; label: string | null; urgent: boolean }
+/**
+ * When a card is due, the way Trello's filter asks: past its day, due within
+ * the week or the month, or without a day at all (no planned start and no
+ * due date).
+ */
+export const DUE_FILTERS = ['overdue', 'week', 'month', 'none'] as const
+export type DueFilter = (typeof DUE_FILTERS)[number]
 
-export const BOARD_FILTER_PARAMS = ['member', 'label', 'urgent'] as const
+export function dueFilterKey(raw: unknown): DueFilter | null {
+  return typeof raw === 'string' && (DUE_FILTERS as readonly string[]).includes(raw) ? (raw as DueFilter) : null
+}
 
-export function parseBoardFilter(params: { member?: string; label?: string; urgent?: string }): BoardFilter {
+/** The filter above the board: one person, one trade, urgent only, a due — each in the address. */
+export type BoardFilter = { member: string | null; label: string | null; urgent: boolean; due: DueFilter | null }
+
+export const BOARD_FILTER_PARAMS = ['member', 'label', 'urgent', 'due'] as const
+
+export function parseBoardFilter(params: { member?: string; label?: string; urgent?: string; due?: string }): BoardFilter {
   return {
     member: params.member?.trim() || null,
     label: params.label?.trim() || null,
     urgent: params.urgent === '1',
+    due: dueFilterKey(params.due),
   }
 }
 
-/** How many of the three are set — the badge on the filter button. */
+/** How many of the four are set — the badge on the filter button. */
 export function boardFilterCount(filter: BoardFilter): number {
-  return (filter.member ? 1 : 0) + (filter.label ? 1 : 0) + (filter.urgent ? 1 : 0)
+  return (filter.member ? 1 : 0) + (filter.label ? 1 : 0) + (filter.urgent ? 1 : 0) + (filter.due ? 1 : 0)
+}
+
+/**
+ * The days a due filter spans, from today: `[from, to)` on the due date, or
+ * null bounds for "none", which asks for no day at all.
+ */
+export function dueFilterRange(due: DueFilter, today: Date): { from: Date | null; to: Date | null } {
+  const day = (offset: number) => new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offset))
+  switch (due) {
+    case 'overdue':
+      return { from: null, to: day(0) }
+    case 'week':
+      return { from: day(0), to: day(8) }
+    case 'month':
+      return { from: day(0), to: day(31) }
+    case 'none':
+      return { from: null, to: null }
+  }
 }

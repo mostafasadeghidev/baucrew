@@ -1,6 +1,7 @@
 import { db } from './db'
 import { cleanColumnOrder, type BoardColumnDef } from './boards'
 import { columnRuleKey, RULE_STATUS, type ColumnRule } from './board-rules'
+import type { BoardPreset } from './board-presets'
 
 export type BoardRow = {
   id: string
@@ -40,6 +41,21 @@ export async function saveColumnOrder(boardId: string, ids: unknown): Promise<bo
   const wanted = [...order.filter((id) => columns.some((c) => c.id === id)), ...rest]
   await db.$transaction(wanted.map((id, sortOrder) => db.boardColumn.update({ where: { id }, data: { sortOrder } })))
   return true
+}
+
+/** A board made from a preset, at the end of the tabs, with every list the preset names. */
+export async function createBoardFromPreset(preset: BoardPreset): Promise<string> {
+  const last = await db.board.aggregate({ _max: { sortOrder: true } })
+  const board = await db.board.create({
+    data: {
+      name: preset.name,
+      background: preset.background,
+      sortOrder: (last._max.sortOrder ?? -1) + 1,
+      columns: { create: preset.columns.map((c, sortOrder) => ({ status: c.status, rule: c.rule, title: c.title, sortOrder })) },
+    },
+    select: { id: true },
+  })
+  return board.id
 }
 
 /** A column's own name on its board, typed over on the board itself; blank is the status's name. Its board's id comes back. */

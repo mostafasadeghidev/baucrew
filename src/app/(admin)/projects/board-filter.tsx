@@ -17,7 +17,7 @@ import { useTranslations } from 'next-intl'
 import { Check, Search, SlidersHorizontal } from 'lucide-react'
 import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { btn } from '@/components/ui/button'
-import { boardFilterCount, type BoardFilter } from '@/lib/board-cards'
+import { boardFilterCount, DUE_FILTERS, type BoardFilter, type DueFilter } from '@/lib/board-cards'
 import { LABEL_BAR } from '@/components/swatches'
 
 type Option = { id: string; name: string; /** A trade's colour, as an index into the label palette. */ swatch?: number }
@@ -36,8 +36,16 @@ export function BoardFilter({ people, labels, current }: { people: Option[]; lab
   const shownPeople = people.filter(match)
   const shownLabels = labels.filter(match)
   const urgentShown = !q || t('boardFilterUrgent').toLowerCase().includes(q)
+  const dueLabel: Record<DueFilter, string> = {
+    overdue: t('boardFilterDueOverdue'),
+    week: t('boardFilterDueWeek'),
+    month: t('boardFilterDueMonth'),
+    none: t('boardFilterDueNone'),
+  }
+  const shownDue = DUE_FILTERS.filter((due) => !q || dueLabel[due].toLowerCase().includes(q))
+  const pickDue = (due: DueFilter) => write({ due: current.due === due ? null : due })
 
-  const write = (changes: Partial<Record<'member' | 'label' | 'urgent', string | null>>) => {
+  const write = (changes: Partial<Record<'member' | 'label' | 'urgent' | 'due', string | null>>) => {
     const params = new URLSearchParams(searchParams)
     for (const [key, value] of Object.entries(changes)) {
       if (value) params.set(key, value)
@@ -139,7 +147,17 @@ export function BoardFilter({ people, labels, current }: { people: Option[]; lab
               {item(current.urgent, t('boardFilterUrgent'), () => write({ urgent: current.urgent ? null : '1' }), 'menuitemcheckbox')}
             </>
           )}
-          {shownPeople.length === 0 && shownLabels.length === 0 && !urgentShown && (
+          {/* When a card is due — Trello's filter asks the same four things. */}
+          {shownDue.length > 0 && (
+            <>
+              {(shownPeople.length > 0 || shownLabels.length > 0 || urgentShown) && <MenuSeparator />}
+              {heading(t('boardFilterDue'))}
+              {shownDue.map((due) => (
+                <div key={due}>{item(current.due === due, dueLabel[due], () => pickDue(due))}</div>
+              ))}
+            </>
+          )}
+          {shownPeople.length === 0 && shownLabels.length === 0 && !urgentShown && shownDue.length === 0 && (
             <p className="px-2 py-3 text-sm text-muted">{t('noResults')}</p>
           )}
         </div>
@@ -149,7 +167,7 @@ export function BoardFilter({ people, labels, current }: { people: Option[]; lab
             <button
               type="button"
               role="menuitem"
-              onClick={() => write({ member: null, label: null, urgent: null })}
+              onClick={() => write({ member: null, label: null, urgent: null, due: null })}
               className={`${menuItemClass} text-accent`}
             >
               {t('boardFilterReset')}

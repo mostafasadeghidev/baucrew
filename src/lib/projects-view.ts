@@ -25,6 +25,7 @@ export type ProjectsViewKeep = {
   member?: string
   label?: string
   urgent?: string
+  due?: string
 }
 
 /**
@@ -45,6 +46,7 @@ export function projectsViewHref(target: 'list' | 'board', keep: ProjectsViewKee
   if (keep.member) params.set('member', keep.member)
   if (keep.label) params.set('label', keep.label)
   if (keep.urgent) params.set('urgent', keep.urgent)
+  if (keep.due) params.set('due', keep.due)
   const query = params.toString()
   return query ? `/projects?${query}` : '/projects'
 }
