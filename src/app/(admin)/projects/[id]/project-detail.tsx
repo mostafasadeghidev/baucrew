@@ -292,9 +292,9 @@ export async function ProjectDetail({
     .join(', ')
 
   const row = (label: string, value: React.ReactNode) => (
-    <div className="flex gap-2">
-      <dt className="w-44 shrink-0 text-muted">{label}</dt>
-      <dd>{value}</dd>
+    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+      <dt className="w-40 shrink-0 text-muted">{label}</dt>
+      <dd className="min-w-0 flex-1 basis-28 break-words">{value}</dd>
     </div>
   )
   // Whether the day the work is due by presses — read in two places below.
@@ -381,9 +381,9 @@ export async function ProjectDetail({
         {row(t('actualStart'), <span className="tabular-nums">{formatDate(project.actualStart, locale)}</span>)}
         {row(t('actualEnd'), <span className="tabular-nums">{formatDate(project.actualEnd, locale)}</span>)}
             {showPrice && (
-              <div className="flex gap-2">
-                <dt className="w-44 shrink-0 text-muted">{t('price')}</dt>
-                <dd className="font-medium tabular-nums">
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                <dt className="w-40 shrink-0 text-muted">{t('price')}</dt>
+                <dd className="min-w-0 flex-1 basis-28 break-words font-medium tabular-nums">
                   {formatCurrency(project.price ? Number(project.price) : null, locale, { hidden: hidePrices })}
                   {/* Follow-on offers raise the order value — show both. */}
                   {addOnTotal > 0 && (
@@ -398,9 +398,9 @@ export async function ProjectDetail({
               </div>
             )}
             {showPrice && project.planEntries.length > 0 && (
-              <div className="flex gap-2">
-                <dt className="w-44 shrink-0 text-muted">{t('plannedRevenue')}</dt>
-                <dd className="tabular-nums">
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                <dt className="w-40 shrink-0 text-muted">{t('plannedRevenue')}</dt>
+                <dd className="min-w-0 flex-1 basis-28 break-words tabular-nums">
                   {formatCurrency(plannedTotal, locale, { hidden: hidePrices })}
                   <span className="ml-1 text-xs font-normal text-muted">
                     ({project.planEntries.map((e) => e.year).join(', ')})
