@@ -236,6 +236,20 @@ export function EntryDialog({
     isEdit && date && endDate
       ? assignmentBlock(scheduledDays, date).filter((d) => d > endDate).length
       : 0
+  // The days named the way the "Geplante Tage" chips name them — "Fr., 25.09."
+  // — two with "und", three side by side, a longer run as "5 Tage von … bis …".
+  const dayName = (d: string) =>
+    new Date(`${d}T00:00:00.000Z`).toLocaleDateString(locale === 'en' ? 'en-GB' : 'de-DE', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      timeZone: 'UTC',
+    })
+  const namedDays = (days: string[]) => {
+    if (days.length === 2) return t('dayPair', { first: dayName(days[0]), second: dayName(days[1]) })
+    if (days.length <= 3) return days.map(dayName).join(' · ')
+    return t('daysFromTo', { count: days.length, first: dayName(days[0]), last: dayName(days[days.length - 1]) })
+  }
   // What the save will really do: create the missing days, and only touch the
   // days that already exist when the user asks for it.
   const { newDays, existingDays } =
@@ -414,10 +428,10 @@ export function EntryDialog({
                           onChange={(e) => setApplyToExisting(e.target.checked)}
                           className="h-4 w-4 accent-[var(--accent)]"
                         />
-                        {t('rangeApplyExisting', { count: existingCount })}
+                        {t('rangeApplyExisting', { count: existingCount, days: namedDays(existingDays) })}
                       </label>
                     ) : (
-                      <span className="text-muted">{t('rangeExistingKept', { count: existingCount })}</span>
+                      <span className="text-muted">{t('rangeExistingKept', { count: existingCount, days: namedDays(existingDays) })}</span>
                     ))}
                 </>
               )}
@@ -498,6 +512,8 @@ export function EntryDialog({
               {t('note')}
             </label>
             <input id="entry-note" type="text" value={note} onChange={(e) => setNote(e.target.value)} className={inputClass} />
+            {/* The note is the day's: it goes onto this assignment's work order. */}
+            <p className="mt-1 text-xs text-muted">{t('noteHint')}</p>
           </div>
 
           {/* Project tool/material list — belongs to the project, editable here */}

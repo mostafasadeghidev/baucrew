@@ -5,7 +5,7 @@ import { getOptionList } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { db } from '@/lib/db'
 import { LiveSearchInput, LiveSelect } from '@/components/live-search'
-import { PageBar, PagePanel, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
 import { Pagination } from '@/components/pagination'
 import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { listCategories } from './actions'
@@ -84,6 +84,7 @@ export default async function WarehousePage({
           }
         />
       </StickyHead>
+      <PageHint>{t('hint')}</PageHint>
 
       <PagePanel>
         <div className="border-b border-border p-4">
@@ -193,7 +194,10 @@ export default async function WarehousePage({
       {/* Devices out of the store — who has what */}
       <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">{tDevices('holder')}</h2>
+          <div>
+            <h2 className="text-sm font-semibold">{tDevices('outTitle')}</h2>
+            <p className="text-xs text-muted">{tDevices('outHint')}</p>
+          </div>
           <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
             {tDevices('openDevices')} <span aria-hidden>→</span>
           </Link>

@@ -92,7 +92,7 @@ Sie bleiben 30 Tage angemeldet. **Abmelden** ganz unten in der Menüleiste (link
 
 Nach der Anmeldung sehen Sie die **Übersicht** — Ihr Tagesblick:
 
-- **Kennzahlen** oben (anklickbar): laufende und geplante Projekte, Mitarbeiter und Fahrzeuge heute im Einsatz, Kunden. Ein Klick auf **Mitarbeiter / Fahrzeuge heute im Einsatz** öffnet die Unterseite **Heute im Einsatz**: jeder Mitarbeiter und jedes Fahrzeug in einer Zeile mit dem Projekt, der Uhrzeit und dem Ort daneben (mit ← → auch für andere Tage). Zurück zur Übersicht über den Knopf **← Übersicht** oben links.
+- **Kennzahlen** oben (anklickbar): laufende und geplante Projekte (öffnen das Projekt-Board, eingegrenzt auf diese eine Liste — *Liste* daneben zeigt die Tabelle), Mitarbeiter und Fahrzeuge heute im Einsatz, Kunden. Ein Klick auf **Mitarbeiter / Fahrzeuge heute im Einsatz** öffnet die Unterseite **Heute im Einsatz**: jeder Mitarbeiter und jedes Fahrzeug in einer Zeile mit dem Projekt, der Uhrzeit und dem Ort daneben (mit ← → auch für andere Tage). Zurück zur Übersicht über den Knopf **← Übersicht** oben links.
 
 ![Heute im Einsatz](screenshots/31-heute-im-einsatz.png)
 
@@ -496,8 +496,9 @@ Bauleitung (Rolle) sieht hier nur ihre eigenen Baustellen.
 - Oben rechts: **Woche | Monat | Karte**. Genau darunter, in derselben Zeile wie die Schalter, die Pfeile **← →** und dazwischen **Aktuell** — das führt in jeder der drei Ansichten zurück zum Heute. Die Kopfzeile behält immer dieselbe Höhe und dieselbe Breite, damit die Tagesspalten beim Blättern nicht verrutschen.
 - **Einsatz verschieben:** Karte mit der Maus packen und auf einen anderen Tag ziehen. Am Tablet/Handy: Karte kurz gedrückt halten, dann ziehen.
 - **Einsatz kopieren:** dasselbe Ziehen mit gedrückter **Strg**-Taste (⌘ am Mac) — der Einsatz bleibt am alten Tag und wird zusätzlich auf dem neuen Tag angelegt.
-- **Tage, die es schon gibt:** Reicht der gewählte Zeitraum über Tage, an denen das Projekt bereits eingeplant ist, bleiben diese Tage unangetastet — im Fenster steht dann *„… Tage sind schon geplant und bleiben unverändert"*. Sollen Team, Fahrzeuge und Zeiten auch dort gelten (z. B. weil Sie gerade jemanden zum Trupp genommen haben), setzen Sie das Häkchen **„Die bestehenden Tage auch anpassen"**; der Knopf sagt dann genau, was passiert (*„Speichern und 2 Tage anpassen"*).
+- **Tage, die es schon gibt:** Reicht der gewählte Zeitraum über Tage, an denen das Projekt bereits eingeplant ist, bleiben diese Tage unangetastet — der Dialog sagt dann, welche: *„Do., 24.09. und Fr., 25.09. sind schon geplant und bleiben unverändert"*. Sollen Team, Fahrzeuge und Zeiten auch dort gelten (z. B. weil Sie gerade jemanden zum Trupp genommen haben), setzen Sie das Häkchen **„… sind schon geplant – Team, Fahrzeuge und Zeiten von hier auch dort übernehmen"**; der Knopf sagt dann genau, was passiert (*„Speichern und 2 Tage anpassen"*).
 - **Zeitraum ändern:** einen bestehenden Einsatz anklicken — das Feld **Weitere Tage** steht auf dem letzten Tag dieses Blocks. Ein späteres Datum ergänzt Tage, ein früheres nimmt die Tage danach aus der Planung (rückholbar über *Projekt wieder öffnen* bzw. erneutes Verlängern). Das Fenster zeigt vorher, wie viele Tage betroffen sind. Wählen — die folgenden Tage werden mit demselben Team, denselben Fahrzeugen und Zeiten angelegt. Unter den Feldern steht **Geplante Tage** mit allen Tagen dieses Projekts (der geöffnete Tag ist hervorgehoben); einzelne Tage (z. B. Mittwoch und Freitag ohne Donnerstag) bleiben so sichtbar, ohne dass ein Zeitraum sie erzwingt.
+- **Notiz:** eine Zeile für diesen Tag („Schlüssel im Büro abholen“) — sie steht auf dem Arbeitsauftrag dieses Einsatzes im Feld *Weitere Notizen* (Kapitel 8).
 - **Vergangene Tage:** dort gibt es kein **+** mehr; geplant wird nach vorne. Bestehende Einsätze der Vergangenheit lassen sich weiterhin öffnen und bearbeiten.
 - **Neuer Einsatz:** **+** oben in der Tagesspalte.
 - **Einsatz ändern:** Karte anklicken.
@@ -551,7 +552,7 @@ Der Arbeitsauftrag ist das A4-Blatt fürs Fahrzeug und die Baustelle: Firmenlogo
 
 **So öffnen Sie ihn:** Projektseite → Druckersymbol · Karte im Wochenplan → Druckersymbol · Tagesvorbereitung im Lager · Mein Bereich am Handy.
 
-**Für diesen Ausdruck** (über dem Blatt, nur fürs Büro sichtbar, wird nie mitgedruckt): Hier wählen Sie, welche **Art der Arbeit** angekreuzt wird — vorbelegt mit den Gewerken des Projekts; an dem Tag, an dem nur die Maler fahren, bleibt nur *Malern* angekreuzt. **Nur die angekreuzten Arbeiten drucken** lässt die übrige Liste weg. Das **Notizfeld bleibt leer** — es gehört der Kolonne für Notizen von der Baustelle; mit **Projektbeschreibung in das Notizfeld drucken** kommt die Beschreibung des Projekts hinein, wenn sie für die Baustelle gedacht ist. Die Wahl steht in der Adresse und bleibt beim Neuladen erhalten; **Zurücksetzen** stellt den Standard wieder her.
+**Für diesen Ausdruck** (über dem Blatt, nur fürs Büro sichtbar, wird nie mitgedruckt): Hier wählen Sie, welche **Art der Arbeit** angekreuzt wird — vorbelegt mit den Gewerken des Projekts; an dem Tag, an dem nur die Maler fahren, bleibt nur *Malern* angekreuzt. Die Liste wird immer ganz gedruckt, wie auf dem Papierformular — nur die Kreuze ändern sich. Darunter, was **Baustelleneinrichtung ausgerichtet auf** ankreuzt: vorbelegt mit *Auftragsart* und *Objektart* des Projekts (Kapitel 6.2); ein Klick auf das gesetzte Kreuz nimmt es weg. Das **Notizfeld** trägt die **Notiz des Einsatzes** (Kapitel 7.2); sonst bleibt es leer — es gehört der Kolonne für Notizen von der Baustelle. Mit **Projektbeschreibung in das Notizfeld drucken** kommt zusätzlich die Beschreibung des Projekts hinein, wenn sie für die Baustelle gedacht ist. Die Wahl steht in der Adresse und bleibt beim Neuladen erhalten; **Zurücksetzen** stellt den Standard wieder her.
 
 **So drucken Sie:** Knopf **Drucken** oben (oder Strg+P). Im Druckfenster können Sie statt Drucker „Als PDF speichern“ wählen. **← Zurück** bringt Sie zur vorherigen Seite.
 
@@ -564,6 +565,8 @@ Der Arbeitsauftrag ist das A4-Blatt fürs Fahrzeug und die Baustelle: Firmenlogo
 ### 9.1 Der Katalog
 
 **Wo:** Menü → **Lager**.
+
+Das Lager ist der Katalog von **Material und Werkzeug** in Mengen — was ein Einsatz mitnimmt: für die Packliste, die Tagesvorbereitung und den Arbeitsauftrag. Einzelne Maschinen mit Standort, Ausgabe und Rückgabe stehen unter **Geräte** (Kapitel 11a); eine Zeile unter der Überschrift beider Seiten sagt, was wohin gehört.
 
 ![Lager](screenshots/10-lager-katalog.png)
 
@@ -695,8 +698,9 @@ In der **Vorlage** hat *Benötigte Geräte* eine eigene Karte — die
 Standard-Ausstattung für diese Art Baustelle, die jedes neue Projekt aus der
 Vorlage übernimmt.
 
-Im **Lager** steht unten die Karte *Wer hat es?*: jedes Gerät, das gerade nicht
-im Lager ist, mit Baustelle oder Mitarbeiter und seit wie vielen Tagen.
+Im **Lager** steht unten die Karte *Ausgegebene Geräte*: jedes Gerät, das gerade nicht
+im Lager ist, mit Baustelle oder Mitarbeiter und seit wie vielen Tagen — die Geräte
+selbst werden hier unter *Geräte* geführt.
 
 **Auf der Baustelle:** Die Projektseite hat eine Karte **Geräte auf dieser
 Baustelle** — praktisch, wenn eine Baustelle unterbrochen wird und jemand
@@ -833,7 +837,7 @@ Die Reiter:
 - **Umsatz:** die Monatskarten mit allen Projekten und Beträgen (eigene Leute und SUB getrennt).
   Projekte **ohne geplanten Start** gehören zu keinem Monat: sie stehen in einer eigenen Karte
   *Ohne Termin* mit ihrer Summe und zählen erst in die Monate und die Jahressumme, wenn ein
-  Termin eingetragen ist — unter *Datenqualität* sind sie alle aufgeführt. Ist eine **Jahresplanung** eingelesen (Kapitel 15), ist die Tabelle die Zahl: jede Monatskarte zeigt die Zeilen der Jahresplanung mit ihren Beträgen — Monat für Monat so, wie die Tabelle sie führt. Eine Zeile, die im Planabgleich einem Projekt zugeordnet ist, verlinkt dorthin; eine ohne Projekt steht nur in der Tabelle. Projekte mit Start in diesem Monat, die in der Tabelle nicht stehen, sind darunter unter *Nicht in der Tabelle* aufgeführt und zählen nicht in die Summen, damit die Monate der Tabelle entsprechen. Das kleine ⓘ neben *Eigene Leute*, *SUB* und *Nicht in der Tabelle* erklärt die Zahl; ein Hinweis über den Monaten nennt die Quelle. Ein Jahr ohne Jahresplanung wird weiter aus den Projekten gebaut (Startmonat, Auftragswert). Baustellen, die in der Tabelle noch auf keinen Monat gelegt sind (Spalte *Baustellen für <Jahr>*), stehen als eigene Zeile unter der Überschrift — sie gehören zu keiner Monatskarte. Für ein Jahr, aus dem in BauCrew gar keine Projekte erfasst sind, sagt der Hinweis über den Monaten, dass die Zahlen ein **Rückblick** aus der Tabelle sind; ein Projekt, das später für so ein Jahr angelegt wird, ändert die Monatszahlen nicht, sondern erscheint unter *Nicht in der Tabelle*, bis es in der Tabelle steht oder einer Zeile zugeordnet ist. Der Jahresvergleich oben rechts und die Karte *Umsatz diesen Monat* auf dem Dashboard lesen dieselben Zahlen. Auslastung, Kunden und Datenqualität zeigen weiterhin nur, was in BauCrew erfasst ist.
+  Termin eingetragen ist — unter *Datenqualität* sind sie alle aufgeführt. Ist eine **Jahresplanung** eingelesen (Kapitel 15), ist die Tabelle die Zahl: jede Monatskarte zeigt die Zeilen der Jahresplanung mit ihren Beträgen — Monat für Monat so, wie die Tabelle sie führt. Eine Zeile, die im Planabgleich einem Projekt zugeordnet ist, verlinkt dorthin; eine ohne Projekt steht nur in der Tabelle. Projekte mit Start in diesem Monat, die in der Tabelle nicht stehen, sind darunter unter *Nicht in der Tabelle* aufgeführt und zählen nicht in die Summen, damit die Monate der Tabelle entsprechen — **Zeile anlegen** daneben gibt so einem Projekt eine eigene Zeile der Jahresplanung (Startmonat und Auftragswert aus dem Projekt), und es zählt von da an mit; ein neuer Import der Tabelle behält die Zeile, bis die Tabelle das Projekt selbst führt. Das kleine ⓘ neben *Eigene Leute*, *SUB* und *Nicht in der Tabelle* erklärt die Zahl; ein Hinweis über den Monaten nennt die Quelle. Ein Jahr ohne Jahresplanung wird weiter aus den Projekten gebaut (Startmonat, Auftragswert). Baustellen, die in der Tabelle noch auf keinen Monat gelegt sind (Spalte *Baustellen für <Jahr>*), stehen als eigene Zeile unter der Überschrift — sie gehören zu keiner Monatskarte. Für ein Jahr, aus dem in BauCrew gar keine Projekte erfasst sind, sagt der Hinweis über den Monaten, dass die Zahlen ein **Rückblick** aus der Tabelle sind; ein Projekt, das später für so ein Jahr angelegt wird, ändert die Monatszahlen nicht, sondern erscheint unter *Nicht in der Tabelle*, bis es in der Tabelle steht oder einer Zeile zugeordnet ist. Der Jahresvergleich oben rechts und die Karte *Umsatz diesen Monat* auf dem Dashboard lesen dieselben Zahlen. Auslastung, Kunden und Datenqualität zeigen weiterhin nur, was in BauCrew erfasst ist.
 
 - **Pipeline:** was auf dem Weg zum Auftrag ist, Stand heute — drei Spalten
   **Anfrage**, **Angebot erstellt** und **Beauftragt** (noch nicht geplant), jede
@@ -859,7 +863,9 @@ Die Reiter:
   **Baustelle** des Jahres eine Zeile — läuft sie in der Tabelle über mehrere Monate, sind
   das die Monate und die Summe dieser Zeilen — mit einem Feld, um das passende Projekt zu
   wählen. Eine Verknüpfung gibt dem Projekt **Start, Ende und Auftragswert** aus der Tabelle,
-  sofern es sie noch nicht hat (Eingetragenes wird nie überschrieben).
+  sofern es sie noch nicht hat (Eingetragenes wird nie überschrieben). Unter der Tabelle stehen die
+  **Projekte ohne Zeile** dieses Jahres — geplanter Start im Jahr, aber keine Zeile in der
+  Jahresplanung — jedes mit **Zeile anlegen**; dieselbe Karte gibt es unter *Datenlücken*.
   **Sichere Zuordnungen übernehmen** erledigt alle eindeutigen Fälle auf einmal und sagt, wie
   viele übernommen wurden, wie viele eine Entscheidung brauchen und wie viele nirgends passen.
   Unter jeder offenen Baustelle stehen die Projekte, die in Frage kommen: ✓ ist sicher, ? ein

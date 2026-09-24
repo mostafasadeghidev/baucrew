@@ -12,7 +12,7 @@ import { PrintButton } from '@/components/print-button'
 import { BackButton } from '@/components/back-button'
 import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
-import { parseSheetOptions } from '@/lib/sheet-options'
+import { parseSheetOptions, sheetDefaults } from '@/lib/sheet-options'
 import { SheetOptionsBar } from './sheet-options'
 
 function Checkbox({ checked, label }: { checked: boolean; label: string }) {
@@ -45,19 +45,21 @@ export default async function ProjectSheetPage({
 }: {
   params: Promise<{ id: string }>
   /**
-   * `entry` = work order for one assignment (its team, vehicles and date);
-   * `types`, `only`, `notes` = what this printout shows (src/lib/sheet-options.ts).
+   * `entry` = work order for one assignment (its team, vehicles, date and note);
+   * `types`, `client`, `building`, `notes` = what this printout shows
+   * (src/lib/sheet-options.ts).
    */
-  searchParams: Promise<{ entry?: string; types?: string; only?: string; notes?: string }>
+  searchParams: Promise<{ entry?: string; types?: string; client?: string; building?: string; notes?: string }>
 }) {
   // The sheet contains no financial data, so employees may open it too —
   // but only for operationally relevant projects (see guard below).
   const user = await requireUser()
   const { id } = await params
   const { entry: entryId, ...printParams } = await searchParams
-  const [t, tc, locale] = await Promise.all([
+  const [t, tc, tp, locale] = await Promise.all([
     getTranslations('sheet'),
     getTranslations('common'),
+    getTranslations('projects'),
     getLocale(),
   ])
 
@@ -128,12 +130,22 @@ export default async function ProjectSheetPage({
   // A site manager prints the work orders of their own projects.
   if (user.role === 'SITE_MANAGER' && !(await canSeeProject(user, project.id))) redirect('/projects')
 
-  // What this printout ticks: the project's own work types unless the office
-  // chose others for the day — and, on request, only those are printed.
-  const ownCategoryIds = project.workCategories.map((wc) => wc.workCategoryId)
-  const printOptions = parseSheetOptions(printParams, ownCategoryIds, allCategories.map((c) => c.id))
+  const [branding, lists] = await Promise.all([getBranding(), getOptionLists()])
+
+  // What this printout ticks: the project's own work types, Auftragsart and
+  // Objektart unless the office chose otherwise for the day. The whole list
+  // of work types is printed, as the paper form has it; the ticks are the choice.
+  const known = {
+    types: allCategories.map((c) => c.id),
+    clientTypes: lists.clientTypes.map((e) => e.value),
+    buildingTypes: lists.buildingTypes.map((e) => e.value),
+  }
+  const own = sheetDefaults(
+    { types: project.workCategories.map((wc) => wc.workCategoryId), clientType: project.clientType, buildingType: project.buildingType },
+    known
+  )
+  const printOptions = parseSheetOptions(printParams, own, known)
   const assignedCategoryIds = new Set(printOptions.types)
-  const printedCategories = printOptions.only ? allCategories.filter((c) => assignedCategoryIds.has(c.id)) : allCategories
   const categoryLabel = (c: { nameDe: string; nameEn: string }) =>
     locale === 'en' ? c.nameEn : c.nameDe
   const address = [
@@ -144,8 +156,6 @@ export default async function ProjectSheetPage({
     .join(', ')
   const tools = project.items.filter((i) => i.catalogItem.kind === 'TOOL')
   const materials = project.items.filter((i) => i.catalogItem.kind !== 'TOOL')
-
-  const [branding, lists] = await Promise.all([getBranding(), getOptionLists()])
 
   // QR code linking back to this project (scannable from the printed sheet)
   const headerStore = await headers()
@@ -176,12 +186,16 @@ export default async function ProjectSheetPage({
       {user.role !== 'EMPLOYEE' && (
         <SheetOptionsBar
           options={printOptions}
-          own={ownCategoryIds}
+          own={own}
           categories={allCategories.map((c) => ({ id: c.id, label: categoryLabel(c) }))}
+          clientTypes={lists.clientTypes.map((e) => ({ id: e.value, label: optionLabel(lists.clientTypes, e.value, locale) }))}
+          buildingTypes={lists.buildingTypes.map((e) => ({ id: e.value, label: optionLabel(lists.buildingTypes, e.value, locale) }))}
           labels={{
             heading: t('printOptions'),
             types: t('printTypesHint'),
-            only: t('printOnlyTicked'),
+            site: t('printSiteHint'),
+            clientType: tp('clientType'),
+            buildingType: tp('buildingType'),
             notes: t('printDescription'),
             reset: t('printReset'),
           }}
@@ -249,7 +263,7 @@ export default async function ProjectSheetPage({
               {lists.clientTypes.map((e) => (
                 <Checkbox
                   key={e.value}
-                  checked={project.clientType === e.value}
+                  checked={printOptions.clientType === e.value}
                   label={optionLabel(lists.clientTypes, e.value, locale)}
                 />
               ))}
@@ -257,7 +271,7 @@ export default async function ProjectSheetPage({
               {lists.buildingTypes.map((e) => (
                 <Checkbox
                   key={e.value}
-                  checked={project.buildingType === e.value}
+                  checked={printOptions.buildingType === e.value}
                   label={optionLabel(lists.buildingTypes, e.value, locale)}
                 />
               ))}
@@ -270,7 +284,7 @@ export default async function ProjectSheetPage({
             </div>
             {/* Fixed 3-column grid so every row lines up with the one above */}
             <div className="grid flex-1 grid-cols-3 gap-y-1.5 px-2 py-1.5">
-              {printedCategories.map((c) => (
+              {allCategories.map((c) => (
                 <Checkbox key={c.id} checked={assignedCategoryIds.has(c.id)} label={categoryLabel(c)} />
               ))}
             </div>
@@ -343,8 +357,11 @@ export default async function ProjectSheetPage({
 
         <div className="mt-4 border border-black">
           <p className="border-b border-black px-2 py-1.5 font-semibold">{t('notes')}</p>
-          {/* Empty unless asked for: the box is the crew's, to write in on the site. */}
-          <p className="min-h-24 whitespace-pre-wrap px-2 py-1.5">{printOptions.notes ? (project.description ?? '') : ''}</p>
+          {/* The assignment's own note first, the description only when asked
+              for — the rest of the box is the crew's, to write in on the site. */}
+          <p className="min-h-24 whitespace-pre-wrap px-2 py-1.5">
+            {[entry?.note?.trim(), printOptions.notes ? project.description?.trim() : null].filter(Boolean).join('\n\n')}
+          </p>
         </div>
       </div>
     </div>

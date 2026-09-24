@@ -9,6 +9,7 @@ import { btn } from '@/components/ui/button'
 import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
 import { canViewFinancials, requireStaff } from '@/lib/authz'
 import { projectScope } from '@/lib/project-scope'
+import { projectsViewHref } from '@/lib/projects-view'
 import { allowedLayout, parseLayout, type DashboardWidget } from '@/lib/dashboard-layout'
 import { formatCurrency } from '@/lib/format'
 import { pricesHidden } from '@/lib/price-visibility'
@@ -306,8 +307,9 @@ export default async function DashboardPage({
     employees.map((ee) => `${ee.employee.firstName} ${ee.employee.lastName}`.trim()).join(', ') || '—'
 
   const stats = [
-    { label: t('activeProjects'), value: activeProjects, href: '/projects?status=IN_PROGRESS' },
-    { label: t('plannedProjects'), value: plannedProjects, href: '/projects?status=PLANNED' },
+    // The board, narrowed to that one list — the list view is a click away there.
+    { label: t('activeProjects'), value: activeProjects, href: projectsViewHref('board', { status: 'IN_PROGRESS' }) },
+    { label: t('plannedProjects'), value: plannedProjects, href: projectsViewHref('board', { status: 'PLANNED' }) },
     { label: t('employeesToday'), value: employeesToday, href: '/dashboard/today#mitarbeiter' },
     { label: t('vehiclesToday'), value: vehiclesToday, href: '/dashboard/today#fahrzeuge' },
     { label: t('customers'), value: customerCount, href: '/customers' },

@@ -42,6 +42,7 @@ import {
 import type { MonthRevenue, RevenueProject } from '@/lib/reports'
 import { siteKey } from '@/lib/reports-calc'
 import type { LanesDensity } from '@/lib/revenue-layout'
+import { CreateLineButton } from './plan/create-line-button'
 
 type Lane = 'own' | 'sub' | 'extra'
 type TileSize = 'wide' | 'compact' | 'mini'
@@ -172,6 +173,7 @@ export async function RevenueLanes({
         <span className="flex shrink-0 items-center gap-1.5 text-[11px] tabular-nums text-muted">
           {span.length > 1 && <span>{`${at}/${span.length}`}</span>}
           <span>{p.price == null ? '—' : amount(p.price)}</span>
+          {lane === 'extra' && !p.fromSheet && p.price != null && <CreateLineButton projectId={p.id} tiny />}
         </span>
       </div>
     )

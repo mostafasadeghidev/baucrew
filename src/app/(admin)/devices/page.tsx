@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { btn } from '@/components/ui/button'
 import { LiveSearchInput } from '@/components/live-search'
-import { PageBar, PagePanel, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
 import { deviceState } from '@/lib/devices'
 
 export default async function DevicesPage({
@@ -57,6 +57,7 @@ export default async function DevicesPage({
           }
         />
       </StickyHead>
+      <PageHint>{t('hint')}</PageHint>
 
       <PagePanel>
         <div className="border-b border-border p-4">

@@ -916,7 +916,7 @@
     "gapSubProjectSub": "Project: SUB · Plan: own crew",
     "gapSubProjectOwn": "Project: own crew · Plan: SUB",
     "gapNotInPlan": "Not in the year plan",
-    "gapNotInPlanHint": "Starts in a year that has a year plan, but has no line in that year – the job counts in no month there. Assign a line in plan matching.",
+    "gapNotInPlanHint": "Starts in a year that has a planning sheet, but has no line in that year – it counts in no month there. “Add a line” enters it with its start month and order value; in the plan match it can be tied to a line of the sheet instead.",
     "gapPlanLink": "Plan matching {year}",
     "gapLooseLines": "Plan lines without a project",
     "gapLooseLinesHint": "Year plan lines from the running month on that have no project yet (or whose project was cancelled). Create the project or assign it in plan matching.",
@@ -1138,7 +1138,7 @@
     "extraTitle": "Not in the sheet",
     "hintOwnPeopleSheet": "Sum of this month's lines in the year plan (sheet), own crew — exactly as in the sheet. A line with a project links to it; one without a project exists only in the sheet.",
     "hintSubSheet": "Sum of this month's SUB lines in the year plan — jobs carried out by a subcontractor.",
-    "hintExtra": "Projects with a planned start in this month that are not in the year plan. They do not count towards the month and year totals, so the figures match the sheet — add them to the sheet or tie them to a line in the plan match.",
+    "hintExtra": "Projects with a planned start in this month that the planning sheet does not have. They are not counted in the month’s and the year’s total, so the figures match the sheet — “Add a line” gives such a project a line of its own, or tie it to a line in the plan match.",
     "chartOpenMonth": "show the month's jobs",
     "chartClickHint": "Click a month to list the jobs of every compared year underneath.",
     "monthJobs": "{count, plural, =0 {no jobs} one {# job} other {# jobs}}",
@@ -1175,9 +1175,9 @@
     "backToProject": "Back to project",
     "printOptions": "For this printout",
     "printTypesHint": "Which kind of work is ticked — prefilled with the project's trades.",
-    "printOnlyTicked": "Print the ticked work types only",
     "printDescription": "Print the project's description into the notes box",
-    "printReset": "Reset"
+    "printReset": "Reset",
+    "printSiteHint": "Site set-up geared to — prefilled with the project's client type and building type."
   },
   "today": {
     "title": "Daily preparation",
@@ -1284,10 +1284,13 @@
     "todayButton": "Today",
     "mapApproximate": "approx. town centre",
     "absentConflict": "{name} is away on {date} ({type})",
-    "rangeApplyExisting": "{count, plural, one {Update the existing day as well (crew, vehicles, times)} other {Update the # existing days as well (crew, vehicles, times)}}",
-    "rangeExistingKept": "{count, plural, one {# day is already planned and stays unchanged} other {# days are already planned and stay unchanged}}",
+    "rangeApplyExisting": "{count, plural, one {{days} is already planned – apply this crew, vehicles and times there too} other {{days} are already planned – apply this crew, vehicles and times there too}}",
+    "rangeExistingKept": "{count, plural, one {{days} is already planned and stays as it is} other {{days} are already planned and stay as they are}}",
     "createAndApply": "Create {create} · update {update}",
-    "applyOnly": "{count, plural, one {Save and update # day} other {Save and update # days}}"
+    "applyOnly": "{count, plural, one {Save and update # day} other {Save and update # days}}",
+    "dayPair": "{first} and {second}",
+    "daysFromTo": "{count} days from {first} to {last}",
+    "noteHint": "Printed on this day's work order."
   },
   "warehouse": {
     "title": "Warehouse",
@@ -1324,7 +1327,8 @@
     "quickCreateSubmit": "Create and add",
     "unitPlaceholder": "e.g. piece, roll, litre",
     "createItemOption": "Create \"{name}\" as a new item",
-    "videoUrl": "Instruction video (link)"
+    "videoUrl": "Instruction video (link)",
+    "hint": "Material and tools an assignment takes along — for the packing list, the day’s preparation and the work order. Individual machines with a location, hand-out and return are under Devices."
   },
   "itemKind": {
     "TOOL": "Tool",
@@ -1695,8 +1699,10 @@
     "selectDevice": "Pick a device …",
     "removeNeed": "Remove from the list",
     "alreadyAdded": "Already on the list.",
-    "holder": "Who has it?",
-    "allInStore": "All devices are in the store."
+    "allInStore": "All devices are in the store.",
+    "hint": "Every machine on its own: in the store, with an employee or on a site — with hand-out, return and history. Material and tools for packing lists and work orders are under Warehouse.",
+    "outTitle": "Devices out",
+    "outHint": "Devices currently with an employee or on a site — the devices themselves are kept under Devices."
   },
   "importPlan": {
     "title": "Import year planning",
@@ -1764,7 +1770,14 @@
     "exportLinks": "Export links",
     "importLinks": "Import links",
     "importDone": "{applied, plural, one {# line} other {# lines}} linked · {alreadyLinked} were linked already · {missingProject} without a matching project · {missingLine} without a matching line.",
-    "importInvalid": "This is not a links file from the plan match."
+    "importInvalid": "This is not a links file from the plan match.",
+    "createLine": "Add a line",
+    "lineNoDate": "no planned start",
+    "lineNoValue": "no order value",
+    "lineHasLine": "already has a line in this year",
+    "lineFailed": "That did not work.",
+    "withoutLineTitle": "{count, plural, one {# project without a line in {year}} other {# projects without a line in {year}}}",
+    "withoutLineHint": "Projects starting this year that the planning sheet does not have — they count in no month. “Add a line” gives them a line with their start month and order value; it survives a re-import of the sheet until the sheet carries the project itself."
   },
   "defects": {
     "heading": "Defects",

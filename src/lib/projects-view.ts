@@ -3,9 +3,10 @@
  *
  * The board is where the page opens. The list is asked for by name
  * (`view=list`) — or by what only the list understands: a status tab or a
- * page number. That is how the dashboard's "in progress" and "planned" links,
- * and every link the list makes to itself, still land on the list. An old
- * `view=kanban` bookmark still opens the board.
+ * page number. That is how every link the list makes to itself still lands on
+ * the list. A status meant for the board — the dashboard's "in progress" and
+ * "planned" cards — asks for the board by name (`view=kanban`), which is also
+ * what an old bookmark says.
  *
  * Pure, so the rule is tested without a request.
  */

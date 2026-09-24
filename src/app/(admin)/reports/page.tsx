@@ -72,6 +72,7 @@ import {
   weeklyTurnover,
 } from '@/lib/order-situation'
 import { RevenueLanes } from './revenue-lanes'
+import { CreateLineButton } from './plan/create-line-button'
 import { RevenueMatrix } from './revenue-matrix'
 import { OrderSituation } from './order-situation'
 import { TodayView } from './today-view'
@@ -440,6 +441,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <span className={`shrink-0 tabular-nums ${extra ? '' : 'text-muted'}`} title={exact(p.price)}>
         {cardMoney(p.price)}
       </span>
+      {/* Outside the sheet: a line of its own is one click away */}
+      {extra && !p.fromSheet && p.price != null && <CreateLineButton projectId={p.id} tiny />}
     </div>
   )
   /** Actual against plan: green once the plan is reached (see planReached), amber below it. */
