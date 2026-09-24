@@ -22,7 +22,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Applies the stored theme before first paint to avoid a flash of wrong theme.
-const themeInit = `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();`
+// Light unless somebody chose otherwise: dark by choice, or the system's by choice.
+const themeInit = `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();`
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale()

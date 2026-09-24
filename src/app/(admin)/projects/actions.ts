@@ -18,6 +18,7 @@ import {
   projectBefore,
 } from '@/lib/project-events'
 import { cookies } from 'next/headers'
+import { getTranslations } from 'next-intl/server'
 import { createProject as createProjectRecord, createProjectInput } from '@/lib/api-service'
 import { BOARD_COOKIE, COLUMN_TITLE_MAX } from '@/lib/boards'
 import { addBoardColumn, removeBoardColumn, renameBoardColumn, saveColumnOrder } from '@/lib/boards-db'
@@ -557,6 +558,116 @@ export async function moveCard(
     )
   }
   refreshAfterStatus(id)
+  return {}
+}
+
+/**
+ * A copy of a card, the way Trello copies one: the same customer, place,
+ * trades, people, vehicles, material, machines and checklists, in the same
+ * list right under the original, with a fresh number — and no dates, no
+ * money, no files and no talk, which belong to the job that was, not the
+ * job to come. The copy opens for the touch-up it needs.
+ */
+export async function copyProject(id: string): Promise<{ id?: string; error?: string }> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const source = await db.project.findUnique({
+    where: { id },
+    include: {
+      team: { select: { employeeId: true } },
+      vehicles: { select: { vehicleId: true } },
+      workCategories: { select: { workCategoryId: true } },
+      items: { select: { catalogItemId: true, quantity: true } },
+      deviceNeeds: { select: { deviceId: true } },
+      checklists: { select: { templateId: true } },
+    },
+  })
+  if (!source) return { error: 'saveFailed' }
+  const t = await getTranslations('projects')
+  // Right under the original: between it and whatever follows it in its list.
+  const next =
+    source.boardPosition == null
+      ? null
+      : await db.project.findFirst({
+          where: { status: source.status, archivedAt: null, boardPosition: { gt: source.boardPosition } },
+          orderBy: { boardPosition: 'asc' },
+          select: { boardPosition: true },
+        })
+  let created: { id: string } | null = null
+  // Retry once if the sequential number collides with a concurrent create.
+  for (let attempt = 0; attempt < 2 && !created; attempt++) {
+    try {
+      created = await db.project.create({
+        data: {
+          number: await nextProjectNumber(),
+          name: t('copyName', { name: source.name }).slice(0, 300),
+          customerId: source.customerId,
+          status: source.status,
+          isSub: source.isSub,
+          clientType: source.clientType,
+          buildingType: source.buildingType,
+          leadSource: source.leadSource,
+          priority: source.priority,
+          street: source.street,
+          postalCode: source.postalCode,
+          city: source.city,
+          latitude: source.latitude,
+          longitude: source.longitude,
+          phone: source.phone,
+          contact: source.contact,
+          description: source.description,
+          internalNotes: source.internalNotes,
+          managerId: source.managerId,
+          boardPosition: source.boardPosition == null ? null : positionBetween(source.boardPosition, next?.boardPosition ?? null),
+          team: { create: source.team.map((m) => ({ employeeId: m.employeeId })) },
+          vehicles: { create: source.vehicles.map((v) => ({ vehicleId: v.vehicleId })) },
+          workCategories: { create: source.workCategories.map((w) => ({ workCategoryId: w.workCategoryId })) },
+          items: { create: source.items.map((i) => ({ catalogItemId: i.catalogItemId, quantity: i.quantity })) },
+          deviceNeeds: { create: source.deviceNeeds.map((d) => ({ deviceId: d.deviceId })) },
+        },
+        select: { id: true },
+      })
+    } catch (e: unknown) {
+      const clash = typeof e === 'object' && e !== null && 'code' in e && (e as { code?: string }).code === 'P2002'
+      if (!clash || attempt === 1) {
+        console.error('copy failed', e)
+        return { error: 'saveFailed' }
+      }
+    }
+  }
+  if (!created) return { error: 'saveFailed' }
+  await copyChecklistsToProject(
+    created.id,
+    source.checklists.map((c) => c.templateId).filter((templateId): templateId is string => templateId !== null)
+  )
+  await audit({
+    userId: user.id,
+    action: 'project.copy',
+    entity: 'Project',
+    entityId: created.id,
+    oldValue: `${source.number} ${source.name}`,
+  })
+  await announceProjectCreated(created.id, { type: 'user', userId: user.id })
+  revalidatePath('/projects')
+  return { id: created.id }
+}
+
+/** A card gone for good, from the archive: the admin's, like every delete. The panel stays where it is. */
+export async function deleteArchivedProject(id: string, _prev: DeleteState, _formData: FormData): Promise<DeleteState> {
+  const user = await requireAdmin()
+  const project = await db.project.findUnique({ where: { id }, select: { archivedAt: true } })
+  if (!project?.archivedAt) return { error: 'notFound' }
+  const snapshot = await projectBefore(id)
+  const gone = await db.project.delete({ where: { id } })
+  await audit({
+    userId: user.id,
+    action: 'project.delete',
+    entity: 'Project',
+    entityId: id,
+    oldValue: `${gone.number} ${gone.name}`,
+  })
+  await announceProjectDeleted(snapshot, { type: 'user', userId: user.id })
+  revalidatePath('/projects')
   return {}
 }
 

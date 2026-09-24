@@ -70,6 +70,23 @@ Rules that hold:
 - **The filter asks when a card is due**, as Trello's does: overdue, due in
   the next week or month (by "Fällig am"), or without a day at all (neither
   planned start nor due date) — `due=` in the address, in both views.
+- **The cards slide** rather than jump when the slot passes, a card is
+  dropped, a move is undone or the server answers: a FLIP pass in a layout
+  effect puts every card that moved back where it was and lets it travel
+  (160 ms); the copy in hand glides into the slot before it goes. Lists' own
+  scroll and the board's are taken out of the measure.
+- **The archive panel** is searched as it is typed into (`aq=`) and offers
+  the administrator "Löschen" beside "Wiederherstellen" — gone for good,
+  after the usual question; the panel stays open.
+- **A card can be copied** ("Karte kopieren" in its quick menu): the same
+  customer, place, trades, people, vehicles, material, machines and
+  checklists, in the same list right under the original, with a fresh number
+  and no dates, money, files or talk; the copy opens for its touch-up
+  (`copyProject`, audit `project.copy`, a history line).
+- **Light is where the app opens.** The theme was the system's unless chosen;
+  it is light unless chosen — dark and "system" stay a click away and are
+  kept as choices — because the client's Trello was light and the board is
+  what they see first.
 - **The card back** (the sheet over the board) is laid out like Trello's: the
   cover across the top; title, status, members, labels, dates; the "add to
   card" row; then, one under the other, the description, a folded line
@@ -107,7 +124,9 @@ Rules that hold:
 - `src/lib/backup.ts` — covers in a second pass
 - `src/app/(admin)/projects/actions.ts` — `changeStatus` shared by
   `setProjectStatus` and the new `moveCard`; `sortColumn`, `archiveProject`,
-  `renameColumn`, `addColumn`, `removeColumn`
+  `renameColumn`, `addColumn`, `removeColumn`, `copyProject`,
+  `deleteArchivedProject`
+- `src/app/layout.tsx`, `src/components/theme-toggle.tsx` — light by default
 - `src/app/(admin)/projects/[id]/file-actions.ts` — `setProjectCover`
 - `src/app/(admin)/projects/kanban.tsx` — the board: the slot while dragging,
   the head as handle, the list menu, folding, renaming, "+ Weitere Liste",

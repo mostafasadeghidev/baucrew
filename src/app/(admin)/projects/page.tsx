@@ -29,6 +29,8 @@ import { todayUtc } from '@/lib/dates'
 import { ProjectsKanban, type KanbanColumn } from './kanban'
 import { BoardMenu } from './board-menu'
 import { ArchiveButton } from './archive-button'
+import { DeleteButton } from '@/components/delete-button'
+import { deleteArchivedProject } from './actions'
 import { orderCards } from '@/lib/board-order'
 import { COLUMN_RULES, columnFor, columnRuleKey, RULE_STATUS } from '@/lib/board-rules'
 import { StatusBadge } from '@/components/status-badge'
@@ -58,10 +60,12 @@ export default async function ProjectsPage({
     due?: string
     card?: string
     archived?: string
+    /** What the archive panel is searched for. */
+    aq?: string
   }>
 }) {
   const user = await requireStaff()
-  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, due, card, archived } = await searchParams
+  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, due, card, archived, aq } = await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
   const page = parsePage(pageParam)
@@ -90,7 +94,7 @@ export default async function ProjectsPage({
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
   // This very address — where the open card's forms return to.
   const here = new URLSearchParams()
-  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, due, card, archived }))
+  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, due, card, archived, aq }))
     if (value) here.set(key, value)
   const returnTo = `/projects?${here.toString()}`
   /** This address with the archive panel open, and without it. */
@@ -98,7 +102,10 @@ export default async function ProjectsPage({
     const params = new URLSearchParams(here)
     params.delete('card')
     if (open) params.set('archived', '1')
-    else params.delete('archived')
+    else {
+      params.delete('archived')
+      params.delete('aq')
+    }
     return `/projects?${params.toString()}`
   }
 
@@ -383,10 +390,25 @@ export default async function ProjectsPage({
     })),
   ]
   // The archive: what was put away, newest first, for the panel beside the board.
+  const archiveQuery = (aq ?? '').trim()
   const archivedProjects =
     kanban && archived === '1'
       ? await db.project.findMany({
-          where: { AND: [scope, { archivedAt: { not: null } }] },
+          where: {
+            AND: [
+              scope,
+              { archivedAt: { not: null } },
+              archiveQuery
+                ? {
+                    OR: [
+                      { number: { contains: archiveQuery, mode: 'insensitive' } },
+                      { name: { contains: archiveQuery, mode: 'insensitive' } },
+                      { customer: { name: { contains: archiveQuery, mode: 'insensitive' } } },
+                    ],
+                  }
+                : {},
+            ],
+          },
           orderBy: { archivedAt: 'desc' },
           take: 200,
           select: { id: true, number: true, name: true, status: true, archivedAt: true, customer: { select: { name: true } } },
@@ -616,13 +638,20 @@ export default async function ProjectsPage({
         {archived === '1' && (
           <aside className="absolute inset-y-0 right-0 z-20 flex w-full max-w-sm flex-col border-l border-border bg-surface shadow-2xl">
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <h2 className="text-sm font-semibold">{t('boardArchived')}</h2>
+              <h2 className="text-sm font-semibold">
+                {t('boardArchived')}
+                <span className="ml-2 text-xs font-normal tabular-nums text-muted">{archivedProjects.length}</span>
+              </h2>
               <Link href={archivedHref(false)} aria-label={tc('close')} title={tc('close')} className="rounded-md p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground">
                 <X className="h-4 w-4" aria-hidden />
               </Link>
             </div>
+            {/* Searched as it is typed into, the way Trello's archive is. */}
+            <div className="flex border-b border-border px-4 py-2">
+              <LiveSearchInput param="aq" placeholder={t('boardArchivedSearch')} />
+            </div>
             {archivedProjects.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-muted">{t('boardArchivedNone')}</p>
+              <p className="px-4 py-8 text-center text-sm text-muted">{archiveQuery ? t('noResults') : t('boardArchivedNone')}</p>
             ) : (
               <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
                 {archivedProjects.map((p) => (
@@ -636,7 +665,17 @@ export default async function ProjectsPage({
                     <p className="text-xs text-muted">
                       {p.customer.name} · {t('boardArchivedOn', { date: p.archivedAt ? dayMonthYear.format(p.archivedAt) : '—' })}
                     </p>
-                    <ArchiveButton projectId={p.id} archived label={t('cardRestore')} />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ArchiveButton projectId={p.id} archived label={t('cardRestore')} />
+                      {/* Gone for good — the administrator's, as every delete is. */}
+                      {user.role === 'ADMIN' && (
+                        <DeleteButton
+                          action={deleteArchivedProject.bind(null, p.id)}
+                          label={tc('delete')}
+                          confirmMessage={`${p.number} — ${p.name}: ${t('deleteConfirm')}`}
+                        />
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

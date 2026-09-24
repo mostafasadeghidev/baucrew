@@ -45,7 +45,7 @@
  * "select from here to there".
  */
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -77,7 +77,7 @@ import { btn } from '@/components/ui/button'
 import { DRAG_THRESHOLD, LONG_PRESS_MS, LONG_PRESS_SLOP, carry, drop as dropGhost, lift } from '@/lib/card-lift'
 import { isVerticalWheel, wheelPixels } from '@/lib/wheel-axis'
 import { useCardDetails, useCollapsedColumns, useLabelsOpen } from './board-prefs'
-import { addColumn, moveCard, quickAddProject, quickUpdateProject, removeColumn, renameColumn, setBoardOrder, sortColumn } from './actions'
+import { addColumn, copyProject, moveCard, quickAddProject, quickUpdateProject, removeColumn, renameColumn, setBoardOrder, sortColumn } from './actions'
 
 export type KanbanCard = {
   id: string
@@ -299,6 +299,47 @@ export function ProjectsKanban({
     order.current = board.map((c) => c.id)
   }, [board])
 
+  // ── The cards slide, the way Trello's do ──
+  // Before each paint, every card that stands somewhere else than it did a
+  // moment ago is put back where it was with a transform and then let go, so
+  // it travels rather than jumps. Measured from the page, not from state: the
+  // cards move for many reasons — the slot passing, a drop, the undo, the
+  // server answering — and this is right for all of them. A list's own scroll
+  // and the board's are taken out of the measure, or a list scrolling under a
+  // held card would send every card in it on a trip.
+  const lastRects = useRef(new Map<string, { left: number; top: number }>())
+  useLayoutEffect(() => {
+    const box = scroller.current
+    if (!box) return
+    const next = new Map<string, { left: number; top: number }>()
+    for (const el of box.querySelectorAll<HTMLElement>('[data-card-id]')) {
+      const id = el.dataset.cardId!
+      const rect = el.getBoundingClientRect()
+      const host = el.closest<HTMLElement>('[data-board-cards]')
+      const at = { left: rect.left + box.scrollLeft, top: rect.top + (host?.scrollTop ?? 0) }
+      next.set(id, at)
+      const was = lastRects.current.get(id)
+      if (!was) continue
+      const dx = was.left - at.left
+      const dy = was.top - at.top
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue
+      // Put back, taken in by the browser (the read forces it), then let go —
+      // in one tick, so a tab that is not being drawn does not keep a card
+      // halfway. The class's own transition returns once the trip is over.
+      el.style.transition = 'none'
+      el.style.transform = `translate(${dx}px, ${dy}px)`
+      void el.offsetWidth
+      el.style.transition = 'transform 160ms ease'
+      el.style.transform = ''
+      const clear = () => {
+        el.style.transition = ''
+        el.removeEventListener('transitionend', clear)
+      }
+      el.addEventListener('transitionend', clear)
+    }
+    lastRects.current = next
+  }, [board, dragging])
+
   const labelOf = (columnId: string) => board.find((c) => c.id === columnId)?.label ?? columnId
 
   /** The board is what `after` says; the server is told where the card now stands. */
@@ -398,6 +439,19 @@ export function ProjectsKanban({
         return
       }
       router.refresh()
+    })
+  }
+
+  /** A copy of the card, right under it, opened for the touch-up it needs. */
+  const copy = (card: KanbanCard) => {
+    setError(null)
+    startTransition(async () => {
+      const result = await copyProject(card.id)
+      if (!result.id) {
+        setError(labels.saveFailed)
+        return
+      }
+      router.push(openHref(result.id), { scroll: false })
     })
   }
 
@@ -744,9 +798,24 @@ export function ProjectsKanban({
       return
     }
     if (state.kind === 'card') {
-      dropGhost(state.ghost, state.el)
       // The wheel or the edge may have moved the board under a still pointer.
       trackCard(state.card, e.clientX, e.clientY)
+      // The copy in hand glides into the slot, and only then goes — the card
+      // itself is drawn under it in the same moment, so nothing flashes.
+      const ghost = state.ghost
+      const slotEl = scroller.current?.querySelector<HTMLElement>('[data-board-slot]')
+      if (ghost && slotEl) {
+        const to = slotEl.getBoundingClientRect()
+        const baseLeft = parseFloat(ghost.style.left) || 0
+        const baseTop = parseFloat(ghost.style.top) || 0
+        ghost.style.transition = 'transform 160ms ease, box-shadow 160ms ease'
+        ghost.style.transform = `translate(${to.left - baseLeft}px, ${to.top - baseTop}px)`
+        ghost.style.boxShadow = 'none'
+        const el = state.el
+        setTimeout(() => dropGhost(ghost, el), 170)
+      } else {
+        dropGhost(ghost, state.el)
+      }
       slot.current = null
       setDragging(null)
       settle(state.card)
@@ -982,6 +1051,7 @@ export function ProjectsKanban({
                       key={card.id}
                       data-board-card
                       data-board-slot
+                      data-card-id={card.id}
                       aria-hidden
                       style={{ height: dragging.height }}
                       className="rounded-lg bg-black/10 dark:bg-white/10"
@@ -999,6 +1069,7 @@ export function ProjectsKanban({
                       router.push(openHref(card.id), { scroll: false })
                     }}
                     data-board-card
+                    data-card-id={card.id}
                     // Both directions: a finger that starts on a card still
                     // pushes the board sideways or the column down. `pan-y`
                     // alone meant the board could only be moved by the narrow
@@ -1033,6 +1104,9 @@ export function ProjectsKanban({
                         </button>
                         <button type="button" role="menuitem" className={menuItemClass} onClick={() => setRenaming({ id: card.id, value: card.name })}>
                           {t('cardRename')}
+                        </button>
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => copy(card)}>
+                          {t('cardCopy')}
                         </button>
                         <button type="button" role="menuitem" className={menuItemClass} onClick={() => quick(card, { urgent: !card.urgent })}>
                           {card.urgent ? t('cardUnmarkUrgent') : t('cardMarkUrgent')}

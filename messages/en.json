@@ -453,7 +453,10 @@
     "boardFilterDueOverdue": "Overdue",
     "boardFilterDueWeek": "Due in the next week",
     "boardFilterDueMonth": "Due in the next month",
-    "boardFilterDueNone": "No dates"
+    "boardFilterDueNone": "No dates",
+    "cardCopy": "Copy card",
+    "copyName": "{name} (copy)",
+    "boardArchivedSearch": "Search the archive …"
   },
   "history": {
     "created": "created this card",
@@ -488,7 +491,8 @@
     "formDeleted": "deleted the form “{title}”",
     "invoiceReady": "marked invoice {part} as ready",
     "invoiceWithdrawn": "withdrew invoice {part}",
-    "system": "System"
+    "system": "System",
+    "copiedFrom": "created this card as a copy of “{name}”"
   },
   "employees": {
     "title": "Employees",

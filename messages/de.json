@@ -453,7 +453,10 @@
     "boardFilterDueOverdue": "Überfällig",
     "boardFilterDueWeek": "In der nächsten Woche fällig",
     "boardFilterDueMonth": "Im nächsten Monat fällig",
-    "boardFilterDueNone": "Ohne Termin"
+    "boardFilterDueNone": "Ohne Termin",
+    "cardCopy": "Karte kopieren",
+    "copyName": "{name} (Kopie)",
+    "boardArchivedSearch": "Im Archiv suchen …"
   },
   "history": {
     "created": "hat die Karte angelegt",
@@ -488,7 +491,8 @@
     "formDeleted": "hat das Formular „{title}“ gelöscht",
     "invoiceReady": "hat Rechnung {part} als bereit gemeldet",
     "invoiceWithdrawn": "hat Rechnung {part} zurückgenommen",
-    "system": "System"
+    "system": "System",
+    "copiedFrom": "hat die Karte als Kopie von „{name}“ angelegt"
   },
   "employees": {
     "title": "Mitarbeiter",

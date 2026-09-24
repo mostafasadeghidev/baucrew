@@ -53,6 +53,8 @@ export function describeAudit(entry: AuditEntry, t: Words, statusLabel: (status:
       return t('updated')
     case 'project.merge':
       return t('merged')
+    case 'project.copy':
+      return t('copiedFrom', { name: name(oldValue) })
     case 'project.file.add':
       return t('fileAdded', { name: name(newValue) })
     case 'project.file.delete':

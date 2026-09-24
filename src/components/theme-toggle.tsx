@@ -12,13 +12,14 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb)
 }
 
+/** Light is where the app opens; dark and the system's own are choices, and kept as such. */
 function getSnapshot(): Theme {
   const stored = localStorage.getItem('theme')
-  return stored === 'light' || stored === 'dark' ? stored : 'system'
+  return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'light'
 }
 
 function getServerSnapshot(): Theme {
-  return 'system'
+  return 'light'
 }
 
 function applyTheme(theme: Theme) {
@@ -29,8 +30,7 @@ function applyTheme(theme: Theme) {
 }
 
 function setStoredTheme(theme: Theme) {
-  if (theme === 'system') localStorage.removeItem('theme')
-  else localStorage.setItem('theme', theme)
+  localStorage.setItem('theme', theme)
   applyTheme(theme)
   listeners.forEach((cb) => cb())
 }
@@ -48,7 +48,7 @@ export function ThemeToggle({ withLabel = false }: { withLabel?: boolean } = {})
   }, [])
 
   function cycle() {
-    const next: Theme = theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system'
+    const next: Theme = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
     setStoredTheme(next)
   }
 

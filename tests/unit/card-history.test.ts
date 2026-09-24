@@ -34,6 +34,7 @@ describe('what a card says happened to it', () => {
     expect(describeAudit(entry('project.defect.report', { newValue: 'Riss' }), t, status)).toBe('defectReported(title=Riss)')
     expect(describeAudit(entry('project.form.sign', { field: 'Abnahme' }), t, status)).toBe('formSigned(title=Abnahme)')
     expect(describeAudit(entry('project.archive'), t, status)).toBe('archived')
+    expect(describeAudit(entry('project.copy', { oldValue: '2026-0001 Muster' }), t, status)).toBe('copiedFrom(name=2026-0001 Muster)')
     expect(describeAudit(entry('project.invoice.ready', { field: 'invoice1' }), t, status)).toBe('invoiceReady(part=1)')
   })
 
