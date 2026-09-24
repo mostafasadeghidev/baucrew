@@ -79,8 +79,9 @@ Rules that hold:
   (material, devices, time, add-ons, invoices). The comments stay in the
   right column, with the card's **history** under them — the audit log in
   plain words (`src/lib/card-history.ts`; invoice lines only for whoever sees
-  money). The sheet is narrower (`max-w-5xl`). The project's full page keeps
-  its side-by-side layout.
+  money). The sheet keeps its width (`max-w-7xl`, 1280px); the fact cards under
+  "Projektdaten" stand two abreast from xl and one under the other below.
+  The project's full page keeps its side-by-side layout.
 
 ## Touched files
 

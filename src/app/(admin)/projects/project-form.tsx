@@ -632,7 +632,7 @@ export function ProjectForm({
           {fold.title}
         </button>
       )}
-      <div className={fold ? `order-3 col-span-full grid items-start gap-6 ${unfolded ? '' : 'hidden'}` : 'contents'}>
+      <div className={fold ? `order-3 col-span-full grid items-start gap-6 xl:grid-cols-2 ${unfolded ? '' : 'hidden'}` : 'contents'}>
       <Section title={t('basicData')} {...card('basic')}>
         <TextField label={t('name')} name="name" defaultValue={initial.name} required />
         <div>
