@@ -286,6 +286,7 @@ Zum Schluss **Speichern** → die Projektseite öffnet sich.
 - **Werkzeug und Material:** die Liste dieses Projekts. Jeder Artikel hat einen Status (*Erforderlich · Gepackt · Fehlt*), den das Lager setzt. Artikel hinzufügen oder entfernen wie oben. Diese eine Liste gilt für **alle** Einsätze des Projekts.
 - **Geplante Einsätze:** Datum, Uhrzeit, Team, Fahrzeuge. **+ Einsatz planen** öffnet das Einsatzfenster mit vorbelegtem Team, Fahrzeug und Uhrzeit (Kapitel 7.2).
 - **Arbeitsauftrag** (Druckersymbol), **Bearbeiten**, **Löschen** (nur Administrator; löscht auch alle Einsätze).
+- **E-Mail-Entwurf** (nur bei Status *Angebot erstellt*): öffnet im E-Mail-Programm des Rechners einen fertigen Entwurf an den Kunden — Betreff mit Angebotsnummer, kurzes Anschreiben, Angebotssumme, Grußformel mit dem Firmennamen. Angebot anhängen, prüfen, senden; von selbst wird nichts verschickt. Hat der Kunde keine E-Mail-Adresse, öffnet der Entwurf ohne Empfänger.
 
 **Kommentare** — in einer eigenen Spalte rechts neben den Karten der Projektseite (und der Karte über dem Board) spricht das Team über das Projekt — Büro und Bauleitung an einem Ort. Die Spalte bleibt beim Scrollen stehen, die neueste Nachricht ist im Blick, das Schreibfeld immer unten; auf schmalen Bildschirmen rückt sie unter die Karten. So geht es: kurze Nachrichten, die älteste zuerst, jede mit Namen und Zeit. Ein **@** nennt eine Person — beim Tippen erscheint die Liste der Konten, Enter übernimmt. Ist ein Webhook eingerichtet (Kapitel Einstellungen → Webhooks, Ereignis *Kommentar geschrieben*), erfährt die Automation jeden Kommentar samt den genannten Personen und kann sie in Telegram oder per E-Mail benachrichtigen. **Nur fürs Büro** hält einen Kommentar vom Team fern. Wer einen Kommentar geschrieben hat, kann ihn löschen; ein Administrator jeden. Auf der Board-Karte zählt 💬 die Kommentare. Die Kolonne liest und schreibt die Kommentare des Teams auch am Handy, unter jedem Einsatz in „Mein Bereich“. Wer mit @ genannt wurde, sieht das an der **Glocke** unten rechts — im Büro wie am Handy: die Zahl sagt, wie viele Kommentare seit dem letzten Blick dazugekommen sind, die Liste dahinter führt zum Projekt.
 
@@ -851,6 +852,7 @@ Die Reiter:
   die Karte *Umsatz diesen Monat* auf dem Dashboard lesen dieselben Zahlen. Auslastung, Kunden und
   Datenqualität zeigen weiterhin nur, was in BauCrew erfasst ist.
 
+- **Aufträge & Baustellen:** die Baustellen von heute — Termin überschritten, laufend, in 14 Tagen beginnend — als Karten oder Kanban. Darüber eine **Zeitleiste**: acht Wochen um heute, jede Baustelle als Balken über ihren geplanten Zeitraum (rot: Termin überschritten, blau: läuft, hellblau: beginnt), die rote Linie ist heute; ein Klick öffnet das Projekt. Was keinen Termin hat oder außerhalb der Wochen liegt, steht als Zahl darunter.
 - **Pipeline:** was auf dem Weg zum Auftrag ist, Stand heute — drei Spalten
   **Anfrage**, **Angebot erstellt** und **Beauftragt** (noch nicht geplant), jede
   mit Anzahl und Summe. In jeder Spalte steht das Projekt oben, das am längsten
@@ -916,7 +918,7 @@ Die Reiter:
 
 ![CRM — Auslastung](screenshots/28-berichte-auslastung.png)
 
-- **Auslastung:** Mitarbeiter und Fahrzeuge in **Prozent** (Einsatztage ÷ Arbeitstage des Zeitraums). Unter 50 % gelb, über 90 % grün.
+- **Auslastung:** Mitarbeiter und Fahrzeuge in **Prozent** (Einsatztage ÷ Arbeitstage des Zeitraums). Unter 50 % gelb, über 90 % grün. Die zwölf Monate stehen als Balken mit ihrem Anteil, der Ring oben zeigt den ganzen Zeitraum.
 
 ![CRM — Datenqualität](screenshots/29-berichte-datenqualitaet.png)
 

@@ -17,7 +17,8 @@ import { ParamTabs } from '@/components/param-tabs'
 import { StatusBadge } from '@/components/status-badge'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { pricesHidden } from '@/lib/price-visibility'
-import { siteProgress, SOON_DAYS } from '@/lib/cockpit'
+import { siteProgress, SOON_DAYS, type SiteGroup } from '@/lib/cockpit'
+import { siteTimeline } from '@/lib/site-timeline'
 import type { Today, TodayJob } from '@/lib/reports'
 
 const card = 'rounded-xl border border-border bg-surface shadow-sm'
@@ -33,6 +34,9 @@ const COLUMN_EDGE = {
   running: 'border-t-accent',
   starting: 'border-t-sky-500',
 } as const
+
+/** The bars of the time line, one colour per group. Literal, so Tailwind finds them. */
+const TIMELINE_FILL = { overdue: 'bg-red-500', running: 'bg-accent', starting: 'bg-sky-500' } as const
 
 /** The jobs Heute and this tab both read: not old data, not cancelled. */
 export const currentJobs = (data: Today) => data.jobs.filter((j) => !j.historical && j.status !== 'CANCELLED')
@@ -61,6 +65,13 @@ export async function JobsView({
   const overdue = current.filter((j) => j.group === 'overdue')
   const running = current.filter((j) => j.group === 'running')
   const starting = current.filter((j) => j.group === 'starting')
+  // Eight weeks around today, every dated site a bar — the tab's picture.
+  const timeline = siteTimeline(
+    current
+      .filter((j): j is TodayJob & { group: SiteGroup } => j.group !== null)
+      .map((j) => ({ id: j.id, number: j.number, name: j.name, group: j.group, plannedStart: j.plannedStart, plannedEnd: j.plannedEnd })),
+    today
+  )
 
   const situation = (job: TodayJob) => {
     if (job.overdue) {
@@ -226,6 +237,48 @@ export async function JobsView({
             ]}
           />
         </div>
+        {timeline.rows.length > 0 && (
+          <div className="border-b border-border px-3 py-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className={label}>{t('timelineTitle')}</h3>
+              <p className="text-[11px] text-muted">{t('timelineHint')}</p>
+            </div>
+            <div className="relative mt-2 overflow-hidden">
+              <div className="relative h-5 border-b border-border text-[10px] text-muted">
+                {timeline.weeks.map((w) => (
+                  <span key={w.left} className="absolute top-0 border-l border-border pl-1 leading-5" style={{ left: `${w.left}%` }}>
+                    {t('timelineWeek', { week: w.week })}
+                  </span>
+                ))}
+              </div>
+              <ol className="relative space-y-1 py-1">
+                <span aria-hidden className="pointer-events-none absolute inset-y-0 z-10 border-l-2 border-red-500/70" style={{ left: `${timeline.todayLeft}%` }} />
+                {timeline.rows.map((r) => (
+                  <li key={r.id} className="relative h-6">
+                    <Link
+                      href={`/projects/${r.id}`}
+                      title={`${r.number} — ${r.name}`}
+                      className={`absolute inset-y-0.5 flex items-center overflow-hidden rounded px-1.5 text-[11px] text-white hover:opacity-90 ${TIMELINE_FILL[r.group]}`}
+                      style={{ left: `${r.left}%`, width: `${r.width}%` }}
+                    >
+                      <span className="truncate">{r.name}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            {(timeline.more > 0 || timeline.undated > 0) && (
+              <p className="mt-1 text-[11px] text-muted">
+                {[
+                  timeline.more > 0 ? t('timelineMore', { count: timeline.more }) : null,
+                  timeline.undated > 0 ? t('timelineNoDates', { count: timeline.undated }) : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            )}
+          </div>
+        )}
         {overdue.length + running.length + starting.length === 0 ? (
           <p className="px-3 py-6 text-sm text-muted">{t('cockpitNoSites')}</p>
         ) : sitesView === 'kanban' ? (

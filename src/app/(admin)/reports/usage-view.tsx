@@ -60,6 +60,20 @@ export async function UsageView({
           ? `${monthNames.short[counted[0]]}–${monthNames.short[counted[counted.length - 1]]}`
           : counted.map((m) => monthNames.short[m]).join(', ')
 
+  /** The share as a ring — the period's booked time against what the crew had. */
+  const ring = (value: number) => {
+    const r = 18
+    const c = 2 * Math.PI * r
+    const share = Math.max(0, Math.min(100, value)) / 100
+    const color = value < 50 ? 'stroke-amber-500' : value > 90 ? 'stroke-emerald-600' : 'stroke-accent'
+    return (
+      <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden className="shrink-0 -rotate-90">
+        <circle cx="22" cy="22" r={r} fill="none" strokeWidth="5" className="stroke-subtle" />
+        <circle cx="22" cy="22" r={r} fill="none" strokeWidth="5" strokeLinecap="round" strokeDasharray={`${c * share} ${c}`} className={color} />
+      </svg>
+    )
+  }
+
   const usageList = (title: string, rows: NamedUsage[], href: string, unit: 'people' | 'vehicles') => (
     <section className={`overflow-hidden ${card}`}>
       <div className="border-b border-border px-3 py-2.5">
@@ -105,45 +119,55 @@ export async function UsageView({
             {countedLabel ? t('usageHeader', { months: `${countedLabel} ${year}` }) : t('usageHeaderNone', { frame: frameLabel })}
           </h2>
           {pct !== null && (
-            <p className="text-xs text-muted">
-              <span className={`text-base font-semibold tabular-nums ${tone(pct)}`}>{pct} %</span>{' '}
-              {t('usagePersonDaysOf', { booked, available })}
-            </p>
+            <div className="flex items-center gap-3">
+              {ring(pct)}
+              <p className="text-xs text-muted">
+                <span className={`text-base font-semibold tabular-nums ${tone(pct)}`}>{pct} %</span>{' '}
+                {t('usagePersonDaysOf', { booked, available })}
+              </p>
+            </div>
           )}
         </div>
+        <p className="text-[11px] text-muted">{t('usageBarsHint')}</p>
+        {/* The months as bars: how much of the crew's time each one holds. */}
         <div className="overflow-x-auto">
-          <ol className="grid min-w-[46rem] grid-cols-12 gap-1">
+          <ol className="grid h-36 min-w-[40rem] grid-cols-12 gap-1.5 border-b border-border">
             {months.map((m, month) => {
               const empty = m.booked === 0
               // Nothing planned yet is news for this month and the next; further out the schedule is simply not written.
               const soon = runningMonth >= 0 && (month === runningMonth || month === runningMonth + 1)
+              const share = Math.min(100, m.pct ?? 0)
               return (
                 <li
                   key={month}
-                  className={`rounded-lg border border-border px-1.5 py-1.5 text-center ${
-                    inRange(month) ? '' : 'opacity-40'
-                  } ${month === runningMonth ? 'bg-subtle' : ''}`}
+                  title={empty ? t('usageNoBookings') : t('usageDaysOf', { booked: m.booked, available: m.available })}
+                  className={`flex min-h-0 flex-col items-center justify-end gap-1 text-center ${inRange(month) ? '' : 'opacity-40'}`}
                 >
-                  <span className={`block text-[11px] ${month === runningMonth ? 'font-semibold text-accent' : 'text-muted'}`}>
-                    {monthNames.short[month]}
+                  <span className={`text-[11px] font-semibold tabular-nums ${empty ? (soon ? warn : 'text-muted') : tone(m.pct)}`}>
+                    {empty ? '–' : `${m.pct} %`}
                   </span>
-                  {empty ? (
-                    <span className={`block text-[10px] leading-tight ${soon ? warn : 'text-muted'}`}>
-                      {t('usageNoBookings')}
-                    </span>
-                  ) : (
-                    <>
-                      <span className={`block text-sm font-semibold tabular-nums ${tone(m.pct)}`}>
-                        {m.pct === null ? '—' : `${m.pct} %`}
-                      </span>
-                      <span className="block text-[10px] tabular-nums text-muted">
-                        {m.booked}/{m.available}
-                      </span>
-                    </>
-                  )}
+                  <span
+                    className={`w-full max-w-10 rounded-t-sm ${
+                      empty
+                        ? 'border border-dashed border-border'
+                        : share < 50
+                          ? 'bg-amber-500/70'
+                          : share > 90
+                            ? 'bg-emerald-600/70'
+                            : 'bg-accent/70'
+                    } ${month === runningMonth ? 'ring-2 ring-accent/40' : ''}`}
+                    style={{ height: `${Math.max(4, share * 0.8)}%` }}
+                  />
                 </li>
               )
             })}
+          </ol>
+          <ol className="grid min-w-[40rem] grid-cols-12 gap-1.5 pt-1 text-center text-[11px]">
+            {months.map((m, month) => (
+              <li key={month} className={month === runningMonth ? 'font-semibold text-accent' : 'text-muted'}>
+                {monthNames.short[month]}
+              </li>
+            ))}
           </ol>
         </div>
       </div>

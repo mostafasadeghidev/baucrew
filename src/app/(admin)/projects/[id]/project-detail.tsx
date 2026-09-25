@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { monthInputValue } from '@/lib/plan-month'
+import { getBranding } from '@/lib/branding'
+import { mailtoHref, offerMailDraft, type OfferMailWords } from '@/lib/offer-mail'
 import { NoteText } from '@/components/ui/note-text'
 import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
 import { notFound, redirect } from 'next/navigation'
@@ -264,6 +266,34 @@ export async function ProjectDetail({
   // What the year-planning sheet had pencilled in for this project.
   const plannedTotal = project.planEntries.reduce((sum, e) => sum + Number(e.amount), 0)
   const orderTotal = orderValue(project.price, project.addOns)
+  // The offer's e-mail, prepared for the office's mail program — in German,
+  // the customer's language, whatever language the office reads the app in.
+  // Nothing is sent: the office reads, attaches the offer and sends.
+  const offerMailHref =
+    project.status === 'QUOTED' && isOffice(user)
+      ? await (async () => {
+          const tm = await getTranslations({ locale: 'de', namespace: 'projects' })
+          const words: OfferMailWords = {
+            subject: (v) => tm('offerMailSubject', v),
+            greetingNamed: (v) => tm('offerMailGreetingNamed', v),
+            greeting: () => tm('offerMailGreeting'),
+            body: (v) => tm('offerMailBody', v),
+            amount: (v) => tm('offerMailAmount', v),
+            closing: (v) => tm('offerMailClosing', v),
+          }
+          const draft = offerMailDraft(
+            {
+              number: project.number,
+              name: project.name,
+              contactPerson: project.customer.contactPerson ?? null,
+              amount: showPrice && orderTotal !== null ? formatCurrency(orderTotal, 'de') : null,
+              company: (await getBranding()).companyName,
+            },
+            words
+          )
+          return mailtoHref(project.customer.email ?? null, draft)
+        })()
+      : null
   const firstInvoice = project.invoices.find((i) => i.part === 1)
   const invoiceRows: InvoiceRow[] = INVOICE_PARTS.map((part) => {
     const invoice = project.invoices.find((i) => i.part === part)
@@ -1171,6 +1201,12 @@ export async function ProjectDetail({
               <Link href={`/projects/${project.id}/sheet`} className={btn.outlineSm}>
                 {tSheet('title')}
               </Link>
+              {/* An offer's e-mail, ready in the mail program — the office sends it. */}
+              {offerMailHref && (
+                <a href={offerMailHref} className={btn.outlineSm} title={t(project.customer.email ? 'offerMailTitle' : 'offerMailNoAddress')}>
+                  {t('offerMail')}
+                </a>
+              )}
               {/* Put away, the way a Trello card is archived: off the board, still a project. */}
               <ArchiveButton
                 projectId={project.id}

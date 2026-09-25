@@ -460,7 +460,16 @@
     "planMonth": "Ausführung voraussichtlich (Monat)",
     "planMonths": "Dauer (Monate)",
     "planMonthHint": "Ohne festen Beginn steht der Auftrag im Planumsatz in diesem Monat, über die Dauer verteilt; mit Beginn und Ende gelten die Termine. Im Planumsatz lässt er sich auch in einen anderen Monat ziehen.",
-    "planMonthsCount": "{count, plural, one {# Monat} other {# Monate}}"
+    "planMonthsCount": "{count, plural, one {# Monat} other {# Monate}}",
+    "offerMail": "E-Mail-Entwurf",
+    "offerMailTitle": "Öffnet einen fertigen Entwurf im E-Mail-Programm – gesendet wird nichts von selbst.",
+    "offerMailNoAddress": "Der Kunde hat keine E-Mail-Adresse – der Entwurf öffnet ohne Empfänger.",
+    "offerMailSubject": "Angebot {number} – {name}",
+    "offerMailGreetingNamed": "Guten Tag {name},",
+    "offerMailGreeting": "Sehr geehrte Damen und Herren,",
+    "offerMailBody": "anbei erhalten Sie unser Angebot {number} für {name}. Bei Fragen melden Sie sich gern – wir freuen uns auf Ihre Rückmeldung.",
+    "offerMailAmount": "Angebotssumme: {amount} netto.",
+    "offerMailClosing": "Mit freundlichen Grüßen\n{company}"
   },
   "history": {
     "created": "hat die Karte angelegt",
@@ -1152,7 +1161,13 @@
     "monthMore": "+ {count} weitere",
     "monthLess": "Weniger anzeigen",
     "dragLine": "In einen anderen Monat ziehen",
-    "moveFailed": "Verschieben hat nicht geklappt."
+    "moveFailed": "Verschieben hat nicht geklappt.",
+    "usageBarsHint": "Anteil der verplanten Personentage je Monat – gelb unter 50 %, grün über 90 %; der Ring zeigt den ganzen Zeitraum.",
+    "timelineTitle": "Zeitleiste",
+    "timelineHint": "Der geplante Zeitraum jeder Baustelle, zwei Wochen zurück und sechs voraus; die rote Linie ist heute.",
+    "timelineWeek": "KW {week}",
+    "timelineMore": "{count, plural, one {# weitere Baustelle außerhalb dieser Wochen} other {# weitere Baustellen außerhalb dieser Wochen}}",
+    "timelineNoDates": "{count, plural, one {# ohne Termin nicht eingezeichnet} other {# ohne Termin nicht eingezeichnet}}"
   },
   "sheet": {
     "title": "Arbeitsauftrag",

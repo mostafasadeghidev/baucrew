@@ -460,7 +460,16 @@
     "planMonth": "Expected execution (month)",
     "planMonths": "Duration (months)",
     "planMonthHint": "Without a fixed start the job stands in this month of the planned revenue, spread over the duration; with a start and an end the dates decide. In the planned revenue it can also be dragged into another month.",
-    "planMonthsCount": "{count, plural, one {# month} other {# months}}"
+    "planMonthsCount": "{count, plural, one {# month} other {# months}}",
+    "offerMail": "E-mail draft",
+    "offerMailTitle": "Opens a finished draft in the mail program – nothing is sent by itself.",
+    "offerMailNoAddress": "The customer has no e-mail address – the draft opens without a recipient.",
+    "offerMailSubject": "Offer {number} – {name}",
+    "offerMailGreetingNamed": "Dear {name},",
+    "offerMailGreeting": "Dear Sir or Madam,",
+    "offerMailBody": "please find attached our offer {number} for {name}. Any questions, just get in touch – we look forward to hearing from you.",
+    "offerMailAmount": "Offer total: {amount} net.",
+    "offerMailClosing": "Kind regards\n{company}"
   },
   "history": {
     "created": "created this card",
@@ -1152,7 +1161,13 @@
     "monthMore": "+ {count} more",
     "monthLess": "Show fewer",
     "dragLine": "Drag into another month",
-    "moveFailed": "Moving did not work."
+    "moveFailed": "Moving did not work.",
+    "usageBarsHint": "Share of booked person-days per month – amber below 50 %, green above 90 %; the ring shows the whole period.",
+    "timelineTitle": "Timeline",
+    "timelineHint": "Each site's planned span, two weeks back and six ahead; the red line is today.",
+    "timelineWeek": "Wk {week}",
+    "timelineMore": "{count, plural, one {# more site outside these weeks} other {# more sites outside these weeks}}",
+    "timelineNoDates": "{count, plural, one {# without dates not drawn} other {# without dates not drawn}}"
   },
   "sheet": {
     "title": "Work order",
