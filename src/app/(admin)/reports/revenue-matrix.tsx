@@ -8,8 +8,7 @@
  * a cell says: its shade alone, which fits the year without scrolling; the
  * amount in thousands; or the amount in full. Under the sites stand the
  * months' sums as the other layouts show them, the last pinned to the bottom
- * of the box; below those, set apart, the projects that are not in the sheet
- * and so in none of the sums.
+ * of the box.
  */
 
 import Link from 'next/link'
@@ -34,7 +33,6 @@ const HEAT = ['bg-accent/10', 'bg-accent/20', 'bg-accent/35', 'bg-accent/50']
 
 export async function RevenueMatrix({
   rows,
-  extraRows,
   months,
   density,
   runningMonth,
@@ -42,8 +40,6 @@ export async function RevenueMatrix({
   locale,
 }: {
   rows: SiteMonthRow[]
-  /** The projects that are not in the sheet, as rows of their own. */
-  extraRows: SiteMonthRow[]
   /** In the order the tab shows them. */
   months: MonthRevenue[]
   density: MatrixDensity
@@ -227,17 +223,6 @@ export async function RevenueMatrix({
       {header}
       {rows.flatMap((r) => siteRow(r, false))}
       {footer}
-      {extraRows.length > 0 && (
-        <>
-          <div
-            style={{ gridColumn: '1 / -1' }}
-            className="border-b border-t border-border bg-surface py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted"
-          >
-            <span className="sticky left-0 inline-block px-3">{t('extraTitle')}</span>
-          </div>
-          {extraRows.flatMap((r) => siteRow(r, true))}
-        </>
-      )}
     </PanBox>
   )
 }

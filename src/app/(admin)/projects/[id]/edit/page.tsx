@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
+import { monthInputValue } from '@/lib/plan-month'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireStaff, canViewFinancials } from '@/lib/authz'
@@ -114,6 +115,8 @@ export default async function EditProjectPage({
           price: showPrice && project.price != null ? String(Number(project.price)) : '',
           plannedStart: toDateInputValue(project.plannedStart),
           plannedEnd: toDateInputValue(project.plannedEnd),
+          planMonth: monthInputValue(project.planMonth),
+          planMonths: String(project.planMonths),
           dueDate: toDateInputValue(project.dueDate),
           actualStart: toDateInputValue(project.actualStart),
           actualEnd: toDateInputValue(project.actualEnd),

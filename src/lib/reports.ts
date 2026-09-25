@@ -26,6 +26,7 @@ import {
 import { dataGapReport, type GapReport } from './data-gaps'
 import { PIPELINE_STAGES, pipelineColumns, yearFunnel, type PipelineColumn, type YearFunnel } from './pipeline'
 import { getHistoryCutoff } from './history-db'
+import { MAX_PLAN_MONTHS, monthSpan, spreadAmount } from './plan-month'
 
 export type RevenueProject = {
   /** Unique per row: a project may stand in a month with several sheet lines. */
@@ -53,13 +54,6 @@ export type MonthRevenue = {
   ownTotal: number
   subTotal: number
   total: number
-  /**
-   * Projects that start in this month but stand nowhere in the sheet. Shown
-   * so nothing is hidden, not counted in `total`, so the month reads as the
-   * sheet does. Empty in a year without a sheet.
-   */
-  extra: RevenueProject[]
-  extraTotal: number
 }
 
 export type YearRevenue = {
@@ -67,7 +61,7 @@ export type YearRevenue = {
   months: MonthRevenue[]
   yearTotal: number
   /**
-   * Projects without a planned start and without a sheet line. They belong
+   * Projects without a month — no planned start and no placing. They belong
    * to no month, so they are listed on their own instead of being filed
    * under whatever month they happened to be entered in. Not counted in
    * yearTotal.
@@ -81,72 +75,56 @@ export type YearRevenue = {
    */
   undatedHistorical: number
   /**
-   * True when the month figures are the lines of the imported planning
-   * sheet — the office's own record of the year, line by line and month by
-   * month. A line tied to a project links to it; a line without one is just
-   * the sheet's line. Projects the sheet does not know are listed as `extra`.
+   * True when the planning sheet was imported for the year: its lines that
+   * no project has taken over yet stand in the months beside the projects.
    */
   sheetLed: boolean
   /**
-   * True when the year is the sheet alone: no line tied to a project, no
-   * project besides — the years the company ran before BauCrew existed.
+   * True when the year is the sheet alone: no project in any month, none
+   * undated — the years the company ran before BauCrew existed.
    */
   fromSheet: boolean
 }
 
 /**
- * The "Monatsplanumsatz" of a year. Where the planning sheet has been
- * imported for the year, the sheet is the record: every line of it stands in
- * its month with its amount, tied to its project where a person tied it.
- * That is what the office reads as the year's turnover, and what the months
- * must add up to. A project the sheet does not know is listed beside the
- * month, uncounted, so it is seen and can be put into the sheet or tied to
- * a line.
+ * The "Monatsplanumsatz" of a year: every project in the months it runs in,
+ * with its order value spread over them (src/lib/plan-month.ts) — own-crew
+ * work and SUB (subcontractor) work apart. A job with a planned start stands
+ * in that month; one without in the month the office placed it in; one with a
+ * planned end, or a duration, runs over every month to it. That is what the
+ * office reads as the year's turnover, and moving a job into another month is
+ * what changes it.
  *
- * A year without a sheet is built from projects: each is filed under the
- * month of its planned start, own-crew work and SUB (subcontractor) work
- * apart. A project without a planned start is not guessed into a month —
- * the day it was typed in says nothing about when the work happens — but
- * listed as "undated".
+ * Where the planning sheet has been imported for the year, its lines that
+ * belong to no project yet stand in their months as well — work planned that
+ * nobody has made a project for — and go once a project takes them over in
+ * the Planabgleich. A project without a month is not guessed into one — the
+ * day it was typed in says nothing about when the work happens — but listed
+ * as "undated".
  */
 export async function getYearRevenue(year: number): Promise<YearRevenue> {
   const start = new Date(Date.UTC(year, 0, 1))
   const end = new Date(Date.UTC(year + 1, 0, 1))
+  // A job may run into the year from as far back as it can be spread.
+  const earliest = new Date(Date.UTC(year - Math.ceil(MAX_PLAN_MONTHS / 12), 0, 1))
 
-  // The sheet's lines for the year, each with the project it is tied to.
-  const lines = await db.planEntry.findMany({
-    where: { year, month: { not: null } },
-    orderBy: [{ month: 'asc' }, { name: 'asc' }],
-    select: {
-      id: true,
-      month: true,
-      name: true,
-      amount: true,
-      isSub: true,
-      project: {
-        select: {
-          id: true,
-          number: true,
-          name: true,
-          status: true,
-          // The dates that say whether the project is old data.
-          plannedStart: true,
-          plannedEnd: true,
-          actualStart: true,
-          actualEnd: true,
-          sourceCreatedAt: true,
-          customer: { select: { id: true, name: true } },
-        },
-      },
-    },
-  })
+  // The sheet's lines nobody has a project for — or whose project was cancelled.
+  const [lines, sheetLines] = await Promise.all([
+    db.planEntry.findMany({
+      where: { year, month: { not: null }, OR: [{ projectId: null }, { project: { status: 'CANCELLED' } }] },
+      orderBy: [{ month: 'asc' }, { name: 'asc' }],
+      select: { id: true, month: true, name: true, amount: true, isSub: true },
+    }),
+    db.planEntry.count({ where: { year, month: { not: null } } }),
+  ])
 
   const projects = await db.project.findMany({
     where: {
       status: { not: 'CANCELLED' },
       OR: [
-        { plannedStart: { gte: start, lt: end } },
-        { plannedStart: null, createdAt: { gte: start, lt: end } },
+        { plannedStart: { gte: earliest, lt: end } },
+        { plannedStart: null, planMonth: { gte: earliest, lt: end } },
+        { plannedStart: null, planMonth: null, createdAt: { gte: start, lt: end } },
       ],
     },
     select: {
@@ -158,14 +136,15 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       status: true,
       plannedStart: true,
       plannedEnd: true,
+      planMonth: true,
+      planMonths: true,
+      // The dates that say whether the project is old data.
       actualStart: true,
       actualEnd: true,
       sourceCreatedAt: true,
       createdAt: true,
       customer: { select: { id: true, name: true } },
       addOns: { select: { amount: true } },
-      // The years of the sheet lines tied to the project.
-      planEntries: { select: { year: true } },
     },
     orderBy: { number: 'asc' },
   })
@@ -177,99 +156,93 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     ownTotal: 0,
     subTotal: 0,
     total: 0,
-    extra: [],
-    extraTotal: 0,
   }))
+  const put = (bucket: MonthRevenue, entry: RevenueProject, isSub: boolean) => {
+    if (isSub) {
+      bucket.sub.push(entry)
+      bucket.subTotal += entry.price ?? 0
+    } else {
+      bucket.own.push(entry)
+      bucket.ownTotal += entry.price ?? 0
+    }
+  }
+
+  for (const line of lines) {
+    put(
+      months[line.month! - 1],
+      { key: line.id, id: line.id, number: '', name: line.name, customer: '', price: Number(line.amount), fromSheet: true },
+      line.isSub
+    )
+  }
+
   const undated: RevenueProject[] = []
   // Old data: work finished before the day the office named in Settings. It
   // is nobody's job to date it any more, so it is set aside from the undated
   // list — and counted, so the card can say how much was set aside.
   const cutoff = await getHistoryCutoff()
   let undatedHistorical = 0
-  const sheetLed = lines.length > 0
-
-  for (const line of lines) {
-    const bucket = months[line.month! - 1]
-    const entry: RevenueProject = line.project
-      ? {
-          key: line.id,
-          id: line.project.id,
-          number: line.project.number,
-          name: line.name,
-          customer: line.project.customer.name,
-          customerId: line.project.customer.id,
-          price: Number(line.amount),
-          status: line.project.status,
-          ...(isHistorical(line.project, cutoff) ? { settled: true } : {}),
-        }
-      : {
-          key: line.id,
-          id: line.id,
-          number: '',
-          name: line.name,
-          customer: '',
-          price: Number(line.amount),
-          fromSheet: true,
-        }
-    if (line.isSub) {
-      bucket.sub.push(entry)
-      bucket.subTotal += entry.price ?? 0
-    } else {
-      bucket.own.push(entry)
-      bucket.ownTotal += entry.price ?? 0
-    }
-    bucket.total = bucket.ownTotal + bucket.subTotal
-  }
 
   for (const p of projects) {
-    // In a sheet-led year a project with a line in this year is counted
-    // where its lines are. One whose lines lie in another year, or that has
-    // none, is listed beside the month it starts in, so it is not lost.
-    if (sheetLed && p.planEntries.some((l) => l.year === year)) continue
-    const entry: RevenueProject = {
-      key: p.id,
-      id: p.id,
-      number: p.number,
-      name: p.name,
-      customer: p.customer.name,
-      customerId: p.customer.id,
-      price: orderValue(p.price, p.addOns),
-      status: p.status,
-      ...(isHistorical(p, cutoff) ? { settled: true } : {}),
-    }
-    if (!p.plannedStart) {
-      if (isHistorical(p, cutoff)) undatedHistorical++
-      else undated.push(entry)
+    const span = monthSpan(p)
+    const value = orderValue(p.price, p.addOns)
+    const settled = isHistorical(p, cutoff)
+    if (span.length === 0) {
+      if (settled) undatedHistorical++
+      else
+        undated.push({
+          key: p.id,
+          id: p.id,
+          number: p.number,
+          name: p.name,
+          customer: p.customer.name,
+          customerId: p.customer.id,
+          price: value,
+          status: p.status,
+        })
       continue
     }
-    const bucket = months[p.plannedStart.getUTCMonth()]
-    if (sheetLed) {
-      bucket.extra.push(entry)
-      bucket.extraTotal += entry.price ?? 0
-      continue
-    }
-    if (p.isSub) {
-      bucket.sub.push(entry)
-      bucket.subTotal += entry.price ?? 0
-    } else {
-      bucket.own.push(entry)
-      bucket.ownTotal += entry.price ?? 0
-    }
-    bucket.total = bucket.ownTotal + bucket.subTotal
+    // The value in equal shares, one per month the job runs; a month of
+    // another year counts in that year.
+    const shares = value === null ? null : spreadAmount(value, span.length)
+    span.forEach((k, i) => {
+      if (k.year !== year) return
+      put(
+        months[k.month],
+        {
+          key: `${p.id}:${k.month}`,
+          id: p.id,
+          number: p.number,
+          name: p.name,
+          customer: p.customer.name,
+          customerId: p.customer.id,
+          price: shares ? shares[i] : null,
+          status: p.status,
+          ...(settled ? { settled: true } : {}),
+        },
+        p.isSub
+      )
+    })
   }
 
+  // The shares are exact cents; the sums are rounded to cents once, at the end.
+  const cents = (v: number) => Math.round(v * 100) / 100
+  for (const m of months) {
+    m.ownTotal = cents(m.ownTotal)
+    m.subTotal = cents(m.subTotal)
+    m.total = cents(m.ownTotal + m.subTotal)
+  }
+
+  const sheetLed = sheetLines > 0
   const nothingButSheet =
     sheetLed &&
-    lines.every((l) => !l.project) &&
-    months.every((m) => m.extra.length === 0) &&
+    months.every((m) => [...m.own, ...m.sub].every((e) => e.fromSheet)) &&
     undated.length === 0 &&
-    // The cutoff must not turn a live year into a "sheet only" one.
     undatedHistorical === 0
 
   return {
     year,
     months,
-    yearTotal: months.reduce((sum, m) => sum + m.total, 0),
+    yearTotal: cents(months.reduce((sum, m) => sum + m.total, 0)),
     undated,
     undatedTotal: undated.reduce((sum, p) => sum + (p.price ?? 0), 0),
     undatedHistorical,
@@ -462,6 +435,8 @@ export type OpenOffer = {
   /** Days since the offer was created in BauCrew. */
   ageDays: number
   plannedStart: Date | null
+  /** The month the office placed it in, when no start is fixed. */
+  planMonth: Date | null
 }
 
 /**
@@ -478,6 +453,7 @@ export async function getOpenOffers(): Promise<{ offers: OpenOffer[]; total: num
       price: true,
       createdAt: true,
       plannedStart: true,
+      planMonth: true,
       customer: { select: { name: true } },
       addOns: { select: { amount: true } },
     },
@@ -492,6 +468,7 @@ export async function getOpenOffers(): Promise<{ offers: OpenOffer[]; total: num
     price: orderValue(r.price, r.addOns),
     ageDays: Math.max(0, Math.floor((now - r.createdAt.getTime()) / 86_400_000)),
     plannedStart: r.plannedStart,
+    planMonth: r.planMonth,
   }))
   return {
     offers,
@@ -989,7 +966,7 @@ export async function getStockShortages(): Promise<StockShortage[]> {
  * counted. The rules are in `src/lib/data-gaps.ts`, where they are tested.
  */
 export async function getDataGaps(today: Date): Promise<GapReport> {
-  const [projects, loose, sheetYears, cutoff] = await Promise.all([
+  const [projects, loose, cutoff] = await Promise.all([
     db.project.findMany({
       where: { status: { not: 'CANCELLED' } },
       select: {
@@ -1001,6 +978,7 @@ export async function getDataGaps(today: Date): Promise<GapReport> {
         isSub: true,
         plannedStart: true,
         plannedEnd: true,
+        planMonth: true,
         actualStart: true,
         actualEnd: true,
         sourceCreatedAt: true,
@@ -1016,8 +994,6 @@ export async function getDataGaps(today: Date): Promise<GapReport> {
       select: { id: true, year: true, month: true, name: true, amount: true },
       orderBy: [{ year: 'asc' }, { month: 'asc' }, { name: 'asc' }],
     }),
-    // A year the sheet covers month by month.
-    db.planEntry.groupBy({ by: ['year'], where: { month: { not: null } } }),
     getHistoryCutoff(),
   ])
 
@@ -1030,16 +1006,13 @@ export async function getDataGaps(today: Date): Promise<GapReport> {
       status: p.status,
       amount: orderValue(p.price, p.addOns),
       plannedStart: p.plannedStart,
+      planMonth: p.planMonth,
       isSub: p.isSub,
       historical: isHistorical(p, cutoff),
       lines: p.planEntries.map((l) => ({ year: l.year, amount: Number(l.amount), isSub: l.isSub })),
     })),
     loose.map((l) => ({ id: l.id, year: l.year, month: l.month, name: l.name, amount: Number(l.amount) })),
-    {
-      sheetYears: sheetYears.map((g) => g.year),
-      currentYear: today.getUTCFullYear(),
-      runningMonth: today.getUTCMonth(),
-    },
+    { currentYear: today.getUTCFullYear(), runningMonth: today.getUTCMonth() },
   )
 }
 

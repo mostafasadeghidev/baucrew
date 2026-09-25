@@ -1,4 +1,5 @@
 import 'server-only'
+import { MAX_PLAN_MONTHS, parseMonthInput } from './plan-month'
 import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
@@ -47,6 +48,9 @@ export class ApiError extends Error {
 }
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD')
+/** A month, as "2026-10" or any day of it. */
+const isoMonth = z.string().regex(/^\d{4}-\d{2}(-\d{2})?$/, 'YYYY-MM')
+const planMonthsInput = z.number().int().min(1).max(MAX_PLAN_MONTHS)
 const utcDay = (iso: string) => new Date(`${iso}T00:00:00.000Z`)
 const day = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null)
 const text = (max: number) =>
@@ -90,6 +94,8 @@ const projectSelect = {
   price: true,
   plannedStart: true,
   plannedEnd: true,
+  planMonth: true,
+  planMonths: true,
   dueDate: true,
   actualStart: true,
   actualEnd: true,
@@ -116,6 +122,8 @@ type ProjectRow = {
   price: { toString(): string } | null
   plannedStart: Date | null
   plannedEnd: Date | null
+  planMonth: Date | null
+  planMonths: number
   dueDate: Date | null
   actualStart: Date | null
   actualEnd: Date | null
@@ -156,6 +164,9 @@ function projectDto(p: ProjectRow, user: CurrentUser, statusSince: Date) {
     address: { street: p.street, postalCode: p.postalCode, city: p.city },
     plannedStart: day(p.plannedStart),
     plannedEnd: day(p.plannedEnd),
+    /** The month the work is expected in (its first day) when no start is fixed, and how many months it runs. */
+    planMonth: day(p.planMonth),
+    planMonths: p.planMonths,
     /** The day the work has to be done by; null when none was promised. */
     dueDate: day(p.dueDate),
     actualStart: day(p.actualStart),
@@ -273,6 +284,8 @@ export const createProjectInput = z
     isSub: z.boolean().default(false),
     plannedStart: isoDate.optional(),
     plannedEnd: isoDate.optional(),
+    planMonth: isoMonth.optional(),
+    planMonths: planMonthsInput.optional(),
     dueDate: isoDate.optional(),
     price: z.number().min(0).max(999_999_999).optional(),
     street: text(200),
@@ -367,6 +380,8 @@ export async function createProject(user: CurrentUser, input: z.infer<typeof cre
     isSub: input.isSub,
     plannedStart: input.plannedStart ? utcDay(input.plannedStart) : null,
     plannedEnd: input.plannedEnd ? utcDay(input.plannedEnd) : null,
+    planMonth: parseMonthInput(input.planMonth?.slice(0, 7)),
+    planMonths: input.planMonths ?? 1,
     dueDate: input.dueDate ? utcDay(input.dueDate) : null,
     price: canViewFinancials(user) && input.price !== undefined ? input.price : null,
     street: input.street,
@@ -393,6 +408,8 @@ export const updateProjectInput = z
     isSub: z.boolean().optional(),
     plannedStart: isoDate.nullable().optional(),
     plannedEnd: isoDate.nullable().optional(),
+    planMonth: isoMonth.nullable().optional(),
+    planMonths: planMonthsInput.optional(),
     dueDate: isoDate.nullable().optional(),
     price: z.number().min(0).max(999_999_999).nullable().optional(),
     managerId: z.string().min(1).nullable().optional(),
@@ -435,6 +452,8 @@ export async function updateProject(
   if (input.plannedStart !== undefined) data.plannedStart = input.plannedStart ? utcDay(input.plannedStart) : null
   if (input.plannedEnd !== undefined) data.plannedEnd = input.plannedEnd ? utcDay(input.plannedEnd) : null
   if (input.dueDate !== undefined) data.dueDate = input.dueDate ? utcDay(input.dueDate) : null
+  if (input.planMonth !== undefined) data.planMonth = input.planMonth ? parseMonthInput(input.planMonth.slice(0, 7)) : null
+  if (input.planMonths !== undefined) data.planMonths = input.planMonths
   const start = input.plannedStart !== undefined ? (data.plannedStart as Date | null) : current.plannedStart
   const end = input.plannedEnd !== undefined ? (data.plannedEnd as Date | null) : current.plannedEnd
   if (start && end && end < start) throw new ApiError(400, 'invalid', 'plannedEnd must not be before plannedStart.')
@@ -1119,7 +1138,9 @@ export async function revenueByMonth(user: CurrentUser, year: number) {
   const r = await getYearRevenue(year)
   return {
     year,
-    source: r.sheetLed ? 'sheet' : 'projects',
+    source: 'projects',
+    /** True when lines of the imported planning sheet that have no project yet stand in the months too. */
+    sheetLines: r.sheetLed,
     yearTotal: r.yearTotal,
     months: r.months.map((m) => ({
       month: m.month + 1,
@@ -1132,7 +1153,6 @@ export async function revenueByMonth(user: CurrentUser, year: number) {
         sub: m.sub.includes(p),
         projectId: p.fromSheet ? null : p.id,
       })),
-      notInSheet: m.extra.map((p) => ({ projectId: p.id, name: p.name, amount: p.price })),
     })),
     undated: r.undated.map((p) => ({ projectId: p.id, name: p.name, amount: p.price })),
     // Finished work from before the cutoff in Settings is not listed as

@@ -96,6 +96,10 @@ export type ProjectSnapshot = {
   managerId: string | null
   plannedStart: string | null
   plannedEnd: string | null
+  /** The month the work is expected in — its first day — when no start is fixed. */
+  planMonth: string | null
+  /** How many months the job runs from there when no end is fixed. */
+  planMonths: number
   dueDate: string | null
   actualStart: string | null
   actualEnd: string | null
@@ -116,6 +120,8 @@ export const WATCHED_FIELDS = [
   'managerId',
   'plannedStart',
   'plannedEnd',
+  'planMonth',
+  'planMonths',
   'dueDate',
   'actualStart',
   'actualEnd',

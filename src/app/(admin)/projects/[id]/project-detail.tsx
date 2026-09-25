@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { monthInputValue } from '@/lib/plan-month'
 import { NoteText } from '@/components/ui/note-text'
 import { PageBar, PageHint, StickyHead } from '@/components/ui/page-panel'
 import { notFound, redirect } from 'next/navigation'
@@ -299,6 +300,8 @@ export async function ProjectDetail({
   )
   // Whether the day the work is due by presses — read in two places below.
   const due = dueTone(project.status, project.dueDate, todayUtc())
+  // The month a job is placed in, written out — "Oktober 2026".
+  const monthLong = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' })
   /**
    * What each card shows while it is closed. The fields behind them are the
    * project form's own — see `ProjectForm`'s `inline` prop — so every field is
@@ -369,6 +372,15 @@ export async function ProjectDetail({
       <dl className="space-y-2 text-sm">
         {row(t('plannedStart'), <span className="tabular-nums">{formatDate(project.plannedStart, locale)}</span>)}
         {row(t('plannedEnd'), <span className="tabular-nums">{formatDate(project.plannedEnd, locale)}</span>)}
+        {row(
+          t('planMonth'),
+          <span className="tabular-nums">
+            {project.planMonth ? monthLong.format(project.planMonth) : '—'}
+            {project.planMonth && !project.plannedEnd && project.planMonths > 1
+              ? ` · ${t('planMonthsCount', { count: project.planMonths })}`
+              : ''}
+          </span>
+        )}
         {row(
           t('dueDate'),
           <span
@@ -529,6 +541,8 @@ export async function ProjectDetail({
           price: showPrice && project.price != null ? String(Number(project.price)) : '',
           plannedStart: toDateInputValue(project.plannedStart),
           plannedEnd: toDateInputValue(project.plannedEnd),
+          planMonth: monthInputValue(project.planMonth),
+          planMonths: String(project.planMonths),
           dueDate: toDateInputValue(project.dueDate),
           actualStart: toDateInputValue(project.actualStart),
           actualEnd: toDateInputValue(project.actualEnd),
@@ -1014,6 +1028,11 @@ export async function ProjectDetail({
       .map((m) => ({ id: m.employeeId, name: `${m.employee.firstName} ${m.employee.lastName}`.trim(), manager: false })),
   ]
   const planned = [project.plannedStart, project.plannedEnd].filter((d): d is Date => d !== null).map((d) => formatDate(d, locale))
+  // No day fixed yet: the month the office placed the job in, when there is one.
+  const roughMonth =
+    planned.length === 0 && project.planMonth
+      ? new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(project.planMonth)
+      : null
   const tone = dateTone(project.status, project.plannedStart, project.plannedEnd, todayUtc())
   const metaHead = 'text-[11px] font-semibold uppercase tracking-wide text-muted'
   const meta = sheet ? (
@@ -1063,7 +1082,7 @@ export async function ProjectDetail({
           }`}
           title={tone === 'late' ? t('cardLate') : tone === 'soon' ? t('cardSoon') : undefined}
         >
-          {planned.length > 0 ? planned.join(' – ') : '—'}
+          {planned.length > 0 ? planned.join(' – ') : (roughMonth ?? '—')}
         </p>
       </div>
       {project.pausedAt && (

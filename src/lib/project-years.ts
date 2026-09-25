@@ -37,6 +37,8 @@ export type YearProject = {
   plannedEnd: Date | null
   actualStart: Date | null
   actualEnd: Date | null
+  /** The month the office placed the job in, when no start is fixed. */
+  planMonth?: Date | null
   /** When the source record was made — a board card's own date. */
   sourceCreatedAt: Date | null
   createdAt: Date
@@ -46,7 +48,7 @@ export type YearProject = {
 
 /** The first and last year a project's work touches. */
 export function projectYearSpan(p: YearProject): { from: number; to: number } {
-  const dates = [p.plannedStart, p.plannedEnd, p.actualStart, p.actualEnd].filter((d): d is Date => d !== null)
+  const dates = [p.plannedStart, p.plannedEnd, p.actualStart, p.actualEnd, p.planMonth ?? null].filter((d): d is Date => d !== null)
   if (dates.length === 0) {
     const year = (p.sourceCreatedAt ?? p.createdAt).getUTCFullYear()
     return { from: year, to: year }

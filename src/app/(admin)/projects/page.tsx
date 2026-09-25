@@ -139,6 +139,7 @@ export default async function ProjectsPage({
         status: true,
         plannedStart: true,
         plannedEnd: true,
+        planMonth: true,
         actualStart: true,
         actualEnd: true,
         sourceCreatedAt: true,
@@ -271,6 +272,7 @@ export default async function ProjectsPage({
           isSub: true,
           plannedStart: true,
           plannedEnd: true,
+          planMonth: true,
           dueDate: true,
           sourceCreatedAt: true,
           createdAt: true,
@@ -290,6 +292,8 @@ export default async function ProjectsPage({
       })
     : []
   const dayMonth = new Intl.DateTimeFormat(intl, { day: '2-digit', month: '2-digit', timeZone: 'UTC' })
+  // A job with no day fixed yet shows the month it is placed in — "Okt. 2026".
+  const monthShort = new Intl.DateTimeFormat(intl, { month: 'short', year: 'numeric', timeZone: 'UTC' })
   const dayMonthYear = new Intl.DateTimeFormat(intl, { day: '2-digit', month: '2-digit', year: '2-digit' })
   /** Up to this many people are drawn on a card; the rest are a count. */
   const FACES = 3
@@ -306,7 +310,7 @@ export default async function ProjectsPage({
     const target = columnFor(
       columnKeys,
       p.status,
-      { pausedAt: p.pausedAt, plannedStart: p.plannedStart, priority: p.priority, invoice1: p.invoices.length > 0 },
+      { pausedAt: p.pausedAt, plannedStart: p.plannedStart, planMonth: p.planMonth, priority: p.priority, invoice1: p.invoices.length > 0 },
       currentYear
     )
     if (target) columnOf.set(p.id, target.key)
@@ -335,6 +339,7 @@ export default async function ProjectsPage({
         ].filter((e) => !seen.has(e.id) && seen.add(e.id))
         const items = p.checklists.flatMap((c) => c.items)
         const dates = [p.plannedStart, p.plannedEnd].filter((d): d is Date => d !== null).map((d) => dayMonth.format(d))
+        const rough = dates.length === 0 && p.planMonth ? monthShort.format(p.planMonth) : null
         return {
           id: p.id,
           number: p.number,
@@ -342,7 +347,12 @@ export default async function ProjectsPage({
           customer: p.customer.name,
           customerNumber: p.customer.number,
           address: addressLine(p.street, p.postalCode, p.city),
-          dates: dates.length > 0 ? { text: dates.join(' – '), tone: dateTone(p.status, p.plannedStart, p.plannedEnd, today) } : null,
+          dates:
+            dates.length > 0
+              ? { text: dates.join(' – '), tone: dateTone(p.status, p.plannedStart, p.plannedEnd, today) }
+              : rough
+                ? { text: rough, tone: null }
+                : null,
           due: p.dueDate ? { text: dayMonth.format(p.dueDate), tone: dueTone(p.status, p.dueDate, today) } : null,
           // A card brought over from another board keeps the day it was made there.
           created: dayMonthYear.format(p.sourceCreatedAt ?? p.createdAt),
@@ -855,7 +865,7 @@ export default async function ProjectsPage({
                       <td className="break-words px-4 py-3 text-muted">{p.customer.name}</td>
                       <td className="break-words px-4 py-3 text-muted">{p.city ?? '—'}</td>
                       <td className="px-4 py-3 tabular-nums text-muted">
-                        {formatDate(p.plannedStart, locale)}
+                        {p.plannedStart ? formatDate(p.plannedStart, locale) : p.planMonth ? monthShort.format(p.planMonth) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         {/* The badge is a menu, and beside it the usual next step is one click. */}

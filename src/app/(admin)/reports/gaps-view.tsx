@@ -16,7 +16,6 @@ import { StatusBadge } from '@/components/status-badge'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { pricesHidden } from '@/lib/price-visibility'
 import type { GapProject, GapReport } from '@/lib/data-gaps'
-import { CreateLineButton } from './plan/create-line-button'
 
 const card = 'rounded-xl border border-border bg-surface shadow-sm'
 const chip = 'rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400'
@@ -158,29 +157,6 @@ export async function GapsView({
                   {job(project)}
                   <span className="shrink-0 text-right text-[11px] text-muted">
                     {t(project.isSub ? 'gapSubProjectSub' : 'gapSubProjectOwn')}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ),
-        })}
-
-        {section({
-          id: 'nicht-geplant',
-          title: t('gapNotInPlan'),
-          hint: t('gapNotInPlanHint'),
-          count: report.notInPlan.length,
-          children: (
-            <ul className="max-h-96 divide-y divide-border overflow-y-auto">
-              {report.notInPlan.map(({ project, year }) => (
-                <li key={project.id} className="flex items-center justify-between gap-3 px-3 py-1.5 text-[13px]">
-                  {job(project)}
-                  <span className="flex shrink-0 items-center gap-3">
-                    {/* A line of its own — or, in the Planabgleich, a line of the sheet to tie it to */}
-                    {showFinancials && project.amount !== null && <CreateLineButton projectId={project.id} />}
-                    <Link href={`/reports/plan?year=${year}`} className="text-[11px] text-accent hover:underline">
-                      {t('gapPlanLink', { year })} →
-                    </Link>
                   </span>
                 </li>
               ))}

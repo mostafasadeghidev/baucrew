@@ -42,9 +42,9 @@ knows each project's record there, as a *link* (`system` + `externalId`).
 | --- | --- | --- |
 | GET | `/api/v1/me` | Who the key acts as, and whether financial data is visible |
 | GET | `/api/v1/projects` | Projects, newest first. `q` (name, number, customer, town), `status`, `system` and `externalId` (linked records), `limit` (≤200), `offset` |
-| POST | `/api/v1/projects` | Create a project: `name`, `customerId` or `customerName`, optional `status`, `isSub`, `plannedStart`, `plannedEnd`, `dueDate`, `price`, `street`, `postalCode`, `city`, `description` |
+| POST | `/api/v1/projects` | Create a project: `name`, `customerId` or `customerName`, optional `status`, `isSub`, `plannedStart`, `plannedEnd`, `planMonth` ("YYYY-MM", the month the work is expected in when no start is fixed), `planMonths`, `dueDate`, `price`, `street`, `postalCode`, `city`, `description` |
 | GET | `/api/v1/projects/{id}` | One project by id or number (`2026-0048`): team, vehicles, schedule, plan lines |
-| PATCH | `/api/v1/projects/{id}` | Change what is sent: `status`, `name`, `isSub`, `plannedStart`, `plannedEnd`, `dueDate`, `price`, `managerId` or `managerName`, `description`, `street`, `postalCode`, `city`. Absent stays, `null` clears |
+| PATCH | `/api/v1/projects/{id}` | Change what is sent: `status`, `name`, `isSub`, `plannedStart`, `plannedEnd`, `planMonth`, `planMonths`, `dueDate`, `price`, `managerId` or `managerName`, `description`, `street`, `postalCode`, `city`. Absent stays, `null` clears |
 | GET | `/api/v1/projects/by-link/{system}/{externalId}` | The project linked to a record of another system |
 | PUT | `/api/v1/projects/by-link/{system}/{externalId}` | Update the linked project, or create one and link it — see below. Answers `{ created, project }` |
 | PUT | `/api/v1/projects/{id}/links/{system}` | Link the project to a record: `{ "externalId": "…", "url": "…" }`. `409 linkTaken` when the record belongs to another project |
@@ -114,8 +114,11 @@ curl -X PUT -H "Authorization: Bearer bc_…" -H "Content-Type: application/json
   https://baucrew.example/api/v1/projects/by-link/trello/64f0c0ffee0000000000abcd
 ```
 
-A project the sheet-led revenue report knows only from the year plan has no
-project page; the report's rows carry `projectId: null` for those. Its
+The revenue report builds every month from the projects — each in the month
+it runs in (its planned start, else `planMonth`; over the months to its planned
+end, else `planMonths`), its order value spread over those months — plus the
+lines of the imported year plan that no project has taken over yet; those rows
+carry `projectId: null`, and `sheetLines` says whether any are in. Its
 `undated` list leaves out finished work from before the old-data cutoff in
 Settings and reports how many that was in `undatedHistorical`.
 
@@ -151,7 +154,8 @@ A delivery is a `POST` with this body:
     "project": { "id": "…", "number": "2026-0048", "name": "…", "status": "QUOTED", "statusSince": "…",
                  "customer": { "id": "…", "name": "…", "company": null, "contactPerson": null, "email": "…", "phone": null },
                  "manager": null, "address": { "street": null, "postalCode": null, "city": "…" },
-                 "plannedStart": null, "plannedEnd": null, "dueDate": null, "actualStart": null, "actualEnd": null,
+                 "plannedStart": null, "plannedEnd": null, "planMonth": null, "planMonths": 1,
+                 "dueDate": null, "actualStart": null, "actualEnd": null,
                  "price": 12500, "orderValue": 12500, "description": null, "isSub": false,
                  "links": [{ "system": "trello", "externalId": "…", "url": "…" }], "invoices": [] },
     "from": "LEAD",

@@ -70,6 +70,8 @@ export type ProjectFormValues = {
   price: string
   plannedStart: string
   plannedEnd: string
+  planMonth: string
+  planMonths: string
   dueDate: string
   actualStart: string
   actualEnd: string
@@ -785,6 +787,11 @@ export function ProjectForm({
           min={isNew ? todayIso : undefined}
           defaultValue={initial.plannedEnd}
         />
+        {/* Where the job stands in the year before a day is fixed: the month
+            the work is expected in, and how many months it runs. */}
+        <TextField label={t('planMonth')} name="planMonth" type="month" defaultValue={initial.planMonth} />
+        <TextField label={t('planMonths')} name="planMonths" type="number" min="1" defaultValue={initial.planMonths} />
+        <p className="text-xs text-muted sm:col-span-2">{t('planMonthHint')}</p>
         {/* What was promised to the customer — a date of its own, so a plan
             that runs past it shows as one. */}
         <TextField label={t('dueDate')} name="dueDate" type="date" defaultValue={initial.dueDate} />

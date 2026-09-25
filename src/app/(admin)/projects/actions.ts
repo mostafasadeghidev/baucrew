@@ -24,6 +24,7 @@ import { BOARD_COOKIE, COLUMN_TITLE_MAX } from '@/lib/boards'
 import { addBoardColumn, removeBoardColumn, renameBoardColumn, saveColumnOrder } from '@/lib/boards-db'
 import { isColumnSort, orderCards, positionBetween, renumbered, sortedBy, tooClose } from '@/lib/board-order'
 import { columnRuleKey, dropPatch } from '@/lib/board-rules'
+import { MAX_PLAN_MONTHS, parseMonthInput } from '@/lib/plan-month'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -75,6 +76,12 @@ const projectSchema = z
     contact: optional,
     plannedStart: optionalDate,
     plannedEnd: optionalDate,
+    // Where the job stands in the year before a day is fixed (src/lib/plan-month.ts).
+    planMonth: z.string().transform((v) => parseMonthInput(v)),
+    planMonths: z.string().transform((v) => {
+      const n = Number(v)
+      return Number.isInteger(n) && n >= 1 && n <= MAX_PLAN_MONTHS ? n : 1
+    }),
     dueDate: optionalDate,
     actualStart: optionalDate,
     actualEnd: optionalDate,
@@ -130,6 +137,8 @@ function parseProjectForm(formData: FormData) {
     contact: formData.get('contact') ?? '',
     plannedStart: formData.get('plannedStart') ?? '',
     plannedEnd: formData.get('plannedEnd') ?? '',
+    planMonth: formData.get('planMonth') ?? '',
+    planMonths: formData.get('planMonths') ?? '1',
     dueDate: formData.get('dueDate') ?? '',
     actualStart: formData.get('actualStart') ?? '',
     actualEnd: formData.get('actualEnd') ?? '',
@@ -234,6 +243,8 @@ export async function createProject(
           price: canViewFinancials(user) ? price.value : null,
           plannedStart: d.plannedStart,
           plannedEnd: d.plannedEnd,
+          planMonth: d.planMonth,
+          planMonths: d.planMonths,
           dueDate: d.dueDate,
           actualStart: d.actualStart,
           actualEnd: d.actualEnd,
@@ -385,6 +396,8 @@ export async function updateProject(
       ...(financials ? { price: priceValue } : {}),
       plannedStart: d.plannedStart,
       plannedEnd: d.plannedEnd,
+      planMonth: d.planMonth,
+      planMonths: d.planMonths,
       dueDate: d.dueDate,
       actualStart: d.actualStart,
       actualEnd: d.actualEnd,
@@ -509,13 +522,13 @@ export async function moveCard(
   // What the rule of the target list asks of the card, beyond its status.
   const facts = await db.project.findUnique({
     where: { id },
-    select: { pausedAt: true, plannedStart: true, priority: true, invoices: { where: { part: 1 }, select: { id: true } } },
+    select: { pausedAt: true, plannedStart: true, planMonth: true, priority: true, invoices: { where: { part: 1 }, select: { id: true } } },
   })
   if (!facts) return { error: 'saveFailed' }
   const patch = dropPatch(
     columnRuleKey(rules.from),
     columnRuleKey(rules.to),
-    { pausedAt: facts.pausedAt, plannedStart: facts.plannedStart, priority: facts.priority, invoice1: facts.invoices.length > 0 },
+    { pausedAt: facts.pausedAt, plannedStart: facts.plannedStart, planMonth: facts.planMonth, priority: facts.priority, invoice1: facts.invoices.length > 0 },
     new Date()
   )
   if (patch === 'refused') return { error: 'ruleRefused' }

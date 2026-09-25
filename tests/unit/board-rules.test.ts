@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { columnFor, columnRuleKey, dropPatch, ruleMatches, type RuleFacts } from '@/lib/board-rules'
 
-const facts = (over: Partial<RuleFacts> = {}): RuleFacts => ({ pausedAt: null, plannedStart: null, priority: null, invoice1: false, ...over })
+const facts = (over: Partial<RuleFacts> = {}): RuleFacts => ({ pausedAt: null, plannedStart: null, planMonth: null, priority: null, invoice1: false, ...over })
 const now = new Date(Date.UTC(2026, 8, 24))
 
 describe('what a rule picks', () => {
@@ -9,6 +9,8 @@ describe('what a rule picks', () => {
     expect(ruleMatches('paused', facts({ pausedAt: now }), 2026)).toBe(true)
     expect(ruleMatches('paused', facts(), 2026)).toBe(false)
     expect(ruleMatches('nextYear', facts({ plannedStart: new Date(Date.UTC(2027, 2, 1)) }), 2026)).toBe(true)
+    expect(ruleMatches('nextYear', facts({ planMonth: new Date(Date.UTC(2027, 0, 1)) }), 2026)).toBe(true)
+    expect(ruleMatches('nextYear', facts({ plannedStart: new Date(Date.UTC(2026, 11, 1)), planMonth: new Date(Date.UTC(2027, 0, 1)) }), 2026)).toBe(false)
     expect(ruleMatches('nextYear', facts({ plannedStart: new Date(Date.UTC(2026, 11, 1)) }), 2026)).toBe(false)
     expect(ruleMatches('lowPriority', facts({ priority: 'LOW' }), 2026)).toBe(true)
     expect(ruleMatches('invoice1', facts({ invoice1: true }), 2026)).toBe(true)
@@ -53,7 +55,7 @@ describe('what a drop does beyond the status', () => {
   })
 
   it('plans a card for next year only when it is not there yet, and never unplans it', () => {
-    expect(dropPatch(null, 'nextYear', facts(), now)).toEqual({ plannedStart: new Date(Date.UTC(2027, 0, 1)) })
+    expect(dropPatch(null, 'nextYear', facts(), now)).toEqual({ planMonth: new Date(Date.UTC(2027, 0, 1)) })
     expect(dropPatch(null, 'nextYear', facts({ plannedStart: new Date(Date.UTC(2027, 5, 1)) }), now)).toEqual({})
     expect(dropPatch('nextYear', null, facts({ plannedStart: new Date(Date.UTC(2027, 5, 1)) }), now)).toEqual({})
   })

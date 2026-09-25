@@ -286,6 +286,13 @@ model Project {
 
   plannedStart DateTime? @db.Date
   plannedEnd   DateTime? @db.Date
+  /// The month the work is expected in — that month's first day — the office's
+  /// rough placing before a day is fixed. A planned start wins over it; with a
+  /// planned end the job runs over the months between (src/lib/plan-month.ts).
+  planMonth    DateTime? @db.Date
+  /// How many months the job runs from planMonth when no end is fixed; its
+  /// order value is spread evenly over them.
+  planMonths   Int       @default(1)
   /// The day the work has to be done by — a promise to the customer, not a plan
   /// of the office's own. Apart from plannedEnd on purpose: a job can be planned
   /// to end well before it is due, or be planned past it, which is the warning.

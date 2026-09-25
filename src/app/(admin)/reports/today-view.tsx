@@ -440,7 +440,6 @@ export async function TodayView({
     { id: 'wert-termin', title: t('gapValueOrDate'), count: gaps.valueOrDate.length },
     { id: 'wert-plan', title: t('gapValueVsPlan'), count: gaps.valueVsPlan.length },
     { id: 'sub', title: t('gapSub'), count: gaps.subConflict.length },
-    { id: 'nicht-geplant', title: t('gapNotInPlan'), count: gaps.notInPlan.length },
     { id: 'planzeilen', title: t('gapLooseLines'), count: gaps.looseLines.length },
   ]
   const gapsPanel = (

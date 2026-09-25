@@ -13,7 +13,6 @@ import {
   type PlanJob,
   type PlanLine,
 } from '@/lib/plan-jobs'
-import { planLineFromProject } from '@/lib/plan-lines'
 import { parsePlanLinks, serializePlanLinks, type PlanLinkRecord } from '@/lib/plan-links'
 import { isSheetDate, isSheetPrice, planNote, sheetFigures, withoutPlanNotes } from '@/lib/plan-notes'
 import { announceProjectChanges, projectBefore, type EventActor } from '@/lib/project-events'
@@ -472,49 +471,4 @@ export async function importPlanLinks(text: string): Promise<LinkImportResult> {
   })
   paths([...linesFor.keys()])
   return result
-}
-
-/**
- * A line for a job the sheet of the year does not have, made from the
- * project's own figures (src/lib/plan-lines.ts): the month it starts in, its
- * order value, own crew or SUB. Tied to the project and marked as made by
- * hand, so a re-import of the sheet keeps it. Nothing is written back to the
- * project — the figures are its own.
- */
-export async function createPlanLine(projectId: string): Promise<{ error?: string }> {
-  const user = await requireFinancials()
-  const project = await db.project.findUnique({
-    where: { id: projectId },
-    select: {
-      id: true,
-      name: true,
-      status: true,
-      plannedStart: true,
-      price: true,
-      isSub: true,
-      addOns: { select: { amount: true } },
-      planEntries: { select: { year: true } },
-    },
-  })
-  if (!project || project.status === 'CANCELLED') return { error: 'notFound' }
-  const made = planLineFromProject({
-    name: project.name,
-    plannedStart: project.plannedStart,
-    price: project.price == null ? null : Number(project.price),
-    addOns: project.addOns.map((a) => ({ amount: Number(a.amount) })),
-    isSub: project.isSub,
-    lines: project.planEntries,
-  })
-  if ('error' in made) return { error: made.error }
-  const line = await db.planEntry.create({ data: { ...made.line, source: 'manual', projectId: project.id } })
-  await audit({
-    userId: user.id,
-    action: 'create',
-    entity: 'PlanEntry',
-    entityId: line.id,
-    field: line.name,
-    newValue: projectId,
-  })
-  paths([projectId])
-  return {}
 }

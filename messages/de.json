@@ -456,7 +456,11 @@
     "boardFilterDueNone": "Ohne Termin",
     "cardCopy": "Karte kopieren",
     "copyName": "{name} (Kopie)",
-    "boardArchivedSearch": "Im Archiv suchen …"
+    "boardArchivedSearch": "Im Archiv suchen …",
+    "planMonth": "Ausführung voraussichtlich (Monat)",
+    "planMonths": "Dauer (Monate)",
+    "planMonthHint": "Ohne festen Beginn steht der Auftrag im Planumsatz in diesem Monat, über die Dauer verteilt; mit Beginn und Ende gelten die Termine. Im Planumsatz lässt er sich auch in einen anderen Monat ziehen.",
+    "planMonthsCount": "{count, plural, one {# Monat} other {# Monate}}"
   },
   "history": {
     "created": "hat die Karte angelegt",
@@ -492,7 +496,8 @@
     "invoiceReady": "hat Rechnung {part} als bereit gemeldet",
     "invoiceWithdrawn": "hat Rechnung {part} zurückgenommen",
     "system": "System",
-    "copiedFrom": "hat die Karte als Kopie von „{name}“ angelegt"
+    "copiedFrom": "hat die Karte als Kopie von „{name}“ angelegt",
+    "movedMonth": "hat den Auftrag in den Monat {month} gelegt"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -849,7 +854,7 @@
     "tabGaps": "Datenlücken",
     "introToday": "Stand heute – unabhängig von Jahr und Zeitraum. Jede Kachel zeigt eine Zahl mit Ampel: Rot und Gelb zuerst ansehen. Ein Klick auf eine Kachel öffnet darunter, was dahinter steht.",
     "introCompare": "Das Jahr gegen andere Jahre – Monat für Monat, nach Quartalen, Jahr für Jahr und aufgelaufen. Jahr und Zeitraum oben gelten für jede Zahl auf dieser Seite.",
-    "introPlan": "Planumsatz aus der Jahresplanung, Monat für Monat – keine Rechnungsbeträge. Jahr und Zeitraum oben gelten für jede Zahl auf dieser Seite; ein Klick auf einen Monat zeigt die Aufträge darin.",
+    "introPlan": "Planumsatz Monat für Monat aus den Projekten – jeder Auftrag in dem Monat, in dem er läuft (fester Beginn, sonst voraussichtlicher Monat; über mehrere Monate anteilig) – keine Rechnungsbeträge. Jahr und Zeitraum oben gelten für jede Zahl auf dieser Seite; ein Klick auf einen Monat zeigt die Aufträge darin, und ein Auftrag lässt sich in einen anderen Monat ziehen.",
     "introUsage": "Verplante Arbeitstage aus dem Einsatzplan (Mo–Fr, ohne Abwesenheiten) für Jahr und Zeitraum oben; darunter die im Zeitraum fertig gewordenen Aufträge mit geplanten und tatsächlichen Tagen.",
     "introGaps": "Stand heute: Jede Karte nennt, was fehlt, welchen Betrag es betrifft und wie es behoben wird; ein Klick führt zum Eintrag. Aufträge aus dem Altbestand vor dem Stichtag werden nicht abgefragt.",
     "standDate": "Stand {date}",
@@ -906,7 +911,7 @@
     "usageVehiclesHint": "Tage im Einsatzplan (Mo–Fr, je Tag einmal) gegen die Werktage der Monate mit Einsätzen.",
     "gapNone": "Nichts offen.",
     "gapValueOrDate": "Auftrag ohne Wert oder Termin",
-    "gapValueOrDateHint": "Ohne Auftragswert zählt der Auftrag in keiner Summe; ohne geplanten Start steht er in keinem Monat. Wert ab Angebot, Termin ab Geplant – im Projekt eintragen.",
+    "gapValueOrDateHint": "Ohne Auftragswert zählt der Auftrag in keiner Summe; ohne Monat oder Termin steht er in keinem Monat des Planumsatzes. Wert ab Angebot, Monat oder Termin ab Geplant – im Projekt eintragen.",
     "gapValueVsPlan": "Auftragswert passt nicht zur Jahresplanung",
     "gapValueVsPlanHint": "Die Zeilen der Jahresplanung ergeben einen anderen Betrag als Preis + Nachträge. Entweder den Preis im Projekt oder die Zeilen im Planabgleich korrigieren.",
     "gapOrderValue": "Auftrag",
@@ -915,9 +920,6 @@
     "gapSubHint": "Projekt und Planzeilen sagen Unterschiedliches über eigene Leute oder SUB – das verfälscht „davon SUB“.",
     "gapSubProjectSub": "Projekt: SUB · Plan: eigene Leute",
     "gapSubProjectOwn": "Projekt: eigene Leute · Plan: SUB",
-    "gapNotInPlan": "Nicht in der Jahresplanung",
-    "gapNotInPlanHint": "Start in einem Jahr mit Jahresplanung, aber keine Zeile in diesem Jahr – der Auftrag zählt dort in keinem Monat. „Zeile anlegen“ trägt ihn mit Startmonat und Auftragswert ein; im Planabgleich lässt er sich stattdessen einer Zeile der Tabelle zuordnen.",
-    "gapPlanLink": "Planabgleich {year}",
     "gapLooseLines": "Planzeilen ohne Projekt",
     "gapLooseLinesHint": "Zeilen der Jahresplanung ab dem laufenden Monat, zu denen es noch kein Projekt gibt (oder deren Projekt storniert ist). Projekt anlegen oder im Planabgleich zuordnen.",
     "gapNoMonth": "{year}, ohne Monat",
@@ -1132,13 +1134,9 @@
     "qNoPlannedStart": "Ohne Termin — in keinem Monat gezählt (geplant, in Arbeit oder abgeschlossen)",
     "vsPrevYearSheet": "vs. Planung {year}",
     "vsPrevPeriodSheet": "vs. Planung {period} {year}",
-    "hintOwnPeople": "Auftragswerte der Projekte, deren geplanter Start in diesem Monat liegt und die eigene Leute ausführen. Ein Projekt zählt mit seinem ganzen Auftragswert in dem Monat, in dem es beginnt.",
-    "hintSub": "Auftragswerte der Projekte dieses Monats, die ein Subunternehmer ausführt.",
+    "hintOwnPeople": "Auftragswerte der Projekte, die in diesem Monat laufen und eigene Leute ausführen – mit festem Beginn in dessen Monat, sonst im voraussichtlichen Monat; ein Auftrag über mehrere Monate zählt in jedem anteilig. Dazu Zeilen der Jahresplanung, zu denen es noch kein Projekt gibt.",
+    "hintSub": "Auftragswerte der Projekte dieses Monats, die ein Subunternehmer ausführt – und SUB-Zeilen der Jahresplanung ohne Projekt.",
     "hintPlan": "Die Summe der Jahresplanung (Tabelle) für diesen Monat. Daneben Projekte minus Plan: grün, sobald der Plan erreicht ist, gelb darunter. Der Unterschied kommt meist von Planzeilen ohne Projekt — die Zeile darunter sagt, woher.",
-    "extraTitle": "Nicht in der Tabelle",
-    "hintOwnPeopleSheet": "Summe der Zeilen der Jahresplanung (Tabelle) für diesen Monat, eigene Leute — genau wie in der Tabelle. Eine Zeile mit Projekt verlinkt dorthin; eine ohne Projekt steht nur in der Tabelle.",
-    "hintSubSheet": "Summe der SUB-Zeilen der Jahresplanung für diesen Monat — Aufträge, die ein Subunternehmer ausführt.",
-    "hintExtra": "Projekte mit geplantem Start in diesem Monat, die in der Jahresplanung nicht stehen. Sie zählen nicht in die Monats- und Jahressumme, damit die Zahlen der Tabelle entsprechen — „Zeile anlegen“ gibt so einem Projekt eine eigene Zeile, oder im Planabgleich einer Zeile zuordnen.",
     "chartOpenMonth": "Aufträge des Monats anzeigen",
     "chartClickHint": "Klick auf einen Monat zeigt darunter die Aufträge aller verglichenen Jahre.",
     "monthJobs": "{count, plural, =0 {keine Aufträge} one {# Auftrag} other {# Aufträge}}",
@@ -1152,7 +1150,9 @@
     "monthBelow": "{year} liegt {percent} % darunter",
     "monthLevel": "gleichauf mit {year}",
     "monthMore": "+ {count} weitere",
-    "monthLess": "Weniger anzeigen"
+    "monthLess": "Weniger anzeigen",
+    "dragLine": "In einen anderen Monat ziehen",
+    "moveFailed": "Verschieben hat nicht geklappt."
   },
   "sheet": {
     "title": "Arbeitsauftrag",
@@ -1740,7 +1740,7 @@
   },
   "planMatch": {
     "title": "Planabgleich",
-    "hint": "Jede Baustelle der Jahresplanung zu ihrem Projekt. Eine Zuordnung gibt dem Projekt Start, Ende und Auftragswert aus der Tabelle, sofern es sie noch nicht hat. ✓ ist sicher, ? ist ein Vorschlag.",
+    "hint": "Jede Baustelle der Jahresplanung zu ihrem Projekt. Eine Zuordnung gibt dem Projekt Start, Ende und Auftragswert aus der Tabelle, sofern es sie noch nicht hat; im Planumsatz zählt dann das Projekt selbst, die Zeile nicht mehr. ✓ ist sicher, ? ist ein Vorschlag.",
     "yearLabel": "Jahr",
     "noMonth": "ohne Monat",
     "kpiPlanned": "Geplanter Umsatz",
@@ -1770,14 +1770,7 @@
     "exportLinks": "Zuordnungen exportieren",
     "importLinks": "Zuordnungen importieren",
     "importDone": "{applied, plural, one {# Zeile} other {# Zeilen}} verknüpft · {alreadyLinked} waren schon verknüpft · {missingProject} ohne passendes Projekt · {missingLine} ohne passende Zeile.",
-    "importInvalid": "Das ist keine Zuordnungsdatei aus dem Planabgleich.",
-    "createLine": "Zeile anlegen",
-    "lineNoDate": "kein geplanter Start",
-    "lineNoValue": "kein Auftragswert",
-    "lineHasLine": "hat in diesem Jahr schon eine Zeile",
-    "lineFailed": "Hat nicht geklappt.",
-    "withoutLineTitle": "{count, plural, one {# Projekt ohne Zeile in {year}} other {# Projekte ohne Zeile in {year}}}",
-    "withoutLineHint": "Projekte mit geplantem Start in diesem Jahr, die in der Jahresplanung nicht stehen — sie zählen in keinem Monat. „Zeile anlegen“ gibt ihnen eine Zeile mit Startmonat und Auftragswert; sie bleibt auch nach einem neuen Import der Tabelle, bis die Tabelle das Projekt selbst führt."
+    "importInvalid": "Das ist keine Zuordnungsdatei aus dem Planabgleich."
   },
   "defects": {
     "heading": "Mängel",

@@ -456,7 +456,11 @@
     "boardFilterDueNone": "No dates",
     "cardCopy": "Copy card",
     "copyName": "{name} (copy)",
-    "boardArchivedSearch": "Search the archive …"
+    "boardArchivedSearch": "Search the archive …",
+    "planMonth": "Expected execution (month)",
+    "planMonths": "Duration (months)",
+    "planMonthHint": "Without a fixed start the job stands in this month of the planned revenue, spread over the duration; with a start and an end the dates decide. In the planned revenue it can also be dragged into another month.",
+    "planMonthsCount": "{count, plural, one {# month} other {# months}}"
   },
   "history": {
     "created": "created this card",
@@ -492,7 +496,8 @@
     "invoiceReady": "marked invoice {part} as ready",
     "invoiceWithdrawn": "withdrew invoice {part}",
     "system": "System",
-    "copiedFrom": "created this card as a copy of “{name}”"
+    "copiedFrom": "created this card as a copy of “{name}”",
+    "movedMonth": "placed the job in {month}"
   },
   "employees": {
     "title": "Employees",
@@ -849,7 +854,7 @@
     "tabGaps": "Data gaps",
     "introToday": "As of today – independent of year and period. Every tile shows one figure with a traffic light: look at red and yellow first. Click a tile to open what stands behind it right below.",
     "introCompare": "The year against other years – month by month, by quarter, year by year and as a running total. Year and period above apply to every figure on this tab.",
-    "introPlan": "Planned revenue from the year plan, month by month – not invoiced amounts. Year and period above apply to every figure on this tab; click a month to see its jobs.",
+    "introPlan": "Planned revenue month by month from the projects – every job in the month it runs in (fixed start, else the expected month; over several months in shares) – no invoice amounts. Year and period above apply to every figure on this page; a click on a month shows the jobs in it, and a job can be dragged into another month.",
     "introUsage": "Scheduled working days from the schedule (Mon–Fri, without absences) for the year and period above; below, the jobs finished in the period with planned and actual days.",
     "introGaps": "As of today: every card says what is missing, which amount it affects and how to fix it; click an entry to open it. Jobs from the history before the cutoff are not checked.",
     "standDate": "As of {date}",
@@ -906,7 +911,7 @@
     "usageVehiclesHint": "Days on the schedule (Mon–Fri, once a day) against the working days of the months with bookings.",
     "gapNone": "Nothing open.",
     "gapValueOrDate": "Job without value or date",
-    "gapValueOrDateHint": "Without an order value the job counts in no total; without a planned start it stands in no month. Value from offer on, date from planned on – enter it on the project.",
+    "gapValueOrDateHint": "Without an order value the job counts in no total; without a month or a date it stands in no month of the planned revenue. Value from the offer on, month or date from planned on – enter it in the project.",
     "gapValueVsPlan": "Order value does not match the year plan",
     "gapValueVsPlanHint": "The year plan's lines add up to a different amount than price + change orders. Correct either the price on the project or the lines in plan matching.",
     "gapOrderValue": "Job",
@@ -915,9 +920,6 @@
     "gapSubHint": "Project and plan lines disagree about own crew or SUB – this distorts \"of which SUB\".",
     "gapSubProjectSub": "Project: SUB · Plan: own crew",
     "gapSubProjectOwn": "Project: own crew · Plan: SUB",
-    "gapNotInPlan": "Not in the year plan",
-    "gapNotInPlanHint": "Starts in a year that has a planning sheet, but has no line in that year – it counts in no month there. “Add a line” enters it with its start month and order value; in the plan match it can be tied to a line of the sheet instead.",
-    "gapPlanLink": "Plan matching {year}",
     "gapLooseLines": "Plan lines without a project",
     "gapLooseLinesHint": "Year plan lines from the running month on that have no project yet (or whose project was cancelled). Create the project or assign it in plan matching.",
     "gapNoMonth": "{year}, no month",
@@ -1132,13 +1134,9 @@
     "qNoPlannedStart": "No date — counted in no month (planned, under way or done)",
     "vsPrevYearSheet": "vs. plan {year}",
     "vsPrevPeriodSheet": "vs. plan {period} {year}",
-    "hintOwnPeople": "Order values of the projects whose planned start falls in this month and that our own crew carries out. A project counts with its whole order value in the month it starts.",
-    "hintSub": "Order values of this month's projects carried out by a subcontractor.",
+    "hintOwnPeople": "Order values of the projects running this month that the own crew carries out – with a fixed start in its month, else in the expected month; a job over several months counts a share in each. Plus lines of the planning sheet that have no project yet.",
+    "hintSub": "Order values of this month's projects carried out by a subcontractor – and the sheet's SUB lines without a project.",
     "hintPlan": "The year plan's (sheet's) sum for this month. Next to it, projects minus plan: green once the plan is reached, amber below it. The difference usually comes from plan lines without a project — the line below says where from.",
-    "extraTitle": "Not in the sheet",
-    "hintOwnPeopleSheet": "Sum of this month's lines in the year plan (sheet), own crew — exactly as in the sheet. A line with a project links to it; one without a project exists only in the sheet.",
-    "hintSubSheet": "Sum of this month's SUB lines in the year plan — jobs carried out by a subcontractor.",
-    "hintExtra": "Projects with a planned start in this month that the planning sheet does not have. They are not counted in the month’s and the year’s total, so the figures match the sheet — “Add a line” gives such a project a line of its own, or tie it to a line in the plan match.",
     "chartOpenMonth": "show the month's jobs",
     "chartClickHint": "Click a month to list the jobs of every compared year underneath.",
     "monthJobs": "{count, plural, =0 {no jobs} one {# job} other {# jobs}}",
@@ -1152,7 +1150,9 @@
     "monthBelow": "{year} is {percent} % below",
     "monthLevel": "level with {year}",
     "monthMore": "+ {count} more",
-    "monthLess": "Show fewer"
+    "monthLess": "Show fewer",
+    "dragLine": "Drag into another month",
+    "moveFailed": "Moving did not work."
   },
   "sheet": {
     "title": "Work order",
@@ -1740,7 +1740,7 @@
   },
   "planMatch": {
     "title": "Plan reconciliation",
-    "hint": "Every site of the year plan to its project. A link gives the project its start, end and order value from the sheet, unless it has them already. ✓ is sure, ? is a suggestion.",
+    "hint": "Every site of the planning sheet to its project. Tying gives the project start, end and order value from the sheet where it has none yet; in the planned revenue the project then counts by itself, the line no more. ✓ is certain, ? a suggestion.",
     "yearLabel": "Year",
     "noMonth": "without a month",
     "kpiPlanned": "Planned revenue",
@@ -1770,14 +1770,7 @@
     "exportLinks": "Export links",
     "importLinks": "Import links",
     "importDone": "{applied, plural, one {# line} other {# lines}} linked · {alreadyLinked} were linked already · {missingProject} without a matching project · {missingLine} without a matching line.",
-    "importInvalid": "This is not a links file from the plan match.",
-    "createLine": "Add a line",
-    "lineNoDate": "no planned start",
-    "lineNoValue": "no order value",
-    "lineHasLine": "already has a line in this year",
-    "lineFailed": "That did not work.",
-    "withoutLineTitle": "{count, plural, one {# project without a line in {year}} other {# projects without a line in {year}}}",
-    "withoutLineHint": "Projects starting this year that the planning sheet does not have — they count in no month. “Add a line” gives them a line with their start month and order value; it survives a re-import of the sheet until the sheet carries the project itself."
+    "importInvalid": "This is not a links file from the plan match."
   },
   "defects": {
     "heading": "Defects",

@@ -178,26 +178,40 @@ describe('getYearRevenue with a planning sheet', () => {
     await prisma.customer.delete({ where: { id: cust } })
   })
 
-  it('reads the months from the sheet and lists the projects the sheet does not know beside them', async () => {
+  it('counts the projects by their own months and values, and the sheet lines nobody has a project for', async () => {
     const { getYearRevenue } = await import('@/lib/reports')
     const r = await getYearRevenue(year)
     expect(r.sheetLed).toBe(true)
     expect(r.fromSheet).toBe(false)
     const jan = r.months[0]
-    // The sheet's amounts, not the project's price.
-    expect(jan.ownTotal).toBe(1500)
+    // The tied project counts with its own price, not the sheet's amount; the loose lines with theirs.
+    expect(jan.ownTotal).toBe(1734)
     expect(jan.subTotal).toBe(300)
-    expect(jan.total).toBe(1800)
-    expect(jan.own.find((p) => p.id === tied)?.name).toBe(`${TAG} Musterhof Innenputz`)
+    expect(jan.total).toBe(2034)
+    expect(jan.own.find((p) => p.id === tied)?.name).toBe(`${TAG} tied`)
     expect(jan.own.find((p) => p.fromSheet)?.name).toBe(`${TAG} Beispielweg`)
-    expect(jan.extra).toEqual([])
-    // The project without a line stands beside February, uncounted.
+    // The project the sheet does not know stands in February like any other.
     const feb = r.months[1]
-    expect(feb.total).toBe(0)
-    expect(feb.extra.map((p) => p.id)).toEqual([beside])
-    expect(feb.extraTotal).toBe(700)
-    expect(r.yearTotal).toBe(1800)
+    expect(feb.total).toBe(700)
+    expect(feb.own.map((p) => p.id)).toEqual([beside])
+    expect(r.yearTotal).toBe(2734)
     expect(r.undated).toEqual([])
+  })
+
+  it('spreads a job over the months it runs, and places one without a fixed day by its month', async () => {
+    const { getYearRevenue } = await import('@/lib/reports')
+    await prisma.project.update({ where: { id: beside }, data: { plannedEnd: new Date(Date.UTC(year, 3, 20)) } })
+    await prisma.project.update({
+      where: { id: tied },
+      data: { plannedStart: null, plannedEnd: null, planMonth: new Date(Date.UTC(year, 5, 1)), planMonths: 2 },
+    })
+    const r = await getYearRevenue(year)
+    // 700 over February to April, the odd cent on the last month.
+    expect(r.months.slice(1, 4).map((m) => m.ownTotal)).toEqual([233.33, 233.33, 233.34])
+    // 1234 over June and July.
+    expect(r.months[5].own.find((p) => p.id === tied)?.price).toBe(617)
+    expect(r.months[6].own.find((p) => p.id === tied)?.price).toBe(617)
+    expect(r.yearTotal).toBe(2734)
   })
 })
 

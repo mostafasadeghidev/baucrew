@@ -9,13 +9,14 @@ const job = (over: Partial<GapProject> & { id: string; status: string }): GapPro
   customer: 'Muster GmbH',
   amount: 10_000,
   plannedStart: d('2026-05-01'),
+  planMonth: null,
   isSub: false,
   historical: false,
   lines: [{ year: 2026, amount: 10_000, isSub: false }],
   ...over,
 })
 
-const opts = { sheetYears: [2025, 2026], currentYear: 2026, runningMonth: 8 }
+const opts = { currentYear: 2026, runningMonth: 8 }
 
 describe('dataGapReport', () => {
   it('has nothing to say about a complete job', () => {
@@ -55,17 +56,13 @@ describe('dataGapReport', () => {
     expect(report.count).toBe(2)
   })
 
-  it('names a job starting in a sheet year with no line in that year, but not in a year without a sheet', () => {
+  it('takes the month a job is placed in as its date', () => {
     const report = dataGapReport(
-      [
-        job({ id: 'missing', status: 'PLANNED', lines: [{ year: 2025, amount: 10_000, isSub: false }] }),
-        job({ id: 'nosheet', status: 'PLANNED', plannedStart: d('2027-03-01'), lines: [] }),
-      ],
+      [job({ id: 'placed', status: 'PLANNED', amount: null, plannedStart: null, planMonth: d('2026-10-01'), lines: [] })],
       [],
       opts
     )
-    expect(report.notInPlan).toEqual([expect.objectContaining({ year: 2026 })])
-    expect(report.notInPlan[0].project.id).toBe('missing')
+    expect(report.valueOrDate.map((r) => [r.project.id, r.valueMissing, r.dateMissing])).toEqual([['placed', true, false]])
   })
 
   it('counts a job once however many gaps it has', () => {

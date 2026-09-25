@@ -50,6 +50,7 @@ export function describeAudit(entry: AuditEntry, t: Words, statusLabel: (status:
     case 'project.update':
       if (field === 'name') return t('renamed', { name: name(newValue) })
       if (field === 'priority') return t('priority')
+      if (field === 'planMonth') return t('movedMonth', { month: name(newValue) })
       return t('updated')
     case 'project.merge':
       return t('merged')

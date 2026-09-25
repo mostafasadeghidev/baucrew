@@ -12,6 +12,7 @@
  */
 
 import { isHistorical, projectHistoryDate, type HistoryProject } from './history'
+import { firstMonth } from './plan-month'
 import { businessDaysBetween } from './reports-calc'
 
 /** Surest first. */
@@ -239,6 +240,8 @@ export function monthSituations(input: {
     price: number | null
     ageDays: number
     plannedStart: Date | null
+    /** The month the office placed it in, when no start is fixed. */
+    planMonth?: Date | null
   }>
 }): MonthSituation[] {
   // An offer that already stands as a line in any month of the year is placed;
@@ -267,13 +270,10 @@ export function monthSituations(input: {
         certainty: lineCertainty(l),
       })),
       offers: input.offers
-        .filter(
-          (o) =>
-            o.plannedStart !== null &&
-            o.plannedStart.getUTCFullYear() === input.year &&
-            o.plannedStart.getUTCMonth() === m.month &&
-            !tied.has(o.id)
-        )
+        .filter((o) => {
+          const first = firstMonth({ plannedStart: o.plannedStart, plannedEnd: null, planMonth: o.planMonth ?? null, planMonths: 1 })
+          return first !== null && first.year === input.year && first.month === m.month && !tied.has(o.id)
+        })
         .map((o) => ({ id: o.id, name: o.name, customer: o.customer, amount: o.price, ageDays: o.ageDays })),
     }
   })

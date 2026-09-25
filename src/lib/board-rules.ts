@@ -15,6 +15,8 @@
  * Pure, so every rule is tested without a board.
  */
 
+import { firstMonth, monthDate } from './plan-month'
+
 export const COLUMN_RULES = ['paused', 'nextYear', 'lowPriority', 'invoice1'] as const
 export type ColumnRule = (typeof COLUMN_RULES)[number]
 
@@ -34,6 +36,8 @@ export function columnRuleKey(raw: unknown): ColumnRule | null {
 export type RuleFacts = {
   pausedAt: Date | null
   plannedStart: Date | null
+  /** The month the office placed the job in, when no start is fixed. */
+  planMonth: Date | null
   priority: string | null
   /** Whether the first invoice was marked ready. */
   invoice1: boolean
@@ -43,8 +47,10 @@ export function ruleMatches(rule: ColumnRule, facts: RuleFacts, currentYear: num
   switch (rule) {
     case 'paused':
       return facts.pausedAt !== null
-    case 'nextYear':
-      return facts.plannedStart !== null && facts.plannedStart.getUTCFullYear() > currentYear
+    case 'nextYear': {
+      const first = firstMonth({ plannedStart: facts.plannedStart, plannedEnd: null, planMonth: facts.planMonth, planMonths: 1 })
+      return first !== null && first.year > currentYear
+    }
     case 'lowPriority':
       return facts.priority === 'LOW'
     case 'invoice1':
@@ -72,13 +78,15 @@ export function columnFor<T extends { key: string; status: string; rule: string 
 }
 
 /** The changes a drop makes beyond the status: what the rule left behind undone, what the new one asks for. */
-export type RulePatch = { pausedAt?: Date | null; priority?: string | null; plannedStart?: Date | null }
+export type RulePatch = { pausedAt?: Date | null; priority?: string | null; planMonth?: Date | null }
 
 /**
  * What dragging a card from one column into another does to it, beyond the
  * status — or 'refused' where the rule is not a drag's to set. Leaving a
  * rule column undoes its rule, except next year's list: the dates are the
- * office's, and the card simply goes where they put it.
+ * office's, and the card simply goes where they put it. Dropping into next
+ * year's list places the job in January of next year — a rough month, not
+ * a fixed day — unless it stands in a later year already.
  */
 export function dropPatch(
   from: ColumnRule | null,
@@ -93,6 +101,6 @@ export function dropPatch(
   if (to === 'paused' && facts.pausedAt === null) patch.pausedAt = now
   if (to === 'lowPriority' && facts.priority !== 'LOW') patch.priority = 'LOW'
   if (to === 'nextYear' && !ruleMatches('nextYear', facts, now.getUTCFullYear()))
-    patch.plannedStart = new Date(Date.UTC(now.getUTCFullYear() + 1, 0, 1))
+    patch.planMonth = monthDate(now.getUTCFullYear() + 1, 0)
   return patch
 }

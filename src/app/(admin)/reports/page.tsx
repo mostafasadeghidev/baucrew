@@ -36,6 +36,7 @@ import {
 import { REPORT_TABS, TAB_CHOICES, resolveReportsUrl, type ReportTab } from '@/lib/reports-url'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { pricesHidden } from '@/lib/price-visibility'
+import { movable } from '@/lib/plan-month'
 import { addDays, todayUtc } from '@/lib/dates'
 import { usualCrew, USUAL_CREW_DAYS } from '@/lib/cockpit'
 import { RevenueChart } from '@/components/revenue-chart'
@@ -72,7 +73,7 @@ import {
   weeklyTurnover,
 } from '@/lib/order-situation'
 import { RevenueLanes } from './revenue-lanes'
-import { CreateLineButton } from './plan/create-line-button'
+import { DragLine, DropMonth } from './month-drag'
 import { RevenueMatrix } from './revenue-matrix'
 import { OrderSituation } from './order-situation'
 import { TodayView } from './today-view'
@@ -364,9 +365,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   // ── Planumsatz ───────────────────────────────────────────
   const runningMonth = year === currentYear ? todayMonth : -1
   const fromSheet = revenue?.fromSheet ?? false
-  const sheetLed = revenue?.sheetLed ?? false
   const hasPlan = plan?.hasPlan ?? false
-  const planComparable = hasPlan && !fromSheet && !sheetLed && (plan?.yearTotal ?? 0) > 0
+  // The sheet's figure beside the projects' — wherever there is a sheet and the year is not the sheet alone.
+  const planComparable = hasPlan && !fromSheet && (plan?.yearTotal ?? 0) > 0
   const monthTotals = revenue ? revenue.months.map((m) => m.total) : []
   const prevTotals = prevRevenue ? prevRevenue.months.map((m) => m.total) : null
 
@@ -374,7 +375,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     ? revenue.months.filter(
         (m) =>
           (!range || (m.month >= range.from && m.month <= range.to)) &&
-          (m.own.length > 0 || m.sub.length > 0 || m.extra.length > 0 || (plan?.months[m.month].total ?? 0) > 0)
+          (m.own.length > 0 || m.sub.length > 0 || (plan?.months[m.month].total ?? 0) > 0)
       )
     : []
   const monthsDescending = orderParam === 'desc'
@@ -394,12 +395,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const monthOrder = orderedMonths.map((m) => m.month)
   const foldSites = onRevenue && revenue !== null && monthsLayout.layout !== 'grid'
   const siteRows = foldSites ? siteMonthRows(revenue.months, monthOrder) : []
-  const extraSiteRows = foldSites
-    ? siteMonthRows(
-        revenue.months.map((m) => ({ month: m.month, own: m.extra, sub: [] })),
-        monthOrder
-      )
-    : []
   const lastYearMonths = prevRevenue && prevRevenue.yearTotal > 0 ? prevTotals : null
   const situationMonths =
     onRevenue && revenue && !revenue.fromSheet
@@ -421,29 +416,26 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   /**
    * A site's line on a month card: its name, cut short with the whole of it on
    * hover, and its amount. A job over several months lights up in all of them
-   * (`HoverGroups`); the lines outside the sheet light up among themselves.
+   * (`HoverGroups`). A project's line is dragged into another month; a line of
+   * the sheet stays where the sheet has it.
    */
-  const siteLine = (p: SiteRow & { key: string }, extra = false) => (
-    <div
-      key={p.key}
-      data-group={`${extra ? 'extra' : 'sheet'}:${siteKey(p)}`}
-      className={`flex items-center justify-between gap-2 rounded-sm py-0.5 ${LINE_LIGHTING}`}
-    >
-      {p.fromSheet ? (
-        <span className="truncate" title={p.name}>
-          {p.name}
+  const siteLine = (p: SiteRow & { key: string }, month: number) => (
+    <DragLine key={p.key} projectId={p.id} month={month} enabled={movable(p)} title={movable(p) ? t('dragLine') : undefined}>
+      <div data-group={`sheet:${siteKey(p)}`} className={`flex items-center justify-between gap-2 rounded-sm py-0.5 ${LINE_LIGHTING}`}>
+        {p.fromSheet ? (
+          <span className="truncate" title={p.name}>
+            {p.name}
+          </span>
+        ) : (
+          <Link href={`/projects/${p.id}`} title={p.name} className="truncate text-accent hover:underline">
+            {p.name}
+          </Link>
+        )}
+        <span className="shrink-0 tabular-nums text-muted" title={exact(p.price)}>
+          {cardMoney(p.price)}
         </span>
-      ) : (
-        <Link href={`/projects/${p.id}`} title={p.name} className="truncate text-accent hover:underline">
-          {p.name}
-        </Link>
-      )}
-      <span className={`shrink-0 tabular-nums ${extra ? '' : 'text-muted'}`} title={exact(p.price)}>
-        {cardMoney(p.price)}
-      </span>
-      {/* Outside the sheet: a line of its own is one click away */}
-      {extra && !p.fromSheet && p.price != null && <CreateLineButton projectId={p.id} tiny />}
-    </div>
+      </div>
+    </DragLine>
   )
   /** Actual against plan: green once the plan is reached (see planReached), amber below it. */
   const planDelta = (actual: number, planned: number, format: (v: number) => string = money) => {
@@ -983,11 +975,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               // Another year, period, order or layout opens the box on the
               // running month again, not wherever the last one was left.
               key={`lanes|${year}|${periodParam ?? ''}|${monthsDescending ? 'desc' : 'asc'}`}
+              year={year}
               months={orderedMonths}
               density={monthsLayout.lanes}
               runningMonth={runningMonth}
               spans={new Map(siteRows.map((r) => [r.key, r.span]))}
-              extraSpans={new Map(extraSiteRows.map((r) => [r.key, r.span]))}
               monthNames={monthNames}
               locale={locale}
             />
@@ -995,7 +987,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             <RevenueMatrix
               key={`matrix|${year}|${periodParam ?? ''}|${monthsDescending ? 'desc' : 'asc'}`}
               rows={siteRows}
-              extraRows={extraSiteRows}
               months={orderedMonths}
               density={monthsLayout.matrix}
               runningMonth={runningMonth}
@@ -1009,7 +1000,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     line, the SUB line and the rest sit at the same height in every
                     card beside each other, however long the lists above them are. */}
                 {orderedMonths.map((m) => (
-                  <div key={m.month} className={`grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid row-span-6 ${card}`}>
+                  <DropMonth key={m.month} year={year} month={m.month} className={`grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid row-span-6 ${card}`}>
                     <div
                       className={`flex items-center justify-between border-b border-border ${
                         denseCards ? 'flex-wrap gap-x-2 px-2 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'
@@ -1020,19 +1011,19 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                         {cardMoney(m.total)}
                       </span>
                     </div>
-                    <div className={`${cardPad} pt-1.5 ${cardText}`}>{m.own.map((p) => siteLine(p))}</div>
+                    <div className={`${cardPad} pt-1.5 ${cardText}`}>{m.own.map((p) => siteLine(p, m.month))}</div>
                     <div
                       className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap}`}
                     >
                       <span className="flex items-center gap-1.5 italic">
                         {t('ownPeople')}
-                        {hints && <InfoHint text={t(sheetLed ? 'hintOwnPeopleSheet' : 'hintOwnPeople')} />}
+                        {hints && <InfoHint text={t('hintOwnPeople')} />}
                       </span>
                       <span className="ml-auto tabular-nums" title={exact(m.ownTotal)}>
                         {cardMoney(m.ownTotal)}
                       </span>
                     </div>
-                    <div className={`${cardPad} ${cardText} ${m.sub.length > 0 ? 'pt-1' : ''}`}>{m.sub.map((p) => siteLine(p))}</div>
+                    <div className={`${cardPad} ${cardText} ${m.sub.length > 0 ? 'pt-1' : ''}`}>{m.sub.map((p) => siteLine(p, m.month))}</div>
                     <div
                       className={`${cardInset} mt-1 flex items-center justify-between self-end border-t border-border py-1 ${cardText} font-medium ${cardWrap} ${
                         m.sub.length === 0 ? 'text-muted' : ''
@@ -1040,7 +1031,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     >
                       <span className="flex items-center gap-1.5 italic">
                         {t('sub')}
-                        {hints && <InfoHint text={t(sheetLed ? 'hintSubSheet' : 'hintSub')} />}
+                        {hints && <InfoHint text={t('hintSub')} />}
                       </span>
                       <span className="ml-auto tabular-nums" title={m.sub.length > 0 ? exact(m.subTotal) : undefined}>
                         {m.sub.length > 0 ? cardMoney(m.subTotal) : '—'}
@@ -1064,22 +1055,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                           </span>
                         </div>
                       )}
-                      {m.extra.length > 0 && (
-                        <div className="mt-1 border-t border-dashed border-border pt-1 text-xs text-muted">
-                          <div className={`flex items-center justify-between font-medium ${cardWrap}`}>
-                            <span className="flex items-center gap-1.5 italic">
-                              {t('extraTitle')}
-                              {hints && <InfoHint text={t('hintExtra')} />}
-                            </span>
-                            <span className="ml-auto tabular-nums" title={exact(m.extraTotal)}>
-                              {cardMoney(m.extraTotal)}
-                            </span>
-                          </div>
-                          {m.extra.map((p) => siteLine(p, true))}
-                        </div>
-                      )}
                     </div>
-                  </div>
+                  </DropMonth>
                 ))}
               </div>
             </HoverGroups>

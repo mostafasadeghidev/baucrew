@@ -68,7 +68,9 @@ Auslastung, Datenlücken; old addresses redirect), `docs/CHANGE-project-boards.m
 with names of their own; the old column setting becomes the first board),
 `docs/CHANGE-trello-board.md` (the board drawn and moved like Trello's: a
 card's place in its list, the archive, the cover picture, the list menu, the
-board's own bar). Add a new file there for similar
+board's own bar), `docs/CHANGE-plan-month.md` (the month a job stands in is the
+project's own: a placing and a duration, dragged between months; a sheet line
+counts only until a project takes it over). Add a new file there for similar
 changes.
 
 ## Commands

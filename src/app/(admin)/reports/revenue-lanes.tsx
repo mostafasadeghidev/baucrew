@@ -42,9 +42,10 @@ import {
 import type { MonthRevenue, RevenueProject } from '@/lib/reports'
 import { siteKey } from '@/lib/reports-calc'
 import type { LanesDensity } from '@/lib/revenue-layout'
-import { CreateLineButton } from './plan/create-line-button'
+import { movable } from '@/lib/plan-month'
+import { DragLine, DropMonth } from './month-drag'
 
-type Lane = 'own' | 'sub' | 'extra'
+type Lane = 'own' | 'sub'
 type TileSize = 'wide' | 'compact' | 'mini'
 
 /** The narrowest a month may get at each tile size; below it the box scrolls further. */
@@ -78,22 +79,22 @@ const LIGHTING =
 const swatch = (cls: PlanClass) => <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${FILL[cls]}`} />
 
 export async function RevenueLanes({
+  year,
   months,
   density,
   runningMonth,
   spans,
-  extraSpans,
   monthNames,
   locale,
 }: {
+  year: number
   /** In the order the tab shows them. */
   months: MonthRevenue[]
   density: LanesDensity
   /** The month (0–11) running today, or −1 in another year. */
   runningMonth: number
-  /** Each site's months by site key — the lines outside the sheet kept apart. */
+  /** Each site's months by site key. */
   spans: Map<string, number[]>
-  extraSpans: Map<string, number[]>
   monthNames: { long: string[]; short: string[] }
   locale: string
 }) {
@@ -104,12 +105,12 @@ export async function RevenueLanes({
   const exact = (v: number | null) => formatCurrency(v, locale, { hidden: hidePrices })
   const amount = (v: number) =>
     size === 'mini' ? formatThousands(v, locale, hidePrices) : formatCurrency(v, locale, { whole: true, hidden: hidePrices })
-  const biggest = Math.max(1, ...months.flatMap((m) => [...m.own, ...m.sub, ...m.extra].map((p) => p.price ?? 0)))
+  const biggest = Math.max(1, ...months.flatMap((m) => [...m.own, ...m.sub].map((p) => p.price ?? 0)))
   const between = (i: number) => (i > 0 ? 'border-l' : '')
   const side = 'sticky left-0 z-10 border-r border-t border-border px-3 py-2 text-xs'
 
-  function tile(p: RevenueProject, lane: Lane, month: number) {
-    const span = (lane === 'extra' ? extraSpans : spans).get(siteKey(p)) ?? [month]
+  function tile(p: RevenueProject, month: number) {
+    const span = spans.get(siteKey(p)) ?? [month]
     // Counted in the calendar, whichever way the months are shown: the job's
     // second month is its second month read backwards too.
     const at = [...span].sort((a, b) => a - b).indexOf(month) + 1
@@ -118,16 +119,14 @@ export async function RevenueLanes({
     // The tip's lines: the name first, then who it is for, where its money stands,
     // what it is worth and which month of the job.
     const tip = [p.name, p.customer, t(LABEL[cls]), exact(p.price), place].filter(Boolean).join('\n')
-    // The lines outside the sheet are a lane apart; a job lights up within its own kind of lane.
-    const group = `${lane === 'extra' ? 'extra' : 'sheet'}:${siteKey(p)}`
+    // A job over several months lights up in all of them.
+    const group = `sheet:${siteKey(p)}`
 
     if (size === 'mini') {
       // As tall as its amount, and never too short for the name written in it.
       const block = (
         <span
-          className={`flex overflow-hidden rounded-sm px-1 text-[10px] leading-4 ${
-            lane === 'extra' ? 'border border-dashed border-muted text-muted' : BLOCK[cls]
-          }`}
+          className={`flex overflow-hidden rounded-sm px-1 text-[10px] leading-4 ${BLOCK[cls]}`}
           style={{ height: Math.round(16 + (40 * Math.max(p.price ?? 0, 0)) / biggest) }}
         >
           <span className="min-w-0 truncate">{p.name}</span>
@@ -156,12 +155,12 @@ export async function RevenueLanes({
         key={p.key}
         data-tip={tip}
         data-group={group}
-        className={`flex items-center justify-between gap-2 rounded-md border bg-background px-2 py-1 ${LIGHTING} ${
-          lane === 'extra' ? 'border-dashed border-border text-muted' : 'border-border'
-        } ${size === 'wide' ? 'text-[13px]' : 'text-xs'}`}
+        className={`flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1 ${LIGHTING} ${
+          size === 'wide' ? 'text-[13px]' : 'text-xs'
+        }`}
       >
         <span className="flex min-w-0 items-center gap-1.5">
-          {lane !== 'extra' && swatch(cls)}
+          {swatch(cls)}
           {p.fromSheet ? (
             <span className="min-w-0 truncate">{p.name}</span>
           ) : (
@@ -173,7 +172,6 @@ export async function RevenueLanes({
         <span className="flex shrink-0 items-center gap-1.5 text-[11px] tabular-nums text-muted">
           {span.length > 1 && <span>{`${at}/${span.length}`}</span>}
           <span>{p.price == null ? '—' : amount(p.price)}</span>
-          {lane === 'extra' && !p.fromSheet && p.price != null && <CreateLineButton projectId={p.id} tiny />}
         </span>
       </div>
     )
@@ -227,12 +225,18 @@ export async function RevenueLanes({
       {label}
     </div>,
     ...months.map((m, i) => (
-      <div
+      <DropMonth
         key={`${key}-${m.month}`}
+        year={year}
+        month={m.month}
         className={`flex min-w-0 flex-col gap-1 border-t border-border ${size === 'mini' ? 'p-1' : 'p-1.5'} ${between(i)}`}
       >
-        {m[key].map((p) => tile(p, key, m.month))}
-      </div>
+        {m[key].map((p) => (
+          <DragLine key={p.key} projectId={p.id} month={m.month} enabled={movable(p)}>
+            {tile(p, m.month)}
+          </DragLine>
+        ))}
+      </DropMonth>
     )),
   ]
 
@@ -286,8 +290,6 @@ export async function RevenueLanes({
             {sums('own', t('laneOwnTotal'))}
             {lane('sub', <span className="font-medium">{t('sub')}</span>)}
             {sums('sub', t('laneSubTotal'))}
-            {months.some((m) => m.extra.length > 0) &&
-              lane('extra', <span className="italic text-muted">{t('extraTitle')}</span>)}
           </PanBox>
         </HoverTips>
       </HoverGroups>

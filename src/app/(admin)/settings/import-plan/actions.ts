@@ -7,7 +7,6 @@ import { audit } from '@/lib/audit'
 import { parseYearPlanWorkbook } from '@/lib/year-plan-server'
 import { mergePlanSheets, planTotals, type PlanEntry } from '@/lib/year-plan-excel'
 import { linkKey } from '@/lib/plan-match'
-import { standInsToDrop } from '@/lib/plan-lines'
 
 /** What the preview shows per year found in the workbook. */
 export type PlanYearSummary = {
@@ -108,10 +107,7 @@ async function run(prev: PlanImportState, formData: FormData): Promise<PlanImpor
       linked.map((l) => [`${l.year}|${linkKey(l.month, l.name)}`, l.projectId!])
     )
 
-    // The sheet's own rows go and come back. A line made by hand ("Zeile
-    // anlegen") stood in for a job the sheet did not have: it is kept, and
-    // dropped once the new sheet carries that job itself (src/lib/plan-lines.ts).
-    const removed = await tx.planEntry.deleteMany({ where: { year: { in: years }, source: 'excel' } })
+    const removed = await tx.planEntry.deleteMany({ where: { year: { in: years } } })
     await tx.planEntry.createMany({
       data: rows.map((e) => ({
         year: e.year,
@@ -123,17 +119,6 @@ async function run(prev: PlanImportState, formData: FormData): Promise<PlanImpor
         projectId: byKey.get(`${e.year}|${linkKey(e.month, e.name)}`) ?? null,
       })),
     })
-
-    const standIns = await tx.planEntry.findMany({
-      where: { year: { in: years }, source: 'manual' },
-      select: { id: true, year: true, projectId: true },
-    })
-    const fromSheet = await tx.planEntry.findMany({
-      where: { year: { in: years }, source: 'excel', projectId: { not: null } },
-      select: { year: true, projectId: true },
-    })
-    const drop = standInsToDrop(standIns, fromSheet)
-    if (drop.length > 0) await tx.planEntry.deleteMany({ where: { id: { in: drop } } })
 
     const kept = await tx.planEntry.count({
       where: { year: { in: years }, projectId: { not: null } },

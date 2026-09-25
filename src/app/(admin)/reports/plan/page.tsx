@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { BackLink } from '@/components/back-link'
 import { LiveSelect } from '@/components/live-search'
@@ -16,10 +15,7 @@ import {
   type PlanJob,
   type PlanLine,
 } from '@/lib/plan-jobs'
-import { getHistoryCutoff } from '@/lib/history-db'
-import { isHistorical } from '@/lib/history'
 import { PlanTable, type JobRow } from './plan-table'
-import { CreateLineButton } from './create-line-button'
 
 /** Statuses that mean the work is behind us. */
 const DONE = new Set(['COMPLETED', 'INVOICED', 'PAID'])
@@ -94,17 +90,9 @@ export default async function PlanMatchPage({
         status: true,
         sourceCreatedAt: true,
         createdAt: true,
-        plannedStart: true,
-        plannedEnd: true,
-        actualStart: true,
-        actualEnd: true,
-        price: true,
-        isSub: true,
-        addOns: { select: { amount: true } },
         customer: { select: { name: true } },
-        // Every line, parked ones too: a project with a line has one whatever
-        // its month; the jobs below are folded from the lines with a month.
         planEntries: {
+          where: { month: { not: null } },
           select: { id: true, year: true, month: true, name: true, amount: true, isSub: true },
         },
       },
@@ -156,9 +144,7 @@ export default async function PlanMatchPage({
     sourceCreatedAt: p.sourceCreatedAt,
     createdAt: p.createdAt,
     done: DONE.has(p.status),
-    linked: p.planEntries.some((l) => l.month !== null)
-      ? groupPlanJobs(p.planEntries.filter((l) => l.month !== null).map(asLine))
-      : undefined,
+    linked: p.planEntries.length ? groupPlanJobs(p.planEntries.map(asLine)) : undefined,
   }))
   const matches = matchProjectsToJobs(matchable, freeAll)
   const jobId = (j: PlanJob) => `${j.year}|${j.key}`
@@ -228,27 +214,7 @@ export default async function PlanMatchPage({
   const openTotal = lines.filter((l) => !l.project).reduce((s, l) => s + Number(l.amount), 0)
   const sureCount = openRows.filter((r) => r.suggestions.some((s) => s.sure)).length
   const hidePrices = await pricesHidden()
-  const money = (v: number | null) => formatCurrency(v, locale, { hidden: hidePrices })
-
-  // The jobs of this year the sheet does not know: a planned start in the
-  // year, no line in it. Old data (finished before the history cutoff) is not
-  // asked about, as on the Datenlücken tab. Only in a year that has a sheet —
-  // without one the months are built from the projects themselves.
-  const cutoff = await getHistoryCutoff()
-  const withoutLine = years.some((y) => y.year === year)
-    ? projects
-        .filter((p) => p.plannedStart?.getUTCFullYear() === year && !p.planEntries.some((l) => l.year === year))
-        .filter((p) => !isHistorical(p, cutoff))
-        .map((p) => ({
-          id: p.id,
-          number: p.number,
-          name: p.name,
-          customer: p.customer.name,
-          month: p.plannedStart!.getUTCMonth() + 1,
-          amount: orderValue(p.price, p.addOns),
-        }))
-        .sort((a, b) => a.month - b.month || a.number.localeCompare(b.number))
-    : []
+  const money = (v: number) => formatCurrency(v, locale, { hidden: hidePrices })
   // The year on screen is always on offer, plan or none: opened without a year
   // the page stands on the running one, and a picker that does not hold it
   // would show another year's name over this year's lines.
@@ -300,36 +266,6 @@ export default async function PlanMatchPage({
         linkedCount={rows.length - openRows.length}
       />
 
-      {withoutLine.length > 0 && (
-        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-          <div className="border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold">{t('withoutLineTitle', { count: withoutLine.length, year })}</h2>
-            <p className="mt-0.5 text-xs text-muted">{t('withoutLineHint')}</p>
-          </div>
-          <ul className="divide-y divide-border text-sm">
-            {withoutLine.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2">
-                <span className="min-w-0">
-                  <Link href={`/projects/${p.id}`} className="text-accent hover:underline">
-                    {p.number} — {p.name}
-                  </Link>
-                  <span className="block text-[11px] text-muted">
-                    {p.customer} · {monthLabel(year, p.month)}
-                  </span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="tabular-nums text-muted">{money(p.amount)}</span>
-                  {p.amount === null ? (
-                    <span className="text-[11px] text-muted">{t('lineNoValue')}</span>
-                  ) : (
-                    <CreateLineButton projectId={p.id} />
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   )
 }
