@@ -3,6 +3,78 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.43.0] — 2026-09-25
+
+### Added
+- **The month a job stands in is the project's own.** Two planning fields on a
+  project — *Ausführung voraussichtlich (Monat)*, the month the work is
+  expected in before a day is fixed, and *Dauer (Monate)* — beside the planned
+  start and end. A fixed start wins over the rough month; with an end the job
+  runs over every month between, and its order value is spread evenly over
+  them, to the cent. The board card and the list show the month where no day
+  is fixed. The Planumsatz files every year the same way now: the projects in
+  the months they run in, plus the lines of the imported planning sheet that
+  no project has taken over yet — a line tied to a project counts no more, the
+  project does. The sheet's own sum stands as *Plan* beside the projects' in
+  any year that has a sheet.
+- **Projects dragged between months.** A project's line on a month card, and
+  its tile in the lanes, is taken into another month with the mouse: fixed
+  days shift by whole months, the rough month follows, the sums of both months
+  come back changed, the move stands in the card's history and is announced
+  to the automations. The board rule *Aufträge für <nächstes Jahr>* writes the
+  rough month — January of next year — rather than a fixed day.
+- **The work order carries what the crew was told.** The assignment's note is
+  printed in *Weitere Notizen*, the project's description under it when asked
+  for. The print bar ticks *Baustelleneinrichtung ausgerichtet auf* as well —
+  Auftragsart and Objektart, prefilled from the project, one of each or none.
+- **The crew's months as bars.** On Auslastung the twelve months stand as bars
+  with their share of the crew's time — amber under half, green over nine
+  tenths, the running month ringed, a month with nothing planned as an empty
+  frame — and a ring beside the header shows the period as a whole.
+- **The sites on a time line.** Over the site cards of Aufträge & Baustellen
+  a time line of eight weeks around today: every dated site a bar over its
+  planned span, red where the date has passed, blue for a running site, light
+  blue for one about to start, the calendar weeks marked, today a red line; a
+  click opens the project. Sites without a start, outside the weeks or beyond
+  the first twenty-five are counted under the line.
+- **An offer's e-mail prepared.** A project standing at *Angebot erstellt*
+  offers *E-Mail-Entwurf* in its bar: a finished draft opens in the office's
+  own mail program — the customer's address, a subject with the offer's
+  number, a short German letter with the sum where the office may see it, the
+  company's name under the closing. Nothing is sent by the app; the office
+  attaches the offer, reads and sends.
+- **API:** project bodies carry `planMonth` and `planMonths`, create and PATCH
+  accept them; the revenue report names its source and lists the sheet's
+  loose lines.
+
+### Changed
+- The assignment dialog names the days that are already planned instead of
+  "den bestehenden Tag" — "Fr., 25.09. ist schon geplant – Team, Fahrzeuge
+  und Zeiten von hier auch dort übernehmen", two days with "und", a longer run
+  as "4 Tage von … bis …" — and the note field says it is printed on the day's
+  work order.
+- The work order no longer offers to print the ticked work types alone: the
+  paper form has the whole list, with the right ones ticked.
+- The dashboard's *Laufende Projekte* and *Geplante Projekte* open the board
+  narrowed to that list, not the list view.
+- Lager and Geräte each say under their title what they hold; the card on the
+  Lager page is *Ausgegebene Geräte*, with a line on what it shows.
+- Datenlücken loses *Nicht in der Jahresplanung*: nothing can be missing from
+  the sheet any more, and a rough month satisfies *Termin fehlt*. The month
+  cards lose *Nicht in der Tabelle*, the lanes their extra lane, the year
+  matrix its extra rows.
+
+### Fixed
+- A job made in BauCrew never counted in a year that has the imported
+  planning sheet — the months were the sheet's lines, and the Planabgleich
+  only ties lines to projects. It counts in its month now, sheet or no sheet.
+
+### Upgrade
+- `docker compose up -d --build` applies this release's migration on start:
+  the two planning fields, back-filled for every project tied to a sheet line
+  from the line's months, so no month's sum moves. Nothing to do by hand.
+  `docs/CHANGE-plan-month.md` holds the rollback.
+
 ## [1.42.0] — 2026-09-24
 
 ### Added
