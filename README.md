@@ -160,6 +160,7 @@ the build. Details in [DEPLOYMENT.md](DEPLOYMENT.md#alternative-vercel-managed-h
 - [Benutzerhandbuch (DE)](docs/BENUTZERHANDBUCH.md)
 - [Change logs](docs/) for reversible structural decisions
 - Contributor rules for AI agents and humans: [AGENTS.md](AGENTS.md)
+- How we work on it together — branches, pull requests, the checks: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
 

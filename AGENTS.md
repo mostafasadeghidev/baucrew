@@ -83,5 +83,10 @@ changes.
   dates or importers.
 - Verify before claiming done:
   `npm run typecheck && npx eslint src prisma tests && npm test && npm run build`
+- Changes reach `main` only as a pull request that somebody else has read —
+  never a direct push. Branch names, the review step and the local setup are
+  in `CONTRIBUTING.md`; `.github/workflows/checks.yml` runs the gate above
+  (plus the migrations and DB tests on a fresh PostgreSQL) on every pull
+  request and push to `main`.
 - Demo logins: admin/admin1234, buero/buero1234, lager/lager1234
 - `prisma/seed.ts` is the base seed only (accounts, categories, catalog).

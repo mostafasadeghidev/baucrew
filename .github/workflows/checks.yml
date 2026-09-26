@@ -1,0 +1,73 @@
+# The same gate that is run by hand before a change is called done — on every
+# pull request and on every push to main, so nothing red reaches the shipped
+# state. A fresh PostgreSQL stands beside it for the migrations and the
+# DB-backed tests; no real data comes near this.
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typecheck, lint, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: baucrew
+          POSTGRES_PASSWORD: baucrew_ci
+          POSTGRES_DB: baucrew
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U baucrew -d baucrew"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://baucrew:baucrew_ci@localhost:5432/baucrew?schema=public
+      SESSION_SECRET: ci-only-not-a-secret-0123456789abcdef0123456789abcdef
+      NODE_OPTIONS: --max-old-space-size=6144
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Prisma client
+        run: npx prisma generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npx eslint src prisma tests
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Migrations on a fresh database
+        run: npx prisma migrate deploy
+
+      - name: Database tests
+        run: npm run test:db
+
+      - name: Production build
+        run: npm run build
