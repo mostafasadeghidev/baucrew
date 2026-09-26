@@ -78,7 +78,9 @@ export function ProjectYearPicker({
       side="bottom"
       align="end"
       label={`${t('year')}: ${caption}`}
-      className={`${btn.outline} h-10 w-36 shrink-0`}
+      // Its own text colour: on the board's ground the bar writes in white, and
+      // a white caption on this white button was a blank button.
+      className={`${btn.outline} h-10 w-36 shrink-0 text-foreground`}
       trigger={
         <>
           <span className="min-w-0 flex-1 truncate text-left tabular-nums">{caption}</span>

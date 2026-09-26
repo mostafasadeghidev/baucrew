@@ -92,12 +92,16 @@ export function PageBar({
 }) {
   return (
     <div className={`${pageToolbar} ${className}`}>
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      {/* The name keeps at least ten rem: when the buttons would leave it less,
+          they wrap onto a line of their own instead of squeezing it to nothing.
+          On that line they shrink to the bar and wrap among themselves — a bar
+          that could not shrink ran off a phone's screen with the last buttons. */}
+      <div className="flex min-w-[10rem] flex-1 items-center gap-3">
         {back && <BackLink href={back.href} label={back.label} inline />}
         <h1 className={`min-w-0 truncate ${pageTitle}`}>{title}</h1>
         {meta}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{actions}</div>}
     </div>
   )
 }

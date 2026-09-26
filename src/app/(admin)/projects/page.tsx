@@ -28,6 +28,7 @@ import { ALL_YEARS, belongsToYears, parseProjectYears, projectYearOptions } from
 import { todayUtc } from '@/lib/dates'
 import { ProjectsKanban, type KanbanColumn } from './kanban'
 import { BoardMenu } from './board-menu'
+import { ListMenu } from './list-menu'
 import { ArchiveButton } from './archive-button'
 import { DeleteButton } from '@/components/delete-button'
 import { deleteArchivedProject } from './actions'
@@ -452,7 +453,10 @@ export default async function ProjectsPage({
    * types, it must not push the picker and the switch aside or onto a new line.
    */
   const search = (
-    <div className="relative flex min-w-0 max-w-md flex-1">
+    // Never narrower than its own box: a wrapper that shrank below the input
+    // let the input run out over the filter button beside it on a phone. In a
+    // wrapping row the box now takes a line of its own instead.
+    <div className="relative flex min-w-52 max-w-md flex-1">
       <LiveSearchInput placeholder={t('searchPlaceholder')} />
       {otherYearHits > 0 && (
         <Link
@@ -488,9 +492,10 @@ export default async function ProjectsPage({
   )
 
   /** Which year, and list or board: the same projects, two ways of drawing
-   *  them. Written once because it sits on a different row in each view. */
+   *  them. In the list it stands in the page's bar, top right — where the
+   *  board's own bar has it too, so it is in one place in both views. */
   const viewSwitch = (
-    <div className="order-1 ml-auto flex shrink-0 items-center gap-2 lg:order-2">
+    <div className="flex shrink-0 items-center gap-2">
     {yearPicker}
     <div className="flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
       {[
@@ -703,34 +708,21 @@ export default async function ProjectsPage({
       <StickyHead>
         <div className={pageToolbar}>
           <h1 className={pageTitle}>{t('title')}</h1>
-          <div className="flex items-center gap-2">
-            {/* The Excel import lives in Einstellungen → Daten, with the other
-                two importers. It is set up once, not reached for daily. */}
-            {isOffice(user) && draftCount > 0 && (
-              <Link href="/projects/drafts" className={`${btn.outline} gap-1.5`}>
-                {tDrafts('title')}
-                <span className="rounded-full bg-accent px-1.5 text-xs font-semibold text-accent-foreground">
-                  {draftCount}
-                </span>
-              </Link>
-            )}
+          {/* The same right-hand end as the board's bar, in the same order:
+              the year, list or board, the new project, and the office's doors
+              — drafts, templates, checklists, forms — behind the three dots.
+              The switch used to sit a card lower, at the end of the status
+              tabs, and was looked for up here and not found. The row wraps on
+              a phone instead of running off its right edge. */}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {viewSwitch}
             {/* Templates and new projects are the office's; a site manager adds a card on the board. */}
             {isOffice(user) && (
-              <>
-                <Link href="/projects/checklists" className={btn.outline}>
-                  {tChecklists('templatesTitle')}
-                </Link>
-                <Link href="/projects/forms" className={btn.outline}>
-                  {tForms('templatesTitle')}
-                </Link>
-                <Link href="/projects/templates" className={btn.outline}>
-                  {tTemplates('title')}
-                </Link>
-                <Link href="/projects/new" className={btn.primary}>
-                  {t('newProject')}
-                </Link>
-              </>
+              <Link href="/projects/new" className={btn.primary}>
+                {t('newProject')}
+              </Link>
             )}
+            {officeLinks.length > 0 && <ListMenu links={officeLinks} />}
           </div>
         </div>
       </StickyHead>
@@ -738,58 +730,38 @@ export default async function ProjectsPage({
       <PagePanel>
         {/*
           Two choices about the same projects: the status tabs say which are
-          shown, the year and the switch say which years and how they are
-          drawn. Year and switch ride on the tabs' row — same kind of track,
-          same height — because that is where the eye already is. The board has
-          no status tabs, and rather than leave their row standing empty above
-          the search, they share the search's row there instead: one row
-          either way, and year and switch in the same spot in both views.
-
-          Below lg that row is too narrow for both, and the two views would
-          wrap at different widths — so there year and switch take a line of
-          their own at the top, in both views alike.
+          shown; which years, and list or board, is said in the page's bar
+          above, where the board's bar says it too. Under the tabs the search
+          and the filter, the way the board's bar has them.
         */}
         <div className="space-y-3 border-b border-border p-4">
-            <>
-              {/* Aligned at the top, not the middle: when there are more
-                  status tabs than fit, their strip carries a scrollbar under
-                  them and grows taller than the switch. Centred, that pushes
-                  the switch half a scrollbar down and the two tracks no longer
-                  read as one row. Both are the same height, so starting them
-                  together lines them up either way. */}
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-                <div className="order-2 min-w-0 flex-1 lg:order-1">
-                  <StatusTabs
-                    allLabel={t('allStatuses')}
-                    allCount={allCount}
-                    tabs={[
-                      ...(prepTab.enabled
-                        ? [
-                            {
-                              value: 'prep',
-                              label: prepTab.label || t('tabPreparation'),
-                              count: prepCount,
-                            },
-                          ]
-                        : []),
-                      // Every status keeps its tab, also at 0: a tab that
-                      // came and went with the year would move the others
-                      // along the strip under the cursor.
-                      ...STATUSES.map((s) => ({
-                        value: s,
-                        label: tStatus(s),
-                        count: countByStatus.get(s) ?? 0,
-                      })),
-                    ]}
-                  />
-                </div>
-                {viewSwitch}
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                {search}
-                {boardFilter}
-              </div>
-            </>
+          <StatusTabs
+            allLabel={t('allStatuses')}
+            allCount={allCount}
+            tabs={[
+              ...(prepTab.enabled
+                ? [
+                    {
+                      value: 'prep',
+                      label: prepTab.label || t('tabPreparation'),
+                      count: prepCount,
+                    },
+                  ]
+                : []),
+              // Every status keeps its tab, also at 0: a tab that
+              // came and went with the year would move the others
+              // along the strip under the cursor.
+              ...STATUSES.map((s) => ({
+                value: s,
+                label: tStatus(s),
+                count: countByStatus.get(s) ?? 0,
+              })),
+            ]}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            {search}
+            {boardFilter}
+          </div>
         </div>
 
           <div className="overflow-x-auto">

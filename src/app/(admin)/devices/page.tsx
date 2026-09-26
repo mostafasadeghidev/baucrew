@@ -6,7 +6,7 @@ import { requireManagement } from '@/lib/authz'
 import { btn } from '@/components/ui/button'
 import { LiveSearchInput } from '@/components/live-search'
 import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
-import { deviceState } from '@/lib/devices'
+import { daysOut, deviceState } from '@/lib/devices'
 
 export default async function DevicesPage({
   searchParams,
@@ -44,6 +44,19 @@ export default async function DevicesPage({
     orderBy: [{ active: 'desc' }, { name: 'asc' }],
   })
 
+  // The devices that are not in the store — the "who has it?" question, on
+  // the page that lists the devices themselves. It stood on the Lager page
+  // first and was looked for here (QA of 25.09.). Never narrowed by the
+  // search: what is out is out.
+  const out = await db.deviceAssignment.findMany({
+    where: { returnedAt: null },
+    include: {
+      device: { select: { id: true, name: true, inventoryNo: true } },
+      project: { select: { id: true, number: true, name: true } },
+      employee: { select: { id: true, firstName: true, lastName: true } },
+    },
+    orderBy: { takenAt: 'asc' },
+  })
 
   return (
     <div className="space-y-4">
@@ -58,6 +71,45 @@ export default async function DevicesPage({
         />
       </StickyHead>
       <PageHint>{t('hint')}</PageHint>
+
+      {/* Devices out of the store — who has what, longest out first */}
+      <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+        <div className="border-b border-border px-4 py-3">
+          <h2 className="text-sm font-semibold">{t('outTitle')}</h2>
+          <p className="text-xs text-muted">{t('outHint')}</p>
+        </div>
+        {out.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-muted">{t('allInStore')}</p>
+        ) : (
+          <ul className="divide-y divide-border text-sm">
+            {out.map((handout) => (
+              <li key={handout.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
+                <Link href={`/devices/${handout.device.id}`} className="font-medium text-accent hover:underline">
+                  {handout.device.name}
+                </Link>
+                {handout.device.inventoryNo && (
+                  <span className="text-xs tabular-nums text-muted">{handout.device.inventoryNo}</span>
+                )}
+                <span className="min-w-0 flex-1 truncate text-red-700 dark:text-red-400">
+                  ●{' '}
+                  {handout.project ? (
+                    <Link href={`/projects/${handout.project.id}`} className="hover:underline">
+                      {handout.project.number} — {handout.project.name}
+                    </Link>
+                  ) : handout.employee ? (
+                    <Link href={`/employees/${handout.employee.id}`} className="hover:underline">
+                      {`${handout.employee.firstName} ${handout.employee.lastName}`.trim()}
+                    </Link>
+                  ) : (
+                    t('out')
+                  )}
+                </span>
+                <span className="shrink-0 text-xs text-muted">{t('sinceDays', { days: daysOut(handout.takenAt, new Date()) })}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <PagePanel>
         <div className="border-b border-border p-4">

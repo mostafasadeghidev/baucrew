@@ -429,6 +429,7 @@
     "kanbanRemoveListConfirm": "The list “{name}” leaves this board. Its projects stay – on every board that still shows their status.",
     "kanbanRemoveListLast": "The last list stays: a board without a list is an empty board.",
     "boardMenu": "Board menu",
+    "moreMenu": "More",
     "boardDetails": "Show card details",
     "boardArchived": "Archived cards",
     "boardArchivedNone": "Nothing in the archive.",
@@ -1717,7 +1718,7 @@
     "allInStore": "All devices are in the store.",
     "hint": "Every machine on its own: in the store, with an employee or on a site — with hand-out, return and history. Material and tools for packing lists and work orders are under Warehouse.",
     "outTitle": "Devices out",
-    "outHint": "Devices currently with an employee or on a site — the devices themselves are kept under Devices."
+    "outHint": "What is currently with an employee or on a site, longest out first — a click opens the device."
   },
   "importPlan": {
     "title": "Import year planning",

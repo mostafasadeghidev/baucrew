@@ -700,9 +700,9 @@ In der **Vorlage** hat *Benötigte Geräte* eine eigene Karte — die
 Standard-Ausstattung für diese Art Baustelle, die jedes neue Projekt aus der
 Vorlage übernimmt.
 
-Im **Lager** steht unten die Karte *Ausgegebene Geräte*: jedes Gerät, das gerade nicht
-im Lager ist, mit Baustelle oder Mitarbeiter und seit wie vielen Tagen — die Geräte
-selbst werden hier unter *Geräte* geführt.
+Oben auf der Seite **Geräte** steht die Karte *Ausgegebene Geräte*: jedes Gerät, das
+gerade nicht im Lager ist, mit Baustelle oder Mitarbeiter und seit wie vielen Tagen —
+das am längsten ausgegebene zuerst. Darunter die Liste aller Geräte mit *Wo ist es?*.
 
 **Auf der Baustelle:** Die Projektseite hat eine Karte **Geräte auf dieser
 Baustelle** — praktisch, wenn eine Baustelle unterbrochen wird und jemand

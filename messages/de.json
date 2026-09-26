@@ -429,6 +429,7 @@
     "kanbanRemoveListConfirm": "Die Liste „{name}“ verschwindet von diesem Board. Ihre Projekte bleiben – auf jedem Board, das ihren Status noch zeigt.",
     "kanbanRemoveListLast": "Die letzte Liste bleibt: ein Board ohne Liste ist ein leeres Board.",
     "boardMenu": "Board-Menü",
+    "moreMenu": "Mehr",
     "boardDetails": "Kartendetails anzeigen",
     "boardArchived": "Archivierte Karten",
     "boardArchivedNone": "Nichts im Archiv.",
@@ -1717,7 +1718,7 @@
     "allInStore": "Alle Geräte sind im Lager.",
     "hint": "Jede Maschine einzeln: im Lager, bei einem Mitarbeiter oder auf einer Baustelle — mit Ausgabe, Rückgabe und Verlauf. Material und Werkzeug für Packlisten und Arbeitsaufträge stehen unter Lager.",
     "outTitle": "Ausgegebene Geräte",
-    "outHint": "Geräte, die gerade bei einem Mitarbeiter oder auf einer Baustelle sind — die Geräte selbst werden unter Geräte geführt."
+    "outHint": "Was gerade bei einem Mitarbeiter oder auf einer Baustelle ist, das am längsten ausgegebene zuerst — ein Klick öffnet das Gerät."
   },
   "importPlan": {
     "title": "Jahresplanung importieren",

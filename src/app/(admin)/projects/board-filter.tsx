@@ -98,7 +98,8 @@ export function BoardFilter({ people, labels, current }: { people: Option[]; lab
       side="bottom"
       align="start"
       label={count > 0 ? `${t('boardFilter')}: ${count}` : t('boardFilter')}
-      className={`${btn.outlineSm} shrink-0 gap-1.5 text-xs print:hidden`}
+      // Its own text colour, see the year picker: white on the board's white button was nothing.
+      className={`${btn.outlineSm} shrink-0 gap-1.5 text-xs text-foreground print:hidden`}
       trigger={
         <>
           <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
