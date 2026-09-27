@@ -15,17 +15,25 @@
  * Trello card keeps its comments on the right: as tall as the window lets it
  * be, the comments scrolling inside it with the newest in view, and the box to
  * write in always at its foot.
+ *
+ * Each comment reads like a Trello one: the name and the time over the text in
+ * a bubble, and under it the signs people answered with and what can be done —
+ * a sign of one's own, "Antworten" (the box starts with the author's @name),
+ * and for the author "Bearbeiten" (the text is put right in place, marked
+ * "bearbeitet" from then on) and "Löschen".
  */
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Send, X } from 'lucide-react'
+import { Send, SmilePlus } from 'lucide-react'
+import { Menu } from '@/components/ui/menu'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { btn } from '@/components/ui/button'
 import { PERSON_SWATCH } from '@/components/swatches'
 import {
   COMMENT_MAX,
+  REACTIONS,
   commentSegments,
   mentionMatches,
   mentionQuery,
@@ -43,6 +51,14 @@ export type CommentRow = {
   office: boolean
   /** Whether the reader may take it back — the author, or an administrator. */
   deletable: boolean
+  /** The author's account name, for "Antworten". */
+  username?: string | null
+  /** Whether the reader may put it right — the author alone. */
+  editable?: boolean
+  /** Put right since it was written. */
+  edited?: boolean
+  /** The signs under it, in the order they are offered. */
+  reactions?: Array<{ emoji: string; count: number; mine: boolean; names: string[] }>
 }
 
 export function ProjectComments({
@@ -51,6 +67,8 @@ export function ProjectComments({
   people,
   add,
   remove,
+  edit,
+  react,
   canMarkOffice = true,
   frame = true,
   large = false,
@@ -62,6 +80,10 @@ export function ProjectComments({
   people: Mentionable[]
   add: (projectId: string, formData: FormData) => Promise<CommentResult>
   remove: (id: string) => Promise<CommentResult>
+  /** Putting one's own comment right; left out where it is not offered. */
+  edit?: (id: string, body: string) => Promise<CommentResult>
+  /** A sign under a comment, given or taken back; left out where it is not offered. */
+  react?: (id: string, emoji: string) => Promise<CommentResult>
   /** Whether "nur Büro" is offered — not to the crew. */
   canMarkOffice?: boolean
   /** With its own card and title, or bare inside somebody else's. */
@@ -80,6 +102,8 @@ export function ProjectComments({
   const [pick, setPick] = useState<{ start: number; query: string } | null>(null)
   const [active, setActive] = useState(0)
   const [removing, setRemoving] = useState<CommentRow | null>(null)
+  /** The comment being put right, and its text as it is being typed. */
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null)
   const area = useRef<HTMLTextAreaElement>(null)
   const office = useRef<HTMLInputElement>(null)
   const scroller = useRef<HTMLDivElement>(null)
@@ -177,6 +201,51 @@ export function ProjectComments({
       router.refresh()
     })
 
+  /** "Antworten": the box starts with the author's @name and takes the caret. */
+  function reply(comment: CommentRow) {
+    const lead = comment.username ? `@${comment.username} ` : ''
+    const next = lead && !text.startsWith(lead) ? `${lead}${text}` : text
+    setText(next)
+    requestAnimationFrame(() => {
+      const el = area.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(next.length, next.length)
+    })
+  }
+
+  function saveEdit() {
+    if (!editing || !edit) return
+    const trimmed = editing.text.trim()
+    if (!trimmed) {
+      setError(t('commentEmpty'))
+      return
+    }
+    const { id } = editing
+    startTransition(async () => {
+      const result = await edit(id, trimmed)
+      if (result.error) {
+        setError(result.error === 'notAllowed' ? t('commentNotAllowed') : tc('saveFailed'))
+        return
+      }
+      setEditing(null)
+      setError(null)
+      router.refresh()
+    })
+  }
+
+  const toggleReaction = (comment: CommentRow, emoji: string) => {
+    if (!react) return
+    startTransition(async () => {
+      const result = await react(comment.id, emoji)
+      if (result.error) setError(tc('saveFailed'))
+      router.refresh()
+    })
+  }
+
+  /** The small grey links under a comment, the way Trello writes them. */
+  const action = `${small} text-muted underline-offset-2 transition-colors hover:text-foreground hover:underline disabled:opacity-50`
+
   const list =
     comments.length === 0 ? (
       <p className={`${pad} py-4 ${body} text-muted`}>{t('commentsNone')}</p>
@@ -195,36 +264,113 @@ export function ProjectComments({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                 <span className="font-medium">{comment.author?.name ?? t('commentNoAuthor')}</span>
-                <span className={`${small} tabular-nums text-muted`}>{comment.when}</span>
+                <span className={`${small} tabular-nums text-muted`}>
+                  {comment.when}
+                  {comment.edited && ` (${t('commentEdited')})`}
+                </span>
                 {comment.office && (
                   <span className="rounded-sm bg-amber-500/15 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
                     {t('commentOfficeTag')}
                   </span>
                 )}
-                {comment.deletable && (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => setRemoving(comment)}
-                    title={tc('delete')}
-                    aria-label={tc('delete')}
-                    className="ml-auto rounded-md p-1 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
-                  >
-                    <X className="h-3.5 w-3.5" aria-hidden />
-                  </button>
-                )}
               </div>
-              <p className="mt-0.5 whitespace-pre-wrap break-words">
-                {commentSegments(comment.body, people).map((segment, i) =>
-                  segment.mention ? (
-                    <span key={i} title={segment.mention.name} className="rounded-sm bg-accent/10 px-0.5 font-medium text-accent">
-                      {segment.text}
-                    </span>
-                  ) : (
-                    <span key={i}>{segment.text}</span>
-                  )
-                )}
-              </p>
+              {editing?.id === comment.id ? (
+                <div className="mt-1">
+                  <textarea
+                    autoFocus
+                    value={editing.text}
+                    maxLength={COMMENT_MAX}
+                    rows={3}
+                    aria-label={t('commentEdit')}
+                    onChange={(e) => setEditing({ id: comment.id, text: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setEditing(null)
+                      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault()
+                        saveEdit()
+                      }
+                    }}
+                    className={`block w-full resize-y rounded-md border border-accent bg-background px-3 py-2 ${body} focus:outline-none focus:ring-1 focus:ring-ring`}
+                  />
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <button type="button" onClick={saveEdit} disabled={pending} className={btn.primarySm}>
+                      {tc('save')}
+                    </button>
+                    <button type="button" onClick={() => setEditing(null)} disabled={pending} className={btn.ghost}>
+                      {tc('cancel')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-background px-3 py-2 shadow-sm">
+                  {commentSegments(comment.body, people).map((segment, i) =>
+                    segment.mention ? (
+                      <span key={i} title={segment.mention.name} className="rounded-sm bg-accent/10 px-0.5 font-medium text-accent">
+                        {segment.text}
+                      </span>
+                    ) : (
+                      <span key={i}>{segment.text}</span>
+                    )
+                  )}
+                </p>
+              )}
+              {editing?.id !== comment.id && (
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  {(comment.reactions ?? []).map((r) => (
+                    <button
+                      key={r.emoji}
+                      type="button"
+                      disabled={!react || pending}
+                      onClick={() => toggleReaction(comment, r.emoji)}
+                      title={r.names.join(', ')}
+                      aria-pressed={r.mine}
+                      className={`inline-flex h-6 items-center gap-1 rounded-full border px-2 ${small} tabular-nums transition-colors ${
+                        r.mine ? 'border-accent/50 bg-accent/10 text-accent' : 'border-border bg-surface text-muted hover:bg-surface-hover'
+                      }`}
+                    >
+                      <span aria-hidden>{r.emoji}</span>
+                      {r.count}
+                    </button>
+                  ))}
+                  {react && (
+                    <Menu
+                      side="bottom"
+                      align="start"
+                      label={t('commentReact')}
+                      className="rounded-full p-1 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+                      trigger={<SmilePlus className="h-3.5 w-3.5" aria-hidden />}
+                    >
+                      <div className="flex gap-0.5 p-0.5">
+                        {REACTIONS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            role="menuitem"
+                            aria-label={emoji}
+                            onClick={() => toggleReaction(comment, emoji)}
+                            className="rounded-md px-1.5 py-1 text-lg leading-none transition-colors hover:bg-surface-hover"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </Menu>
+                  )}
+                  <button type="button" className={action} disabled={pending} onClick={() => reply(comment)}>
+                    {t('commentReply')}
+                  </button>
+                  {comment.editable && edit && (
+                    <button type="button" className={action} disabled={pending} onClick={() => setEditing({ id: comment.id, text: comment.body })}>
+                      {t('commentEdit')}
+                    </button>
+                  )}
+                  {comment.deletable && (
+                    <button type="button" className={action} disabled={pending} onClick={() => setRemoving(comment)}>
+                      {tc('delete')}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </li>
         ))}

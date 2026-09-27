@@ -30,7 +30,8 @@ export function sitesPreset(currentYear: number): BoardPreset {
     { status: 'INVOICED', rule: null, title: 'Rechnungsstellung' },
     { status: 'PAID', rule: null, title: 'Erledigt' },
   ]
-  return { key: 'sites', name: 'Aktuell laufende Baustellen', background: 'blue', columns }
+  // On the ground the client's board stands on in Trello.
+  return { key: 'sites', name: 'Aktuell laufende Baustellen', background: 'snow', columns }
 }
 
 /** The presets on offer, by key. */

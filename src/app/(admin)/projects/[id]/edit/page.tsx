@@ -118,6 +118,8 @@ export default async function EditProjectPage({
           planMonth: monthInputValue(project.planMonth),
           planMonths: String(project.planMonths),
           dueDate: toDateInputValue(project.dueDate),
+          inspectionDate: toDateInputValue(project.inspectionDate),
+          executionWish: project.executionWish ?? '',
           actualStart: toDateInputValue(project.actualStart),
           actualEnd: toDateInputValue(project.actualEnd),
           managerId: project.managerId ?? '',

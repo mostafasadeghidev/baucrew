@@ -53,6 +53,11 @@ export async function deleteProjectFile(
   return {}
 }
 
+/** The same, from a menu rather than a form: the attachments' "…" on a card. */
+export async function removeProjectFile(fileId: string): Promise<{ error?: string }> {
+  return deleteProjectFile(fileId, {}, new FormData())
+}
+
 /**
  * The picture on the front of the card — one of the project's own photos, or
  * none again. What a Trello card calls its cover.

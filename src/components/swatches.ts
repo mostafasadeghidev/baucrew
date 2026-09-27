@@ -36,6 +36,17 @@ export const LABEL_PILL = [
 ]
 
 /** The two labels that are not trades. */
+/**
+ * The grounds Trello draws three of a card's field lines on — the order value
+ * green, the site visit lime, the day the card came in red — in Trello's own
+ * subtle tones, and their dark counterparts.
+ */
+export const FIELD_CHIP = {
+  green: 'bg-[#baf3db] text-[#164b35] dark:bg-[#164b35] dark:text-[#baf3db]',
+  lime: 'bg-[#d3f1a7] text-[#37471f] dark:bg-[#37471f] dark:text-[#d3f1a7]',
+  red: 'bg-[#ffd5d2] text-[#5d1f1a] dark:bg-[#5d1f1a] dark:text-[#ffd5d2]',
+} as const
+
 export const URGENT_LABEL = { bar: 'bg-red-500', pill: 'bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100' }
 export const SUB_LABEL = { bar: 'bg-neutral-400', pill: 'bg-neutral-200 text-neutral-800 dark:bg-neutral-700 dark:text-neutral-100' }
 

@@ -20,6 +20,10 @@ import { deleteProject, setProjectStatus, updateProject } from '../actions'
 import { ProjectForm } from '../project-form'
 import { ProjectBarActions } from './edit-all-button'
 import { SheetClose } from '../card-sheet'
+import { CardMove, type CardMovePlaces } from '../card-move'
+import { CardFieldsGrid, type CardFieldCell } from './card-fields-grid'
+import { CardDropZone } from './card-drop-zone'
+import { ClampText } from '@/components/ui/clamp-text'
 import { ArchiveButton } from '../archive-button'
 import { SheetAddBar } from '../sheet-add-bar'
 import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
@@ -43,9 +47,9 @@ import { optionLabel } from '@/lib/option-lists'
 import { ProjectAddOns } from './add-ons'
 import { ProjectInvoices, type InvoiceRow } from './invoices-card'
 import { ProjectComments, type CommentRow } from '@/components/project-comments'
-import { addProjectComment, deleteProjectComment } from './comment-actions'
+import { addProjectComment, deleteProjectComment, editProjectComment, toggleCommentReaction } from './comment-actions'
 import { displayName, mentionablePeople } from '@/lib/comments-db'
-import { canDeleteComment } from '@/lib/comments'
+import { canDeleteComment, canEditComment, reactionSummary } from '@/lib/comments'
 import { ChevronRight, Clock } from 'lucide-react'
 import { dateTone, dueTone, initials, labelSwatch, swatchOf } from '@/lib/board-cards'
 import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
@@ -75,8 +79,11 @@ export async function ProjectDetail({
   sheet = null,
 }: {
   id: string
-  /** Set when shown over the board: where a save and a cancel return to. */
-  sheet?: { returnTo: string } | null
+  /**
+   * Set when shown over the board: where a save and a cancel return to, and
+   * where the card can be moved to — every board, its lists, the cards in each.
+   */
+  sheet?: { returnTo: string; move?: CardMovePlaces | null } | null
 }) {
   const user = await requireStaff()
   const [t, tc, tSheet, tStatus, tChecklists, tDevices, tHistory, locale, lists] = await Promise.all([
@@ -140,7 +147,13 @@ export async function ProjectDetail({
         // What the office keeps to itself is not a site manager's to read.
         ...(isOffice(user) ? {} : { where: { visibility: 'TEAM' as const } }),
         orderBy: { createdAt: 'asc' },
-        include: { author: { select: { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } } },
+        include: {
+          author: { select: { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } },
+          reactions: {
+            orderBy: { createdAt: 'asc' },
+            select: { emoji: true, userId: true, user: { select: { username: true, employee: { select: { firstName: true, lastName: true } } } } },
+          },
+        },
       },
       checklists: {
         orderBy: { createdAt: 'asc' },
@@ -237,6 +250,13 @@ export async function ProjectDetail({
       author: note.author && name ? { name, initials: initials(name), swatch: swatchOf(note.author.id) } : null,
       office: note.visibility === 'MANAGEMENT',
       deletable: canDeleteComment(user, note),
+      username: note.author?.username ?? null,
+      editable: canEditComment(user, note),
+      edited: note.editedAt !== null,
+      reactions: reactionSummary(
+        note.reactions.map((r) => ({ emoji: r.emoji, userId: r.userId, name: displayName(r.user) })),
+        user.id
+      ),
     }
   })
   const assignedItemIds = new Set(project.items.map((i) => i.catalogItemId))
@@ -420,6 +440,8 @@ export async function ProjectDetail({
             {formatDate(project.dueDate, locale)}
           </span>
         )}
+        {row(t('executionWish'), project.executionWish || '—')}
+        {row(t('inspectionDate'), <span className="tabular-nums">{formatDate(project.inspectionDate, locale)}</span>)}
         {row(t('actualStart'), <span className="tabular-nums">{formatDate(project.actualStart, locale)}</span>)}
         {row(t('actualEnd'), <span className="tabular-nums">{formatDate(project.actualEnd, locale)}</span>)}
             {showPrice && (
@@ -494,7 +516,10 @@ export async function ProjectDetail({
     description: (
       <div className="space-y-3 text-sm">
         {project.description ? (
-          <NoteText text={project.description} className="text-muted" />
+          // A long description folds after a few lines, the way Trello folds one.
+          <ClampText more={t('descriptionMore')} less={t('descriptionLess')}>
+            <NoteText text={project.description} className="text-muted" />
+          </ClampText>
         ) : (
           <p className="text-muted">—</p>
         )}
@@ -517,6 +542,35 @@ export async function ProjectDetail({
    * under the cards and the cards pair off as they always did.
    */
   const pairs = sheet ? 'md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2' : 'lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2'
+
+  /**
+   * The card's fields over its back, in the client's Trello order: each opens
+   * the card of the form that holds it; the customer's number is the
+   * customer's, the day the card came in is nobody's to change. The order
+   * value only for whoever may see money.
+   */
+  const fieldCells: CardFieldCell[] = [
+    { key: 'customer', text: project.customer.name, section: 'basic', href: null },
+    { key: 'address', text: address || null, section: 'address', href: null },
+    ...(showPrice
+      ? [{ key: 'value' as const, text: orderTotal != null ? formatCurrency(orderTotal, locale, { hidden: hidePrices }) : null, section: 'planning' as const, href: null }]
+      : []),
+    {
+      key: 'workType',
+      text: project.workCategories.map((wc) => categoryLabel(wc.workCategory)).join(', ') || null,
+      section: 'basic',
+      href: null,
+    },
+    { key: 'wish', text: project.executionWish, section: 'planning', href: null },
+    { key: 'inspection', text: project.inspectionDate ? formatDate(project.inspectionDate, locale) : null, section: 'planning', href: null },
+    { key: 'created', text: formatDate(project.sourceCreatedAt ?? project.createdAt, locale), section: null, href: null },
+    {
+      key: 'customerNumber',
+      text: project.customer.number,
+      section: null,
+      href: isOffice(user) ? `/customers/${project.customerId}` : null,
+    },
+  ]
   const body = (
     <>
       <ProjectForm
@@ -526,6 +580,7 @@ export async function ProjectDetail({
         showPrice={showPrice}
         pairFrom={sheet ? 'xl' : '2xl'}
         fold={sheet ? { title: t('sheetProjectData') } : undefined}
+        afterDescription={sheet ? <CardFieldsGrid cells={fieldCells} /> : undefined}
         inline={{
           views,
           labels: { edit: tc('edit'), save: tc('save'), cancel: tc('cancel') },
@@ -574,6 +629,8 @@ export async function ProjectDetail({
           planMonth: monthInputValue(project.planMonth),
           planMonths: String(project.planMonths),
           dueDate: toDateInputValue(project.dueDate),
+          inspectionDate: toDateInputValue(project.inspectionDate),
+          executionWish: project.executionWish ?? '',
           actualStart: toDateInputValue(project.actualStart),
           actualEnd: toDateInputValue(project.actualEnd),
           managerId: project.managerId ?? '',
@@ -1025,6 +1082,8 @@ export async function ProjectDetail({
         people={people}
         add={addProjectComment}
         remove={deleteProjectComment}
+        edit={editProjectComment}
+        react={toggleCommentReaction}
         canMarkOffice={isOffice(user)}
         column
       />
@@ -1152,7 +1211,8 @@ export async function ProjectDetail({
   const Head = sheet ? SheetHead : StickyHead
 
   return (
-    <div className="space-y-6">
+    // Files let go anywhere over the project are attached to it, the way a Trello card takes them.
+    <CardDropZone projectId={project.id} className="space-y-6">
       {/* The picture on the front of the card, across the top of its back — the way Trello shows the cover. */}
       {sheet && project.coverDocumentId && (
         // The project's own photo, served by the app itself; next/image has nothing to optimise here.
@@ -1169,16 +1229,22 @@ export async function ProjectDetail({
             </>
           }
           meta={
-            <QuickStatus
-              value={project.status}
-              ariaLabel={t('status')}
-              colorClass={STATUS_STYLES[project.status]}
-              options={(Object.keys(ProjectStatus) as ProjectStatus[]).map((s) => ({
-                value: s,
-                label: tStatus(s),
-              }))}
-              onChange={setProjectStatus.bind(null, project.id)}
-            />
+            // Over the board the card says which list it stands in, the way
+            // Trello does, and moves from there to any list of any board.
+            sheet?.move ? (
+              <CardMove projectId={project.id} status={project.status} statusLabel={tStatus(project.status)} places={sheet.move} />
+            ) : (
+              <QuickStatus
+                value={project.status}
+                ariaLabel={t('status')}
+                colorClass={STATUS_STYLES[project.status]}
+                options={(Object.keys(ProjectStatus) as ProjectStatus[]).map((s) => ({
+                  value: s,
+                  label: tStatus(s),
+                }))}
+                onChange={setProjectStatus.bind(null, project.id)}
+              />
+            )
           }
           actions={
             <>
@@ -1271,6 +1337,6 @@ export async function ProjectDetail({
         {talk}
       </div>
 
-    </div>
+    </CardDropZone>
   )
 }

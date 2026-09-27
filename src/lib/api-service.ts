@@ -97,6 +97,8 @@ const projectSelect = {
   planMonth: true,
   planMonths: true,
   dueDate: true,
+  inspectionDate: true,
+  executionWish: true,
   actualStart: true,
   actualEnd: true,
   street: true,
@@ -125,6 +127,8 @@ type ProjectRow = {
   planMonth: Date | null
   planMonths: number
   dueDate: Date | null
+  inspectionDate: Date | null
+  executionWish: string | null
   actualStart: Date | null
   actualEnd: Date | null
   street: string | null
@@ -169,6 +173,9 @@ function projectDto(p: ProjectRow, user: CurrentUser, statusSince: Date) {
     planMonths: p.planMonths,
     /** The day the work has to be done by; null when none was promised. */
     dueDate: day(p.dueDate),
+    /** The day of the site visit, and when the customer would like the work — in the customer's words. */
+    inspectionDate: day(p.inspectionDate),
+    executionWish: p.executionWish,
     actualStart: day(p.actualStart),
     actualEnd: day(p.actualEnd),
     description: p.description,
@@ -287,6 +294,8 @@ export const createProjectInput = z
     planMonth: isoMonth.optional(),
     planMonths: planMonthsInput.optional(),
     dueDate: isoDate.optional(),
+    inspectionDate: isoDate.optional(),
+    executionWish: text(200),
     price: z.number().min(0).max(999_999_999).optional(),
     street: text(200),
     postalCode: text(20),
@@ -383,6 +392,8 @@ export async function createProject(user: CurrentUser, input: z.infer<typeof cre
     planMonth: parseMonthInput(input.planMonth?.slice(0, 7)),
     planMonths: input.planMonths ?? 1,
     dueDate: input.dueDate ? utcDay(input.dueDate) : null,
+    inspectionDate: input.inspectionDate ? utcDay(input.inspectionDate) : null,
+    executionWish: input.executionWish,
     price: canViewFinancials(user) && input.price !== undefined ? input.price : null,
     street: input.street,
     postalCode: input.postalCode,
@@ -411,6 +422,8 @@ export const updateProjectInput = z
     planMonth: isoMonth.nullable().optional(),
     planMonths: planMonthsInput.optional(),
     dueDate: isoDate.nullable().optional(),
+    inspectionDate: isoDate.nullable().optional(),
+    executionWish: clearableText(200),
     price: z.number().min(0).max(999_999_999).nullable().optional(),
     managerId: z.string().min(1).nullable().optional(),
     /** Matched against the employees' full names; nothing is set when nobody, or more than one, fits. */
@@ -452,6 +465,8 @@ export async function updateProject(
   if (input.plannedStart !== undefined) data.plannedStart = input.plannedStart ? utcDay(input.plannedStart) : null
   if (input.plannedEnd !== undefined) data.plannedEnd = input.plannedEnd ? utcDay(input.plannedEnd) : null
   if (input.dueDate !== undefined) data.dueDate = input.dueDate ? utcDay(input.dueDate) : null
+  if (input.inspectionDate !== undefined) data.inspectionDate = input.inspectionDate ? utcDay(input.inspectionDate) : null
+  if (input.executionWish !== undefined) data.executionWish = input.executionWish
   if (input.planMonth !== undefined) data.planMonth = input.planMonth ? parseMonthInput(input.planMonth.slice(0, 7)) : null
   if (input.planMonths !== undefined) data.planMonths = input.planMonths
   const start = input.plannedStart !== undefined ? (data.plannedStart as Date | null) : current.plannedStart

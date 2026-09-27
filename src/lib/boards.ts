@@ -40,6 +40,9 @@ export const BOARD_BACKGROUNDS = {
   forest: 'linear-gradient(135deg, #1f845a 0%, #60c6d2 100%)',
   sunset: 'linear-gradient(135deg, #e774bb 0%, #6e5dc6 100%)',
   ember: 'linear-gradient(135deg, #e34935 0%, #f5cd47 100%)',
+  // Trello's "snow": deep blue at the top running to a sky blue at the foot —
+  // the ground of the client's own sites board.
+  snow: 'linear-gradient(180deg, #0c66e4 0%, #3f86dc 50%, #62a9c9 100%)',
 } as const
 export type BoardBackground = keyof typeof BOARD_BACKGROUNDS
 

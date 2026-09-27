@@ -101,6 +101,10 @@ export type ProjectSnapshot = {
   /** How many months the job runs from there when no end is fixed. */
   planMonths: number
   dueDate: string | null
+  /** The day of the site visit. */
+  inspectionDate: string | null
+  /** When the customer would like the work done, in the customer's words. */
+  executionWish: string | null
   actualStart: string | null
   actualEnd: string | null
   price: number | null
@@ -123,6 +127,8 @@ export const WATCHED_FIELDS = [
   'planMonth',
   'planMonths',
   'dueDate',
+  'inspectionDate',
+  'executionWish',
   'actualStart',
   'actualEnd',
   'price',

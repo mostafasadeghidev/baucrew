@@ -14,6 +14,10 @@ export const ALLOWED_MIME_TYPES: readonly string[] = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
   'text/csv',
   'text/plain',
+  // E-mails dragged out of Outlook (.msg) or saved from any mail program (.eml):
+  // the office keeps the customer's order and the offer's answer on the card.
+  'application/vnd.ms-outlook',
+  'message/rfc822',
 ]
 
 export type UploadError = 'tooLarge' | 'badType' | 'empty'
@@ -37,6 +41,8 @@ const TYPE_BY_EXTENSION: Record<string, string> = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   csv: 'text/csv',
   txt: 'text/plain',
+  msg: 'application/vnd.ms-outlook',
+  eml: 'message/rfc822',
 }
 
 /** The type of an accepted file by its name, for a file that came without one. */
@@ -79,3 +85,18 @@ export function formatFileSize(bytes: number): string {
   if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`
   return `${bytes} B`
 }
+
+/**
+ * The type a dropped or picked file is stored under. Browsers name a file's
+ * type from the machine's own list, and for an Outlook e-mail that list often
+ * says nothing — or "application/octet-stream" — so a type the project does
+ * not take is looked up by the file's name before the file is turned away.
+ */
+export function resolveUploadType(name: string, browserType: string): string {
+  const given = browserType.trim().toLowerCase()
+  if (ALLOWED_MIME_TYPES.includes(given)) return given
+  return mimeFromName(name) ?? given
+}
+
+/** What the file picker offers: the types, and the endings the machine may not know a type for. */
+export const ACCEPT_UPLOADS = [...ALLOWED_MIME_TYPES, '.msg', '.eml'].join(',')

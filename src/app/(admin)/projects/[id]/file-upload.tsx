@@ -5,28 +5,38 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Paperclip } from 'lucide-react'
 import { btn } from '@/components/ui/button'
-import { ALLOWED_MIME_TYPES } from '@/lib/files'
+import { ACCEPT_UPLOADS } from '@/lib/files'
+import { uploadProjectFiles, type UploadFailure } from './upload-files'
 
-/** Picks a file and posts it to the upload route, then refreshes the list. */
-export function FileUpload({ projectId }: { projectId: string }) {
+/** What went wrong with an upload, in one line: the file's own reason, or how many failed. */
+export function useUploadMessage() {
+  const t = useTranslations('files')
+  return (failed: UploadFailure[]) =>
+    failed.length === 1
+      ? `${failed[0].name}: ${t(failed[0].error)}`
+      : t('uploadSomeFailed', { count: failed.length })
+}
+
+/**
+ * Picks files — several at once, e-mails from Outlook among them — and sends
+ * them onto the project, then refreshes the list. `compact` is the button in
+ * the attachments' head, the way Trello puts "Hinzufügen" there.
+ */
+export function FileUpload({ projectId, compact = false }: { projectId: string; compact?: boolean }) {
   const t = useTranslations('files')
   const router = useRouter()
+  const message = useUploadMessage()
   const inputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
   const [pending, startTransition] = useTransition()
 
-  async function upload(file: File) {
+  async function send(files: File[]) {
     setError(null)
-    const body = new FormData()
-    body.append('file', file)
-    const res = await fetch(`/api/projects/${projectId}/files`, { method: 'POST', body })
-    if (!res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
-      setError(
-        data.error === 'tooLarge' ? t('tooLarge') : data.error === 'badType' ? t('badType') : t('uploadFailed')
-      )
-      return
-    }
+    setSending(true)
+    const { failed } = await uploadProjectFiles(projectId, files)
+    setSending(false)
+    if (failed.length > 0) setError(message(failed))
     startTransition(() => router.refresh())
   }
 
@@ -35,25 +45,25 @@ export function FileUpload({ projectId }: { projectId: string }) {
       <input
         ref={inputRef}
         type="file"
-        accept={ALLOWED_MIME_TYPES.join(',')}
+        multiple
+        accept={ACCEPT_UPLOADS}
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) void upload(file)
+          const files = Array.from(e.target.files ?? [])
+          if (files.length > 0) void send(files)
           e.target.value = ''
         }}
       />
-      <button
-        type="button"
-        className={btn.outlineSm}
-        disabled={pending}
-        onClick={() => inputRef.current?.click()}
-      >
+      <button type="button" className={btn.outlineSm} disabled={pending || sending} onClick={() => inputRef.current?.click()}>
         <Paperclip className="h-4 w-4" aria-hidden />
-        {t('upload')}
+        {compact ? t('add') : t('upload')}
       </button>
-      <span className="text-xs text-muted">{t('uploadHint')}</span>
-      {error && <span className="text-xs text-red-700 dark:text-red-400">{error}</span>}
+      {!compact && <span className="text-xs text-muted">{t('uploadHint')}</span>}
+      {error && (
+        <span role="alert" className="basis-full text-xs text-red-700 dark:text-red-400">
+          {error}
+        </span>
+      )}
     </div>
   )
 }

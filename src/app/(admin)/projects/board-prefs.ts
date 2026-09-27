@@ -50,11 +50,16 @@ export function useLabelsOpen(): [boolean, () => void] {
   return [open, () => write(LABELS_KEY, open ? '0' : '1')]
 }
 
-/** Whether the cards show everything (customer, place, number, value) or what a Trello card shows. */
+/**
+ * Whether the cards show their field lines — customer, site, value, trade,
+ * the customer's wish, the site visit, the day the card came in, the
+ * customer's number — the way the client's Trello cards show them. On unless
+ * this browser turned them off from the board's menu.
+ */
 export const DETAILS_KEY = 'baucrew-board-details'
 
 export function useCardDetails(): [boolean, () => void] {
-  const on = useSyncExternalStore(subscribe, () => read(DETAILS_KEY) === '1', () => false)
+  const on = useSyncExternalStore(subscribe, () => read(DETAILS_KEY) !== '0', () => true)
   return [on, () => write(DETAILS_KEY, on ? '0' : '1')]
 }
 

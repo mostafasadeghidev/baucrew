@@ -73,6 +73,10 @@ export type ProjectFormValues = {
   planMonth: string
   planMonths: string
   dueDate: string
+  /** The day of the site visit — the client's "Termin Besichtigung". */
+  inspectionDate: string
+  /** When the customer would like the work done, in the customer's words. */
+  executionWish: string
   actualStart: string
   actualEnd: string
   managerId: string
@@ -225,6 +229,8 @@ function TextField({
   type = 'text',
   required,
   min,
+  placeholder,
+  maxLength,
 }: {
   label: string
   name: string
@@ -233,6 +239,8 @@ function TextField({
   required?: boolean
   /** For date fields: earliest selectable day. */
   min?: string
+  placeholder?: string
+  maxLength?: number
 }) {
   return (
     <div>
@@ -247,6 +255,8 @@ function TextField({
         min={min}
         defaultValue={defaultValue}
         required={required}
+        placeholder={placeholder}
+        maxLength={maxLength}
         className={inputClass}
       />
     </div>
@@ -345,6 +355,7 @@ export function ProjectForm({
   templateId,
   draftId,
   extraSection,
+  afterDescription,
   customerAddresses = {},
   inline,
   pairFrom = 'xl',
@@ -376,6 +387,11 @@ export function ProjectForm({
   draftId?: string
   /** Rendered between "assignment" and "description" (e.g. template items). */
   extraSection?: ReactNode
+  /**
+   * What stands right under the description on the card's back — the fields
+   * grid, the way the client's Trello puts its fields there. Only with `fold`.
+   */
+  afterDescription?: ReactNode
   /** Addresses per customer id — for "same as customer address". */
   customerAddresses?: Record<string, CustomerAddress>
   /**
@@ -795,6 +811,11 @@ export function ProjectForm({
         {/* What was promised to the customer — a date of its own, so a plan
             that runs past it shows as one. */}
         <TextField label={t('dueDate')} name="dueDate" type="date" defaultValue={initial.dueDate} />
+        {/* The client's two Trello fields: when the customer would like the
+            work — in the customer's words, not a month the office picked —
+            and the day somebody goes to look at the site. */}
+        <TextField label={t('executionWish')} name="executionWish" defaultValue={initial.executionWish} placeholder={t('executionWishPlaceholder')} maxLength={200} />
+        <TextField label={t('inspectionDate')} name="inspectionDate" type="date" defaultValue={initial.inspectionDate} />
         <TextField label={t('actualStart')} name="actualStart" type="date" defaultValue={initial.actualStart} />
         <TextField label={t('actualEnd')} name="actualEnd" type="date" defaultValue={initial.actualEnd} />
         {showPrice && (
@@ -923,6 +944,7 @@ export function ProjectForm({
         </div>
       </Section>
       </div>
+      {fold && afterDescription && <div className="order-1 col-span-full">{afterDescription}</div>}
 
       {state.error && (
         <p role="alert" className="text-sm text-danger col-span-full">

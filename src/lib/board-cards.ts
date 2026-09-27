@@ -151,3 +151,31 @@ export function dueFilterRange(due: DueFilter, today: Date): { from: Date | null
       return { from: null, to: null }
   }
 }
+
+/**
+ * The lines a card shows under its marks, in the order the client's Trello
+ * cards show them: who, where, how much, what, when the customer would like
+ * it, the site visit, when the card came in, the customer's number. The office
+ * reads a board by these lines, so their order is fixed rather than chosen.
+ */
+export const CARD_FIELDS = ['customer', 'address', 'value', 'workType', 'wish', 'inspection', 'created', 'customerNumber'] as const
+export type CardFieldKey = (typeof CARD_FIELDS)[number]
+
+/** The three lines Trello draws on a coloured ground; the rest are plain text. */
+export const CARD_FIELD_TONE: Partial<Record<CardFieldKey, 'green' | 'lime' | 'red'>> = {
+  value: 'green',
+  inspection: 'lime',
+  created: 'red',
+}
+
+/**
+ * The lines one card shows: every field that has something to say, in the
+ * fixed order — an empty field is left out, not drawn as a dash. The values
+ * come formatted; the order value is null for whoever may not see prices.
+ */
+export function cardFieldLines(values: Partial<Record<CardFieldKey, string | null | undefined>>): Array<{ key: CardFieldKey; text: string }> {
+  return CARD_FIELDS.flatMap((key) => {
+    const text = values[key]?.trim()
+    return text ? [{ key, text }] : []
+  })
+}

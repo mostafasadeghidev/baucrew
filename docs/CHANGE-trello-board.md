@@ -174,3 +174,54 @@ Rules that hold:
    The boards keep the blue ground they were given; set it back to none under
    Einstellungen → Boards if wanted.
 3. `npx prisma generate`.
+
+## Addendum (2026-09-27): the card front and back as the client's Trello draws them
+
+Built after the client's own Trello board was exported and compared with ours.
+
+**What changed**
+- The card front shows its field lines — customer, site address, order value
+  (green), type of work, execution wish, site visit (lime), created (red),
+  customer number — in the client's order, empty ones left out, on by default
+  (`useCardDetails` reads "off" only when the browser stored `0`); the trades
+  stand in the "Art der Arbeit" line instead of as labels while the lines show.
+  `cardFieldLines()` / `CARD_FIELD_TONE` in `src/lib/board-cards.ts`,
+  `FIELD_CHIP` in `src/components/swatches.ts`. Covers up to `max-h-64`.
+- Two project fields: `Project.inspectionDate` (DATE) and
+  `Project.executionWish` (TEXT) — form (planning card), card back, card
+  front, API (create/PATCH/body), webhook snapshot (`WATCHED_FIELDS`).
+- The card back: the list the card stands in beside the title, opening
+  "Karte verschieben" (board, list, position; `card-move.tsx`, fed by
+  `movePlaces` in `projects/page.tsx`, moving through `moveCard`); a fields
+  grid under the description (`[id]/card-fields-grid.tsx`, via the form's new
+  `afterDescription` slot, each cell opening the form card that holds it); a
+  long description folds (`components/ui/clamp-text.tsx`); files dropped
+  anywhere on it are attached (`[id]/card-drop-zone.tsx`).
+- Attachments: Outlook e-mails (`application/vnd.ms-outlook`, `.msg`) and
+  `.eml` are accepted; a type the browser does not know is found by the name
+  (`resolveUploadType`); several files at once; the files card lists them the
+  way Trello does (`[id]/attachment-list.tsx`, `[id]/files-card.tsx`); files
+  dropped on a board card are attached to it (`kanban.tsx`).
+- Comments: the author edits (`Note.editedAt`, "(bearbeitet)"), anybody
+  answers ("Antworten" puts the author's @name in the box) and reacts
+  (`NoteReaction`, one of each emoji per person; `REACTIONS` in
+  `src/lib/comments.ts`); `editProjectComment`, `toggleCommentReaction`.
+- The list menu: "Alle Karten dieser Liste verschieben" (`moveCards`) and
+  "… archivieren" (`archiveCards`), office only.
+- The ground `snow` (Trello's blue gradient) in `BOARD_BACKGROUNDS`; the
+  one-click sites board uses it.
+
+**Migration:** `prisma/migrations/20260927090000_trello_card_fields`.
+
+**Rollback**
+1. Revert the commit.
+2. In the database:
+   ```sql
+   DROP TABLE "NoteReaction";
+   ALTER TABLE "Note" DROP COLUMN "editedAt";
+   ALTER TABLE "Project" DROP COLUMN "executionWish";
+   ALTER TABLE "Project" DROP COLUMN "inspectionDate";
+   DELETE FROM "_prisma_migrations" WHERE migration_name = '20260927090000_trello_card_fields';
+   ```
+   A board already set to the ground `snow` falls back to the app's own
+   ground once the key is gone (`boardBackgroundKey` returns null).

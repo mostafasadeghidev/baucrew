@@ -14,11 +14,12 @@
  * a list's head, the way a Trello list is dragged. The ground between the
  * lists slides the board.
  *
- * A card shows what a Trello card shows: its labels, its picture, its name,
- * and small marks for what hangs on it. Everything else a project is — the
- * customer, the place, the number, the value — is one click away under
- * "Kartendetails", remembered per browser, so an office that wants the fuller
- * card has it and the client sees the board they know.
+ * A card shows what the client's Trello cards show, in their order: the
+ * picture, the name, small marks for what hangs on it, and then the field
+ * lines — customer, site, value, trade, the customer's wish, the site visit,
+ * the day it came in, the customer's number — with an empty one left out. The
+ * board's menu turns the lines off for this browser, which leaves the bare
+ * Trello card with its trade labels.
  *
  * Two moves ask first. Finishing a project touches days that are already
  * planned for it, and cancelling one takes it out of every sum on the reports
@@ -56,7 +57,6 @@ import {
   CircleCheck,
   Clock,
   ListChecks,
-  MapPin,
   MessageSquare,
   MoreHorizontal,
   Paperclip,
@@ -69,7 +69,8 @@ import {
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { moveColumn } from '@/lib/boards'
 import { COLUMN_SORTS, insertIndex, type ColumnSort } from '@/lib/board-order'
-import { LABEL_BAR, LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
+import { FIELD_CHIP, LABEL_BAR, LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
+import { CARD_FIELD_TONE, type CardFieldKey } from '@/lib/board-cards'
 import { Menu, MenuLabel, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { Combobox } from '@/components/combobox'
 import { Select } from '@/components/ui/select'
@@ -77,7 +78,20 @@ import { btn } from '@/components/ui/button'
 import { DRAG_THRESHOLD, LONG_PRESS_MS, LONG_PRESS_SLOP, carry, drop as dropGhost, lift } from '@/lib/card-lift'
 import { isVerticalWheel, wheelPixels } from '@/lib/wheel-axis'
 import { useCardDetails, useCollapsedColumns, useLabelsOpen } from './board-prefs'
-import { addColumn, copyProject, moveCard, quickAddProject, quickUpdateProject, removeColumn, renameColumn, setBoardOrder, sortColumn } from './actions'
+import { dragHasFiles, uploadProjectFiles } from './[id]/upload-files'
+import {
+  addColumn,
+  archiveCards,
+  copyProject,
+  moveCard,
+  moveCards,
+  quickAddProject,
+  quickUpdateProject,
+  removeColumn,
+  renameColumn,
+  setBoardOrder,
+  sortColumn,
+} from './actions'
 
 export type KanbanCard = {
   id: string
@@ -116,6 +130,8 @@ export type KanbanCard = {
   more: number
   /** The picture on the front of the card: a document id, or none. */
   cover: string | null
+  /** The field lines, in the client's order, the empty ones already left out. */
+  fields: Array<{ key: CardFieldKey; text: string }>
   /** Whether the project has a description — the ≡ mark of a Trello card. */
   hasDescription: boolean
 }
@@ -229,6 +245,7 @@ export function ProjectsKanban({
   }
 }) {
   const t = useTranslations('projects')
+  const tFiles = useTranslations('files')
   const tc = useTranslations('common')
   const router = useRouter()
   const pathname = usePathname()
@@ -250,6 +267,13 @@ export function ProjectsKanban({
   /** A drop that asks first: the board as it was, and the board as it would be. */
   const [ask, setAsk] = useState<{ card: KanbanCard; status: string; label: string; before: KanbanColumn[]; after: KanbanColumn[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /**
+   * A file from the computer held over a card: that card is framed, and the
+   * file lands on it when let go — the way Trello takes an e-mail dragged out
+   * of Outlook straight onto a card. `sending` names the card while it goes.
+   */
+  const [fileOver, setFileOver] = useState<string | null>(null)
+  const [sending, setSending] = useState<string | null>(null)
   /** The last move, and the board as it stood before it. */
   const [undo, setUndo] = useState<{ card: KanbanCard; to: string; before: KanbanColumn[] } | null>(null)
   /** How many cards each column is showing, when it is showing more than the first lot. */
@@ -265,6 +289,10 @@ export function ProjectsKanban({
   const [renamingList, setRenamingList] = useState<{ status: string; value: string } | null>(null)
   /** A list about to be taken off the board. */
   const [removing, setRemoving] = useState<{ status: string; label: string } | null>(null)
+  /** "Alle Karten verschieben": the list whose cards go, and the list chosen for them. */
+  const [movingAll, setMovingAll] = useState<{ from: string; to: string } | null>(null)
+  /** "Alle Karten archivieren": the list whose cards are put away. */
+  const [archivingAll, setArchivingAll] = useState<string | null>(null)
 
   const scroller = useRef<HTMLDivElement | null>(null)
   const grab = useRef<Grab | null>(null)
@@ -1020,6 +1048,22 @@ export function ProjectsKanban({
                           {sortLabel[by]}
                         </button>
                       ))}
+                      {column.cards.length > 0 && (
+                        <>
+                          <MenuSeparator />
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className={menuItemClass}
+                            onClick={() => setMovingAll({ from: column.id, to: board.find((c) => c.id !== column.id)?.id ?? '' })}
+                          >
+                            {t('kanbanMoveAll')}
+                          </button>
+                          <button type="button" role="menuitem" className={menuItemClass} onClick={() => setArchivingAll(column.id)}>
+                            {t('kanbanArchiveAll')}
+                          </button>
+                        </>
+                      )}
                       <MenuSeparator />
                       <button type="button" role="menuitem" className={`${menuItemClass} text-danger`} onClick={() => setRemoving({ status: column.id, label: column.label })}>
                         {t('kanbanRemoveList')}
@@ -1060,6 +1104,36 @@ export function ProjectsKanban({
                   <div
                     key={card.id}
                     onPointerDown={(e) => onCardPointerDown(e, card)}
+                    onDragEnter={(e) => {
+                      if (!dragHasFiles(e)) return
+                      e.preventDefault()
+                      setFileOver(card.id)
+                    }}
+                    onDragOver={(e) => {
+                      if (!dragHasFiles(e)) return
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'copy'
+                      if (fileOver !== card.id) setFileOver(card.id)
+                    }}
+                    onDragLeave={(e) => {
+                      if (!dragHasFiles(e) || e.currentTarget.contains(e.relatedTarget as Node | null)) return
+                      setFileOver((over) => (over === card.id ? null : over))
+                    }}
+                    onDrop={(e) => {
+                      if (!dragHasFiles(e)) return
+                      e.preventDefault()
+                      setFileOver(null)
+                      const files = Array.from(e.dataTransfer.files)
+                      if (files.length === 0) return
+                      setSending(card.id)
+                      setError(null)
+                      void uploadProjectFiles(card.id, files).then(({ failed }) => {
+                        setSending(null)
+                        if (failed.length > 0)
+                          setError(failed.length === 1 ? `${failed[0].name}: ${tFiles(failed[0].error)}` : tFiles('uploadSomeFailed', { count: failed.length }))
+                        router.refresh()
+                      })
+                    }}
                     // A click anywhere on the card opens it, the way a Trello
                     // card opens; a drag never ends in a click, because the
                     // pointer is captured by the board once the card is lifted.
@@ -1075,7 +1149,9 @@ export function ProjectsKanban({
                     // alone meant the board could only be moved by the narrow
                     // strips between the columns.
                     style={{ touchAction: 'pan-x pan-y' }}
-                    className={`group relative cursor-pointer overflow-hidden ${CARD} ring-accent/70 transition-shadow hover:ring-2`}
+                    className={`group relative cursor-pointer overflow-hidden ${CARD} ring-accent/70 transition-shadow hover:ring-2 ${
+                      fileOver === card.id ? 'ring-2 ring-accent' : ''
+                    } ${sending === card.id ? 'opacity-60' : ''}`}
                   >
                     {/* The picture on the front, the way a Trello card wears its cover. */}
                     {card.cover && (
@@ -1086,7 +1162,7 @@ export function ProjectsKanban({
                         alt=""
                         draggable={false}
                         loading="lazy"
-                        className="max-h-44 w-full bg-black/5 object-cover"
+                        className="max-h-64 w-full bg-black/5 object-cover"
                       />
                     )}
                     {/* The pencil of a Trello card: there when the pointer is, and
@@ -1126,7 +1202,7 @@ export function ProjectsKanban({
                     {/* Labels first, the way a Trello card wears them: urgent,
                         SUB and the trades, each in its own colour — named, and
                         folded to bars by a click on any of them. */}
-                    <CardLabels card={card} urgentText={t('priorityHigh')} toggleTitle={t('labelsToggle')} />
+                    <CardLabels card={card} trades={!details} urgentText={t('priorityHigh')} toggleTitle={t('labelsToggle')} />
                     {renaming?.id === card.id ? (
                       <input
                         autoFocus
@@ -1156,25 +1232,6 @@ export function ProjectsKanban({
                       >
                         {card.name}
                       </Link>
-                    )}
-                    {details && (
-                      <>
-                        <p className="truncate text-[11px] text-muted">
-                          {card.customer}
-                          {card.customerNumber && (
-                            <span title={t('cardCustomerNumber')} className="tabular-nums">
-                              {' · '}
-                              {card.customerNumber}
-                            </span>
-                          )}
-                        </p>
-                        {card.address && (
-                          <p className="flex items-center gap-1 text-[11px] text-muted" title={card.address}>
-                            <MapPin className="h-3 w-3 shrink-0" aria-hidden />
-                            <span className="truncate">{card.address}</span>
-                          </p>
-                        )}
-                      </>
                     )}
                     {/* What the card carries, as small marks: a description, the
                         dates coloured when they press, the checklist, what is
@@ -1244,7 +1301,6 @@ export function ProjectsKanban({
                             {card.comments}
                           </span>
                         )}
-                        {details && card.price && <span className="font-medium tabular-nums text-foreground">{card.price}</span>}
                       </div>
                       {card.people.length > 0 && (
                         <span className="flex shrink-0 -space-x-1">
@@ -1267,12 +1323,27 @@ export function ProjectsKanban({
                         </span>
                       )}
                     </div>
-                    {details && (
-                      <p className="mt-1 truncate text-[11px] tabular-nums text-muted">
-                        {card.number}
-                        <span title={t('cardCreated')}> · {card.created}</span>
-                      </p>
+                    {/* The field lines, the way the client's Trello cards carry them:
+                        "Kundenname: …", three of them on a coloured ground. */}
+                    {details && card.fields.length > 0 && (
+                      <dl className="mt-1.5 space-y-0.5 text-[11px] leading-4">
+                        {card.fields.map((field) => {
+                          const tone = CARD_FIELD_TONE[field.key]
+                          return (
+                            <div key={field.key} className="flex min-w-0 items-baseline gap-1">
+                              <dt className="shrink-0 text-muted">{t(`cardField_${field.key}`)}:</dt>
+                              <dd
+                                title={field.text}
+                                className={`min-w-0 truncate ${tone ? `rounded-sm px-1 font-medium tabular-nums ${FIELD_CHIP[tone]}` : 'text-foreground'}`}
+                              >
+                                {field.text}
+                              </dd>
+                            </div>
+                          )
+                        })}
+                      </dl>
                     )}
+                    {details && <p className="mt-1 truncate text-[11px] tabular-nums text-muted">{card.number}</p>}
                     </div>
                   </div>
                   )
@@ -1498,6 +1569,80 @@ export function ProjectsKanban({
         }}
         onCancel={() => setRemoving(null)}
       />
+
+      {/* Every card of a list to another list at once, top of the target, in their order. */}
+      {(() => {
+        const from = movingAll ? board.find((c) => c.id === movingAll.from) : null
+        const to = movingAll ? board.find((c) => c.id === movingAll.to) : null
+        return (
+          <AlertDialog
+            open={movingAll !== null}
+            title={t('kanbanMoveAll')}
+            description={
+              from ? (
+                <span className="block space-y-2">
+                  <span className="block">{t('kanbanMoveAllBody', { count: from.cards.length, name: from.label })}</span>
+                  <Select
+                    compact
+                    className="w-full"
+                    aria-label={t('cardMoveList')}
+                    value={movingAll?.to ?? ''}
+                    onChange={(e) => setMovingAll((m) => (m ? { ...m, to: e.target.value } : m))}
+                  >
+                    {board
+                      .filter((c) => c.id !== from.id)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label}
+                        </option>
+                      ))}
+                  </Select>
+                  {to && to.status !== from.status && confirmFor.includes(to.status) && (
+                    <span className="block text-amber-700 dark:text-amber-400">{labels.confirmBody}</span>
+                  )}
+                </span>
+              ) : (
+                ''
+              )
+            }
+            confirmLabel={t('cardMoveSubmit')}
+            cancelLabel={labels.cancel}
+            pending={pending}
+            onConfirm={() => {
+              setMovingAll(null)
+              if (!from || !to) return
+              const ids = from.cards.map((c) => c.id)
+              setError(null)
+              startTransition(async () => {
+                const result = await moveCards(ids, to.status, { from: from.rule, to: to.rule }, to.cards[0]?.id ?? null)
+                if (result.error) setError(result.error === 'ruleRefused' ? t('kanbanRuleRefused') : labels.saveFailed)
+                router.refresh()
+              })
+            }}
+            onCancel={() => setMovingAll(null)}
+          />
+        )
+      })()}
+
+      {/* Every card of a list put away at once; each stays a project and comes back from the archive. */}
+      <AlertDialog
+        open={archivingAll !== null}
+        title={t('kanbanArchiveAll')}
+        description={(() => {
+          const from = board.find((c) => c.id === archivingAll)
+          return from ? t('kanbanArchiveAllBody', { count: from.cards.length, name: from.label }) : ''
+        })()}
+        confirmLabel={t('cardArchive')}
+        cancelLabel={labels.cancel}
+        destructive
+        pending={pending}
+        onConfirm={() => {
+          const from = board.find((c) => c.id === archivingAll)
+          setArchivingAll(null)
+          if (from) runOnServer(() => archiveCards(from.cards.map((c) => c.id)))
+        }}
+        onCancel={() => setArchivingAll(null)}
+      />
     </div>
   )
 }
@@ -1507,15 +1652,27 @@ export function ProjectsKanban({
  * named, and folded to bars by a click on any of them, which folds them on
  * every card and is remembered by the browser (see board-prefs).
  */
-function CardLabels({ card, urgentText, toggleTitle }: { card: KanbanCard; urgentText: string; toggleTitle: string }) {
+function CardLabels({
+  card,
+  trades,
+  urgentText,
+  toggleTitle,
+}: {
+  card: KanbanCard
+  /** False while the field lines are shown: the trades stand in their own line then. */
+  trades: boolean
+  urgentText: string
+  toggleTitle: string
+}) {
   const [open, toggle] = useLabelsOpen()
-  if (!(card.urgent || card.sub || card.labels.length > 0)) return null
+  const labels = trades ? card.labels : []
+  if (!(card.urgent || card.sub || labels.length > 0)) return null
   return (
     <div className="mb-1.5 flex flex-wrap gap-1 pr-6">
       {[
         ...(card.urgent ? [{ text: urgentText, ...URGENT_LABEL }] : []),
         ...(card.sub ? [{ text: 'SUB', ...SUB_LABEL }] : []),
-        ...card.labels.map((label) => ({ text: label.text, bar: LABEL_BAR[label.swatch], pill: LABEL_PILL[label.swatch] })),
+        ...labels.map((label) => ({ text: label.text, bar: LABEL_BAR[label.swatch], pill: LABEL_PILL[label.swatch] })),
       ].map((label) => (
         <button
           key={label.text}

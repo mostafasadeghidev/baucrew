@@ -86,6 +86,8 @@ describe('projectChanges', () => {
     planMonth: null,
     planMonths: 1,
     dueDate: null,
+    inspectionDate: null,
+    executionWish: null,
     actualStart: null,
     actualEnd: null,
     price: null,

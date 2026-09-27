@@ -39,8 +39,9 @@ import { ProjectYearPicker } from './year-picker'
 import { BoardTabs } from './board-tabs'
 import { BoardFilter } from './board-filter'
 import { CardSheet, SheetClose } from './card-sheet'
+import type { CardMovePlaces } from './card-move'
 import { ProjectDetail } from './[id]/project-detail'
-import { addressLine, dateTone, dueFilterRange, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
+import { addressLine, cardFieldLines, dateTone, dueFilterRange, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 import { orderValue } from '@/lib/reports'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
@@ -275,6 +276,8 @@ export default async function ProjectsPage({
           plannedEnd: true,
           planMonth: true,
           dueDate: true,
+          inspectionDate: true,
+          executionWish: true,
           sourceCreatedAt: true,
           createdAt: true,
           boardPosition: true,
@@ -341,6 +344,8 @@ export default async function ProjectsPage({
         const items = p.checklists.flatMap((c) => c.items)
         const dates = [p.plannedStart, p.plannedEnd].filter((d): d is Date => d !== null).map((d) => dayMonth.format(d))
         const rough = dates.length === 0 && p.planMonth ? monthShort.format(p.planMonth) : null
+        const value = orderValue(p.price, p.addOns)
+        const trades = p.workCategories.map((wc) => (locale === 'en' ? wc.workCategory.nameEn : wc.workCategory.nameDe))
         return {
           id: p.id,
           number: p.number,
@@ -384,6 +389,18 @@ export default async function ProjectsPage({
           more: Math.max(0, people.length - FACES),
           cover: p.coverDocumentId,
           hasDescription: Boolean(p.description?.trim()),
+          // The lines under the marks, in the order the client's Trello cards
+          // show them; the order value only for whoever may see money.
+          fields: cardFieldLines({
+            customer: p.customer.name,
+            address: addressLine(p.street, p.postalCode, p.city),
+            value: showPrice && value != null ? formatCurrency(value, locale, { hidden: hidePrices }) : null,
+            workType: trades.join(', '),
+            wish: p.executionWish,
+            inspection: p.inspectionDate ? formatDate(p.inspectionDate, locale) : null,
+            created: formatDate(p.sourceCreatedAt ?? p.createdAt, locale),
+            customerNumber: p.customer.number,
+          }),
         }
       }),
     }
@@ -534,6 +551,64 @@ export default async function ProjectsPage({
     </div>
   )
 
+  /**
+   * Where the open card can be moved to, the way Trello's "Karte verschieben"
+   * offers it: every board, every list on it, and — for the place in a list —
+   * the cards already there, worked out from the cards this page has read.
+   * The card's own list on this board is read afresh when the search or the
+   * filter left the card out of the board.
+   */
+  const movePlaces: CardMovePlaces | null = card
+    ? await (async () => {
+        type Row = (typeof boardProjects)[number]
+        const factsOf = (p: Pick<Row, 'pausedAt' | 'plannedStart' | 'planMonth' | 'priority' | 'invoices'>) => ({
+          pausedAt: p.pausedAt,
+          plannedStart: p.plannedStart,
+          planMonth: p.planMonth,
+          priority: p.priority,
+          invoice1: p.invoices.length > 0,
+        })
+        const places = boards.map((b) => {
+          const keys = b.columns.map((c) => ({ key: c.id, status: c.status, rule: c.rule }))
+          const byColumn = new Map<string, Row[]>()
+          for (const p of boardProjects) {
+            const key = columnFor(keys, p.status, factsOf(p), currentYear)?.key
+            if (key) byColumn.set(key, [...(byColumn.get(key) ?? []), p])
+          }
+          return {
+            id: b.id,
+            name: b.name,
+            columns: b.columns.map((c) => {
+              const rule = columnRuleKey(c.rule)
+              return {
+                id: c.id,
+                label: columnLabel(c, rule ? ruleLabel(rule) : tStatus(c.status as ProjectStatus)),
+                status: c.status,
+                rule,
+                cardIds: orderCards((byColumn.get(c.id) ?? []).map((p) => ({ ...p, position: p.boardPosition }))).map((p) => p.id),
+              }
+            }),
+          }
+        })
+        let columnId = columnOf.get(card) ?? null
+        if (!columnId && board) {
+          const facts = await db.project.findUnique({
+            where: { id: card },
+            select: { status: true, pausedAt: true, plannedStart: true, planMonth: true, priority: true, invoices: { where: { part: 1 }, select: { id: true } } },
+          })
+          if (facts)
+            columnId =
+              columnFor(
+                board.columns.map((c) => ({ key: c.id, status: c.status, rule: c.rule })),
+                facts.status,
+                factsOf(facts),
+                currentYear
+              )?.key ?? null
+        }
+        return { boardId: board?.id ?? null, columnId, boards: places }
+      })()
+    : null
+
   /** A card opened over the board or the list: the project's page in a sheet, the board still underneath. It streams in after the board. */
   const sheet = card && (
     <CardSheet>
@@ -545,7 +620,7 @@ export default async function ProjectsPage({
           </div>
         }
       >
-        <ProjectDetail id={card} sheet={{ returnTo }} />
+        <ProjectDetail id={card} sheet={{ returnTo, move: movePlaces }} />
       </Suspense>
     </CardSheet>
   )

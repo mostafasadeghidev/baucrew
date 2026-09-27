@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { audit } from '@/lib/audit'
-import { previewKind, safeFileName, storageKeyFor, validateUpload } from '@/lib/files'
+import { previewKind, resolveUploadType, safeFileName, storageKeyFor, validateUpload } from '@/lib/files'
 import { saveStoredFile } from '@/lib/file-storage'
 import { canWorkOn } from '@/lib/crew-access'
 
@@ -28,10 +28,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const form = await req.formData()
   const file = form.get('file')
   if (!(file instanceof File)) return NextResponse.json({ error: 'empty' }, { status: 400 })
-  const invalid = validateUpload(file.size, file.type)
+  // An Outlook e-mail often comes without a type the browser knows; its name says what it is.
+  const type = resolveUploadType(file.name, file.type)
+  const invalid = validateUpload(file.size, type)
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 })
   // A phone's HEIC is a picture too, though no browser here will draw it.
-  const picture = previewKind(file.type) === 'image' || file.type === 'image/heic'
+  const picture = previewKind(type) === 'image' || type === 'image/heic'
   if (crew && !picture) return NextResponse.json({ error: 'badType' }, { status: 400 })
 
   const defectId = String(form.get('defectId') ?? '').trim()
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     data: {
       projectId,
       filename: safeFileName(file.name),
-      mimeType: file.type,
+      mimeType: type,
       size: file.size,
       path: key,
       source: crew ? 'site' : 'manual',

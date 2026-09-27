@@ -165,6 +165,8 @@ export default async function NewProjectPage({
           planMonth: '',
           planMonths: '1',
           dueDate: '',
+          inspectionDate: '',
+          executionWish: '',
           actualStart: '',
           actualEnd: '',
           managerId: template?.managerId ?? '',

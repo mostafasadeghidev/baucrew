@@ -86,6 +86,8 @@ export function describeAudit(entry: AuditEntry, t: Words, statusLabel: (status:
       return t('commented')
     case 'project.commentDeleted':
       return t('commentDeleted')
+    case 'project.commentEdited':
+      return t('commentEdited')
     case 'project.form.create':
       return t('formCreated', { title: name(newValue) })
     case 'project.form.sign':

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { db } from '@/lib/db'
-import { requireAdmin, requireManagement, requireStaff, canViewFinancials } from '@/lib/authz'
+import { requireAdmin, requireManagement, requireStaff, canViewFinancials, isOffice } from '@/lib/authz'
 import { canSeeProject } from '@/lib/project-scope'
 import { audit } from '@/lib/audit'
 import { planChecklistChanges } from '@/lib/project-checklists'
@@ -83,6 +83,13 @@ const projectSchema = z
       return Number.isInteger(n) && n >= 1 && n <= MAX_PLAN_MONTHS ? n : 1
     }),
     dueDate: optionalDate,
+    // The client's Trello fields: the site visit, and when the customer would like it.
+    inspectionDate: optionalDate,
+    executionWish: z
+      .string()
+      .trim()
+      .max(200)
+      .transform((v) => (v ? v : null)),
     actualStart: optionalDate,
     actualEnd: optionalDate,
     managerId: z.string().transform((v) => (v ? v : null)),
@@ -140,6 +147,8 @@ function parseProjectForm(formData: FormData) {
     planMonth: formData.get('planMonth') ?? '',
     planMonths: formData.get('planMonths') ?? '1',
     dueDate: formData.get('dueDate') ?? '',
+    inspectionDate: formData.get('inspectionDate') ?? '',
+    executionWish: formData.get('executionWish') ?? '',
     actualStart: formData.get('actualStart') ?? '',
     actualEnd: formData.get('actualEnd') ?? '',
     managerId: formData.get('managerId') ?? '',
@@ -246,6 +255,8 @@ export async function createProject(
           planMonth: d.planMonth,
           planMonths: d.planMonths,
           dueDate: d.dueDate,
+          inspectionDate: d.inspectionDate,
+          executionWish: d.executionWish,
           actualStart: d.actualStart,
           actualEnd: d.actualEnd,
           managerId: d.managerId,
@@ -399,6 +410,8 @@ export async function updateProject(
       planMonth: d.planMonth,
       planMonths: d.planMonths,
       dueDate: d.dueDate,
+      inspectionDate: d.inspectionDate,
+      executionWish: d.executionWish,
       actualStart: d.actualStart,
       actualEnd: d.actualEnd,
       // Status moved forward by hand and the actual dates were left empty → derive them.
@@ -719,6 +732,44 @@ export async function archiveProject(id: string, archived: boolean): Promise<{ e
     newValue: `${project.number} ${project.name}`,
   })
   refreshAfterStatus(id)
+  return {}
+}
+
+/**
+ * Every card of a list moved at once — Trello's "Alle Karten in dieser Liste
+ * verschieben": in the order they stood, to the top of the target list, each
+ * one the way a single drop moves it (status, rule, place, history). The
+ * office's, like every change to the board's lists. Stops at the first card
+ * the target list refuses and says how many went.
+ */
+export async function moveCards(
+  ids: string[],
+  status: string,
+  rules: { from: string | null; to: string | null },
+  /** The card at the top of the target list now, which the moved cards go above. */
+  next: string | null
+): Promise<{ error?: string; moved: number }> {
+  const user = await requireStaff()
+  if (!isOffice(user)) return { error: 'saveFailed', moved: 0 }
+  let prev: string | null = null
+  let moved = 0
+  for (const id of ids.slice(0, 500)) {
+    const result = await moveCard(id, status, { prev, next }, rules)
+    if (result.error) return { error: result.error, moved }
+    prev = id
+    moved++
+  }
+  return { moved }
+}
+
+/** Every card of a list put away at once — Trello's "Alle Karten in dieser Liste archivieren". The office's. */
+export async function archiveCards(ids: string[]): Promise<{ error?: string }> {
+  const user = await requireStaff()
+  if (!isOffice(user)) return { error: 'saveFailed' }
+  for (const id of ids.slice(0, 500)) {
+    const result = await archiveProject(id, true)
+    if (result.error) return result
+  }
   return {}
 }
 

@@ -72,6 +72,33 @@ export function mentionMatches(query: string, people: Mentionable[], limit = 6):
     .slice(0, limit)
 }
 
+/** Only the author puts a comment right — an administrator takes one back, but does not rewrite it. */
+export function canEditComment(user: { id: string }, comment: { authorId: string | null }): boolean {
+  return comment.authorId !== null && comment.authorId === user.id
+}
+
+/** The signs a comment can be answered with, the ones a Trello comment offers first. */
+export const REACTIONS = ['👍', '👏', '❤️', '😂', '😮', '🙏'] as const
+export type Reaction = (typeof REACTIONS)[number]
+
+export function isReaction(value: unknown): value is Reaction {
+  return typeof value === 'string' && (REACTIONS as readonly string[]).includes(value)
+}
+
+/**
+ * The signs under one comment, in the order they are offered: how many gave
+ * each, whether the reader is one of them, and who they are for the tooltip.
+ */
+export function reactionSummary(
+  rows: Array<{ emoji: string; userId: string; name: string }>,
+  readerId: string
+): Array<{ emoji: string; count: number; mine: boolean; names: string[] }> {
+  return REACTIONS.flatMap((emoji) => {
+    const given = rows.filter((r) => r.emoji === emoji)
+    return given.length > 0 ? [{ emoji, count: given.length, mine: given.some((r) => r.userId === readerId), names: given.map((r) => r.name) }] : []
+  })
+}
+
 /** Whoever wrote a comment may take it back; an administrator may take any back. */
 export function canDeleteComment(user: { id: string; role: string }, comment: { authorId: string | null }): boolean {
   return user.role === 'ADMIN' || (comment.authorId !== null && comment.authorId === user.id)

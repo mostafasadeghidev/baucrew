@@ -2,11 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { requireStaff } from '@/lib/authz'
+import { isOffice, requireStaff } from '@/lib/authz'
 import { canWorkOn } from '@/lib/crew-access'
 import { audit } from '@/lib/audit'
-import { canDeleteComment, type CommentResult } from '@/lib/comments'
-import { createComment } from '@/lib/comments-db'
+import { COMMENT_MAX, canDeleteComment, canEditComment, isReaction, mentionedUsers, type CommentResult } from '@/lib/comments'
+import { createComment, mentionablePeople } from '@/lib/comments-db'
 
 function refresh(projectId: string) {
   revalidatePath(`/projects/${projectId}`)
@@ -37,6 +37,55 @@ export async function deleteProjectComment(noteId: string): Promise<CommentResul
   if (!canDeleteComment(user, note) || !(await canWorkOn(user, note.projectId))) return { error: 'notAllowed' }
   await db.note.delete({ where: { id: noteId } })
   await audit({ userId: user.id, action: 'project.commentDeleted', entity: 'Project', entityId: note.projectId, oldValue: note.body.slice(0, 200) })
+  refresh(note.projectId)
+  return {}
+}
+
+/**
+ * The author puts a comment right, the way a Trello comment is edited: the
+ * text anew, the people it names worked out again, and "(bearbeitet)" beside
+ * it from then on. Nobody else rewrites what somebody said.
+ */
+export async function editProjectComment(noteId: string, body: string): Promise<CommentResult> {
+  const user = await requireStaff()
+  const note = await db.note.findUnique({ where: { id: noteId }, select: { id: true, projectId: true, authorId: true, body: true } })
+  if (!note) return { error: 'saveFailed' }
+  if (!canEditComment(user, note) || !(await canWorkOn(user, note.projectId))) return { error: 'notAllowed' }
+  const text = body.trim().slice(0, COMMENT_MAX)
+  if (!text) return { error: 'empty' }
+  if (text === note.body) return {}
+  const mentions = mentionedUsers(text, await mentionablePeople()).map((p) => p.id)
+  await db.note.update({ where: { id: noteId }, data: { body: text, mentions, editedAt: new Date() } })
+  await audit({
+    userId: user.id,
+    action: 'project.commentEdited',
+    entity: 'Project',
+    entityId: note.projectId,
+    oldValue: note.body.slice(0, 200),
+    newValue: text.slice(0, 200),
+  })
+  refresh(note.projectId)
+  return {}
+}
+
+/**
+ * A sign under a comment — 👍 and the few others Trello offers first — given,
+ * or taken back by giving it again. One of each per person; a comment kept
+ * for the office is answered only by the office.
+ */
+export async function toggleCommentReaction(noteId: string, emoji: string): Promise<CommentResult> {
+  const user = await requireStaff()
+  if (!isReaction(emoji)) return { error: 'saveFailed' }
+  const note = await db.note.findUnique({ where: { id: noteId }, select: { projectId: true, visibility: true } })
+  if (!note) return { error: 'saveFailed' }
+  if (!(await canWorkOn(user, note.projectId))) return { error: 'notAllowed' }
+  if (note.visibility === 'MANAGEMENT' && !isOffice(user)) return { error: 'notAllowed' }
+  const existing = await db.noteReaction.findUnique({
+    where: { noteId_userId_emoji: { noteId, userId: user.id, emoji } },
+    select: { id: true },
+  })
+  if (existing) await db.noteReaction.delete({ where: { id: existing.id } })
+  else await db.noteReaction.create({ data: { noteId, userId: user.id, emoji } })
   refresh(note.projectId)
   return {}
 }

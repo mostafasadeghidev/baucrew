@@ -48,6 +48,7 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   { key: 'scheduleEntryEmployees', model: 'ScheduleEntryEmployee' },
   { key: 'scheduleEntryVehicles', model: 'ScheduleEntryVehicle' },
   { key: 'notes', model: 'Note' },
+  { key: 'noteReactions', model: 'NoteReaction' },
   // Before the documents: a photo points at the defect it shows.
   { key: 'defects', model: 'Defect' },
   { key: 'projectTasks', model: 'ProjectTask' },

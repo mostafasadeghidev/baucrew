@@ -42,9 +42,9 @@ knows each project's record there, as a *link* (`system` + `externalId`).
 | --- | --- | --- |
 | GET | `/api/v1/me` | Who the key acts as, and whether financial data is visible |
 | GET | `/api/v1/projects` | Projects, newest first. `q` (name, number, customer, town), `status`, `system` and `externalId` (linked records), `limit` (≤200), `offset` |
-| POST | `/api/v1/projects` | Create a project: `name`, `customerId` or `customerName`, optional `status`, `isSub`, `plannedStart`, `plannedEnd`, `planMonth` ("YYYY-MM", the month the work is expected in when no start is fixed), `planMonths`, `dueDate`, `price`, `street`, `postalCode`, `city`, `description` |
+| POST | `/api/v1/projects` | Create a project: `name`, `customerId` or `customerName`, optional `status`, `isSub`, `plannedStart`, `plannedEnd`, `planMonth` ("YYYY-MM", the month the work is expected in when no start is fixed), `planMonths`, `dueDate`, `inspectionDate` (the site visit), `executionWish` (when the customer would like the work, in their words, up to 200 characters), `price`, `street`, `postalCode`, `city`, `description` |
 | GET | `/api/v1/projects/{id}` | One project by id or number (`2026-0048`): team, vehicles, schedule, plan lines |
-| PATCH | `/api/v1/projects/{id}` | Change what is sent: `status`, `name`, `isSub`, `plannedStart`, `plannedEnd`, `planMonth`, `planMonths`, `dueDate`, `price`, `managerId` or `managerName`, `description`, `street`, `postalCode`, `city`. Absent stays, `null` clears |
+| PATCH | `/api/v1/projects/{id}` | Change what is sent: `status`, `name`, `isSub`, `plannedStart`, `plannedEnd`, `planMonth`, `planMonths`, `dueDate`, `inspectionDate`, `executionWish`, `price`, `managerId` or `managerName`, `description`, `street`, `postalCode`, `city`. Absent stays, `null` clears |
 | GET | `/api/v1/projects/by-link/{system}/{externalId}` | The project linked to a record of another system |
 | PUT | `/api/v1/projects/by-link/{system}/{externalId}` | Update the linked project, or create one and link it — see below. Answers `{ created, project }` |
 | PUT | `/api/v1/projects/{id}/links/{system}` | Link the project to a record: `{ "externalId": "…", "url": "…" }`. `409 linkTaken` when the record belongs to another project |
@@ -155,7 +155,8 @@ A delivery is a `POST` with this body:
                  "customer": { "id": "…", "name": "…", "company": null, "contactPerson": null, "email": "…", "phone": null },
                  "manager": null, "address": { "street": null, "postalCode": null, "city": "…" },
                  "plannedStart": null, "plannedEnd": null, "planMonth": null, "planMonths": 1,
-                 "dueDate": null, "actualStart": null, "actualEnd": null,
+                 "dueDate": null, "inspectionDate": null, "executionWish": null,
+                 "actualStart": null, "actualEnd": null,
                  "price": 12500, "orderValue": 12500, "description": null, "isSub": false,
                  "links": [{ "system": "trello", "externalId": "…", "url": "…" }], "invoices": [] },
     "from": "LEAD",

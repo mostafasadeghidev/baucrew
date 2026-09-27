@@ -41,6 +41,7 @@ model User {
   apiKeys           ApiKey[]
   auditLogs         AuditLog[]
   notes             Note[]
+  noteReactions     NoteReaction[]
   uploadedDocuments Document[]         @relation("DocumentUploader")
   reportedDefects   Defect[]           @relation("DefectReporter")
   createdTasks      ProjectTask[]      @relation("TaskCreator")
@@ -299,6 +300,12 @@ model Project {
   dueDate      DateTime? @db.Date
   actualStart  DateTime? @db.Date
   actualEnd    DateTime? @db.Date
+  /// The day somebody goes to look at the site before the offer — the
+  /// client's "Termin Besichtigung".
+  inspectionDate DateTime? @db.Date
+  /// When the customer would like the work done, in the customer's own words —
+  /// "Frühjahr 2027", "ab sofort". The office's own placing is planMonth.
+  executionWish  String?
 
   /// Lines of the year-planning sheet that were tied to this project.
   planEntries PlanEntry[]
@@ -779,8 +786,25 @@ model Note {
   /// The users named with @ in the body, so an automation can tell them.
   mentions   String[]       @default([])
   createdAt  DateTime       @default(now())
+  /// When the author last put the text right; null while it stands as written.
+  editedAt   DateTime?
+  reactions  NoteReaction[]
 
   @@index([projectId])
+}
+
+/// A sign under a comment — 👍 and the like — one of each per person.
+model NoteReaction {
+  id        String   @id @default(cuid())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([noteId, userId, emoji])
+  @@index([noteId])
 }
 
 /// A file on a project (plan, offer PDF, photo). `path` is the storage key
