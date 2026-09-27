@@ -12,9 +12,10 @@ export async function uploadProjectFiles(
   projectId: string,
   files: File[],
   onProgress?: (done: number, total: number) => void
-): Promise<{ sent: number; failed: UploadFailure[] }> {
+): Promise<{ sent: number; failed: UploadFailure[]; ids: string[] }> {
   let sent = 0
   const failed: UploadFailure[] = []
+  const ids: string[] = []
   for (const [index, file] of files.entries()) {
     onProgress?.(index, files.length)
     const body = new FormData()
@@ -23,6 +24,8 @@ export async function uploadProjectFiles(
       const res = await fetch(`/api/projects/${projectId}/files`, { method: 'POST', body })
       if (res.ok) {
         sent++
+        const data = (await res.json().catch(() => ({}))) as { id?: string }
+        if (data.id) ids.push(data.id)
         continue
       }
       const data = (await res.json().catch(() => ({}))) as { error?: string }
@@ -32,7 +35,7 @@ export async function uploadProjectFiles(
     }
   }
   onProgress?.(files.length, files.length)
-  return { sent, failed }
+  return { sent, failed, ids }
 }
 
 /** Whether a drag carries files from the computer — not a card being moved, not a piece of text. */

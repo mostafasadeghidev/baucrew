@@ -11,6 +11,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { LayoutList } from 'lucide-react'
 import { FIELD_CHIP } from '@/components/swatches'
 import { CARD_FIELD_TONE, type CardFieldKey } from '@/lib/board-cards'
 import { PROJECT_EDIT_CARD_EVENT, type ProjectSectionKey } from '../project-form'
@@ -39,12 +40,12 @@ export function CardFieldsGrid({ cells }: { cells: CardFieldCell[] }) {
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface shadow-sm">
-      <div className="border-b border-border px-5 py-3">
-        <h2 className="text-sm font-semibold">{t('cardFieldsTitle')}</h2>
-        <p className="mt-0.5 text-xs text-muted">{t('cardFieldsHint')}</p>
-      </div>
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-2.5 p-5 sm:grid-cols-3">
+    <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+      <h2 className="flex items-center gap-3 text-base font-semibold" title={t('cardFieldsHint')}>
+        <LayoutList className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+        {t('cardFieldsTitle')}
+      </h2>
+      <dl className="mt-3 grid grid-cols-2 gap-x-2 gap-y-2.5 pl-8 sm:grid-cols-3">
         {cells.map((cell) => {
           const tone = TONE[cell.key]
           const clickable = cell.section !== null || cell.href !== null

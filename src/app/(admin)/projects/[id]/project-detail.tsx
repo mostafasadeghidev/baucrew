@@ -24,8 +24,12 @@ import { CardMove, type CardMovePlaces } from '../card-move'
 import { CardFieldsGrid, type CardFieldCell } from './card-fields-grid'
 import { CardDropZone } from './card-drop-zone'
 import { ClampText } from '@/components/ui/clamp-text'
+import { previewKind } from '@/lib/files'
 import { ArchiveButton } from '../archive-button'
-import { SheetAddBar } from '../sheet-add-bar'
+import { SheetAddBar, SheetAddMenu } from '../sheet-add-bar'
+import { CoverPicker } from './cover-picker'
+import { SheetMenu } from './sheet-menu'
+import { SheetTitle } from './sheet-title'
 import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
 import { todayUtc } from '@/lib/dates'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
@@ -46,7 +50,7 @@ import { getOptionLists } from '@/lib/option-lists-db'
 import { optionLabel } from '@/lib/option-lists'
 import { ProjectAddOns } from './add-ons'
 import { ProjectInvoices, type InvoiceRow } from './invoices-card'
-import { ProjectComments, type CommentRow } from '@/components/project-comments'
+import { ProjectComments, type ActivityRow, type CommentRow } from '@/components/project-comments'
 import { addProjectComment, deleteProjectComment, editProjectComment, toggleCommentReaction } from './comment-actions'
 import { displayName, mentionablePeople } from '@/lib/comments-db'
 import { canDeleteComment, canEditComment, reactionSummary } from '@/lib/comments'
@@ -60,11 +64,6 @@ import { getProjectDevices } from '../../devices/actions'
 import { orderValue } from '@/lib/reports'
 import { PhoneLink } from '@/components/phone-link'
 import { historyLines } from '@/lib/card-history'
-
-/** The bar's place in the card sheet: it holds to the top of the sheet's own scroll. */
-function SheetHead({ children }: { children: React.ReactNode }) {
-  return <div className="sticky top-0 z-20 -mt-2 bg-background pb-1 pt-2">{children}</div>
-}
 
 /**
  * A project, as its page shows it and as the board's card sheet shows it:
@@ -177,7 +176,7 @@ export async function ProjectDetail({
   if (!project) {
     if (sheet)
       return (
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 p-4">
           <p className="px-2 py-6 text-sm text-muted">{t('cardMissing')}</p>
           <SheetClose />
         </div>
@@ -241,6 +240,19 @@ export async function ProjectDetail({
     (key, values) => tHistory(key as 'created', values),
     (status) => (status in ProjectStatus ? tStatus(status as ProjectStatus) : status)
   ).slice(0, 25)
+  /** Trello's activity under "Details anzeigen": the card's history, the comments being shown as comments already. */
+  const activityRows: ActivityRow[] = historyLines(
+    auditEntries.filter(
+      (e) =>
+        e.action !== 'project.comment' &&
+        e.action !== 'project.commentEdited' &&
+        (canViewFinancials(user) || !e.action.startsWith('project.invoice'))
+    ),
+    (key, values) => tHistory(key as 'created', values),
+    (status) => (status in ProjectStatus ? tStatus(status as ProjectStatus) : status)
+  )
+    .slice(0, 40)
+    .map((line, i) => ({ id: String(i), at: line.when.toISOString(), who: line.who ?? tHistory('system'), text: line.text, when: stamp.format(line.when) }))
   const comments: CommentRow[] = project.notes.map((note) => {
     const name = note.author ? displayName(note.author) : null
     return {
@@ -251,6 +263,7 @@ export async function ProjectDetail({
       office: note.visibility === 'MANAGEMENT',
       deletable: canDeleteComment(user, note),
       username: note.author?.username ?? null,
+      at: note.createdAt.toISOString(),
       editable: canEditComment(user, note),
       edited: note.editedAt !== null,
       reactions: reactionSummary(
@@ -1207,60 +1220,167 @@ export async function ProjectDetail({
     </div>
   ) : null
 
-  // Over the board the bar sticks to the sheet it is in, not to the window.
-  const Head = sheet ? SheetHead : StickyHead
+  const merge =
+    user.role === 'ADMIN' ? (
+      <MergeButton projectId={project.id} projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))} />
+    ) : null
+  const customerLine = (
+    <>
+      {isOffice(user) ? (
+        <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
+          {project.customer.name}
+        </Link>
+      ) : (
+        <span>{project.customer.name}</span>
+      )}
+      {address && <> · {address}</>}
+    </>
+  )
+  const archivedBanner = project.archivedAt ? (
+    <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 dark:text-amber-300">
+      {t('cardArchivedBanner', { date: stamp.format(project.archivedAt) })}
+    </p>
+  ) : null
+  const statusMenu = (
+    <QuickStatus
+      value={project.status}
+      ariaLabel={t('status')}
+      colorClass={STATUS_STYLES[project.status]}
+      options={(Object.keys(ProjectStatus) as ProjectStatus[]).map((s) => ({
+        value: s,
+        label: tStatus(s),
+      }))}
+      onChange={setProjectStatus.bind(null, project.id)}
+    />
+  )
+
+  if (sheet) {
+    const cover = project.coverDocumentId ? `/api/files/${project.coverDocumentId}` : null
+    const addLabels = {
+      add: t('sheetAdd'),
+      members: t('sheetMembers'),
+      labels: t('sheetLabels'),
+      checklist: t('sheetChecklist'),
+      dates: t('sheetDates'),
+      attachment: t('sheetAttachment'),
+      comment: t('sheetComment'),
+    }
+    // Save and cancel appear here only while "Alles bearbeiten" from the menu is on.
+    const editing = (
+      <ProjectBarActions idle={false} label={tc('edit')} saveLabel={tc('save')} cancelLabel={tc('cancel')} whileEditing={merge}>
+        {null}
+      </ProjectBarActions>
+    )
+    return (
+      // Trello's card: the cover across the top with the list and the round
+      // buttons over it, the card on the left and the talk on the right, each
+      // scrolling on its own. Files let go anywhere over it are attached.
+      <CardDropZone projectId={project.id} className="flex min-h-0 flex-1 flex-col">
+        <div className={`relative shrink-0 ${cover ? 'h-32 overflow-hidden bg-neutral-300 sm:h-40 dark:bg-neutral-700' : 'h-14 border-b border-border'}`}>
+          {cover && (
+            <>
+              {/* The picture itself, and blurred behind it the colour of the picture — the band Trello draws. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={cover} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={cover} alt="" className="relative mx-auto h-full w-auto max-w-full object-contain" />
+            </>
+          )}
+          <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
+            {sheet.move ? (
+              <CardMove projectId={project.id} status={project.status} statusLabel={tStatus(project.status)} places={sheet.move} />
+            ) : (
+              statusMenu
+            )}
+            <div className="flex shrink-0 items-center gap-2">
+              <CoverPicker
+                projectId={project.id}
+                current={project.coverDocumentId}
+                images={project.documents
+                  .filter((d) => previewKind(d.mimeType) === 'image')
+                  .map((d) => ({ id: d.id, filename: d.filename }))}
+              />
+              <SheetMenu
+                projectId={project.id}
+                projectLabel={`${project.number} — ${project.name}`}
+                archived={project.archivedAt !== null}
+                closeTo={sheet.returnTo}
+                reopenable={['COMPLETED', 'INVOICED', 'PAID'].includes(project.status)}
+                offerMail={
+                  offerMailHref ? { href: offerMailHref, title: t(project.customer.email ? 'offerMailTitle' : 'offerMailNoAddress') } : null
+                }
+                canDelete={user.role === 'ADMIN'}
+              />
+              <SheetClose round />
+            </div>
+          </div>
+        </div>
+        <div className="lg:flex lg:min-h-0 lg:flex-1">
+          <div
+            className="min-w-0 px-6 pb-10 lg:flex-1 lg:overflow-y-auto [&_section>div.border-b]:border-b-0 [&_section>div.px-5]:px-0 [&_section]:rounded-none [&_section]:border-0 [&_section]:bg-transparent [&_section]:p-0 [&_section]:shadow-none"
+          >
+            <SheetTitle
+              title={project.name}
+              compact={
+                <>
+                  <SheetAddMenu labels={addLabels} />
+                  {editing}
+                </>
+              }
+            >
+              <div className="flex items-start gap-3 pt-5">
+                <h2 className="min-w-0 flex-1 break-words text-2xl font-semibold leading-tight">
+                  {project.name}
+                  <span className="ml-2 align-middle text-sm font-normal text-muted">{project.number}</span>
+                </h2>
+                {editing}
+              </div>
+              <p className="mt-1 text-sm text-muted">{customerLine}</p>
+            </SheetTitle>
+            {archivedBanner && <div className="mt-3">{archivedBanner}</div>}
+            <div className="mt-4">
+              <SheetAddBar labels={addLabels} />
+            </div>
+            <div className="mt-5">{meta}</div>
+            <div className="mt-6 space-y-8">{body}</div>
+          </div>
+          <aside
+            id="comments"
+            className="scroll-mt-4 border-t border-border bg-subtle/70 px-5 py-5 lg:w-[26rem] lg:shrink-0 lg:overflow-y-auto lg:border-l lg:border-t-0"
+          >
+            <ProjectComments
+              projectId={project.id}
+              comments={comments}
+              people={people}
+              add={addProjectComment}
+              remove={deleteProjectComment}
+              edit={editProjectComment}
+              react={toggleCommentReaction}
+              canMarkOffice={isOffice(user)}
+              panel={{ title: t('activityTitle'), show: t('activityShow'), hide: t('activityHide') }}
+              activity={activityRows}
+            />
+          </aside>
+        </div>
+      </CardDropZone>
+    )
+  }
 
   return (
     // Files let go anywhere over the project are attached to it, the way a Trello card takes them.
     <CardDropZone projectId={project.id} className="space-y-6">
-      {/* The picture on the front of the card, across the top of its back — the way Trello shows the cover. */}
-      {sheet && project.coverDocumentId && (
-        // The project's own photo, served by the app itself; next/image has nothing to optimise here.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={`/api/files/${project.coverDocumentId}`} alt="" className="-mt-1 max-h-64 w-full rounded-lg bg-black/5 object-cover" />
-      )}
-      <Head>
+      <StickyHead>
         <PageBar
-          back={sheet ? undefined : { href: '/projects', label: t('title') }}
+          back={{ href: '/projects', label: t('title') }}
           title={
             <>
               <span className="mr-2 text-muted">{project.number}</span>
               {project.name}
             </>
           }
-          meta={
-            // Over the board the card says which list it stands in, the way
-            // Trello does, and moves from there to any list of any board.
-            sheet?.move ? (
-              <CardMove projectId={project.id} status={project.status} statusLabel={tStatus(project.status)} places={sheet.move} />
-            ) : (
-              <QuickStatus
-                value={project.status}
-                ariaLabel={t('status')}
-                colorClass={STATUS_STYLES[project.status]}
-                options={(Object.keys(ProjectStatus) as ProjectStatus[]).map((s) => ({
-                  value: s,
-                  label: tStatus(s),
-                }))}
-                onChange={setProjectStatus.bind(null, project.id)}
-              />
-            )
-          }
+          meta={statusMenu}
           actions={
-            <>
-            <ProjectBarActions
-              label={tc('edit')}
-              saveLabel={tc('save')}
-              cancelLabel={tc('cancel')}
-              whileEditing={
-                user.role === 'ADMIN' ? (
-                  <MergeButton
-                    projectId={project.id}
-                    projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))}
-                  />
-                ) : null
-              }
-            >
+            <ProjectBarActions label={tc('edit')} saveLabel={tc('save')} cancelLabel={tc('cancel')} whileEditing={merge}>
               {['COMPLETED', 'INVOICED', 'PAID'].includes(project.status) && (
                 <ReopenButton projectId={project.id} projectLabel={`${project.number} — ${project.name}`} />
               )}
@@ -1278,65 +1398,21 @@ export async function ProjectDetail({
                 projectId={project.id}
                 archived={project.archivedAt !== null}
                 label={project.archivedAt ? t('cardRestore') : t('cardArchive')}
-                closeTo={sheet?.returnTo ?? null}
+                closeTo={null}
               />
-              {sheet && (
-                <Link href={`/projects/${project.id}`} className={btn.outlineSm}>
-                  {t('cardOpenFull')}
-                </Link>
-              )}
               {user.role === 'ADMIN' && (
-                <DeleteButton
-                  action={deleteProject.bind(null, project.id)}
-                  label={tc('delete')}
-                  confirmMessage={t('deleteConfirm')}
-                />
+                <DeleteButton action={deleteProject.bind(null, project.id)} label={tc('delete')} confirmMessage={t('deleteConfirm')} />
               )}
             </ProjectBarActions>
-            {/* Over the board the cross closes the sheet — the last button on the right. */}
-            {sheet && <SheetClose />}
-            </>
           }
         />
-      </Head>
-      <PageHint>
-        {isOffice(user) ? (
-          <Link href={`/customers/${project.customerId}`} className="text-accent hover:underline">
-            {project.customer.name}
-          </Link>
-        ) : (
-          <span>{project.customer.name}</span>
-        )}
-        {address && <> · {address}</>}
-      </PageHint>
-      {project.archivedAt && (
-        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 dark:text-amber-300">
-          {t('cardArchivedBanner', { date: stamp.format(project.archivedAt) })}
-        </p>
-      )}
-      {meta}
-
-      {/* Over the board the project reads like a Trello card: under the title
-          what can be added to it, then what it is made of on the left and the
-          talk about it on the right. */}
-      {sheet && (
-        <SheetAddBar
-          labels={{
-            heading: t('sheetAddToCard'),
-            members: t('sheetMembers'),
-            labels: t('sheetLabels'),
-            checklist: t('sheetChecklist'),
-            dates: t('sheetDates'),
-            attachment: t('sheetAttachment'),
-            comment: t('sheetComment'),
-          }}
-        />
-      )}
-      <div className={`grid items-start gap-6 ${sheet ? 'lg:grid-cols-[minmax(0,1fr)_22rem]' : 'xl:grid-cols-[minmax(0,1fr)_22rem]'}`}>
+      </StickyHead>
+      <PageHint>{customerLine}</PageHint>
+      {archivedBanner}
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-6">{body}</div>
         {talk}
       </div>
-
     </CardDropZone>
   )
 }

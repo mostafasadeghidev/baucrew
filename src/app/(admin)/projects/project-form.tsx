@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, ChevronRight } from 'lucide-react'
+import { AlignLeft, Pencil, ChevronRight } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Combobox } from '@/components/combobox'
 import { MultiCombobox } from '@/components/multi-combobox'
@@ -122,7 +122,10 @@ function Section({
   cancelLabel,
   pending = false,
   anchor,
+  icon,
 }: {
+  /** Trello's heading on the card's back: an icon before the title, "Bearbeiten" as a word instead of a pencil. */
+  icon?: ReactNode
   title: string
   children: React.ReactNode
   /** The card's id on the page, so it can be scrolled to. */
@@ -159,8 +162,25 @@ function Section({
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {inline && !open && onOpen && (
+        {icon ? (
+          <h2 className="flex items-center gap-3 text-base font-semibold">
+            {icon}
+            {title}
+          </h2>
+        ) : (
+          <h2 className="text-sm font-semibold">{title}</h2>
+        )}
+        {inline && !open && onOpen && icon && (
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-label={`${editLabel}: ${title}`}
+            className="inline-flex h-8 shrink-0 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface-hover hover:text-foreground"
+          >
+            {editLabel}
+          </button>
+        )}
+        {inline && !open && onOpen && !icon && (
           <button
             type="button"
             onClick={onOpen}
@@ -182,7 +202,7 @@ function Section({
           </div>
         )}
       </div>
-      {inline && !open && <div className="mt-3">{view}</div>}
+      {inline && !open && <div className={icon ? 'mt-3 pl-8' : 'mt-3'}>{view}</div>}
       {/* Hidden, not absent: the fields of a closed card still travel with the
           form, so saving one card cannot empty the other four. */}
       <div hidden={inline && !open} className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -917,7 +937,12 @@ export function ProjectForm({
 
       {/* First on the card back, the way Trello puts it: what the job is. */}
       <div className={fold ? 'order-1 col-span-full' : 'contents'}>
-      <Section title={t('descriptionSection')} wide {...card('description')}>
+      <Section
+        title={t('descriptionSection')}
+        wide
+        {...card('description')}
+        icon={fold ? <AlignLeft className="h-5 w-5 shrink-0 text-muted" aria-hidden /> : undefined}
+      >
         <div className="sm:col-span-2">
           <label htmlFor="description" className="block text-sm font-medium">
             {t('description')}

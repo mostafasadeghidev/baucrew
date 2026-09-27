@@ -614,7 +614,7 @@ export default async function ProjectsPage({
     <CardSheet>
       <Suspense
         fallback={
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 p-4">
             <p className="px-2 py-6 text-sm text-muted">{t('cardLoading')}</p>
             <SheetClose />
           </div>

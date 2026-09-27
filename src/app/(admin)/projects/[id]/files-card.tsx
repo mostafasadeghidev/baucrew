@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server'
+import { Paperclip } from 'lucide-react'
 import { formatFileSize, previewKind } from '@/lib/files'
 import { FileUpload } from './file-upload'
 import { AttachmentList, type AttachmentRow } from './attachment-list'
@@ -60,17 +61,17 @@ export async function FilesCard({
   }))
 
   return (
-    <section className="rounded-xl border border-border bg-surface shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold">{t('attachments')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('hint')}</p>
-        </div>
+    <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-3 text-base font-semibold" title={t('hint')}>
+          <Paperclip className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+          {t('attachments')}
+        </h2>
         <FileUpload projectId={projectId} compact />
       </div>
-      <div className="px-5 py-3">
+      <div className="mt-3 pl-8">
+        {rows.length > 0 && <p className="mb-1 text-xs font-semibold text-muted">{t('filesHeading')}</p>}
         <AttachmentList projectId={projectId} rows={rows} />
-        <p className="mt-2 text-[11px] text-muted">{t('uploadHint')}</p>
       </div>
     </section>
   )

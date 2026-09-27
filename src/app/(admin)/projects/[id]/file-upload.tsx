@@ -54,8 +54,14 @@ export function FileUpload({ projectId, compact = false }: { projectId: string; 
           e.target.value = ''
         }}
       />
-      <button type="button" className={btn.outlineSm} disabled={pending || sending} onClick={() => inputRef.current?.click()}>
-        <Paperclip className="h-4 w-4" aria-hidden />
+      <button
+        type="button"
+        className={compact ? 'inline-flex h-8 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface-hover hover:text-foreground disabled:opacity-60' : btn.outlineSm}
+        disabled={pending || sending}
+        title={compact ? t('uploadHint') : undefined}
+        onClick={() => inputRef.current?.click()}
+      >
+        {!compact && <Paperclip className="h-4 w-4" aria-hidden />}
         {compact ? t('add') : t('upload')}
       </button>
       {!compact && <span className="text-xs text-muted">{t('uploadHint')}</span>}

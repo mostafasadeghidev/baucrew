@@ -26,7 +26,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Send, SmilePlus } from 'lucide-react'
+import { MessageSquare, Send, SmilePlus } from 'lucide-react'
 import { Menu } from '@/components/ui/menu'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { btn } from '@/components/ui/button'
@@ -59,7 +59,14 @@ export type CommentRow = {
   edited?: boolean
   /** The signs under it, in the order they are offered. */
   reactions?: Array<{ emoji: string; count: number; mine: boolean; names: string[] }>
+  /** When it was written, as an ISO string — for the panel's newest-first order and its activity. */
+  at?: string
 }
+
+/** A line of the card's history, shown among the comments when "Details anzeigen" is on. */
+export type ActivityRow = { id: string; at: string; who: string; text: string; when: string }
+
+type Row = CommentRow & { activity?: ActivityRow }
 
 export function ProjectComments({
   projectId,
@@ -73,6 +80,8 @@ export function ProjectComments({
   frame = true,
   large = false,
   column = false,
+  panel,
+  activity = [],
 }: {
   projectId: string
   comments: CommentRow[]
@@ -92,6 +101,13 @@ export function ProjectComments({
   large?: boolean
   /** A column beside the project: it fills the height it is given and scrolls inside. */
   column?: boolean
+  /**
+   * Trello's "Kommentare und Aktivität" on the card's back: the box first, the
+   * newest comment at the top, and behind "Details anzeigen" the card's
+   * history in among the comments.
+   */
+  panel?: { title: string; show: string; hide: string }
+  activity?: ActivityRow[]
 }) {
   const t = useTranslations('projects')
   const tc = useTranslations('common')
@@ -104,6 +120,8 @@ export function ProjectComments({
   const [removing, setRemoving] = useState<CommentRow | null>(null)
   /** The comment being put right, and its text as it is being typed. */
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null)
+  /** "Details anzeigen": the card's history among the comments. */
+  const [details, setDetails] = useState(false)
   const area = useRef<HTMLTextAreaElement>(null)
   const office = useRef<HTMLInputElement>(null)
   const scroller = useRef<HTMLDivElement>(null)
@@ -246,16 +264,36 @@ export function ProjectComments({
   /** The small grey links under a comment, the way Trello writes them. */
   const action = `${small} text-muted underline-offset-2 transition-colors hover:text-foreground hover:underline disabled:opacity-50`
 
+  const rows: Row[] = panel
+    ? [
+        ...comments,
+        ...(details
+          ? activity.map((a) => ({ id: `activity-${a.id}`, body: '', when: a.when, author: null, office: false, deletable: false, at: a.at, activity: a }))
+          : []),
+      ].sort((a, b) => (b.at ?? '').localeCompare(a.at ?? ''))
+    : comments
+
   const list =
-    comments.length === 0 ? (
+    rows.length === 0 ? (
       <p className={`${pad} py-4 ${body} text-muted`}>{t('commentsNone')}</p>
     ) : (
-      <ul className="divide-y divide-border">
-        {comments.map((comment) => (
-          <li key={comment.id} className={`flex gap-3 ${pad} py-3 ${body}`}>
+      <ul className={panel ? 'space-y-4' : 'divide-y divide-border'}>
+        {rows.map((comment) =>
+          comment.activity ? (
+            <li key={comment.id} className={`flex gap-3 ${small} text-muted`}>
+              <span aria-hidden className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-subtle text-[10px] font-semibold">
+                {comment.activity.who.slice(0, 2).toUpperCase()}
+              </span>
+              <p className="min-w-0 flex-1 pt-1">
+                <span className="font-semibold text-foreground">{comment.activity.who}</span> {comment.activity.text}
+                <span className="block text-[11px] tabular-nums">{comment.activity.when}</span>
+              </p>
+            </li>
+          ) : (
+          <li key={comment.id} className={`flex gap-3 ${panel ? '' : `${pad} py-3`} ${body}`}>
             <span
               aria-hidden
-              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white ${
+              className={`mt-0.5 flex shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white ${panel ? 'h-8 w-8' : 'h-7 w-7'} ${
                 comment.author ? PERSON_SWATCH[comment.author.swatch] : 'bg-subtle text-muted'
               }`}
             >
@@ -263,8 +301,8 @@ export function ProjectComments({
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="font-medium">{comment.author?.name ?? t('commentNoAuthor')}</span>
-                <span className={`${small} tabular-nums text-muted`}>
+                <span className={panel ? 'font-semibold' : 'font-medium'}>{comment.author?.name ?? t('commentNoAuthor')}</span>
+                <span className={`${small} tabular-nums ${panel ? 'text-accent underline decoration-accent/40 underline-offset-2' : 'text-muted'}`}>
                   {comment.when}
                   {comment.edited && ` (${t('commentEdited')})`}
                 </span>
@@ -302,7 +340,7 @@ export function ProjectComments({
                   </div>
                 </div>
               ) : (
-                <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-background px-3 py-2 shadow-sm">
+                <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-surface px-3 py-2 shadow-sm">
                   {commentSegments(comment.body, people).map((segment, i) =>
                     segment.mention ? (
                       <span key={i} title={segment.mention.name} className="rounded-sm bg-accent/10 px-0.5 font-medium text-accent">
@@ -373,12 +411,13 @@ export function ProjectComments({
               )}
             </div>
           </li>
-        ))}
+          )
+        )}
       </ul>
     )
 
   const form = (
-    <div className={frame ? 'border-t border-border px-5 py-3' : 'pt-2'}>
+    <div className={panel ? '' : frame ? 'border-t border-border px-5 py-3' : 'pt-2'}>
       <div className="relative">
         <textarea
           ref={area}
@@ -398,7 +437,7 @@ export function ProjectComments({
             aria-label={t('commentMentionHint')}
             // In a column the box stands at the foot of the window: the names go up.
             className={`absolute left-0 z-20 w-64 overflow-hidden rounded-lg border border-border bg-surface p-1 shadow-xl ${
-              column ? 'bottom-full mb-1' : 'top-full mt-1'
+              column && !panel ? 'bottom-full mb-1' : 'top-full mt-1'
             }`}
           >
             {matches.map((person, i) => (
@@ -459,6 +498,29 @@ export function ProjectComments({
       }}
     />
   )
+
+  if (panel) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <MessageSquare className="h-4 w-4 shrink-0" aria-hidden />
+            {panel.title}
+          </h2>
+          <button
+            type="button"
+            onClick={() => setDetails((d) => !d)}
+            className="inline-flex h-8 items-center rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface-hover"
+          >
+            {details ? panel.hide : panel.show}
+          </button>
+        </div>
+        {form}
+        {list}
+        {dialog}
+      </div>
+    )
+  }
 
   if (!frame) {
     return (

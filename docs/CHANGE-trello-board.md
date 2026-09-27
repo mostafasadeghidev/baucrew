@@ -225,3 +225,23 @@ Built after the client's own Trello board was exported and compared with ours.
    ```
    A board already set to the ground `snow` falls back to the app's own
    ground once the key is gone (`boardBackgroundKey` returns null).
+
+### The card's back as Trello's card modal (same addendum)
+
+- `card-sheet.tsx`: the sheet is a white modal up to 1080 px wide; from `lg`
+  it is as tall as the window allows and its two columns scroll on their own;
+  on a phone the whole sheet scrolls. `ROUND_BUTTON`, `SheetClose round`.
+- `project-detail.tsx` returns a separate layout for the sheet: a cover band
+  (the picture contained, its blurred self behind it) or a slim bar, the list
+  picker on the left and the round buttons on the right — `[id]/cover-picker.tsx`
+  (choose, upload, remove; `components/ui/popover.tsx`), `[id]/sheet-menu.tsx`
+  (work order, offer e-mail, full page, edit everything, reopen, archive,
+  delete) — then the card on the left (`[id]/sheet-title.tsx` keeps a slim
+  title bar once the title scrolls away; `SheetAddBar`/`SheetAddMenu` in
+  Trello's buttons; sections drawn flat) and on the right
+  `ProjectComments` in its `panel` mode: the box first, newest first, the
+  card's history mixed in behind "Details anzeigen" (`ActivityRow`).
+- `ProjectBarActions idle={false}`: save and cancel only while "Alles
+  bearbeiten" is on. The project page keeps its own layout.
+
+Rollback: part of the same commit; no data of its own.

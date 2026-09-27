@@ -24,7 +24,10 @@ export function FilePreview({
   labels,
   thumb = false,
   thumbClass = 'h-20 w-20',
+  nameClassName,
 }: {
+  /** How the name is drawn, when it should not look like a link — Trello's attachment list. */
+  nameClassName?: string
   id: string
   filename: string
   /** How the browser can draw it; null when it cannot. */
@@ -63,7 +66,7 @@ export function FilePreview({
 
   if (!kind) {
     return (
-      <a href={href} target="_blank" className={nameClass}>
+      <a href={href} target="_blank" className={nameClassName ?? nameClass}>
         {filename}
       </a>
     )
@@ -84,7 +87,7 @@ export function FilePreview({
           <img src={href} alt={filename} loading="lazy" className="h-full w-full object-cover" />
         </button>
       ) : (
-        <button type="button" onClick={() => setOpen(true)} title={labels.preview} className={nameClass}>
+        <button type="button" onClick={() => setOpen(true)} title={labels.preview} className={nameClassName ?? nameClass}>
           {filename}
         </button>
       )}

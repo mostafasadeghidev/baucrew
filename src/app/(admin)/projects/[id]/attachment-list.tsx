@@ -33,14 +33,8 @@ export type AttachmentRow = {
 /** Up to this many lines before "show all". */
 const FIRST = 6
 
-/** The tile's colour by the kind of file — the office tells a PDF from an e-mail at a glance. */
-function tileClass(ext: string): string {
-  if (ext === 'PDF') return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'
-  if (ext === 'MSG' || ext === 'EML') return 'bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-200'
-  if (ext === 'XLSX' || ext === 'XLS' || ext === 'CSV') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200'
-  if (ext === 'DOCX') return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200'
-  return 'bg-subtle text-muted'
-}
+/** The tile of a file that is not a picture: the kind written large on grey, as Trello draws it. */
+const TILE = 'bg-subtle text-foreground/70'
 
 export function AttachmentList({ projectId, rows }: { projectId: string; rows: AttachmentRow[] }) {
   const t = useTranslations('files')
@@ -74,14 +68,20 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
             ) : (
               <span
                 aria-hidden
-                className={`flex h-12 w-16 shrink-0 items-center justify-center rounded-md text-[11px] font-bold tracking-wide ${tileClass(row.ext)}`}
+                className={`flex h-12 w-16 shrink-0 items-center justify-center rounded-md text-xs font-bold tracking-wide ${TILE}`}
               >
                 {row.ext || '—'}
               </span>
             )}
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 text-sm">
-                <FilePreview id={row.id} filename={row.filename} kind={row.kind} labels={labels} />
+                <FilePreview
+                  id={row.id}
+                  filename={row.filename}
+                  kind={row.kind}
+                  labels={labels}
+                  nameClassName="min-w-0 flex-1 truncate text-left font-semibold text-foreground hover:underline"
+                />
               </div>
               <p className="truncate text-[11px] text-muted">
                 {row.meta}
@@ -103,7 +103,7 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
               side="bottom"
               align="end"
               label={t('rowMenu')}
-              className="rounded-md p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+              className="rounded-md border border-border p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
               trigger={<MoreHorizontal className="h-4 w-4" aria-hidden />}
             >
               <a href={`/api/files/${row.id}`} download={row.filename} role="menuitem" className={menuItemClass}>

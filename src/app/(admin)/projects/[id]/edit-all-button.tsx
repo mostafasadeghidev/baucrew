@@ -39,7 +39,10 @@ export function ProjectBarActions({
   cancelLabel,
   whileEditing,
   children,
+  idle = true,
 }: {
+  /** False on the card's back: nothing shows until "Alles bearbeiten" is chosen from its menu. */
+  idle?: boolean
   label: string
   saveLabel: string
   cancelLabel: string
@@ -73,6 +76,8 @@ export function ProjectBarActions({
       </div>
     )
   }
+
+  if (!idle) return null
 
   return (
     <div className="flex flex-wrap items-center gap-2">
