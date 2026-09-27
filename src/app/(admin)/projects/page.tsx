@@ -41,6 +41,8 @@ import { BoardFilter } from './board-filter'
 import { CardSheet, SheetClose } from './card-sheet'
 import type { CardMovePlaces } from './card-move'
 import { ProjectDetail } from './[id]/project-detail'
+import { TemplateSheet } from './template-sheet'
+import type { BoardTemplate } from './card-templates'
 import { addressLine, cardFieldLines, dateTone, dueFilterRange, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 import { orderValue } from '@/lib/reports'
 
@@ -61,13 +63,16 @@ export default async function ProjectsPage({
     urgent?: string
     due?: string
     card?: string
+    /** A card template opened over the board, from the templates at the foot of a list. */
+    template?: string
     archived?: string
     /** What the archive panel is searched for. */
     aq?: string
   }>
 }) {
   const user = await requireStaff()
-  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, due, card, archived, aq } = await searchParams
+  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, due, card, template: templateParam, archived, aq } =
+    await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
   const page = parsePage(pageParam)
@@ -157,10 +162,24 @@ export default async function ProjectsPage({
       select: { id: true, firstName: true, lastName: true },
     }),
     db.workCategory.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' }, select: { id: true, nameDe: true, nameEn: true, color: true } }),
-    // The customers a card added on the board can be given, and the templates it can be made from.
+    // The customers a card added on the board can be given, and the templates it can be made from —
+    // with what each carries, since the templates are drawn as the cards they make.
     kanban ? db.customer.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }) : Promise.resolve([]),
     kanban
-      ? db.projectTemplate.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } })
+      ? db.projectTemplate.findMany({
+          where: { active: true },
+          orderBy: { name: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            workCategory: { select: { id: true, nameDe: true, nameEn: true, color: true } },
+            manager: { select: { id: true, firstName: true, lastName: true } },
+            employees: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
+            checklists: { select: { checklistTemplate: { select: { _count: { select: { items: true } } } } } },
+            _count: { select: { vehicles: true, deviceNeeds: true, items: true } },
+          },
+        })
       : Promise.resolve([]),
   ])
   // Which board: the address, else the one this browser opened last, else the first.
@@ -405,6 +424,40 @@ export default async function ProjectsPage({
       }),
     }
   })
+  // The card templates at the foot of every list, drawn as the cards they
+  // make: the trade as the label, the ≡, the checklists' points, the people.
+  const boardTemplates: BoardTemplate[] = templateOptions.map((tp) => {
+    const seen = new Set<string>()
+    const people = [
+      ...(tp.manager ? [{ ...tp.manager, manager: true }] : []),
+      ...tp.employees.map((e) => ({ ...e.employee, manager: false })),
+    ].filter((e) => !seen.has(e.id) && seen.add(e.id))
+    return {
+      id: tp.id,
+      name: tp.name,
+      hasDescription: Boolean(tp.description?.trim()),
+      label: tp.workCategory
+        ? {
+            text: locale === 'en' ? tp.workCategory.nameEn : tp.workCategory.nameDe,
+            swatch: labelSwatch(tp.workCategory.color, tp.workCategory.id),
+          }
+        : null,
+      checkItems: tp.checklists.reduce((sum, c) => sum + c.checklistTemplate._count.items, 0),
+      people: people.slice(0, FACES).map((e) => {
+        const name = `${e.firstName} ${e.lastName}`.trim()
+        return { initials: initials(name), name, swatch: swatchOf(e.id), manager: e.manager }
+      }),
+      more: Math.max(0, people.length - FACES),
+      counts: {
+        labels: tp.workCategory ? 1 : 0,
+        members: people.length,
+        checklists: tp.checklists.length,
+        vehicles: tp._count.vehicles,
+        devices: tp._count.deviceNeeds,
+        items: tp._count.items,
+      },
+    }
+  })
   // What "+ Weitere Liste" offers: the statuses the board has no plain list
   // for, and the rule lists it does not have yet — each named with its status.
   const has = (status: string, rule: string | null) =>
@@ -610,7 +663,7 @@ export default async function ProjectsPage({
     : null
 
   /** A card opened over the board or the list: the project's page in a sheet, the board still underneath. It streams in after the board. */
-  const sheet = card && (
+  const cardSheet = card && (
     <CardSheet>
       <Suspense
         fallback={
@@ -624,6 +677,29 @@ export default async function ProjectsPage({
       </Suspense>
     </CardSheet>
   )
+  /** A card template opened over the board, the way Trello opens a template card — the office's. */
+  const templateSheet = templateParam && isOffice(user) && (
+    <CardSheet narrow>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-between gap-3 p-4">
+            <p className="px-2 py-6 text-sm text-muted">{t('cardLoading')}</p>
+            <SheetClose />
+          </div>
+        }
+      >
+        <TemplateSheet
+          id={templateParam}
+          closeTo={(() => {
+            const params = new URLSearchParams(here)
+            params.delete('card')
+            return `/projects?${params.toString()}`
+          })()}
+        />
+      </Suspense>
+    </CardSheet>
+  )
+  const sheet = cardSheet || templateSheet || null
 
   /** The office's own doors — drafts, templates — behind the board's menu; the site manager's board has none. */
   const officeLinks = isOffice(user)
@@ -706,7 +782,8 @@ export default async function ProjectsPage({
             boardId={board?.id ?? ''}
             columns={columns}
             customers={customerOptions.map((c) => ({ value: c.id, label: c.name }))}
-            templates={templateOptions.map((tp) => ({ value: tp.id, label: tp.name }))}
+            templates={boardTemplates}
+            manageTemplates={isOffice(user)}
             onGround={onGround}
             confirmFor={['COMPLETED', 'CANCELLED']}
             addable={addable}

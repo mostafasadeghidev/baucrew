@@ -98,7 +98,35 @@ export async function createTemplate(
     newValue: template.name,
   })
   revalidatePath('/projects/templates')
+  revalidatePath('/projects')
   redirect(`/projects/templates/${template.id}`)
+}
+
+/**
+ * "Eine neue Vorlage erstellen" in the card templates at the foot of a list:
+ * a template with nothing but its name, filled in right after on its own
+ * sheet over the board.
+ */
+export async function createTemplateNamed(name: string): Promise<{ id?: string; error?: 'nameRequired' | 'saveFailed' }> {
+  const user = await requireManagement()
+  const clean = String(name ?? '').trim().slice(0, 200)
+  if (!clean) return { error: 'nameRequired' }
+  try {
+    const template = await db.projectTemplate.create({ data: { name: clean }, select: { id: true, name: true } })
+    await audit({
+      userId: user.id,
+      action: 'template.create',
+      entity: 'ProjectTemplate',
+      entityId: template.id,
+      newValue: template.name,
+    })
+    revalidatePath('/projects/templates')
+    revalidatePath('/projects')
+    return { id: template.id }
+  } catch (e) {
+    console.error('template create failed', e)
+    return { error: 'saveFailed' }
+  }
 }
 
 export async function updateTemplate(
@@ -132,13 +160,20 @@ export async function updateTemplate(
   })
   revalidatePath('/projects/templates')
   revalidatePath(`/projects/templates/${id}`)
+  revalidatePath('/projects')
   return { savedAt: Date.now() }
 }
 
 export type DeleteState = { error?: string }
 
+/**
+ * A template gone for good. From its sheet over the board the way leads back
+ * to the board (`closeTo`, only ever a projects address); from its own page,
+ * to the list of templates.
+ */
 export async function deleteTemplate(
   id: string,
+  closeTo: string | null,
   _prev: DeleteState,
   _formData: FormData
 ): Promise<DeleteState> {
@@ -152,7 +187,8 @@ export async function deleteTemplate(
     oldValue: template.name,
   })
   revalidatePath('/projects/templates')
-  redirect('/projects/templates')
+  revalidatePath('/projects')
+  redirect(closeTo && /^\/projects(\?|$)/.test(closeTo) ? closeTo : '/projects/templates')
 }
 
 // ── Template items ───────────────────────────────────────────
@@ -186,6 +222,7 @@ export async function addTemplateItem(
     return { error: isUnique ? 'itemAlreadyAdded' : 'saveFailed' }
   }
   revalidatePath(`/projects/templates/${templateId}`)
+  revalidatePath('/projects')
   return {}
 }
 
@@ -205,4 +242,5 @@ export async function removeTemplateItem(templateId: string, itemId: string): Pr
     oldValue: item.catalogItem.name,
   })
   revalidatePath(`/projects/templates/${templateId}`)
+  revalidatePath('/projects')
 }

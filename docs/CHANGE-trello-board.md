@@ -245,3 +245,45 @@ Built after the client's own Trello board was exported and compared with ours.
   bearbeiten" is on. The project page keeps its own layout.
 
 Rollback: part of the same commit; no data of its own.
+
+## Addendum (2026-09-28): card templates at the foot of a list
+
+Trello's "Kartenvorlagen", from the button at the right end of every list's
+foot, beside "Karte hinzufügen".
+
+**What changed**
+- `projects/card-templates.tsx` (new): the button and its popover — the active
+  project templates drawn as cards (`BoardTemplate`, built in
+  `projects/page.tsx`: the trade as label, ≡, checklist points, people) with
+  the "Vorlage" badge; "Karte aus Vorlage erstellen" (title, customer,
+  "Behalten …" offering only what the template has — `templateParts`);
+  "Eine neue Vorlage erstellen" and "Vorlagen bearbeiten" for the office.
+  `projects/template-badge.tsx` (new): the icons and the badge.
+  `projects/board-card.ts` (new): the card style, shared with `kanban.tsx`.
+- `projects/actions.ts`: `createCardFromTemplate` — the card in that list,
+  the template's description always, the kept parts through
+  `applyTemplate(…, keep)`, opened at once; audit `project.fromTemplate`,
+  shown in the card's history (`card-history.ts`, `history.fromTemplate`).
+  `quickAddProject(status, formData, rule)`: a card added in a rule's list
+  takes the rule (`applyListRule`, the same `dropPatch` a drop uses); a site
+  manager is named on a card they make (`nameSiteManager`). The composer's
+  template select is gone (the templates button replaces it), and the
+  composer opens in one list only — by list id, not by status.
+- `src/lib/card-templates.ts` (new, `tests/unit/card-templates.test.ts`): the
+  parts of a template and the ones ticked.
+- A template opens over the board (`?template=<id>`, office only):
+  `projects/template-sheet.tsx` (new) in `CardSheet narrow`, the form shared
+  with the template's page through `templates/[id]/template-editor.tsx`
+  (new); `TemplateForm cancelHref`; `deleteTemplate(id, closeTo, …)` returns
+  to the board; `createTemplateNamed`; the template actions revalidate
+  `/projects` too.
+- `components/ui/popover.tsx`: hangs over its button when there is no room
+  under it and more above, is placed again when its height changes, scrolls
+  within the window; a field's list of options (drawn in a portal) counts as
+  inside it. `components/dropdown-portal.tsx`: z-index 60 → 85, over the
+  card's sheet (70) and the popovers (80) — before, the lists of the fields
+  on a card's back were hidden behind the sheet.
+
+**Rollback:** revert the commit. No migration and no data of its own; the
+audit rows `project.fromTemplate` stay and are simply not described in the
+history any more.

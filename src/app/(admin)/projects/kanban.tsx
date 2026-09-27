@@ -79,6 +79,8 @@ import { DRAG_THRESHOLD, LONG_PRESS_MS, LONG_PRESS_SLOP, carry, drop as dropGhos
 import { isVerticalWheel, wheelPixels } from '@/lib/wheel-axis'
 import { useCardDetails, useCollapsedColumns, useLabelsOpen } from './board-prefs'
 import { dragHasFiles, uploadProjectFiles } from './[id]/upload-files'
+import { CARD } from './board-card'
+import { CardTemplates, type BoardTemplate } from './card-templates'
 import {
   addColumn,
   archiveCards,
@@ -162,8 +164,6 @@ const CARDS_AT_A_TIME = 50
 
 /** A list the way Trello draws one: a rounded grey slab floating on the ground. */
 const LIST = 'rounded-xl bg-[#f1f2f4] shadow-sm dark:bg-[#101204]'
-/** A card: white, with Trello's own shadow under it. */
-const CARD = 'rounded-lg bg-white shadow-[0_1px_1px_rgba(9,30,66,0.25),0_0_1px_rgba(9,30,66,0.31)] dark:bg-[#22272b]'
 const HEAD_BUTTON = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-black/10 hover:text-foreground dark:hover:bg-white/10'
 
 /**
@@ -206,6 +206,7 @@ export function ProjectsKanban({
   columns,
   customers,
   templates,
+  manageTemplates,
   onGround,
   confirmFor,
   addable,
@@ -218,8 +219,10 @@ export function ProjectsKanban({
   columns: KanbanColumn[]
   /** The customers a card added at the foot of a list can be given. */
   customers: Array<{ value: string; label: string }>
-  /** The project templates a new card can be made from; none, and the choice is not offered. */
-  templates: Array<{ value: string; label: string }>
+  /** The card templates at the foot of every list, drawn as the cards they make. */
+  templates: BoardTemplate[]
+  /** Whether the reader may make and change templates there — the office. */
+  manageTemplates: boolean
   /** True when the board stands on a coloured ground: what is written straight on it turns light. */
   onGround: boolean
   /** The statuses that ask before they are set, e.g. COMPLETED and CANCELLED. */
@@ -258,7 +261,15 @@ export function ProjectsKanban({
   /** The card's sheet over this very board: the address as it stands, plus the card. */
   const openHref = (id: string) => {
     const params = new URLSearchParams(searchParams)
+    params.delete('template')
     params.set('card', id)
+    return `${pathname}?${params.toString()}`
+  }
+  /** A card template on the same sheet, the way Trello opens a template card. */
+  const templateHref = (id: string) => {
+    const params = new URLSearchParams(searchParams)
+    params.delete('card')
+    params.set('template', id)
     return `${pathname}?${params.toString()}`
   }
   const [dragging, setDragging] = useState<{ id: string; height: number } | null>(null)
@@ -278,11 +289,10 @@ export function ProjectsKanban({
   const [undo, setUndo] = useState<{ card: KanbanCard; to: string; before: KanbanColumn[] } | null>(null)
   /** How many cards each column is showing, when it is showing more than the first lot. */
   const [shown, setShown] = useState<Record<string, number>>({})
-  /** The list whose "Karte hinzufügen" is open, the customer typed in new, and what went wrong. */
+  /** The list (by id) whose "Karte hinzufügen" is open, the customer typed in new, and what went wrong. */
   const [adding, setAdding] = useState<string | null>(null)
   const [newCustomer, setNewCustomer] = useState<string | null>(null)
   const [addError, setAddError] = useState<string | null>(null)
-  const [addTemplate, setAddTemplate] = useState('')
   const [addKey, setAddKey] = useState(0)
   /** The card whose name is being typed over, and the list whose name is. */
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
@@ -496,18 +506,20 @@ export function ProjectsKanban({
     setAdding(null)
     setNewCustomer(null)
     setAddError(null)
-    setAddTemplate('')
   }
 
-  /** A card added at the foot of a list. The box stays open for the next one, the way Trello's does. */
-  function submitAdd(e: React.FormEvent<HTMLFormElement>, status: string) {
+  /**
+   * A card added at the foot of a list — in that list, a rule's list too. The
+   * box stays open for the next one, the way Trello's does.
+   */
+  function submitAdd(e: React.FormEvent<HTMLFormElement>, column: KanbanColumn) {
     e.preventDefault()
     const form = e.currentTarget
     const data = new FormData(form)
     if (newCustomer) data.set('customerName', newCustomer)
     setAddError(null)
     startTransition(async () => {
-      const result = await quickAddProject(status, data)
+      const result = await quickAddProject(column.status, data, column.rule)
       if (result.error) {
         setAddError(
           result.error === 'nameRequired'
@@ -1030,7 +1042,7 @@ export function ProjectsKanban({
                 <span className="shrink-0 text-xs tabular-nums text-muted">{column.cards.length}</span>
                 <Menu side="bottom" align="end" label={t('kanbanListMenu')} className={HEAD_BUTTON} trigger={<MoreHorizontal className="h-4 w-4" aria-hidden />}>
                   <MenuLabel>{t('kanbanListMenu')}</MenuLabel>
-                  <button type="button" role="menuitem" className={menuItemClass} onClick={() => { closeAdd(); setAdding(column.status) }}>
+                  <button type="button" role="menuitem" className={menuItemClass} onClick={() => { closeAdd(); setAdding(column.id) }}>
                     {t('kanbanAddCard')}
                   </button>
                   <button type="button" role="menuitem" className={menuItemClass} onClick={() => toggleCollapsed(column.id)}>
@@ -1369,8 +1381,8 @@ export function ProjectsKanban({
               {/* The foot of a list: a card is added where it belongs — a name,
                   a customer, Enter — and the box stays for the next one. */}
               <div className="shrink-0 p-2 pt-1">
-                {adding === column.status ? (
-                  <form onSubmit={(e) => submitAdd(e, column.status)} className="space-y-1.5">
+                {adding === column.id ? (
+                  <form onSubmit={(e) => submitAdd(e, column)} className="space-y-1.5">
                     <input
                       name="name"
                       autoFocus
@@ -1401,26 +1413,6 @@ export function ProjectsKanban({
                         createLabel={(name) => t('kanbanAddNewCustomer', { name })}
                       />
                     )}
-                    {templates.length > 0 && (
-                      // Held here rather than by the form: the box empties itself
-                      // for the next card, and five cards of one kind are five
-                      // cards from one template.
-                      <Select
-                        name="templateId"
-                        compact
-                        aria-label={t('kanbanAddTemplate')}
-                        value={addTemplate}
-                        onChange={(e) => setAddTemplate(e.target.value)}
-                        className="w-full"
-                      >
-                        <option value="">{t('kanbanAddNoTemplate')}</option>
-                        {templates.map((template) => (
-                          <option key={template.value} value={template.value}>
-                            {template.label}
-                          </option>
-                        ))}
-                      </Select>
-                    )}
                     <div className="flex items-center gap-1.5">
                       <button type="submit" disabled={pending} className={btn.primarySm}>
                         {t('kanbanAddSubmit')}
@@ -1442,17 +1434,30 @@ export function ProjectsKanban({
                     )}
                   </form>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeAdd()
-                      setAdding(column.status)
-                    }}
-                    className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-muted transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
-                  >
-                    <Plus className="h-4 w-4 shrink-0" aria-hidden />
-                    {t('kanbanAddCard')}
-                  </button>
+                  // "Karte hinzufügen", and at its right end Trello's card templates.
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeAdd()
+                        setAdding(column.id)
+                      }}
+                      className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm text-muted transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                    >
+                      <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                      <span className="truncate">{t('kanbanAddCard')}</span>
+                    </button>
+                    {(templates.length > 0 || manageTemplates) && (
+                      <CardTemplates
+                        templates={templates}
+                        customers={customers}
+                        place={{ status: column.status, rule: column.rule }}
+                        manage={manageTemplates}
+                        cardHref={openHref}
+                        templateHref={templateHref}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             </div>

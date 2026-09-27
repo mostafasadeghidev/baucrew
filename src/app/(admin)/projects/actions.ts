@@ -24,6 +24,7 @@ import { BOARD_COOKIE, COLUMN_TITLE_MAX } from '@/lib/boards'
 import { addBoardColumn, removeBoardColumn, renameBoardColumn, saveColumnOrder } from '@/lib/boards-db'
 import { isColumnSort, orderCards, positionBetween, renumbered, sortedBy, tooClose } from '@/lib/board-order'
 import { columnRuleKey, dropPatch } from '@/lib/board-rules'
+import { keptParts, type TemplatePart } from '@/lib/card-templates'
 import { MAX_PLAN_MONTHS, parseMonthInput } from '@/lib/plan-month'
 
 export type ProjectFormState = {
@@ -1145,17 +1146,12 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
 export type QuickAddResult = { error?: 'nameRequired' | 'customerRequired' | 'saveFailed' }
 
 /**
- * "Karte hinzufügen" at the foot of a list: a project with a name and a
- * customer — picked, or made from the name typed — in that list's status.
- * Everything else is filled in on the card afterwards.
- */
-/**
  * Lays a template over a project that was just made with nothing but a name
- * and a customer: what the template recommends — description, trade, site
- * manager, crew, vehicles, machines, tools and materials, checklists — copied
- * onto it, the way the long form does when it is opened with a template.
+ * and a customer: its description always, and of what else it recommends —
+ * trade, site manager and crew, checklists, vehicles, machines, tools and
+ * materials — the parts that were kept under "Behalten …".
  */
-async function applyTemplate(projectId: string, templateId: string) {
+async function applyTemplate(projectId: string, templateId: string, keep: ReadonlySet<TemplatePart>) {
   const template = await db.projectTemplate.findFirst({
     where: { id: templateId, active: true },
     select: {
@@ -1171,50 +1167,129 @@ async function applyTemplate(projectId: string, templateId: string) {
   })
   if (!template) return
   // The site manager belongs to the crew, as in the form.
-  const crew = [...new Set([...(template.managerId ? [template.managerId] : []), ...template.employees.map((e) => e.employeeId)])]
+  const crew = keep.has('members')
+    ? [...new Set([...(template.managerId ? [template.managerId] : []), ...template.employees.map((e) => e.employeeId)])]
+    : []
   await db.project.update({
     where: { id: projectId },
     data: {
       ...(template.description ? { description: template.description } : {}),
-      ...(template.managerId ? { managerId: template.managerId } : {}),
-      ...(template.workCategoryId ? { workCategories: { create: [{ workCategoryId: template.workCategoryId }] } } : {}),
+      ...(keep.has('members') && template.managerId ? { managerId: template.managerId } : {}),
+      ...(keep.has('labels') && template.workCategoryId ? { workCategories: { create: [{ workCategoryId: template.workCategoryId }] } } : {}),
       team: { create: crew.map((employeeId) => ({ employeeId })) },
-      vehicles: { create: template.vehicles.map((v) => ({ vehicleId: v.vehicleId })) },
-      deviceNeeds: { create: template.deviceNeeds.map((d) => ({ deviceId: d.deviceId })) },
+      vehicles: { create: keep.has('vehicles') ? template.vehicles.map((v) => ({ vehicleId: v.vehicleId })) : [] },
+      deviceNeeds: { create: keep.has('devices') ? template.deviceNeeds.map((d) => ({ deviceId: d.deviceId })) : [] },
     },
   })
-  if (template.items.length > 0) {
+  if (keep.has('items') && template.items.length > 0) {
     await db.projectItem.createMany({
       data: template.items.map((item) => ({ projectId, catalogItemId: item.catalogItemId, quantity: item.quantity })),
       skipDuplicates: true,
     })
   }
-  await copyChecklistsToProject(projectId, template.checklists.map((c) => c.checklistTemplateId))
+  if (keep.has('checklists')) await copyChecklistsToProject(projectId, template.checklists.map((c) => c.checklistTemplateId))
 }
 
-export async function quickAddProject(status: string, formData: FormData): Promise<QuickAddResult> {
-  const user = await requireStaff()
+/**
+ * A card made in a rule's list takes what the rule asks of it — on hold, low
+ * priority, next year — or it would stand in the plain list of its status
+ * beside it. The list the first invoice fills cannot be filled by hand; a
+ * card added there stands in the plain list.
+ */
+async function applyListRule(projectId: string, rule: string | null) {
+  const key = columnRuleKey(rule)
+  if (!key) return
+  const patch = dropPatch(null, key, { pausedAt: null, plannedStart: null, planMonth: null, priority: null, invoice1: false }, new Date())
+  if (patch === 'refused' || Object.keys(patch).length === 0) return
+  await db.project.update({ where: { id: projectId }, data: patch })
+}
+
+/**
+ * A site manager's own card stays on their board: they are named on it — as
+ * its site manager when it has none, else in its crew — or it would vanish
+ * from the board it was made on.
+ */
+async function nameSiteManager(user: Awaited<ReturnType<typeof requireStaff>>, projectId: string) {
+  if (user.role !== 'SITE_MANAGER' || !user.employee) return
+  const employeeId = user.employee.id
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    select: { managerId: true, team: { where: { employeeId }, select: { employeeId: true } } },
+  })
+  if (!project) return
+  if (!project.managerId) await db.project.update({ where: { id: projectId }, data: { managerId: employeeId } })
+  else if (project.managerId !== employeeId && project.team.length === 0)
+    await db.project.update({ where: { id: projectId }, data: { team: { create: [{ employeeId }] } } })
+}
+
+/** The name and the customer of a card added on the board — the customer picked, or made from the name typed. */
+function cardBasics(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim().slice(0, 300)
-  const templateId = String(formData.get('templateId') ?? '').trim()
   const customerId = String(formData.get('customerId') ?? '').trim()
   const customerName = String(formData.get('customerName') ?? '').trim().slice(0, 200)
-  if (!name) return { error: 'nameRequired' }
-  if (!customerId && !customerName) return { error: 'customerRequired' }
+  const error: QuickAddResult['error'] = !name ? 'nameRequired' : !customerId && !customerName ? 'customerRequired' : undefined
+  return { name, customer: customerId ? { customerId } : { customerName }, error }
+}
+
+/**
+ * "Karte hinzufügen" at the foot of a list: a project with a name and a
+ * customer in that list — its status, and what the list's rule asks of it.
+ * Everything else is filled in on the card afterwards.
+ */
+export async function quickAddProject(status: string, formData: FormData, rule: string | null = null): Promise<QuickAddResult> {
+  const user = await requireStaff()
+  const { name, customer, error } = cardBasics(formData)
+  if (error) return { error }
   if (!(status in ProjectStatus)) return { error: 'saveFailed' }
   try {
-    const input = createProjectInput.parse({ name, status, ...(customerId ? { customerId } : { customerName }) })
+    const input = createProjectInput.parse({ name, status, ...customer })
     const project = await createProjectRecord(user, input, { type: 'user', userId: user.id })
-    if (templateId) await applyTemplate(project.id, templateId)
-    // A site manager's own card: named on it from the start, or it would vanish from their board.
-    if (user.role === 'SITE_MANAGER' && user.employee && !templateId) {
-      await db.project.update({ where: { id: project.id }, data: { managerId: user.employee.id } })
-    }
+    await applyListRule(project.id, rule)
+    await nameSiteManager(user, project.id)
   } catch (e) {
     console.error('quick add failed', e)
     return { error: 'saveFailed' }
   }
   revalidatePath('/projects')
   return {}
+}
+
+/**
+ * Trello's "Karte aus Vorlage erstellen", opened at the foot of a list: a
+ * card with the name and the customer given, in that list, carrying the
+ * template's description and the parts of it that were kept. The answer
+ * names the card, which opens at once for what is still to be filled in.
+ */
+export async function createCardFromTemplate(
+  templateId: string,
+  place: { status: string; rule: string | null },
+  formData: FormData
+): Promise<QuickAddResult & { id?: string }> {
+  const user = await requireStaff()
+  const { name, customer, error } = cardBasics(formData)
+  if (error) return { error }
+  if (!(place.status in ProjectStatus)) return { error: 'saveFailed' }
+  const template = await db.projectTemplate.findFirst({ where: { id: templateId, active: true }, select: { name: true } })
+  if (!template) return { error: 'saveFailed' }
+  try {
+    const input = createProjectInput.parse({ name, status: place.status, ...customer })
+    const project = await createProjectRecord(user, input, { type: 'user', userId: user.id })
+    await applyTemplate(project.id, templateId, keptParts(formData.getAll('keep')))
+    await applyListRule(project.id, place.rule)
+    await nameSiteManager(user, project.id)
+    await audit({
+      userId: user.id,
+      action: 'project.fromTemplate',
+      entity: 'Project',
+      entityId: project.id,
+      newValue: template.name,
+    })
+    revalidatePath('/projects')
+    return { id: project.id }
+  } catch (e) {
+    console.error('card from template failed', e)
+    return { error: 'saveFailed' }
+  }
 }
 
 /** The quick menu on a card: another name, or urgent on and off. */

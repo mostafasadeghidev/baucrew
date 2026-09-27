@@ -33,6 +33,9 @@ function measure(el: HTMLElement): string {
  * Renders a dropdown list in a portal on <body> with fixed positioning, so it
  * is never clipped by a scrolling or `overflow-hidden` ancestor (cards,
  * dialogs, collapsible sections). Follows the anchor on scroll and resize.
+ * It lies over the card's sheet (70) and the popovers and menus on it (80),
+ * under the confirmation dialogs (90): a field's list belongs on top of the
+ * window the field is in.
  */
 export function DropdownPortal({
   anchorRef,
@@ -65,7 +68,7 @@ export function DropdownPortal({
         [side === 'top' ? 'top' : 'bottom']: Number(value),
         maxHeight: Number(maxHeight),
       }}
-      className="z-[60] overflow-auto overscroll-contain rounded-md border border-border bg-surface py-1 shadow-xl"
+      className="z-[85] overflow-auto overscroll-contain rounded-md border border-border bg-surface py-1 shadow-xl"
     >
       {children}
     </ul>,

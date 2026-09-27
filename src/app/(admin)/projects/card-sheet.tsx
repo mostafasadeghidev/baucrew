@@ -10,6 +10,9 @@
  * It is closed on purpose only: Escape, or the cross at the right end of the
  * project's own bar. A click beside the sheet does nothing — the sheet holds
  * forms, and a slip of the mouse must not throw away what was typed.
+ *
+ * A card template opens in the same window (`?template=<id>`), narrower, the
+ * way Trello opens a template card.
  */
 
 import { useEffect, useSyncExternalStore, useTransition, type ReactNode } from 'react'
@@ -19,7 +22,7 @@ import { useTranslations } from 'next-intl'
 import { X } from 'lucide-react'
 import { lockPageScroll } from '@/lib/scroll-lock'
 
-/** Takes the card out of the address, which is what closes the sheet. */
+/** Takes the card, or the template, out of the address, which is what closes the sheet. */
 function useCloseSheet() {
   const router = useRouter()
   const pathname = usePathname()
@@ -28,6 +31,7 @@ function useCloseSheet() {
   return () => {
     const params = new URLSearchParams(searchParams)
     params.delete('card')
+    params.delete('template')
     const qs = params.toString()
     startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }))
   }
@@ -54,7 +58,7 @@ export function SheetClose({ round = false }: { round?: boolean }) {
   )
 }
 
-export function CardSheet({ children }: { children: ReactNode }) {
+export function CardSheet({ children, narrow = false }: { children: ReactNode; narrow?: boolean }) {
   const close = useCloseSheet()
 
   // Client-only render (portal target); no setState-in-effect.
@@ -86,7 +90,7 @@ export function CardSheet({ children }: { children: ReactNode }) {
   return createPortal(
     <div className="fixed inset-0 z-[70] overflow-y-auto">
       <div aria-hidden className="fixed inset-0 bg-black/60" />
-      <div className="relative mx-auto my-3 w-full max-w-[1080px] px-3 sm:my-10">
+      <div className={`relative mx-auto my-3 w-full px-3 sm:my-10 ${narrow ? 'max-w-[800px]' : 'max-w-[1080px]'}`}>
         <div
           role="dialog"
           aria-modal="true"

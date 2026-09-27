@@ -30,6 +30,7 @@ const inputClass =
 
 export function TemplateForm({
   action,
+  cancelHref = '/projects/templates',
   initial,
   categories,
   employees,
@@ -39,6 +40,8 @@ export function TemplateForm({
   itemsSection,
 }: {
   action: (prev: TemplateFormState, formData: FormData) => Promise<TemplateFormState>
+  /** Where "Abbrechen" leads: the templates' list, or the board under the template's sheet. */
+  cancelHref?: string
   initial: TemplateFormValues
   categories: ComboboxOption[]
   employees: ComboboxOption[]
@@ -216,7 +219,8 @@ export function TemplateForm({
           {tc('save')}
         </button>
         <Link
-          href="/projects/templates"
+          href={cancelHref}
+          scroll={false}
           className={btn.outline}
         >
           {tc('cancel')}
