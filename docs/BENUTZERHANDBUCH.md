@@ -396,8 +396,13 @@ steht im Änderungsprotokoll.
 
 **Vorlagen bauen:** Unter **Projekte → Formularvorlagen** legen Sie eigene
 Formulare an: Felder der Reihe nach — *Überschrift*, *Text (kurz/lang)*,
-*Datum*, *Häkchen*, *Auswahl* —, je Feld die **Vorbelegung** aus dem Projekt
-und ob es ein **Pflichtfeld** ist; darunter, wer unterschreibt (eine Zeile je
+*Zahl*, *Datum*, *Häkchen*, *Auswahl* (eine Antwort), *Mehrfachauswahl*
+(mehrere Antworten, eine je Zeile eingetragen), *Tabelle* (die Spalten eine je
+Zeile, höchstens sechs; beim Ausfüllen kommen die Zeilen mit **Zeile
+hinzufügen** dazu) und *Fotos* (beim Ausfüllen mit der Kamera aufgenommen oder
+aus dem Speicher gewählt; jedes Foto landet zugleich in den Dateien des
+Projekts und steht im PDF, zwei je Reihe) —, je Feld die **Vorbelegung** aus
+dem Projekt (bei Text, Datum und Auswahl) und ob es ein **Pflichtfeld** ist; darunter, wer unterschreibt (eine Zeile je
 Person, höchstens vier). Das **Abnahmeprotokoll** ist von Anfang an da und
 lässt sich anpassen. Eine geänderte Vorlage gilt für neue Formulare; bereits
 angelegte behalten ihre Felder.

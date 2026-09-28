@@ -21,6 +21,10 @@ const inputClass =
   'block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 const FORM_ID = 'form-template-form'
+/** The kinds that carry answers, or a table's columns, one per line. */
+const WITH_OPTIONS: ReadonlySet<FieldType> = new Set(['choice', 'multi', 'table'])
+/** The kinds the project can fill in first. */
+const PREFILLABLE: ReadonlySet<FieldType> = new Set(['text', 'longtext', 'date', 'choice'])
 
 type Row = { key: number; id: string; type: FieldType; label: string; required: boolean; prefill: PrefillSource | ''; options: string }
 
@@ -72,7 +76,7 @@ export function FormTemplateForm({
       label: row.label,
       required: row.required,
       prefill: row.prefill || undefined,
-      options: row.type === 'choice' ? row.options.split('\n') : undefined,
+      options: WITH_OPTIONS.has(row.type) ? row.options.split('\n') : undefined,
     }))
   )
 
@@ -129,19 +133,19 @@ export function FormTemplateForm({
                       placeholder={row.type === 'heading' ? t('fieldHeadingPlaceholder') : t('fieldLabelPlaceholder')}
                       className={`${inputClass} ${row.type === 'heading' ? 'font-semibold' : ''}`}
                     />
-                    {row.type === 'choice' && (
+                    {WITH_OPTIONS.has(row.type) && (
                       <textarea
-                        aria-label={t('fieldOptions')}
+                        aria-label={row.type === 'table' ? t('fieldColumns') : t('fieldOptions')}
                         value={row.options}
                         onChange={(e) => change(row.key, { options: e.target.value })}
                         rows={3}
-                        placeholder={t('fieldOptionsPlaceholder')}
+                        placeholder={row.type === 'table' ? t('fieldColumnsPlaceholder') : t('fieldOptionsPlaceholder')}
                         className={`${inputClass} text-xs`}
                       />
                     )}
                   </div>
                   <div className="space-y-2">
-                    {row.type !== 'heading' && row.type !== 'checkbox' && (
+                    {PREFILLABLE.has(row.type) && (
                       <Select aria-label={t('fieldPrefill')} compact value={row.prefill} onChange={(e) => change(row.key, { prefill: e.target.value as PrefillSource | '' })}>
                         <option value="">{t('prefill_none')}</option>
                         {PREFILL_SOURCES.map((source) => (

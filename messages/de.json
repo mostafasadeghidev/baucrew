@@ -2163,7 +2163,21 @@
     "prefill_workTypes": "Gewerke",
     "prefill_today": "Heutiges Datum",
     "prefill_openDefects": "Offene Mängel",
-    "prefill_companyName": "Eigene Firma"
+    "prefill_companyName": "Eigene Firma",
+    "type_number": "Zahl",
+    "type_multi": "Mehrfachauswahl",
+    "type_table": "Tabelle",
+    "type_photo": "Fotos",
+    "fieldColumns": "Spalten",
+    "fieldColumnsPlaceholder": "Eine Spalte je Zeile (höchstens 6)",
+    "photoAdd": "Foto hinzufügen",
+    "photoRemove": "Aus dem Formular nehmen",
+    "photoUploading": "Wird hochgeladen …",
+    "photoFailed": "Das Foto konnte nicht hochgeladen werden.",
+    "photoLimit": "Höchstens {max} Fotos je Feld.",
+    "tableAddRow": "Zeile hinzufügen",
+    "tableRemoveRow": "Zeile entfernen",
+    "tableEmpty": "Noch keine Zeile."
   },
   "importMaster": {
     "title": "Stammdaten importieren",

@@ -58,6 +58,7 @@ export default async function FormPage({ params }: { params: Promise<{ id: strin
           // signature pad that the save was the first step of.
           key={form.signatures.map((s) => s.slot).join('-') || 'draft'}
           formId={form.id}
+          projectId={form.projectId}
           fields={form.fields}
           values={form.values}
           signers={form.signers}

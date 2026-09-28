@@ -9,17 +9,23 @@
  * signature on they are read only: a signature stands for what was on the
  * sheet. The office can take a signature away to correct something; the form
  * is then signed again.
+ *
+ * A photo field takes pictures the way the site's own photos are taken: each
+ * one goes onto the project as a file the moment it is chosen (drawn smaller
+ * first), and the form keeps the file's id. Taking a photo off the form leaves
+ * the file on the project.
  */
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Check, Download, FileText, Lock, PenLine, X } from 'lucide-react'
+import { Camera, Check, Download, FileText, Lock, PenLine, Plus, Trash2, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { btn } from '@/components/ui/button'
 import { SignaturePad } from '@/components/signature-pad'
 import { saveForm, signForm, unsignForm } from '@/app/form-actions'
-import { FIELD_LONGTEXT_MAX, FIELD_TEXT_MAX, type FormField, type FormStatus, type FormValues } from '@/lib/forms'
+import { uploadProjectPhoto } from '@/lib/photo-upload'
+import { FIELD_LONGTEXT_MAX, FIELD_TEXT_MAX, MAX_PHOTOS, MAX_ROWS, type FormField, type FormStatus, type FormValue, type FormValues } from '@/lib/forms'
 
 export type FormSignatureView = {
   slot: number
@@ -31,8 +37,12 @@ export type FormSignatureView = {
   when: string
 }
 
+const list = (value: FormValue | undefined): string[] => (Array.isArray(value) ? (value as string[]) : [])
+const rows = (value: FormValue | undefined): string[][] => (Array.isArray(value) ? (value as string[][]) : [])
+
 export function FilledFormEditor({
   formId,
+  projectId,
   fields,
   values: initial,
   signers,
@@ -42,6 +52,8 @@ export function FilledFormEditor({
   office,
 }: {
   formId: string
+  /** The project the form is on — where a photo field's pictures are filed. */
+  projectId: string
   fields: FormField[]
   values: FormValues
   signers: string[]
@@ -64,12 +76,18 @@ export function FilledFormEditor({
   const [name, setName] = useState('')
   const [drawn, setDrawn] = useState<string | null>(null)
   const [removing, setRemoving] = useState<FormSignatureView | null>(null)
+  /** The photo field whose pictures are on their way up, and what went wrong with the last one. */
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const locked = signatures.length > 0
   const input =
     'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2.5 text-base focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:bg-subtle disabled:text-foreground disabled:opacity-100'
+  const cell =
+    'block w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:bg-subtle disabled:text-foreground disabled:opacity-100'
 
-  const set = (id: string, value: string | boolean) => {
+  const set = (id: string, value: FormValue) => {
     setValues((v) => ({ ...v, [id]: value }))
     setDirty(true)
     setSaved(false)
@@ -129,6 +147,30 @@ export function FilledFormEditor({
     })
   }
 
+  /** The chosen pictures onto the project, one after the other, each one's id onto the field as it lands. */
+  const addPhotos = async (f: FormField, files: FileList | null) => {
+    if (!files || files.length === 0) return
+    setPhotoError(null)
+    setUploading(f.id)
+    let ids = list(values[f.id])
+    for (const file of Array.from(files)) {
+      if (ids.length >= MAX_PHOTOS) {
+        setPhotoError(t('photoLimit', { max: MAX_PHOTOS }))
+        break
+      }
+      const result = await uploadProjectPhoto(projectId, file)
+      if ('error' in result) {
+        setPhotoError(t('photoFailed'))
+        continue
+      }
+      ids = [...ids, result.id]
+      set(f.id, ids)
+    }
+    setUploading(null)
+    const el = fileInputs.current[f.id]
+    if (el) el.value = ''
+  }
+
   const field = (f: FormField) => {
     if (f.type === 'heading') {
       return (
@@ -157,6 +199,159 @@ export function FilledFormEditor({
           />
           <span>{label}</span>
         </label>
+      )
+    }
+    if (f.type === 'multi') {
+      // Several answers at once, kept in the order the template names them.
+      const chosen = list(values[f.id])
+      const toggle = (option: string) =>
+        set(
+          f.id,
+          (f.options ?? []).filter((o) => (o === option ? !chosen.includes(o) : chosen.includes(o)))
+        )
+      return (
+        <div key={f.id}>
+          <p className="block text-sm font-medium">{label}</p>
+          <div className="mt-1 space-y-1.5">
+            {(f.options ?? []).map((option) => (
+              <label key={option} className="flex items-start gap-3 text-base">
+                <input
+                  type="checkbox"
+                  checked={chosen.includes(option)}
+                  disabled={locked}
+                  onChange={() => toggle(option)}
+                  className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )
+    }
+    if (f.type === 'table') {
+      const columns = f.options ?? []
+      const current = rows(values[f.id])
+      const change = (r: number, c: number, text: string) => set(f.id, current.map((row, i) => (i === r ? row.map((v, j) => (j === c ? text : v)) : row)))
+      return (
+        <div key={f.id}>
+          <p className="block text-sm font-medium">{label}</p>
+          {current.length === 0 ? (
+            <p className="mt-1 text-sm text-muted">{t('tableEmpty')}</p>
+          ) : (
+            <div className="mt-1 overflow-x-auto">
+              <table className="w-full min-w-[24rem] border-separate border-spacing-1 text-sm">
+                <thead>
+                  <tr>
+                    {columns.map((column) => (
+                      <th key={column} className="px-2 text-left text-xs font-semibold text-muted">
+                        {column}
+                      </th>
+                    ))}
+                    {!locked && <th className="w-8" />}
+                  </tr>
+                </thead>
+                <tbody>
+                  {current.map((row, r) => (
+                    <tr key={r}>
+                      {columns.map((column, c) => (
+                        <td key={column} className="align-top">
+                          <input
+                            aria-label={`${column} ${r + 1}`}
+                            value={row[c] ?? ''}
+                            maxLength={FIELD_TEXT_MAX}
+                            disabled={locked}
+                            onChange={(e) => change(r, c, e.target.value)}
+                            className={cell}
+                          />
+                        </td>
+                      ))}
+                      {!locked && (
+                        <td className="align-top">
+                          <button
+                            type="button"
+                            onClick={() => set(f.id, current.filter((_, i) => i !== r))}
+                            aria-label={t('tableRemoveRow')}
+                            title={t('tableRemoveRow')}
+                            className="flex h-9 w-8 items-center justify-center rounded-md text-muted hover:bg-danger/10 hover:text-danger"
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {!locked && (
+            <button
+              type="button"
+              disabled={current.length >= MAX_ROWS}
+              onClick={() => set(f.id, [...current, columns.map(() => '')])}
+              className={`${btn.outlineSm} mt-2 gap-1`}
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t('tableAddRow')}
+            </button>
+          )}
+        </div>
+      )
+    }
+    if (f.type === 'photo') {
+      const ids = list(values[f.id])
+      const busy = uploading === f.id
+      return (
+        <div key={f.id}>
+          <p className="block text-sm font-medium">{label}</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {ids.map((docId) => (
+              <div key={docId} className="relative">
+                {/* The project's own file, served by the app; nothing to optimise. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/api/files/${docId}`} alt="" className="h-24 w-24 rounded-md border border-border object-cover" />
+                {!locked && (
+                  <button
+                    type="button"
+                    onClick={() => set(f.id, ids.filter((x) => x !== docId))}
+                    aria-label={t('photoRemove')}
+                    title={t('photoRemove')}
+                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-muted shadow hover:text-danger"
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                )}
+              </div>
+            ))}
+            {!locked && ids.length < MAX_PHOTOS && (
+              <label
+                className={`flex h-24 w-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-xs text-muted hover:bg-surface-hover ${
+                  busy ? 'pointer-events-none opacity-60' : ''
+                }`}
+              >
+                <Camera className="h-5 w-5" aria-hidden />
+                {busy ? t('photoUploading') : t('photoAdd')}
+                <input
+                  ref={(el) => {
+                    fileInputs.current[f.id] = el
+                  }}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  className="sr-only"
+                  onChange={(e) => void addPhotos(f, e.target.files)}
+                />
+              </label>
+            )}
+          </div>
+          {photoError && uploading === null && (
+            <p role="alert" className="mt-1 text-sm text-danger">
+              {photoError}
+            </p>
+          )}
+        </div>
       )
     }
     const value = typeof values[f.id] === 'string' ? (values[f.id] as string) : ''
@@ -195,11 +390,12 @@ export function FilledFormEditor({
           <input
             id={id}
             type={f.type === 'date' ? 'date' : 'text'}
-            maxLength={f.type === 'date' ? undefined : FIELD_TEXT_MAX}
+            inputMode={f.type === 'number' ? 'decimal' : undefined}
+            maxLength={f.type === 'date' ? undefined : f.type === 'number' ? 24 : FIELD_TEXT_MAX}
             value={value}
             disabled={locked}
             onChange={(e) => set(f.id, e.target.value)}
-            className={input}
+            className={`${input} ${f.type === 'number' ? 'max-w-xs tabular-nums' : ''}`}
           />
         )}
       </div>
@@ -244,7 +440,7 @@ export function FilledFormEditor({
 
       {!locked && (
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => save()} disabled={pending || !dirty} className={btn.primary}>
+          <button type="button" onClick={() => save()} disabled={pending || !dirty || uploading !== null} className={btn.primary}>
             {tc('save')}
           </button>
           {saved && !dirty && <span className="text-sm text-emerald-700 dark:text-emerald-400">{t('saved')}</span>}
@@ -278,7 +474,7 @@ export function FilledFormEditor({
                       )}
                     </>
                   ) : (
-                    <button type="button" onClick={() => openPad(slot)} disabled={pending} className={`${btn.primary} mt-3 w-full gap-2`}>
+                    <button type="button" onClick={() => openPad(slot)} disabled={pending || uploading !== null} className={`${btn.primary} mt-3 w-full gap-2`}>
                       <PenLine className="h-4 w-4" aria-hidden />
                       {t('sign')}
                     </button>

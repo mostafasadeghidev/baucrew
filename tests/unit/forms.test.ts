@@ -153,3 +153,70 @@ describe('the acceptance protocol every installation starts with', () => {
     expect(parseSigners(ACCEPTANCE_PROTOCOL.signers)).toEqual(ACCEPTANCE_PROTOCOL.signers)
   })
 })
+
+describe('the newer kinds of field — number, several answers, a table, photos', () => {
+  const fields: FormField[] = [
+    { id: 'qty', type: 'number', label: 'Menge' },
+    { id: 'trades', type: 'multi', label: 'Gewerke', options: ['Malern', 'Spachteln', 'Trockenbau'], required: true },
+    { id: 'rooms', type: 'table', label: 'Räume', options: ['Raum', 'Fläche', 'Bemerkung'] },
+    { id: 'pics', type: 'photo', label: 'Fotos' },
+  ]
+
+  it('wants answers for a multi and columns for a table, six at most, and no prefill for them', () => {
+    expect(parseFields([{ type: 'multi', label: 'Gewerke', options: [] }])).toEqual([])
+    expect(parseFields([{ type: 'table', label: 'Räume', options: ['a', 'b', 'c', 'd', 'e', 'f', 'g'] }])[0].options).toHaveLength(6)
+    expect(parseFields([{ type: 'number', label: 'Menge', prefill: 'today' }])[0]).toEqual({ id: 'f1', type: 'number', label: 'Menge' })
+    expect(parseFields([{ type: 'photo', label: 'Fotos', options: ['x'] }])[0]).toEqual({ id: 'f1', type: 'photo', label: 'Fotos' })
+  })
+
+  it('starts them empty', () => {
+    expect(prefillValues(fields, {})).toEqual({ qty: '', trades: [], rooms: [], pics: [] })
+  })
+
+  it('takes a number as it is typed, in German or English, and nothing else', () => {
+    expect(cleanValues(fields, { qty: '12,5' }).qty).toBe('12,5')
+    expect(cleanValues(fields, { qty: '1.250,50' }).qty).toBe('1.250,50')
+    expect(cleanValues(fields, { qty: ' -3 ' }).qty).toBe('-3')
+    expect(cleanValues(fields, { qty: '0.75' }).qty).toBe('0.75')
+    expect(cleanValues(fields, { qty: 'zwölf' }).qty).toBe('')
+    expect(cleanValues(fields, { qty: '12,5 m²' }).qty).toBe('')
+  })
+
+  it('keeps the chosen answers in the order the template names them, known ones only', () => {
+    expect(cleanValues(fields, { trades: ['Trockenbau', 'Malern', 'Dach'] }).trades).toEqual(['Malern', 'Trockenbau'])
+    expect(cleanValues(fields, { trades: 'Malern' }).trades).toEqual([])
+  })
+
+  it('holds a table to its columns and drops a row nobody wrote into', () => {
+    expect(cleanValues(fields, { rooms: [['Bad', '12', 'Decke', 'zu viel'], ['', '', ''], ['Küche']] }).rooms).toEqual([
+      ['Bad', '12', 'Decke'],
+      ['Küche', '', ''],
+    ])
+    expect(cleanValues(fields, { rooms: 'Bad' }).rooms).toEqual([])
+  })
+
+  it('keeps the photos as their documents\' ids, each once, twelve at most', () => {
+    expect(cleanValues(fields, { pics: ['cmabc1234567890', 'cmabc1234567890', '../x', 42] }).pics).toEqual(['cmabc1234567890'])
+    const many = Array.from({ length: 15 }, (_, i) => `cmphoto${String(i).padStart(8, '0')}`)
+    expect(cleanValues(fields, { pics: many }).pics).toHaveLength(12)
+  })
+
+  it('counts an empty list as missing when the field is required', () => {
+    expect(missingRequired(fields, { qty: '', trades: [], rooms: [], pics: [] }).map((f) => f.id)).toEqual(['trades'])
+    expect(missingRequired(fields, { qty: '', trades: ['Spachteln'], rooms: [], pics: [] })).toEqual([])
+  })
+
+  it('shows several answers as a list and says how many rows or photos there are', () => {
+    const day = (iso: string) => iso
+    expect(displayValue(fields[1], ['Malern', 'Spachteln'], { yes: 'Ja', no: 'Nein' }, day)).toBe('Malern, Spachteln')
+    expect(displayValue(fields[2], [['a', 'b', 'c']], { yes: 'Ja', no: 'Nein', rows: (n) => `${n} Zeilen` }, day)).toBe('1 Zeilen')
+    expect(displayValue(fields[3], ['x', 'y'], { yes: 'Ja', no: 'Nein', photos: (n) => `${n} Fotos` }, day)).toBe('2 Fotos')
+  })
+
+  it('signs the lists as they stand', () => {
+    const a = signedContent('T', fields, { qty: '1', trades: ['Malern'], rooms: [['Bad', '', '']], pics: ['cmabc1234567890'] }, [])
+    const b = signedContent('T', fields, { qty: '1', trades: ['Malern'], rooms: [['Bad', '', 'x']], pics: ['cmabc1234567890'] }, [])
+    expect(a).not.toBe(b)
+    expect(signedContent('T', fields, {}, [])).toContain('["qty","number","Menge",""],["trades","multi","Gewerke",[]]')
+  })
+})

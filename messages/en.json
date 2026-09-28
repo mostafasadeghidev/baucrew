@@ -2163,7 +2163,21 @@
     "prefill_workTypes": "Trades",
     "prefill_today": "Today's date",
     "prefill_openDefects": "Open defects",
-    "prefill_companyName": "Own company"
+    "prefill_companyName": "Own company",
+    "type_number": "Number",
+    "type_multi": "Multiple choice",
+    "type_table": "Table",
+    "type_photo": "Photos",
+    "fieldColumns": "Columns",
+    "fieldColumnsPlaceholder": "One column per line (at most 6)",
+    "photoAdd": "Add photo",
+    "photoRemove": "Take off the form",
+    "photoUploading": "Uploading …",
+    "photoFailed": "The photo could not be uploaded.",
+    "photoLimit": "At most {max} photos per field.",
+    "tableAddRow": "Add row",
+    "tableRemoveRow": "Remove row",
+    "tableEmpty": "No rows yet."
   },
   "importMaster": {
     "title": "Import master data",
