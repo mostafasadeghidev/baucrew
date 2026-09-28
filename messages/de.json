@@ -1643,6 +1643,13 @@
     "doneIgnored": "{count} Karten nicht importiert (Liste ausgeschlossen oder archiviert)",
     "goToProjects": "Zu den Projekten",
     "doneUpdated": "{count, plural, one {# Projekt} other {# Projekte}} aktualisiert (Status vom Board übernommen)",
+    "includeChecklists": "Checklisten der Karten übernehmen ({count})",
+    "includeComments": "Kommentare der Karten übernehmen ({count})",
+    "checklistsAsTemplates": "Checklisten zusätzlich als Checklisten-Vorlagen anlegen",
+    "checklistsAsTemplatesHint": "Je Checklisten-Name eine Vorlage mit allen Punkten, die dieser Name auf den Karten hatte — für ein Board mit Standard-Checklisten. Vorhandene Vorlagen gleichen Namens bleiben.",
+    "doneChecklists": "{count, plural, one {# Checkliste} other {# Checklisten}} übernommen",
+    "doneComments": "{count, plural, one {# Kommentar} other {# Kommentare}} übernommen",
+    "doneTemplates": "{count, plural, one {# Checklisten-Vorlage} other {# Checklisten-Vorlagen}} angelegt",
     "doneFlagged": "⚠ Bei {count, plural, one {# Karte} other {# Karten}} steht im Titel kein eindeutiger Kunde (z. B. „Kläranlage …“). Dort wurde der ganze Titel als Kunde eingetragen — bitte nachsehen."
   },
   "geo": {

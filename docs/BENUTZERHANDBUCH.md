@@ -1015,6 +1015,8 @@ Der Import darf **jederzeit wiederholt** werden. Steht am Ende eines Kartentitel
 
 Der Kunde wird aus dem Titel gelesen: normalerweise das erste Wort, bei „HV …“ oder „BV: …“ der Name dahinter, bei „Gemeinde …“ oder „Stadt …“ beides zusammen. Nennt ein Titel nur ein Gebäude („Kläranlage …“), steht dort der ganze Titel als Kunde und der Import weist am Ende darauf hin — diese Karten bitte nachsehen. Dateien an einer Karte werden mit Link in die Projektbeschreibung übernommen.
 
+Die **Checklisten** einer Karte kommen mit ihren Häkchen als Checklisten des Projekts mit, die **Kommentare** als Kommentare (mit Name und Tag aus Trello unter dem Text; die Exportdatei enthält nur die jüngeren, etwa die letzten tausend Vorgänge des Boards) — beides über Häkchen vor dem Import, beides ohne Dubletten beim zweiten Mal. Ein drittes Häkchen legt aus den Checklisten des Boards **Checklisten-Vorlagen** an: je Name eine, mit allen Punkten, die dieser Name auf den Karten je hatte — so kommen die Standard-Checklisten eines Trello-Boards mit einem Import als Vorlagen ins System (Projekte → Checklisten).
+
 **Jahresplanung importieren** — die eigene Monatsplanumsatz-Tabelle einlesen, damit im CRM
 neben dem tatsächlichen Umsatz auch der **Plan** steht.
 

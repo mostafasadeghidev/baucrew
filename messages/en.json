@@ -1643,6 +1643,13 @@
     "doneIgnored": "{count} cards not imported (list excluded or archived)",
     "goToProjects": "Go to projects",
     "doneUpdated": "{count, plural, one {# project} other {# projects}} updated (status taken from the board)",
+    "includeChecklists": "Take over the cards' checklists ({count})",
+    "includeComments": "Take over the cards' comments ({count})",
+    "checklistsAsTemplates": "Also make checklist templates from the checklists",
+    "checklistsAsTemplatesHint": "One template per checklist name, with every item that name had on the cards — for a board of standard checklists. Templates of the same name that exist stay.",
+    "doneChecklists": "{count, plural, one {# checklist} other {# checklists}} taken over",
+    "doneComments": "{count, plural, one {# comment} other {# comments}} taken over",
+    "doneTemplates": "{count, plural, one {# checklist template} other {# checklist templates}} made",
     "doneFlagged": "⚠ {count, plural, one {# card gives} other {# cards give}} no clear customer in the title (e.g. \"Kläranlage …\"). The whole title was used as the customer — please check."
   },
   "geo": {
