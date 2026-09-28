@@ -54,6 +54,7 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   { key: 'projectTasks', model: 'ProjectTask' },
   { key: 'documents', model: 'Document' },
   { key: 'cardLinks', model: 'CardLink' },
+  { key: 'cardWatches', model: 'CardWatch' },
   // After the documents: a signed form points at its PDF among them.
   { key: 'formTemplates', model: 'FormTemplate' },
   { key: 'filledForms', model: 'FilledForm' },
@@ -68,10 +69,11 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
 ]
 
 /**
- * Tables that are deliberately not part of a backup: sessions, and the queue of
- * webhook deliveries — restored, it would send old events again.
+ * Tables that are deliberately not part of a backup: sessions, the queue of
+ * webhook deliveries — restored, it would send old events again — and the
+ * lines of the bell, which are news of the day and not the data itself.
  */
-export const NOT_BACKED_UP: readonly string[] = ['Session', 'WebhookDelivery']
+export const NOT_BACKED_UP: readonly string[] = ['Session', 'WebhookDelivery', 'Notification']
 
 /** The Prisma client's name for a model: the model name with a small first letter. */
 export const delegateName = (model: string): string => model[0].toLowerCase() + model.slice(1)

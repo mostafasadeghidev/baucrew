@@ -2,9 +2,10 @@
 
 /**
  * The bell in the corner: how many comments have named the user since they
- * last looked, and behind it the list — project, who wrote, what. Opening
- * the list is looking; the count goes. On the office side each line opens
- * the project; on the phone the line is the message itself.
+ * last looked — and on the office side what happened on the cards they are
+ * on or follow, Trello's notifications — and behind it the list: card, who,
+ * what. Opening the list is looking; the count goes. On the office side each
+ * line opens the card; on the phone the line is the message itself.
  */
 
 import { useEffect, useRef, useState, useTransition } from 'react'
@@ -25,7 +26,7 @@ export type MentionRow = {
   fresh: boolean
 }
 
-export function MentionsBell({ items, unread }: { items: MentionRow[]; unread: number }) {
+export function MentionsBell({ items, unread, title, empty }: { items: MentionRow[]; unread: number; title: string; empty: string }) {
   const t = useTranslations('projects')
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -78,12 +79,12 @@ export function MentionsBell({ items, unread }: { items: MentionRow[]; unread: n
       {open && (
         <div
           role="dialog"
-          aria-label={t('mentionsTitle')}
+          aria-label={title}
           className="absolute bottom-13 right-0 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
         >
-          <p className="border-b border-border px-3 py-2 text-sm font-semibold">{t('mentionsTitle')}</p>
+          <p className="border-b border-border px-3 py-2 text-sm font-semibold">{title}</p>
           {items.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-muted">{t('mentionsNone')}</p>
+            <p className="px-3 py-4 text-sm text-muted">{empty}</p>
           ) : (
             <ul className="max-h-96 divide-y divide-border overflow-y-auto">
               {items.map((item) => (
@@ -105,8 +106,8 @@ export function MentionsBell({ items, unread }: { items: MentionRow[]; unread: n
         type="button"
         onClick={toggle}
         aria-expanded={open}
-        aria-label={unread > 0 ? `${t('mentionsTitle')}: ${t('mentionsNew', { count: unread })}` : t('mentionsTitle')}
-        title={t('mentionsTitle')}
+        aria-label={unread > 0 ? `${title}: ${t('mentionsNew', { count: unread })}` : title}
+        title={title}
         className={`relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface shadow-lg transition-colors hover:text-foreground ${
           unread > 0 ? 'text-accent' : 'text-muted'
         }`}

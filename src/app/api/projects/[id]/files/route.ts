@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { audit } from '@/lib/audit'
+import { notifyCard } from '@/lib/notifications-db'
 import { previewKind, resolveUploadType, safeFileName, storageKeyFor, validateUpload } from '@/lib/files'
 import { saveStoredFile } from '@/lib/file-storage'
 import { canWorkOn } from '@/lib/crew-access'
@@ -64,5 +65,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     entityId: projectId,
     newValue: doc.filename,
   })
+  // A photo from the site is news for the office; a file of the office's own, for the card's people.
+  await notifyCard(projectId, user.id, 'attachment', { text: doc.filename })
   return NextResponse.json({ ok: true, id: doc.id })
 }

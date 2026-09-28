@@ -56,6 +56,7 @@ import {
   ChevronsLeftRight,
   CircleCheck,
   Clock,
+  Eye,
   ListChecks,
   MessageSquare,
   MoreHorizontal,
@@ -140,6 +141,8 @@ export type KanbanCard = {
   hasDescription: boolean
   /** Trello's tick: the card marked done. Its dates turn green. */
   done: boolean
+  /** The reader follows the card — Trello's eye among its marks. */
+  watching: boolean
 }
 
 const DATE_TONE = {
@@ -1297,6 +1300,11 @@ export function ProjectsKanban({
                         open, what is attached and said; and who is on it. */}
                     <div className="mt-1.5 flex items-end justify-between gap-2">
                       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
+                        {card.watching && (
+                          <span title={t('cardWatched')} className={mark('')}>
+                            <Eye className="h-3 w-3 shrink-0" aria-hidden />
+                          </span>
+                        )}
                         {card.hasDescription && (
                           <span title={t('cardDescription')} className={mark('')}>
                             <AlignLeft className="h-3 w-3 shrink-0" aria-hidden />

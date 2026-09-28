@@ -384,3 +384,32 @@ Rollback: revert the commit, then
 DROP TABLE "CardLink";
 DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928100000_card_links';
 ```
+
+### Following a card and the bell's notifications
+
+- `CardWatch` (in the backup as `cardWatches`) and `Notification` (not in
+  the backup — news of the day, listed in `NOT_BACKED_UP`); migration
+  `20260928110000_card_watch_notifications`.
+- `src/lib/notifications.ts` (tested): `recipientsFor` — the card's members
+  and followers, never the actor, not the crew, a site manager only while on
+  the card, office notes only to the office, those named in a comment left
+  to their mention — and `notificationLine` for the words.
+- `src/lib/notifications-db.ts`: `notifyCard` (called from `changeStatus`,
+  `archiveProject`, `setCardDone`, `setCardMember`, `setCardDates`, the long
+  form's new crew members, `createComment`, the upload route),
+  `notificationsFor` (also writes, once per card and day, the reminders of a
+  due day tomorrow, today or past), `markNotificationsRead`.
+- `setCardWatch` in `projects/actions.ts`; `[id]/watch-button.tsx` in the
+  row under the card's title; the eye on board cards the reader follows.
+- `components/mentions.tsx` / `mentions-bell.tsx`: on the office side the
+  bell is "Benachrichtigungen" — the mentions and the cards' news in one
+  list; a line opens the card over the projects (`/projects?card=`), mentions
+  included; opening it marks all read (`markMentionsSeen` also marks the
+  notifications). No e-mail is sent.
+
+Rollback: revert the commit, then
+```sql
+DROP TABLE "Notification";
+DROP TABLE "CardWatch";
+DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928110000_card_watch_notifications';
+```

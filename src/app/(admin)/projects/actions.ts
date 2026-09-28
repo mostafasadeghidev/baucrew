@@ -28,6 +28,7 @@ import { columnRuleKey, dropPatch } from '@/lib/board-rules'
 import { keptParts, type TemplatePart } from '@/lib/card-templates'
 import { MAX_PLAN_MONTHS, parseMonthInput } from '@/lib/plan-month'
 import { geocodeCity } from '@/lib/geocode'
+import { notifyCard } from '@/lib/notifications-db'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -375,7 +376,7 @@ export async function updateProject(
   const parsed = parseProjectForm(formData)
   if (!parsed.success) return { error: formErrorKey(parsed.error.issues) }
 
-  const before = await db.project.findUnique({ where: { id } })
+  const before = await db.project.findUnique({ where: { id }, include: { team: { select: { employeeId: true } } } })
   if (!before) return { error: 'saveFailed' }
   const snapshot = await projectBefore(id)
 
@@ -464,6 +465,10 @@ export async function updateProject(
     newValue: `${before.number} ${d.name}`,
   })
   await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
+  // Whoever the form put on the card hears of it, as from the members window.
+  const had = new Set([before.managerId, ...before.team.map((m) => m.employeeId)])
+  for (const joined of new Set([d.managerId, ...d.teamIds].filter((e): e is string => Boolean(e) && !had.has(e))))
+    await notifyCard(id, user.id, 'added', { onlyEmployeeId: joined })
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
   redirect(returnTo ?? `/projects/${id}`)
@@ -515,6 +520,7 @@ async function changeStatus(user: { id: string }, id: string, status: string): P
     newValue: status,
   })
   await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
+  await notifyCard(id, user.id, 'moved', { text: status })
   return {}
 }
 
@@ -734,6 +740,7 @@ export async function archiveProject(id: string, archived: boolean): Promise<{ e
     entityId: id,
     newValue: `${project.number} ${project.name}`,
   })
+  await notifyCard(id, user.id, archived ? 'archived' : 'restored')
   refreshAfterStatus(id)
   return {}
 }
@@ -1331,6 +1338,28 @@ export async function setCardDone(id: string, done: boolean): Promise<{ error?: 
   if ((project.doneAt !== null) === done) return {}
   await db.project.update({ where: { id }, data: { doneAt: done ? new Date() : null } })
   await audit({ userId: user.id, action: done ? 'project.done' : 'project.undone', entity: 'Project', entityId: id })
+  if (done) await notifyCard(id, user.id, 'done')
+  revalidatePath('/projects')
+  revalidatePath(`/projects/${id}`)
+  return {}
+}
+
+/**
+ * Trello's "Beobachten": the user follows the card, or stops. What happens on
+ * it then reaches their bell as it reaches the card's members.
+ */
+export async function setCardWatch(id: string, watching: boolean): Promise<{ error?: 'saveFailed' }> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  if (watching) {
+    await db.cardWatch.upsert({
+      where: { userId_projectId: { userId: user.id, projectId: id } },
+      create: { userId: user.id, projectId: id },
+      update: {},
+    })
+  } else {
+    await db.cardWatch.deleteMany({ where: { userId: user.id, projectId: id } })
+  }
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
   return {}
@@ -1387,6 +1416,7 @@ export async function setCardMember(id: string, employeeId: string, on: boolean)
     entityId: id,
     ...(on ? { newValue: name } : { oldValue: name }),
   })
+  if (on) await notifyCard(id, user.id, 'added', { onlyEmployeeId: employeeId })
   await afterCardEdit(user, id, snapshot)
   return {}
 }
@@ -1487,6 +1517,7 @@ export async function setCardDates(
     entityId: id,
     newValue: `${day(plannedStart)} – ${day(plannedEnd)} · ${day(dueDate)}`,
   })
+  await notifyCard(id, user.id, 'dates')
   await afterCardEdit(user, id, snapshot)
   return {}
 }

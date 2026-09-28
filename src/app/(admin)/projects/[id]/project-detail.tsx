@@ -28,6 +28,7 @@ import { previewKind } from '@/lib/files'
 import { ArchiveButton } from '../archive-button'
 import { CardAddBar, CardAddButton, CardPanelButton, type CardEditData } from './card-popovers'
 import { EditableTitle } from './editable-title'
+import { WatchButton } from './watch-button'
 import { CoverPicker } from './cover-picker'
 import { SheetMenu } from './sheet-menu'
 import { SheetTitle } from './sheet-title'
@@ -190,7 +191,7 @@ export async function ProjectDetail({
   // A site manager opens the projects they are named on and no other.
   if (!(await canSeeProject(user, project.id))) redirect('/projects')
 
-  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people, formTemplates, auditEntries] =
+  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people, formTemplates, auditEntries, watching] =
     await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
     db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
@@ -236,6 +237,8 @@ export async function ProjectDetail({
       take: 40,
       select: { action: true, field: true, oldValue: true, newValue: true, createdAt: true, user: { select: { username: true } } },
     }),
+    // Whether the reader follows the card — Trello's "Beobachten".
+    db.cardWatch.count({ where: { userId: user.id, projectId: id } }),
   ])
   const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { dateStyle: 'short', timeStyle: 'short' })
   // Money never reaches the story: an invoice line names the invoice, not the amount — and not the site manager.
@@ -1235,6 +1238,10 @@ export async function ProjectDetail({
             <Plus className="h-4 w-4" />
           </span>
         </CardPanelButton>
+      </div>
+      <div>
+        <p className={metaHead}>{t('sheetNotifications')}</p>
+        <WatchButton projectId={project.id} watching={watching > 0} />
       </div>
       <div>
         <p className={metaHead}>{t('sheetDates')}</p>

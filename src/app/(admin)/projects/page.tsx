@@ -184,6 +184,10 @@ export default async function ProjectsPage({
         })
       : Promise.resolve([]),
   ])
+  // The cards the reader follows wear Trello's eye.
+  const watched = new Set(
+    kanban ? (await db.cardWatch.findMany({ where: { userId: user.id }, select: { projectId: true } })).map((w) => w.projectId) : []
+  )
   // Which board: the address, else the one this browser opened last, else the first.
   const board = pickBoard(boards, boardParam, (await cookies()).get(BOARD_COOKIE)?.value)
   const boardStatuses = (board?.columns ?? []).map((c) => c.status as ProjectStatus)
@@ -413,6 +417,7 @@ export default async function ProjectsPage({
           cover: p.coverDocumentId,
           hasDescription: Boolean(p.description?.trim()),
           done: p.doneAt !== null,
+          watching: watched.has(p.id),
           // The lines under the marks, in the order the client's Trello cards
           // show them; the order value only for whoever may see money.
           fields: cardFieldLines({

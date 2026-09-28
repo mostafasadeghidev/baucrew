@@ -3,6 +3,7 @@ import { db } from './db'
 import { audit } from './audit'
 import { COMMENT_MAX, mentionedUsers, type Mentionable } from './comments'
 import { announceCommentCreated, type EventActor } from './project-events'
+import { notifyCard } from './notifications-db'
 
 /** Everybody who can be named with @: the active accounts, called by their person's name when they have one. */
 export async function mentionablePeople(): Promise<Mentionable[]> {
@@ -52,5 +53,7 @@ export async function createComment(input: {
     newValue: body.slice(0, 200),
   })
   await announceCommentCreated(note.id, input.actor)
+  // The card's members and followers hear of it; those named in it have their mention already.
+  await notifyCard(project.id, input.authorId, 'comment', { text: body.slice(0, 160), officeOnly: input.office, except: mentions })
   return { id: note.id }
 }
