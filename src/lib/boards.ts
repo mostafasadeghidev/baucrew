@@ -138,3 +138,31 @@ export function pickBoard<T extends { id: string }>(
 export function columnLabel(column: { title: string | null }, statusLabel: string): string {
   return column.title ?? statusLabel
 }
+
+/**
+ * What a board made from the board's own bar starts with, the way Trello
+ * offers a blank board or a template: the statuses ticked one by one, each a
+ * plain list (`pick:LEAD,QUOTED`), a preset such as the client's Trello board
+ * (`preset:<key>`), or the lists of a board that is there already, with their
+ * own names and rule lists (`copy:<board id>`). Ticked statuses stand in the
+ * order of the lifecycle, each once; a pick of none, or anything else, is
+ * nothing.
+ */
+export type StartingLists =
+  | { kind: 'pick'; statuses: ProjectStatusKey[] }
+  | { kind: 'preset'; key: string }
+  | { kind: 'copy'; boardId: string }
+
+export function startingLists(raw: unknown): StartingLists | null {
+  if (typeof raw !== 'string') return null
+  if (raw.startsWith('pick:')) {
+    const wanted = new Set(raw.slice('pick:'.length).split(','))
+    const statuses = ALL_PROJECT_STATUSES.filter((s) => wanted.has(s))
+    return statuses.length > 0 ? { kind: 'pick', statuses } : null
+  }
+  const preset = /^preset:([a-z]{1,20})$/.exec(raw)
+  if (preset) return { kind: 'preset', key: preset[1] }
+  const copy = /^copy:([a-z0-9]{10,40})$/.exec(raw)
+  if (copy) return { kind: 'copy', boardId: copy[1] }
+  return null
+}

@@ -37,6 +37,7 @@ import { COLUMN_RULES, columnFor, columnRuleKey, RULE_STATUS } from '@/lib/board
 import { StatusBadge } from '@/components/status-badge'
 import { ProjectYearPicker } from './year-picker'
 import { BoardTabs } from './board-tabs'
+import { sitesPreset } from '@/lib/board-presets'
 import { BoardFilter } from './board-filter'
 import { CardSheet, SheetClose } from './card-sheet'
 import type { CardMovePlaces } from './card-move'
@@ -848,10 +849,16 @@ export default async function ProjectsPage({
       >
         <div className={`flex shrink-0 flex-wrap items-center gap-2 px-3 py-2 ${bar}`}>
           <BoardTabs
-            boards={boards.map((b) => ({ id: b.id, name: b.name }))}
+            boards={boards.map((b) => ({ id: b.id, name: b.name, background: b.background, backgroundImage: b.backgroundImage }))}
             current={board?.id ?? ''}
             ariaLabel={t('boardTabs')}
             manage={null}
+            // Boards are made and changed in the bar by whoever may do it in the settings.
+            manageBoards={
+              user.role === 'ADMIN'
+                ? { presets: [sitesPreset(new Date().getUTCFullYear())].map((p) => ({ key: p.key, name: p.name, background: p.background })) }
+                : null
+            }
             onGround={onGround}
           />
           {statusChip}

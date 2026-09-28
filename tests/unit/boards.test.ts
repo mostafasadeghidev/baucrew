@@ -9,7 +9,9 @@ import {
   columnsFromForm,
   moveColumn,
   pickBoard,
+  startingLists,
 } from '@/lib/boards'
+import { ALL_PROJECT_STATUSES } from '@/lib/prep-tab'
 
 const form = (picked: string[], titles: Record<string, string> = {}) => (name: string) => {
   if (name.startsWith('column_')) return picked.includes(name.slice('column_'.length)) ? 'on' : null
@@ -107,5 +109,33 @@ describe('backgrounds', () => {
     expect(boardBackgroundCss('ocean')).toContain('linear-gradient')
     expect(boardBackgroundCss(null)).toBeNull()
     expect(boardBackgroundCss('nope')).toBeNull()
+  })
+})
+
+describe('startingLists', () => {
+  it('reads the three ways a board made from the bar can start', () => {
+    expect(startingLists('pick:LEAD,QUOTED')).toEqual({ kind: 'pick', statuses: ['LEAD', 'QUOTED'] })
+    expect(startingLists('preset:sites')).toEqual({ kind: 'preset', key: 'sites' })
+    expect(startingLists('copy:cmboard0000abcd1234')).toEqual({ kind: 'copy', boardId: 'cmboard0000abcd1234' })
+  })
+
+  it('puts the ticked statuses in the order of the lifecycle, each once, known ones only', () => {
+    expect(startingLists('pick:PAID,LEAD,LEAD,NOPE')).toEqual({ kind: 'pick', statuses: ['LEAD', 'PAID'] })
+    expect(startingLists(`pick:${[...ALL_PROJECT_STATUSES].reverse().join(',')}`)).toEqual({
+      kind: 'pick',
+      statuses: [...ALL_PROJECT_STATUSES],
+    })
+  })
+
+  it('takes nothing else — a pick of none is nothing too', () => {
+    expect(startingLists('pick:')).toBeNull()
+    expect(startingLists('pick:NOPE')).toBeNull()
+    expect(startingLists('all')).toBeNull()
+    expect(startingLists('')).toBeNull()
+    expect(startingLists('copy:')).toBeNull()
+    expect(startingLists('copy:../x')).toBeNull()
+    expect(startingLists('preset:Sites')).toBeNull()
+    expect(startingLists(null)).toBeNull()
+    expect(startingLists(['pick:LEAD'])).toBeNull()
   })
 })
