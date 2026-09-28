@@ -2155,5 +2155,23 @@
     "doneBy": "Erledigt: {who}",
     "deleteTitle": "Aufgabe löschen?",
     "notAllowed": "Das ist für dieses Projekt nicht erlaubt."
+  },
+  "format": {
+    "toolbar": "Formatierung",
+    "bold": "Fett",
+    "italic": "Kursiv",
+    "strike": "Durchgestrichen",
+    "heading": "Überschrift",
+    "list": "Aufzählung",
+    "numbered": "Nummerierte Liste",
+    "quote": "Zitat",
+    "code": "Code",
+    "link": "Link",
+    "emoji": "Emoji einfügen",
+    "boldWords": "fetter Text",
+    "italicWords": "kursiver Text",
+    "strikeWords": "durchgestrichener Text",
+    "codeWords": "Code",
+    "linkWords": "Linktext"
   }
 }

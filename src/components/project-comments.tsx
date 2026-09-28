@@ -31,6 +31,8 @@ import { Menu } from '@/components/ui/menu'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { btn } from '@/components/ui/button'
 import { PERSON_SWATCH } from '@/components/swatches'
+import { NoteText } from '@/components/ui/note-text'
+import { MarkdownToolbar } from '@/components/ui/markdown-toolbar'
 import {
   COMMENT_MAX,
   REACTIONS,
@@ -340,17 +342,22 @@ export function ProjectComments({
                   </div>
                 </div>
               ) : (
-                <p className="mt-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-surface px-3 py-2 shadow-sm">
-                  {commentSegments(comment.body, people).map((segment, i) =>
-                    segment.mention ? (
-                      <span key={i} title={segment.mention.name} className="rounded-sm bg-accent/10 px-0.5 font-medium text-accent">
-                        {segment.text}
-                      </span>
-                    ) : (
-                      <span key={i}>{segment.text}</span>
+                // Trello's comment: its Markdown drawn, its addresses clickable, the people it names marked.
+                <NoteText
+                  text={comment.body}
+                  className="mt-1 break-words rounded-lg border border-border bg-surface px-3 py-2 shadow-sm"
+                  decorate={(words, key) =>
+                    commentSegments(words, people).map((segment, i) =>
+                      segment.mention ? (
+                        <span key={`${key}-${i}`} title={segment.mention.name} className="rounded-sm bg-accent/10 px-0.5 font-medium text-accent">
+                          {segment.text}
+                        </span>
+                      ) : (
+                        <span key={`${key}-${i}`}>{segment.text}</span>
+                      )
                     )
-                  )}
-                </p>
+                  }
+                />
               )}
               {editing?.id !== comment.id && (
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -418,6 +425,7 @@ export function ProjectComments({
 
   const form = (
     <div className={panel ? '' : frame ? 'border-t border-border px-5 py-3' : 'pt-2'}>
+      <MarkdownToolbar target={area} emoji className="mb-1" />
       <div className="relative">
         <textarea
           ref={area}

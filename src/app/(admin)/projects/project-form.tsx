@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState, useEffect, useState, type ReactNode } from 'react'
+import { useActionState, useEffect, useRef, useState, type ReactNode } from 'react'
+import { MarkdownToolbar } from '@/components/ui/markdown-toolbar'
 import { useRouter } from 'next/navigation'
 import { AlignLeft, Pencil, ChevronRight } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -436,6 +437,8 @@ export function ProjectForm({
   fold?: { title: string }
 }) {
   const t = useTranslations('projects')
+  /** The description's box, for its editor bar. */
+  const descriptionRef = useRef<HTMLTextAreaElement>(null)
   const tc = useTranslations('common')
   const tStatus = useTranslations('status')
   const tCustomers = useTranslations('customers')
@@ -947,10 +950,13 @@ export function ProjectForm({
           <label htmlFor="description" className="block text-sm font-medium">
             {t('description')}
           </label>
+          {/* Trello's editor bar: bold, lists, links and the rest, written as Markdown. */}
+          <MarkdownToolbar target={descriptionRef} className="mt-1" />
           <textarea
+            ref={descriptionRef}
             id="description"
             name="description"
-            rows={3}
+            rows={6}
             defaultValue={initial.description}
             className={inputClass}
           />

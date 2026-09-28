@@ -444,3 +444,20 @@ parameters simply lose them.
   money. `board-menu.tsx` has the way in ("Aktivität").
 
 Rollback: revert the commit; no data of its own.
+
+### Formatted descriptions and comments, the editor bar, emoji
+
+- `src/lib/markdown.ts` (tested): `markdownBlocks` reads headings, lists,
+  quotes, rules and fenced code line by line on top of `parseNotes`, and
+  `parseInline` bold, italic, struck, code and `[words](https://…)` links —
+  a tree, never HTML; only http(s) becomes a link.
+- `components/ui/note-text.tsx` draws that tree (lists grouped, links with
+  their mark); `decorate` lets a comment mark the people it names.
+  `project-comments.tsx` draws comments with it (addresses now clickable).
+- `components/ui/markdown-toolbar.tsx`: Trello's editor bar over the
+  description (project form) and the comment box — Markdown written around
+  the selection or in front of the lines, a link with the caret after
+  "https://", and an emoji window for comments. Messages: namespace `format`.
+
+Rollback: revert the commit; no data of its own (what was typed with marks
+shows them as characters again).

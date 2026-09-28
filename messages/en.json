@@ -2155,5 +2155,23 @@
     "doneBy": "Done: {who}",
     "deleteTitle": "Delete this task?",
     "notAllowed": "That is not allowed on this project."
+  },
+  "format": {
+    "toolbar": "Formatting",
+    "bold": "Bold",
+    "italic": "Italic",
+    "strike": "Strikethrough",
+    "heading": "Heading",
+    "list": "Bulleted list",
+    "numbered": "Numbered list",
+    "quote": "Quote",
+    "code": "Code",
+    "link": "Link",
+    "emoji": "Insert emoji",
+    "boldWords": "bold text",
+    "italicWords": "italic text",
+    "strikeWords": "struck text",
+    "codeWords": "code",
+    "linkWords": "link text"
   }
 }
