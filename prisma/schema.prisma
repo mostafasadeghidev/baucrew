@@ -332,6 +332,10 @@ model Project {
   /// Ticked done on the card, the way Trello marks a card complete — the
   /// office's own mark, apart from the status. Null while it is not.
   doneAt          DateTime?
+  /// The time of day the work is due, "HH:MM" in the office's time; null for the day as a whole.
+  dueTime         String?
+  /// Minutes before the due moment the bell reminds (-1: never); null is a day before.
+  dueReminder     Int?
   /// The picture on the front of the card, one of the project's own photos.
   coverDocumentId String?   @unique
   cover           Document? @relation("ProjectCover", fields: [coverDocumentId], references: [id], onDelete: SetNull)

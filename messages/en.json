@@ -623,7 +623,22 @@
     "keysSearch": "Jump to search",
     "keysHelp": "Show this list",
     "cardArchivedNotice": "Card archived",
-    "cardUnwatched": "You no longer watch this card."
+    "cardUnwatched": "You no longer watch this card.",
+    "nDueTodayAt": "The card is due today at {time}.",
+    "nDueTomorrowAt": "The card is due tomorrow at {time}.",
+    "nDueOnAt": "The card is due on {date} at {time}.",
+    "datesDueTime": "Time",
+    "datesReminder": "Reminder",
+    "datesReminderHint": "Reminders reach this card’s members and watchers in their notifications.",
+    "reminder_-1": "None",
+    "reminder_0": "At time of due date",
+    "reminder_5": "5 minutes before",
+    "reminder_10": "10 minutes before",
+    "reminder_15": "15 minutes before",
+    "reminder_60": "1 hour before",
+    "reminder_120": "2 hours before",
+    "reminder_1440": "1 day before",
+    "reminder_2880": "2 days before"
   },
   "history": {
     "created": "created this card",

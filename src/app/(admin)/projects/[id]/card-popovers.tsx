@@ -17,6 +17,7 @@ import { Popover, PopoverHead } from '@/components/ui/popover'
 import { btn } from '@/components/ui/button'
 import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
 import { addMonths, dayKey, inRange, monthGrid, monthOf } from '@/lib/calendar-grid'
+import { DEFAULT_REMINDER, REMINDERS } from '@/lib/due-reminder'
 import { setCardDates, setCardLabel, setCardManager, setCardMember } from '../actions'
 import { addProjectChecklist } from './checklist-actions'
 import { AttachPanel } from './attach-panel'
@@ -38,6 +39,9 @@ export type CardEditData = {
   sub: boolean
   /** "YYYY-MM-DD" or null. */
   dates: { start: string | null; end: string | null; due: string | null }
+  /** The due day's time ("HH:MM") and the reminder in minutes before (-1 none); null for the defaults. */
+  dueTime: string | null
+  reminder: number | null
   checklistTemplates: Array<{ value: string; label: string }>
   /** Where the trades — the labels — are kept, for those who may change them. */
   labelsHref: string | null
@@ -274,6 +278,8 @@ function DatesPanel({ data, close, back }: PanelProps) {
   const today = dayKey(new Date())
   const [month, setMonth] = useState(() => monthOf(data.dates[data.dates.due ? 'due' : 'start'] ?? today))
   const [error, setError] = useState<string | null>(null)
+  const [time, setTime] = useState(data.dueTime ?? '')
+  const [reminder, setReminder] = useState(String(data.reminder ?? DEFAULT_REMINDER))
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
   const title = new Intl.DateTimeFormat(intl, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(month.year, month.month, 1)))
   // Monday first, in the reader's language: 5 January 2026 is a Monday.
@@ -293,7 +299,13 @@ function DatesPanel({ data, close, back }: PanelProps) {
   const save = (next: Record<DateField, string | null>) => {
     setError(null)
     startTransition(async () => {
-      const result = await setCardDates(data.projectId, { plannedStart: next.start, plannedEnd: next.end, dueDate: next.due })
+      const result = await setCardDates(data.projectId, {
+        plannedStart: next.start,
+        plannedEnd: next.end,
+        dueDate: next.due,
+        dueTime: next.due ? time || null : null,
+        dueReminder: next.due ? Number(reminder) : null,
+      })
       if (result.error) {
         setError(result.error === 'dateOrder' ? t('dateOrder') : tc('saveFailed'))
         return
@@ -378,9 +390,37 @@ function DatesPanel({ data, close, back }: PanelProps) {
                 }}
                 className={`${FIELD} ${active === row.key ? 'border-accent ring-1 ring-ring' : ''}`}
               />
+              {/* Trello's due has a time of day too. */}
+              {row.key === 'due' && (
+                <input
+                  type="time"
+                  aria-label={t('datesDueTime')}
+                  title={t('datesDueTime')}
+                  disabled={values.due === null}
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className={`${FIELD} w-28 shrink-0 disabled:opacity-50`}
+                />
+              )}
             </div>
           </div>
         ))}
+        <label className="block">
+          <span className="text-[11px] font-semibold text-muted">{t('datesReminder')}</span>
+          <select
+            value={reminder}
+            disabled={values.due === null}
+            onChange={(e) => setReminder(e.target.value)}
+            className={`mt-0.5 ${FIELD} disabled:opacity-50`}
+          >
+            {REMINDERS.map((minutes) => (
+              <option key={minutes} value={minutes}>
+                {t(`reminder_${minutes}`)}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-[11px] text-muted">{t('datesReminderHint')}</span>
+        </label>
       </div>
       <button type="button" disabled={pending} onClick={() => save(values)} className={`${btn.primarySm} mt-4 w-full justify-center`}>
         {tc('save')}

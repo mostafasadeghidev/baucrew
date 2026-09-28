@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dueSoon, notificationLine, recipientsFor, type NotifyCandidate } from '@/lib/notifications'
+import { notificationLine, recipientsFor, type NotifyCandidate } from '@/lib/notifications'
 
 const office = (userId: string, rest: Partial<NotifyCandidate> = {}): NotifyCandidate => ({ userId, role: 'MANAGER', member: false, watching: true, ...rest })
 
@@ -57,14 +57,8 @@ describe('notificationLine', () => {
     expect(notificationLine('due', '2026-09-28', words, status, today)).toBe('nDueToday')
     expect(notificationLine('due', '2026-09-29', words, status, today)).toBe('nDueTomorrow')
     expect(notificationLine('due', '2026-10-05', words, status, today)).toBe('nDueOn(2026-10-05)')
-  })
-})
-
-describe('dueSoon', () => {
-  const today = new Date(Date.UTC(2026, 8, 28, 9))
-  it('is overdue, today or tomorrow', () => {
-    expect(dueSoon(new Date(Date.UTC(2026, 8, 20)), today)).toBe(true)
-    expect(dueSoon(new Date(Date.UTC(2026, 8, 29)), today)).toBe(true)
-    expect(dueSoon(new Date(Date.UTC(2026, 8, 30)), today)).toBe(false)
+    expect(notificationLine('due', '2026-09-28 14:00', words, status, today)).toBe('nDueTodayAt(14:00)')
+    expect(notificationLine('due', '2026-09-29 08:30', words, status, today)).toBe('nDueTomorrowAt(08:30)')
+    expect(notificationLine('due', '2026-10-05 07:00', words, status, today)).toBe('nDueOnAt(2026-10-05,07:00)')
   })
 })

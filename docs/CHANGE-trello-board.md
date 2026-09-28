@@ -476,3 +476,24 @@ shows them as characters again).
 - `toggleMyMembership` in `projects/actions.ts`.
 
 Rollback: revert the commit; no data of its own.
+
+### A time on the due day, and when to be reminded
+
+- `Project.dueTime` ("HH:MM") and `Project.dueReminder` (minutes before, -1
+  none, null for a day before); migration `20260928120000_due_time_reminder`.
+- `src/lib/due-reminder.ts` (tested): `parseDueTime`, `reminderKey`,
+  `tzOffsetMinutes`, `dueMoment` (the day at its time in Europe/Berlin,
+  summer time included), `reminderAt`.
+- `setCardDates` takes the time and the reminder; the dates window has a
+  time field beside the due day and Trello's reminder list; the card's back
+  shows the time with the day.
+- `notifications-db.ts`: the bell's due notices come when the card's
+  reminder does (once per card and due moment); `notificationLine` says the
+  time when there is one (`nDueTodayAt`, `nDueTomorrowAt`, `nDueOnAt`).
+  `dueSoon` is gone.
+
+Rollback: revert the commit, then
+```sql
+ALTER TABLE "Project" DROP COLUMN "dueTime", DROP COLUMN "dueReminder";
+DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928120000_due_time_reminder';
+```

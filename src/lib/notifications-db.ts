@@ -1,7 +1,8 @@
 import 'server-only'
 import { db } from './db'
 import { todayUtc } from './dates'
-import { dueSoon, recipientsFor, type NotifyKind } from './notifications'
+import { recipientsFor, type NotifyKind } from './notifications'
+import { reminderAt } from './due-reminder'
 
 /**
  * Tells the card's members and those following it what just happened on it
@@ -54,13 +55,16 @@ export async function notifyCard(
 }
 
 /**
- * The days coming due on the cards the user is on or follows — overdue, today
- * or tomorrow, and not ticked done — told once per card and day: the first
- * time the bell is drawn after the day came near.
+ * The days coming due on the cards the user is on or follows, not ticked done:
+ * told once per card and due moment, the first time the bell is drawn after
+ * the card's reminder came — a day before unless the card chose otherwise
+ * (src/lib/due-reminder.ts), never when it chose none.
  */
 async function tellDueDays(user: { id: string; role: string; employeeId: string | null }) {
   const today = todayUtc()
-  const near = new Date(today.getTime() + 86_400_000)
+  const now = new Date()
+  // Two days ahead is the earliest a reminder can ask for, and a day more for the time zone.
+  const near = new Date(today.getTime() + 3 * 86_400_000)
   const cards = await db.project.findMany({
     where: {
       archivedAt: null,
@@ -72,17 +76,19 @@ async function tellDueDays(user: { id: string; role: string; employeeId: string 
         ...(user.employeeId ? [{ managerId: user.employeeId }, { team: { some: { employeeId: user.employeeId } } }] : []),
       ],
     },
-    select: { id: true, dueDate: true, managerId: true, team: { select: { employeeId: true } } },
+    select: { id: true, dueDate: true, dueTime: true, dueReminder: true, managerId: true, team: { select: { employeeId: true } } },
     take: 50,
   })
   for (const card of cards) {
-    if (!card.dueDate || !dueSoon(card.dueDate, today)) continue
+    if (!card.dueDate) continue
+    const at = reminderAt(card.dueDate, card.dueTime, card.dueReminder)
+    if (!at || now < at) continue
     // A site manager hears of a card only while named on it.
     const member = user.employeeId !== null && (card.managerId === user.employeeId || card.team.some((m) => m.employeeId === user.employeeId))
     if (user.role === 'SITE_MANAGER' && !member) continue
-    const day = card.dueDate.toISOString().slice(0, 10)
-    const told = await db.notification.count({ where: { userId: user.id, projectId: card.id, kind: 'due', text: day } })
-    if (told === 0) await db.notification.create({ data: { userId: user.id, projectId: card.id, kind: 'due', text: day } })
+    const due = `${card.dueDate.toISOString().slice(0, 10)}${card.dueTime ? ` ${card.dueTime}` : ''}`
+    const told = await db.notification.count({ where: { userId: user.id, projectId: card.id, kind: 'due', text: due } })
+    if (told === 0) await db.notification.create({ data: { userId: user.id, projectId: card.id, kind: 'due', text: due } })
   }
 }
 

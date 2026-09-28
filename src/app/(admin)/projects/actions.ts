@@ -29,6 +29,7 @@ import { keptParts, type TemplatePart } from '@/lib/card-templates'
 import { MAX_PLAN_MONTHS, parseMonthInput } from '@/lib/plan-month'
 import { geocodeCity } from '@/lib/geocode'
 import { notifyCard } from '@/lib/notifications-db'
+import { parseDueTime, reminderKey } from '@/lib/due-reminder'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -1512,7 +1513,15 @@ function dayOrNull(raw: string | null): Date | null | undefined {
  */
 export async function setCardDates(
   id: string,
-  dates: { plannedStart: string | null; plannedEnd: string | null; dueDate: string | null }
+  dates: {
+    plannedStart: string | null
+    plannedEnd: string | null
+    dueDate: string | null
+    /** "HH:MM" on the due day, or null for the day as a whole. */
+    dueTime?: string | null
+    /** Minutes before (src/lib/due-reminder.ts); null keeps the default. */
+    dueReminder?: number | null
+  }
 ): Promise<CardEdit> {
   const user = await requireStaff()
   if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
@@ -1521,8 +1530,11 @@ export async function setCardDates(
   const dueDate = dayOrNull(dates.dueDate)
   if (plannedStart === undefined || plannedEnd === undefined || dueDate === undefined) return { error: 'saveFailed' }
   if (plannedStart && plannedEnd && plannedEnd < plannedStart) return { error: 'dateOrder' }
+  // A time and a reminder belong to a day due; without one they go too.
+  const dueTime = dueDate ? parseDueTime(dates.dueTime) : null
+  const dueReminder = dueDate ? reminderKey(dates.dueReminder) : null
   const snapshot = await projectBefore(id)
-  await db.project.update({ where: { id }, data: { plannedStart, plannedEnd, dueDate } })
+  await db.project.update({ where: { id }, data: { plannedStart, plannedEnd, dueDate, dueTime, dueReminder } })
   const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '—')
   await audit({
     userId: user.id,

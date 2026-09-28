@@ -77,21 +77,17 @@ export function notificationLine(
     case 'restored':
       return words('nRestored')
     case 'due': {
-      const due = text ? Date.parse(`${text}T00:00:00.000Z`) : NaN
+      // "2026-09-29", or "2026-09-29 14:00" when the card is due at a time.
+      const [day, time] = (text ?? '').split(' ')
+      const due = day ? Date.parse(`${day}T00:00:00.000Z`) : NaN
       if (Number.isNaN(due)) return words('nDueOn', { date: text ?? '' })
       const days = Math.round((due - Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())) / DAY)
       if (days < 0) return words('nOverdue')
-      if (days === 0) return words('nDueToday')
-      if (days === 1) return words('nDueTomorrow')
-      return words('nDueOn', { date: formatDay(text!) })
+      if (days === 0) return time ? words('nDueTodayAt', { time }) : words('nDueToday')
+      if (days === 1) return time ? words('nDueTomorrowAt', { time }) : words('nDueTomorrow')
+      return time ? words('nDueOnAt', { date: formatDay(day), time }) : words('nDueOn', { date: formatDay(day) })
     }
     default:
       return words('nUpdated')
   }
-}
-
-/** Whether a day due is near enough to be told of: overdue, today or tomorrow. */
-export function dueSoon(due: Date, today: Date): boolean {
-  const start = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
-  return due.getTime() <= start + DAY
 }

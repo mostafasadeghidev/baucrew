@@ -623,7 +623,22 @@
     "keysSearch": "Zur Suche springen",
     "keysHelp": "Diese Liste zeigen",
     "cardArchivedNotice": "Karte archiviert",
-    "cardUnwatched": "Sie beobachten diese Karte nicht mehr."
+    "cardUnwatched": "Sie beobachten diese Karte nicht mehr.",
+    "nDueTodayAt": "Die Karte ist heute um {time} Uhr fällig.",
+    "nDueTomorrowAt": "Die Karte ist morgen um {time} Uhr fällig.",
+    "nDueOnAt": "Die Karte ist am {date} um {time} Uhr fällig.",
+    "datesDueTime": "Uhrzeit",
+    "datesReminder": "Erinnerung",
+    "datesReminderHint": "Erinnerungen erscheinen bei den Mitgliedern und Beobachtern dieser Karte in den Benachrichtigungen.",
+    "reminder_-1": "Keine",
+    "reminder_0": "Zum Fälligkeitszeitpunkt",
+    "reminder_5": "5 Minuten vorher",
+    "reminder_10": "10 Minuten vorher",
+    "reminder_15": "15 Minuten vorher",
+    "reminder_60": "1 Stunde vorher",
+    "reminder_120": "2 Stunden vorher",
+    "reminder_1440": "1 Tag vorher",
+    "reminder_2880": "2 Tage vorher"
   },
   "history": {
     "created": "hat die Karte angelegt",

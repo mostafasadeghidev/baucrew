@@ -581,6 +581,8 @@ export async function ProjectDetail({
       end: toDateInputValue(project.plannedEnd) || null,
       due: toDateInputValue(project.dueDate) || null,
     },
+    dueTime: project.dueTime,
+    reminder: project.dueReminder,
     checklistTemplates: checklistTemplates.map((c) => ({ value: c.id, label: c.name })),
     labelsHref: user.role === 'ADMIN' ? '/settings?tab=categories' : null,
   }
@@ -1288,6 +1290,7 @@ export async function ProjectDetail({
           >
             <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {formatDate(project.dueDate, locale)}
+            {project.dueTime && `, ${project.dueTime}`}
           </span>
           </CardPanelButton>
         </div>
