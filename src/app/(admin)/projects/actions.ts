@@ -1334,6 +1334,161 @@ export async function setCardDone(id: string, done: boolean): Promise<{ error?: 
   return {}
 }
 
+// ── The card's back: Trello's small windows for members, labels and dates ──
+
+type CardEdit = { error?: 'saveFailed' | 'dateOrder' }
+
+/** What every small change on a card does afterwards: the webhook's news, the pages drawn again. */
+async function afterCardEdit(user: { id: string }, id: string, snapshot: Awaited<ReturnType<typeof projectBefore>>) {
+  await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
+  revalidatePath('/projects')
+  revalidatePath(`/projects/${id}`)
+}
+
+const employeeName = async (employeeId: string) => {
+  const e = await db.employee.findUnique({ where: { id: employeeId }, select: { firstName: true, lastName: true } })
+  return e ? `${e.firstName} ${e.lastName}`.trim() : null
+}
+
+/**
+ * One person on the card or off it, from the members window. The crew is the
+ * card's members; the site manager is one of them, so taking the site
+ * manager off the card leaves it without one.
+ */
+export async function setCardMember(id: string, employeeId: string, on: boolean): Promise<CardEdit> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const name = await employeeName(employeeId)
+  const project = await db.project.findUnique({
+    where: { id },
+    select: { managerId: true, team: { where: { employeeId }, select: { employeeId: true } } },
+  })
+  if (!project || !name) return { error: 'saveFailed' }
+  const isMember = project.team.length > 0 || project.managerId === employeeId
+  if (isMember === on) return {}
+  const snapshot = await projectBefore(id)
+  if (on) {
+    await db.project.update({ where: { id }, data: { team: { create: [{ employeeId }] } } })
+  } else {
+    await db.project.update({
+      where: { id },
+      data: {
+        team: { deleteMany: { employeeId } },
+        ...(project.managerId === employeeId ? { managerId: null } : {}),
+      },
+    })
+  }
+  await audit({
+    userId: user.id,
+    action: on ? 'project.member.add' : 'project.member.remove',
+    entity: 'Project',
+    entityId: id,
+    ...(on ? { newValue: name } : { oldValue: name }),
+  })
+  await afterCardEdit(user, id, snapshot)
+  return {}
+}
+
+/** The site manager, set from the members window — who is on the crew as well — or cleared. */
+export async function setCardManager(id: string, employeeId: string | null): Promise<CardEdit> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const project = await db.project.findUnique({ where: { id }, select: { managerId: true } })
+  if (!project) return { error: 'saveFailed' }
+  if (project.managerId === employeeId) return {}
+  const name = employeeId ? await employeeName(employeeId) : null
+  if (employeeId && !name) return { error: 'saveFailed' }
+  const snapshot = await projectBefore(id)
+  await db.project.update({ where: { id }, data: { managerId: employeeId } })
+  if (employeeId) {
+    const onTeam = await db.projectEmployee.count({ where: { projectId: id, employeeId } })
+    if (onTeam === 0) await db.project.update({ where: { id }, data: { team: { create: [{ employeeId }] } } })
+  }
+  await audit({ userId: user.id, action: 'project.manager', entity: 'Project', entityId: id, field: 'managerId', newValue: name ?? undefined })
+  await afterCardEdit(user, id, snapshot)
+  return {}
+}
+
+/** A label on the card or off it: a trade, "Hoch" (urgent) or SUB. */
+export async function setCardLabel(id: string, label: string, on: boolean): Promise<CardEdit> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const project = await db.project.findUnique({
+    where: { id },
+    select: { priority: true, isSub: true, workCategories: { select: { workCategoryId: true } } },
+  })
+  if (!project) return { error: 'saveFailed' }
+  const snapshot = await projectBefore(id)
+  let text: string
+  if (label === 'urgent') {
+    const priority = on ? 'HIGH' : project.priority === 'HIGH' ? null : project.priority
+    if (priority === project.priority) return {}
+    await db.project.update({ where: { id }, data: { priority } })
+    text = 'urgent'
+  } else if (label === 'sub') {
+    if (project.isSub === on) return {}
+    await db.project.update({ where: { id }, data: { isSub: on } })
+    text = 'SUB'
+  } else {
+    const trade = await db.workCategory.findUnique({ where: { id: label }, select: { id: true, nameDe: true } })
+    if (!trade) return { error: 'saveFailed' }
+    const has = project.workCategories.some((w) => w.workCategoryId === trade.id)
+    if (has === on) return {}
+    await db.project.update({
+      where: { id },
+      data: { workCategories: on ? { create: [{ workCategoryId: trade.id }] } : { deleteMany: { workCategoryId: trade.id } } },
+    })
+    text = trade.nameDe
+  }
+  await audit({
+    userId: user.id,
+    action: on ? 'project.label.add' : 'project.label.remove',
+    entity: 'Project',
+    entityId: id,
+    ...(on ? { newValue: text } : { oldValue: text }),
+  })
+  await afterCardEdit(user, id, snapshot)
+  return {}
+}
+
+/** "2026-10-05" → that day at UTC midnight; empty → none; anything else → undefined (refused). */
+function dayOrNull(raw: string | null): Date | null | undefined {
+  if (raw === null || raw === '') return null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return undefined
+  const d = new Date(`${raw}T00:00:00.000Z`)
+  return Number.isNaN(d.getTime()) ? undefined : d
+}
+
+/**
+ * The dates window: the planned start and end, and the day the work is due
+ * by — each set, changed or taken away. A fixed start wins over the month the
+ * job was placed in, as it does everywhere (src/lib/plan-month.ts).
+ */
+export async function setCardDates(
+  id: string,
+  dates: { plannedStart: string | null; plannedEnd: string | null; dueDate: string | null }
+): Promise<CardEdit> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const plannedStart = dayOrNull(dates.plannedStart)
+  const plannedEnd = dayOrNull(dates.plannedEnd)
+  const dueDate = dayOrNull(dates.dueDate)
+  if (plannedStart === undefined || plannedEnd === undefined || dueDate === undefined) return { error: 'saveFailed' }
+  if (plannedStart && plannedEnd && plannedEnd < plannedStart) return { error: 'dateOrder' }
+  const snapshot = await projectBefore(id)
+  await db.project.update({ where: { id }, data: { plannedStart, plannedEnd, dueDate } })
+  const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '—')
+  await audit({
+    userId: user.id,
+    action: 'project.dates',
+    entity: 'Project',
+    entityId: id,
+    newValue: `${day(plannedStart)} – ${day(plannedEnd)} · ${day(dueDate)}`,
+  })
+  await afterCardEdit(user, id, snapshot)
+  return {}
+}
+
 /** The quick menu on a card: another name, or urgent on and off. */
 export async function quickUpdateProject(
   id: string,

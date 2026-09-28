@@ -26,7 +26,8 @@ import { CardDropZone } from './card-drop-zone'
 import { ClampText } from '@/components/ui/clamp-text'
 import { previewKind } from '@/lib/files'
 import { ArchiveButton } from '../archive-button'
-import { SheetAddBar, SheetAddMenu } from '../sheet-add-bar'
+import { CardAddBar, CardAddButton, CardPanelButton, type CardEditData } from './card-popovers'
+import { EditableTitle } from './editable-title'
 import { CoverPicker } from './cover-picker'
 import { SheetMenu } from './sheet-menu'
 import { SheetTitle } from './sheet-title'
@@ -55,7 +56,7 @@ import { ProjectComments, type ActivityRow, type CommentRow } from '@/components
 import { addProjectComment, deleteProjectComment, editProjectComment, toggleCommentReaction } from './comment-actions'
 import { displayName, mentionablePeople } from '@/lib/comments-db'
 import { canDeleteComment, canEditComment, reactionSummary } from '@/lib/comments'
-import { ChevronRight, Clock } from 'lucide-react'
+import { ChevronRight, Clock, Plus } from 'lucide-react'
 import { dateTone, dueTone, initials, labelSwatch, swatchOf } from '@/lib/board-cards'
 import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
 import { ProjectTimeSummary } from './time-summary'
@@ -212,7 +213,7 @@ export async function ProjectDetail({
     db.workCategory.findMany({
       where: { active: true },
       orderBy: { sortOrder: 'asc' },
-      select: { id: true, nameDe: true, nameEn: true },
+      select: { id: true, nameDe: true, nameEn: true, color: true },
     }),
     // What a duplicate could be folded into this one — admins only.
     user.role === 'ADMIN'
@@ -1138,49 +1139,76 @@ export async function ProjectDetail({
       : null
   const tone = dateTone(project.status, project.plannedStart, project.plannedEnd, todayUtc())
   const metaHead = 'text-[11px] font-semibold uppercase tracking-wide text-muted'
+  /** What Trello's small windows on the card's back work with. */
+  const cardEdit: CardEditData = {
+    projectId: project.id,
+    people: allEmployees.map((e) => {
+      const name = `${e.firstName} ${e.lastName}`.trim()
+      return { id: e.id, name, initials: initials(name), swatch: swatchOf(e.id) }
+    }),
+    members: [...new Set([...(project.managerId ? [project.managerId] : []), ...project.team.map((m) => m.employeeId)])],
+    managerId: project.managerId,
+    trades: allCategories.map((c) => ({ id: c.id, name: categoryLabel(c), swatch: labelSwatch(c.color, c.id) })),
+    labelIds: project.workCategories.map((wc) => wc.workCategoryId),
+    urgent: project.priority === 'HIGH',
+    sub: project.isSub,
+    dates: {
+      start: toDateInputValue(project.plannedStart) || null,
+      end: toDateInputValue(project.plannedEnd) || null,
+      due: toDateInputValue(project.dueDate) || null,
+    },
+    checklistTemplates: checklistTemplates.map((c) => ({ value: c.id, label: c.name })),
+    labelsHref: user.role === 'ADMIN' ? '/settings?tab=categories' : null,
+  }
+  const round = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-subtle text-muted transition-colors hover:bg-surface-hover hover:text-foreground'
   const meta = sheet ? (
     <div className="flex flex-wrap gap-x-8 gap-y-3 px-1">
       <div>
         <p className={metaHead}>{t('sheetMembers')}</p>
-        <div className="mt-1 flex min-h-7 items-center -space-x-1">
-          {faces.length === 0 ? (
-            <span className="text-sm text-muted">—</span>
-          ) : (
-            faces.map((face) => (
-              <span
-                key={face.id}
-                title={face.manager ? `${t('cardManager')}: ${face.name}` : face.name}
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold text-white ring-2 ${
-                  face.manager ? 'ring-accent' : 'ring-background'
-                } ${PERSON_SWATCH[swatchOf(face.id)]}`}
-              >
-                {initials(face.name)}
-              </span>
-            ))
+        {/* The faces and the plus after them open Trello's members window. */}
+        <CardPanelButton data={cardEdit} panel="members" title={t('sheetMembers')} className="mt-1 flex min-h-7 items-center gap-1 rounded-md text-left">
+          {faces.length > 0 && (
+            <span className="flex items-center -space-x-1">
+              {faces.map((face) => (
+                <span
+                  key={face.id}
+                  title={face.manager ? `${t('cardManager')}: ${face.name}` : face.name}
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold text-white ring-2 ${
+                    face.manager ? 'ring-accent' : 'ring-background'
+                  } ${PERSON_SWATCH[swatchOf(face.id)]}`}
+                >
+                  {initials(face.name)}
+                </span>
+              ))}
+            </span>
           )}
-        </div>
+          <span className={round} aria-hidden>
+            <Plus className="h-4 w-4" />
+          </span>
+        </CardPanelButton>
       </div>
       <div>
         <p className={metaHead}>{t('sheetLabels')}</p>
-        <div className="mt-1 flex min-h-7 flex-wrap items-center gap-1">
+        <CardPanelButton data={cardEdit} panel="labels" title={t('sheetLabels')} className="mt-1 flex min-h-7 flex-wrap items-center gap-1 rounded-md text-left">
           {project.priority === 'HIGH' && (
-            <span className={`h-6 rounded px-2 text-xs font-medium leading-6 ${URGENT_LABEL.pill}`}>{t('priorityHigh')}</span>
+            <span className={`h-7 rounded px-2 text-xs font-medium leading-7 ${URGENT_LABEL.pill}`}>{t('priorityHigh')}</span>
           )}
-          {project.isSub && <span className={`h-6 rounded px-2 text-xs font-medium leading-6 ${SUB_LABEL.pill}`}>SUB</span>}
+          {project.isSub && <span className={`h-7 rounded px-2 text-xs font-medium leading-7 ${SUB_LABEL.pill}`}>SUB</span>}
           {project.workCategories.map((wc) => (
-            <span key={wc.workCategoryId} className={`h-6 rounded px-2 text-xs font-medium leading-6 ${LABEL_PILL[labelSwatch(wc.workCategory.color, wc.workCategoryId)]}`}>
+            <span key={wc.workCategoryId} className={`h-7 rounded px-2 text-xs font-medium leading-7 ${LABEL_PILL[labelSwatch(wc.workCategory.color, wc.workCategoryId)]}`}>
               {categoryLabel(wc.workCategory)}
             </span>
           ))}
-          {project.priority !== 'HIGH' && !project.isSub && project.workCategories.length === 0 && (
-            <span className="text-sm text-muted">—</span>
-          )}
-        </div>
+          <span className={`${round} rounded-md`} aria-hidden>
+            <Plus className="h-4 w-4" />
+          </span>
+        </CardPanelButton>
       </div>
       <div>
         <p className={metaHead}>{t('sheetDates')}</p>
-        <p
-          className={`mt-1 inline-flex min-h-7 items-center rounded px-1.5 text-sm tabular-nums ${
+        <CardPanelButton data={cardEdit} panel="dates" title={t('sheetDates')} className="text-left">
+        <span
+          className={`mt-1 inline-flex min-h-7 items-center rounded px-1.5 text-sm tabular-nums transition-[filter] hover:brightness-95 ${
             project.doneAt && planned.length > 0
               ? 'bg-emerald-600 text-white'
               : tone === 'late'
@@ -1192,7 +1220,8 @@ export async function ProjectDetail({
           title={project.doneAt ? t('cardDoneState') : tone === 'late' ? t('cardLate') : tone === 'soon' ? t('cardSoon') : undefined}
         >
           {planned.length > 0 ? planned.join(' – ') : (roughMonth ?? '—')}
-        </p>
+        </span>
+        </CardPanelButton>
       </div>
       {project.pausedAt && (
         <div>
@@ -1205,8 +1234,9 @@ export async function ProjectDetail({
       {project.dueDate && (
         <div>
           <p className={metaHead}>{t('dueDate')}</p>
-          <p
-            className={`mt-1 inline-flex min-h-7 items-center gap-1 rounded px-1.5 text-sm tabular-nums ${
+          <CardPanelButton data={cardEdit} panel="dates" title={t('dueDate')} className="text-left">
+          <span
+            className={`mt-1 inline-flex min-h-7 items-center gap-1 rounded px-1.5 text-sm tabular-nums transition-[filter] hover:brightness-95 ${
               project.doneAt
                 ? 'bg-emerald-600 text-white'
                 : due === 'late'
@@ -1219,7 +1249,8 @@ export async function ProjectDetail({
           >
             <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {formatDate(project.dueDate, locale)}
-          </p>
+          </span>
+          </CardPanelButton>
         </div>
       )}
       {showPrice && orderTotal != null && (
@@ -1336,24 +1367,21 @@ export async function ProjectDetail({
               title={project.name}
               compact={
                 <>
-                  <SheetAddMenu labels={addLabels} />
+                  <CardAddButton data={cardEdit} labels={addLabels} />
                   {editing}
                 </>
               }
             >
               <div className="flex items-start gap-3 pt-5">
-                <DoneTick projectId={project.id} done={project.doneAt !== null} large className="mt-1" />
-                <h2 className="min-w-0 flex-1 break-words text-2xl font-semibold leading-tight">
-                  {project.name}
-                  <span className="ml-2 align-middle text-sm font-normal text-muted">{project.number}</span>
-                </h2>
+                <DoneTick projectId={project.id} done={project.doneAt !== null} large className="mt-1.5" />
+                <EditableTitle projectId={project.id} name={project.name} number={project.number} />
                 {editing}
               </div>
               <p className="mt-1 text-sm text-muted">{customerLine}</p>
             </SheetTitle>
             {archivedBanner && <div className="mt-3">{archivedBanner}</div>}
             <div className="mt-4">
-              <SheetAddBar labels={addLabels} />
+              <CardAddBar data={cardEdit} labels={addLabels} />
             </div>
             <div className="mt-5">{meta}</div>
             <div className="mt-6 space-y-8">{body}</div>

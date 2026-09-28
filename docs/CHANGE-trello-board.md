@@ -318,3 +318,27 @@ Rollback: revert the commit, then
 ALTER TABLE "Project" DROP COLUMN "doneAt";
 DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928090000_card_done';
 ```
+
+### The card's back: the title typed over, Trello's small windows
+
+- `[id]/editable-title.tsx`: the big title turns into a field on a click;
+  Enter or a click elsewhere saves through `quickUpdateProject`, Escape
+  lets go without closing the sheet.
+- `[id]/card-popovers.tsx` replaces `projects/sheet-add-bar.tsx` (deleted):
+  `CardAddButton` ("+ Hinzufügen" as Trello's list with a line each),
+  `CardAddBar` (it and the four quick buttons), `CardPanelButton` (any
+  button opening one of the windows — also the faces, the labels and the
+  dates in the row under the title; `opensFromAddress` answers `?pop=`).
+  The windows: members (search, card members with remove and a star for the
+  site manager, the others to add), labels (Hoch, SUB and the trades as
+  coloured bars with a tick; "Etiketten verwalten" for the administrator),
+  dates (a month calendar from `src/lib/calendar-grid.ts` plus start, end
+  and due), a new checklist (title, copied from a checklist template).
+  `PopoverHead` in `components/ui/popover.tsx` is Trello's window head,
+  shared with the card templates.
+- `projects/actions.ts`: `setCardMember`, `setCardManager`, `setCardLabel`,
+  `setCardDates` — each saves one thing, writes its own audit line
+  (`project.member.add|remove`, `project.manager`, `project.label.add|remove`,
+  `project.dates`, described in `card-history.ts`) and announces the change.
+
+Rollback: revert the commit; no data of its own.

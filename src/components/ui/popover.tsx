@@ -15,6 +15,40 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
+import { ChevronLeft, X } from 'lucide-react'
+
+const HEAD_BUTTON = 'flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-foreground'
+
+/** Trello's head of a small window: the title in the middle, a way back on the left when there is one, the cross on the right. */
+export function PopoverHead({
+  title,
+  close,
+  closeLabel,
+  back = null,
+  backLabel = '',
+}: {
+  title: string
+  close: () => void
+  closeLabel: string
+  back?: (() => void) | null
+  backLabel?: string
+}) {
+  return (
+    <div className="mb-3 grid grid-cols-[2rem_minmax(0,1fr)_2rem] items-center">
+      {back ? (
+        <button type="button" onClick={back} aria-label={backLabel} title={backLabel} className={HEAD_BUTTON}>
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+        </button>
+      ) : (
+        <span />
+      )}
+      <p className="truncate text-center text-sm font-semibold">{title}</p>
+      <button type="button" onClick={close} aria-label={closeLabel} title={closeLabel} className={HEAD_BUTTON}>
+        <X className="h-4 w-4" aria-hidden />
+      </button>
+    </div>
+  )
+}
 
 export function Popover({
   open,

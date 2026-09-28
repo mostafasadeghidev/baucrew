@@ -58,6 +58,18 @@ export function describeAudit(entry: AuditEntry, t: Words, statusLabel: (status:
       return t('copiedFrom', { name: name(oldValue) })
     case 'project.fromTemplate':
       return t('fromTemplate', { name: name(newValue) })
+    case 'project.member.add':
+      return t('memberAdded', { name: name(newValue) })
+    case 'project.member.remove':
+      return t('memberRemoved', { name: name(oldValue) })
+    case 'project.manager':
+      return newValue ? t('managerSet', { name: newValue }) : t('managerCleared')
+    case 'project.label.add':
+      return t('labelAdded', { name: newValue === 'urgent' ? t('urgentLabel') : name(newValue) })
+    case 'project.label.remove':
+      return t('labelRemoved', { name: oldValue === 'urgent' ? t('urgentLabel') : name(oldValue) })
+    case 'project.dates':
+      return t('datesChanged')
     case 'project.done':
       return t('done')
     case 'project.undone':

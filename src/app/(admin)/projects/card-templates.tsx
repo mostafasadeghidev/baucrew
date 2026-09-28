@@ -18,8 +18,8 @@
 import { useCallback, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { AlignLeft, ChevronLeft, ListChecks, Pencil, Plus, X } from 'lucide-react'
-import { Popover } from '@/components/ui/popover'
+import { AlignLeft, ListChecks, Pencil, Plus, X } from 'lucide-react'
+import { Popover, PopoverHead } from '@/components/ui/popover'
 import { Combobox } from '@/components/combobox'
 import { btn } from '@/components/ui/button'
 import { LABEL_PILL, PERSON_SWATCH } from '@/components/swatches'
@@ -46,8 +46,6 @@ export type BoardTemplate = {
 }
 
 type View = { kind: 'list' } | { kind: 'edit' } | { kind: 'create'; template: BoardTemplate }
-
-const ICON_BUTTON = 'flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-hover hover:text-foreground'
 
 export function CardTemplates({
   templates,
@@ -136,19 +134,7 @@ export function CardTemplates({
   }
 
   const head = (title: string, back: (() => void) | null) => (
-    <div className="mb-3 grid grid-cols-[2rem_minmax(0,1fr)_2rem] items-center">
-      {back ? (
-        <button type="button" onClick={back} aria-label={t('templateBack')} title={t('templateBack')} className={ICON_BUTTON}>
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-        </button>
-      ) : (
-        <span />
-      )}
-      <p className="truncate text-center text-sm font-semibold">{title}</p>
-      <button type="button" onClick={close} aria-label={tc('close')} title={tc('close')} className={ICON_BUTTON}>
-        <X className="h-4 w-4" aria-hidden />
-      </button>
-    </div>
+    <PopoverHead title={title} close={close} closeLabel={tc('close')} back={back} backLabel={t('templateBack')} />
   )
 
   const list = (editing: boolean) =>
