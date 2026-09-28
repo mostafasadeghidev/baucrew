@@ -117,6 +117,8 @@ export async function ProjectDetail({
       },
       // Web addresses attached beside the files, newest first.
       cardLinks: { orderBy: { createdAt: 'desc' }, include: { createdBy: { select: { username: true } } } },
+      // The other systems this project is known to — Trello, the tools system … — by their ids.
+      links: { orderBy: { system: 'asc' }, select: { id: true, system: true, externalId: true, url: true } },
       workCategories: { include: { workCategory: true } },
       deviceNeeds: { select: { deviceId: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
@@ -450,6 +452,23 @@ export async function ProjectDetail({
             >
               {project.externalSystem || t('externalSourceLink')} ↗
             </a>
+          )}
+        {project.links.length > 0 &&
+          row(
+            t('linkedSystems'),
+            <span className="flex flex-wrap gap-x-3 gap-y-1">
+              {project.links.map((link) =>
+                link.url ? (
+                  <a key={link.id} href={link.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                    {link.system}: <span className="tabular-nums">{link.externalId}</span> ↗
+                  </a>
+                ) : (
+                  <span key={link.id}>
+                    {link.system}: <span className="tabular-nums">{link.externalId}</span>
+                  </span>
+                )
+              )}
+            </span>
           )}
       </dl>
     ),
@@ -1338,6 +1357,13 @@ export async function ProjectDetail({
         <span>{project.customer.name}</span>
       )}
       {address && <> · {address}</>}
+      {/* The site's phone, else the customer's — callable, as everywhere in the office. */}
+      {(project.phone || project.customer.phone) && (
+        <>
+          {' · '}
+          <PhoneLink value={project.phone || project.customer.phone} />
+        </>
+      )}
     </>
   )
   const archivedBanner = project.archivedAt ? (

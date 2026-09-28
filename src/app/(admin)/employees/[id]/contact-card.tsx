@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Pencil } from 'lucide-react'
 import { btn } from '@/components/ui/button'
+import { PhoneLink } from '@/components/phone-link'
 import { TagsPicker } from '@/components/tags-picker'
 import type { ContactFormState } from '../actions'
 
@@ -124,7 +125,9 @@ export function ContactCard({
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex gap-2">
               <dt className="w-36 shrink-0 text-muted">{t('phone')}</dt>
-              <dd>{contact.phone ?? '—'}</dd>
+              <dd>
+                <PhoneLink value={contact.phone} />
+              </dd>
             </div>
             <div className="flex gap-2">
               <dt className="w-36 shrink-0 text-muted">{t('email')}</dt>

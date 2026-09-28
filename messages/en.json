@@ -657,7 +657,8 @@
     "boardMoreSettings": "More board settings",
     "boardListsPick": "Choose the statuses one by one",
     "boardListsPickAll": "Select all",
-    "boardListsPickNone": "Select none"
+    "boardListsPickNone": "Select none",
+    "linkedSystems": "Linked systems"
   },
   "history": {
     "created": "created this card",

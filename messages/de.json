@@ -657,7 +657,8 @@
     "boardMoreSettings": "Weitere Einstellungen der Boards",
     "boardListsPick": "Status einzeln auswählen",
     "boardListsPickAll": "Alle auswählen",
-    "boardListsPickNone": "Keine auswählen"
+    "boardListsPickNone": "Keine auswählen",
+    "linkedSystems": "Verknüpfte Systeme"
   },
   "history": {
     "created": "hat die Karte angelegt",
