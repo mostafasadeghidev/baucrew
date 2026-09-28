@@ -47,6 +47,8 @@ import { LiveRefresh } from '@/components/live-refresh'
 import { Check } from 'lucide-react'
 import { activitySince, addressLine, cardFieldLines, dateTone, dueFilterRange, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 import { orderValue } from '@/lib/reports'
+import { describeAudit } from '@/lib/card-history'
+import { PERSON_SWATCH } from '@/components/swatches'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
 
@@ -74,10 +76,12 @@ export default async function ProjectsPage({
     archived?: string
     /** What the archive panel is searched for. */
     aq?: string
+    /** Trello's board activity: the panel open, with this many lines. */
+    feed?: string
   }>
 }) {
   const user = await requireStaff()
-  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, due, done, activity, card, template: templateParam, archived, aq } =
+  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, due, done, activity, card, template: templateParam, archived, aq, feed } =
     await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
@@ -107,18 +111,35 @@ export default async function ProjectsPage({
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
   // This very address — where the open card's forms return to.
   const here = new URLSearchParams()
-  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, due, done, activity, card, archived, aq }))
+  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, due, done, activity, card, archived, aq, feed }))
     if (value) here.set(key, value)
   const returnTo = `/projects?${here.toString()}`
   /** This address with the archive panel open, and without it. */
   const archivedHref = (open: boolean) => {
     const params = new URLSearchParams(here)
     params.delete('card')
+    params.delete('feed')
     if (open) params.set('archived', '1')
     else {
       params.delete('archived')
       params.delete('aq')
     }
+    return `/projects?${params.toString()}`
+  }
+  /** Trello's board activity: how many lines it shows, and this address with it open (more of it) or closed. */
+  const feedSize = feed ? Math.min(500, Math.max(50, Number(feed) || 50)) : 0
+  /** A card opened over the board from the activity, the panel staying open beside it. */
+  const openCardHref = (id: string) => {
+    const params = new URLSearchParams(here)
+    params.set('card', id)
+    return `/projects?${params.toString()}`
+  }
+  const feedHref = (size: number | null) => {
+    const params = new URLSearchParams(here)
+    params.delete('card')
+    params.delete('archived')
+    params.delete('aq')
+    if (size) params.set('feed', String(size))
     return `/projects?${params.toString()}`
   }
 
@@ -531,6 +552,54 @@ export default async function ProjectsPage({
           select: { id: true, number: true, name: true, status: true, archivedAt: true, customer: { select: { name: true } } },
         })
       : []
+  /**
+   * Trello's board activity: the cards' history, newest first — the same
+   * words each card's own activity uses. A site manager reads only the cards
+   * named on them; money never appears (an invoice line names no amount, and
+   * reaches only those who may see money).
+   */
+  const feedLines = await (async () => {
+    if (!kanban || !feedSize) return null
+    const visible = projectScope(user) ? (await db.project.findMany({ where: scope, select: { id: true } })).map((p) => p.id) : null
+    const rows = await db.auditLog.findMany({
+      where: {
+        entity: 'Project',
+        ...(visible ? { entityId: { in: visible } } : {}),
+        ...(canViewFinancials(user) ? {} : { NOT: { action: { startsWith: 'project.invoice' } } }),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: feedSize + 1,
+      select: {
+        id: true,
+        action: true,
+        field: true,
+        oldValue: true,
+        newValue: true,
+        createdAt: true,
+        entityId: true,
+        user: { select: { id: true, username: true, employee: { select: { firstName: true, lastName: true } } } },
+      },
+    })
+    const cards = new Map(
+      (await db.project.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.entityId))] } }, select: { id: true, number: true, name: true } })).map(
+        (p) => [p.id, p]
+      )
+    )
+    const tHistory = await getTranslations('history')
+    const stamp = new Intl.DateTimeFormat(intl, { dateStyle: 'short', timeStyle: 'short' })
+    const lines = rows.slice(0, feedSize).flatMap((row) => {
+      const text = describeAudit(
+        { ...row, user: row.user ? { username: row.user.username } : null },
+        (key, values) => tHistory(key as 'created', values),
+        (s) => (s in ProjectStatus ? tStatus(s as ProjectStatus) : s)
+      )
+      const cardRow = cards.get(row.entityId)
+      if (!text || !cardRow) return []
+      const who = row.user ? (row.user.employee ? `${row.user.employee.firstName} ${row.user.employee.lastName}`.trim() : row.user.username) : tHistory('system')
+      return [{ id: row.id, who, initials: initials(who), swatch: row.user ? swatchOf(row.user.id) : 0, text, card: cardRow, when: stamp.format(row.createdAt) }]
+    })
+    return { lines, more: rows.length > feedSize }
+  })()
   const allCount = statusCounts.reduce((sum, s) => sum + s._count._all, 0)
   const shownInYear = kanban ? boardProjects.filter((p) => shownStatuses.includes(p.status)).length : total
   const otherYearHits = query && years !== ALL_YEARS ? Math.max(0, searchInAllYears - shownInYear) : 0
@@ -805,6 +874,7 @@ export default async function ProjectsPage({
             <BoardMenu
               onGround={onGround}
               archivedHref={archivedHref(true)}
+              activityHref={feedHref(50)}
               links={officeLinks}
               settingsHref={user.role === 'ADMIN' ? '/settings/boards' : null}
             />
@@ -882,6 +952,51 @@ export default async function ProjectsPage({
                     </div>
                   </li>
                 ))}
+              </ul>
+            )}
+          </aside>
+        )}
+
+        {/* Trello's board activity, from the board's menu: a panel over the right of the
+            board, who did what to which card, newest first; a card's name opens it. */}
+        {feedLines && (
+          <aside className="absolute inset-y-0 right-0 z-20 flex w-full max-w-sm flex-col border-l border-border bg-surface shadow-2xl">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+              <h2 className="text-sm font-semibold">{t('boardActivity')}</h2>
+              <Link href={feedHref(null)} aria-label={tc('close')} title={tc('close')} className="rounded-md p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground">
+                <X className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
+            {feedLines.lines.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-muted">{t('boardActivityNone')}</p>
+            ) : (
+              <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
+                {feedLines.lines.map((line) => (
+                  <li key={line.id} className="flex gap-2.5 text-sm">
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white ${PERSON_SWATCH[line.swatch]}`}>
+                      {line.initials}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words">
+                        <span className="font-semibold">{line.who}</span> {line.text}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        <Link href={openCardHref(line.card.id)} scroll={false} className="text-accent hover:underline">
+                          {line.card.number} {line.card.name}
+                        </Link>
+                        {' · '}
+                        <span className="tabular-nums">{line.when}</span>
+                      </p>
+                    </div>
+                  </li>
+                ))}
+                {feedLines.more && (
+                  <li>
+                    <Link href={feedHref(feedSize + 50)} scroll={false} className="block rounded-md bg-subtle px-3 py-1.5 text-center text-sm font-medium transition-colors hover:bg-surface-hover">
+                      {t('boardActivityMore')}
+                    </Link>
+                  </li>
+                )}
               </ul>
             )}
           </aside>

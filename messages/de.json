@@ -601,7 +601,10 @@
     "boardFilterActive1w": "Aktiv in der letzten Woche",
     "boardFilterActive2w": "Aktiv in den letzten zwei Wochen",
     "boardFilterActive4w": "Aktiv in den letzten vier Wochen",
-    "boardFilterStale": "Ohne Aktivität in den letzten vier Wochen"
+    "boardFilterStale": "Ohne Aktivität in den letzten vier Wochen",
+    "boardActivity": "Aktivität",
+    "boardActivityNone": "Noch keine Aktivität.",
+    "boardActivityMore": "Weitere Aktivität laden"
   },
   "history": {
     "created": "hat die Karte angelegt",

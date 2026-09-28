@@ -8,18 +8,21 @@
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Archive, Check, MoreHorizontal, Settings2 } from 'lucide-react'
+import { Activity, Archive, Check, MoreHorizontal, Settings2 } from 'lucide-react'
 import { Menu, MenuLabel, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { useCardDetails } from './board-prefs'
 
 export function BoardMenu({
   onGround,
   archivedHref,
+  activityHref,
   links,
   settingsHref,
 }: {
   onGround: boolean
   archivedHref: string
+  /** Trello's "Aktivität": what happened on the board's cards, newest first. */
+  activityHref: string
   links: Array<{ href: string; label: string; count?: number }>
   settingsHref: string | null
 }) {
@@ -40,6 +43,10 @@ export function BoardMenu({
         <Check aria-hidden className={`h-3.5 w-3.5 shrink-0 text-accent ${details ? '' : 'invisible'}`} />
         {t('boardDetails')}
       </button>
+      <Link href={activityHref} role="menuitem" className={menuItemClass}>
+        <Activity aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted" />
+        {t('boardActivity')}
+      </Link>
       <Link href={archivedHref} role="menuitem" className={menuItemClass}>
         <Archive aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted" />
         {t('boardArchived')}

@@ -432,3 +432,15 @@ DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928110000_card_wat
 
 Rollback: revert the commit; no data of its own. Addresses with the new
 parameters simply lose them.
+
+### The board's activity
+
+- `projects/page.tsx`: `?feed=<n>` opens Trello's board activity — a panel
+  over the right of the board with the last n lines of the cards' history
+  (`describeAudit` from `card-history.ts`, the same words as a card's own
+  activity), who, which card (opening it over the board, the panel staying
+  open) and when; "Weitere Aktivität laden" adds fifty. A site manager reads
+  only the cards named on them; invoice lines only reach those who may see
+  money. `board-menu.tsx` has the way in ("Aktivität").
+
+Rollback: revert the commit; no data of its own.
