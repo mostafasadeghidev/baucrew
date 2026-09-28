@@ -461,3 +461,18 @@ Rollback: revert the commit; no data of its own.
 
 Rollback: revert the commit; no data of its own (what was typed with marks
 shows them as characters again).
+
+### Trello's keyboard on the board
+
+- `projects/board-keys.tsx`: `useBoardKeys` — the card is the one the arrow
+  keys walked to (a ring) or the one under the pointer; ← ↑ → ↓ / j k,
+  Enter, e (quick menu), t (rename), l m d (the card with that window, via
+  `?pop=`), Space (`toggleMyMembership`), s (`setCardWatch`), c (archive),
+  n (add in its list), f (filter), q (my cards, `member=me`), x (no filter),
+  / (search), ? (`ShortcutsDialog`). Silent while typing or while any dialog
+  or menu is open.
+- `kanban.tsx` feeds it (`canJoin` from `projects/page.tsx`, the reader's
+  person), marks the walked-to card and keeps the pointer's card.
+- `toggleMyMembership` in `projects/actions.ts`.
+
+Rollback: revert the commit; no data of its own.

@@ -1421,6 +1421,20 @@ export async function setCardMember(id: string, employeeId: string, on: boolean)
   return {}
 }
 
+/** Trello's Space on a card: the reader puts themselves on it, or takes themselves off. */
+export async function toggleMyMembership(id: string): Promise<CardEdit> {
+  const user = await requireStaff()
+  if (!user.employee) return { error: 'saveFailed' }
+  const employeeId = user.employee.id
+  const project = await db.project.findUnique({
+    where: { id },
+    select: { managerId: true, team: { where: { employeeId }, select: { employeeId: true } } },
+  })
+  if (!project) return { error: 'saveFailed' }
+  const on = project.managerId === employeeId || project.team.length > 0
+  return setCardMember(id, employeeId, !on)
+}
+
 /** The site manager, set from the members window — who is on the crew as well — or cleared. */
 export async function setCardManager(id: string, employeeId: string | null): Promise<CardEdit> {
   const user = await requireStaff()

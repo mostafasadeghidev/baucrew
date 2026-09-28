@@ -891,6 +891,7 @@ export default async function ProjectsPage({
             customers={customerOptions.map((c) => ({ value: c.id, label: c.name }))}
             templates={boardTemplates}
             manageTemplates={isOffice(user)}
+            canJoin={user.employee !== null}
             onGround={onGround}
             confirmFor={['COMPLETED', 'CANCELLED']}
             addable={addable}

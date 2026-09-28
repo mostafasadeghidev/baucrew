@@ -46,7 +46,7 @@
  * "select from here to there".
  */
 
-import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -83,10 +83,13 @@ import { dragHasFiles, uploadProjectFiles } from './[id]/upload-files'
 import { CARD } from './board-card'
 import { CardTemplates, type BoardTemplate } from './card-templates'
 import { DoneTick } from './done-tick'
+import { ShortcutsDialog, useBoardKeys } from './board-keys'
 import {
   addColumn,
   archiveCards,
   archiveProject,
+  setCardWatch,
+  toggleMyMembership,
   copyProject,
   moveCard,
   moveCards,
@@ -213,6 +216,7 @@ export function ProjectsKanban({
   customers,
   templates,
   manageTemplates,
+  canJoin,
   onGround,
   confirmFor,
   addable,
@@ -229,6 +233,8 @@ export function ProjectsKanban({
   templates: BoardTemplate[]
   /** Whether the reader may make and change templates there — the office. */
   manageTemplates: boolean
+  /** Whether the reader has a person behind the account — Space puts them on a card. */
+  canJoin: boolean
   /** True when the board stands on a coloured ground: what is written straight on it turns light. */
   onGround: boolean
   /** The statuses that ask before they are set, e.g. COMPLETED and CANCELLED. */
@@ -287,6 +293,51 @@ export function ProjectsKanban({
       () => setNotice(url)
     )
   }
+  // ── Trello's keyboard (board-keys.tsx) ──
+  /** The card the pointer rests on, and the one the arrow keys walked to. */
+  const hoveredCard = useRef<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
+  const [keysOpen, setKeysOpen] = useState(false)
+  const closeKeys = useCallback(() => setKeysOpen(false), [])
+  useBoardKeys({
+    columns: board,
+    hovered: hoveredCard,
+    selected,
+    setSelected,
+    actions: {
+      open: (id) => router.push(openHref(id), { scroll: false }),
+      pop: (id, which) => router.push(popHref(id, which), { scroll: false }),
+      quickEdit: (id) =>
+        document.querySelector<HTMLButtonElement>(`[data-card-id="${CSS.escape(id)}"] button[aria-label="${t('cardQuickEdit')}"]`)?.click(),
+      rename: (id) => {
+        const found = board.flatMap((c) => c.cards).find((c) => c.id === id)
+        if (found) setRenaming({ id, value: found.name })
+      },
+      archive: (id) => {
+        runOnServer(() => archiveProject(id, true))
+        setNotice(t('cardArchivedNotice'))
+      },
+      watch: (id, on) => {
+        startTransition(async () => {
+          await setCardWatch(id, on)
+          router.refresh()
+        })
+        setNotice(on ? t('cardWatched') : t('cardUnwatched'))
+      },
+      join: canJoin
+        ? (id) =>
+            startTransition(async () => {
+              await toggleMyMembership(id)
+              router.refresh()
+            })
+        : null,
+      add: (columnId) => {
+        closeAdd()
+        setAdding(columnId)
+      },
+      help: () => setKeysOpen(true),
+    },
+  })
   /** A card template on the same sheet, the way Trello opens a template card. */
   const templateHref = (id: string) => {
     const params = new URLSearchParams(searchParams)
@@ -1177,6 +1228,10 @@ export function ProjectsKanban({
                     }}
                     data-board-card
                     data-card-id={card.id}
+                    onMouseEnter={() => (hoveredCard.current = card.id)}
+                    onMouseLeave={() => {
+                      if (hoveredCard.current === card.id) hoveredCard.current = null
+                    }}
                     // Both directions: a finger that starts on a card still
                     // pushes the board sideways or the column down. `pan-y`
                     // alone meant the board could only be moved by the narrow
@@ -1184,7 +1239,7 @@ export function ProjectsKanban({
                     style={{ touchAction: 'pan-x pan-y' }}
                     className={`group relative cursor-pointer overflow-hidden [contain-intrinsic-size:auto_140px] [content-visibility:auto] ${CARD} ring-accent/70 transition-shadow hover:ring-2 ${
                       fileOver === card.id ? 'ring-2 ring-accent' : ''
-                    } ${sending === card.id ? 'opacity-60' : ''}`}
+                    } ${sending === card.id ? 'opacity-60' : ''} ${selected === card.id ? 'ring-2 ring-accent' : ''}`}
                   >
                     {/* The picture on the front, the way a Trello card wears its cover. */}
                     {card.cover && (
@@ -1683,6 +1738,7 @@ export function ProjectsKanban({
         }}
         onCancel={() => setArchivingAll(null)}
       />
+      <ShortcutsDialog open={keysOpen} onClose={closeKeys} />
       {notice && (
         <div role="status" className="fixed bottom-6 left-1/2 z-[90] max-w-[90vw] -translate-x-1/2 truncate rounded-lg bg-foreground px-4 py-2 text-sm text-background shadow-lg">
           {notice}
