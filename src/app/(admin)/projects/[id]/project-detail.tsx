@@ -388,7 +388,7 @@ export async function ProjectDetail({
 
   const row = (label: string, value: React.ReactNode) => (
     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-      <dt className="w-40 shrink-0 text-muted">{label}</dt>
+      <dt className="w-40 shrink-0 break-words text-muted hyphens-auto">{label}</dt>
       <dd className="min-w-0 flex-1 basis-28 break-words">{value}</dd>
     </div>
   )
@@ -490,7 +490,7 @@ export async function ProjectDetail({
         {row(t('actualEnd'), <span className="tabular-nums">{formatDate(project.actualEnd, locale)}</span>)}
             {showPrice && (
               <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-                <dt className="w-40 shrink-0 text-muted">{t('price')}</dt>
+                <dt className="w-40 shrink-0 break-words text-muted hyphens-auto">{t('price')}</dt>
                 <dd className="min-w-0 flex-1 basis-28 break-words font-medium tabular-nums">
                   {formatCurrency(project.price ? Number(project.price) : null, locale, { hidden: hidePrices })}
                   {/* Follow-on offers raise the order value — show both. */}
@@ -507,7 +507,7 @@ export async function ProjectDetail({
             )}
             {showPrice && project.planEntries.length > 0 && (
               <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-                <dt className="w-40 shrink-0 text-muted">{t('plannedRevenue')}</dt>
+                <dt className="w-40 shrink-0 break-words text-muted hyphens-auto">{t('plannedRevenue')}</dt>
                 <dd className="min-w-0 flex-1 basis-28 break-words tabular-nums">
                   {formatCurrency(plannedTotal, locale, { hidden: hidePrices })}
                   <span className="ml-1 text-xs font-normal text-muted">
@@ -617,7 +617,13 @@ export async function ProjectDetail({
    * value only for whoever may see money.
    */
   const fieldCells: CardFieldCell[] = [
-    { key: 'customer', text: project.customer.name, section: 'basic', href: null },
+    {
+      key: 'customer',
+      text: project.customer.name,
+      section: 'basic',
+      href: null,
+      edit: { kind: 'customer', value: project.customerId, options: customers.map((c) => ({ value: c.id, label: c.name })) },
+    },
     {
       key: 'address',
       text: address || null,
@@ -673,7 +679,7 @@ export async function ProjectDetail({
         cancelHref={sheet?.returnTo ?? `/projects/${project.id}`}
         title={project.name}
         showPrice={showPrice}
-        pairFrom={sheet ? 'xl' : '2xl'}
+        pairFrom="2xl"
         fold={sheet ? { title: t('sheetProjectData') } : undefined}
         afterDescription={sheet ? <CardFieldsGrid projectId={project.id} cells={fieldCells} card={cardEdit} /> : undefined}
         inline={{
@@ -745,7 +751,7 @@ export async function ProjectDetail({
         // The card back in Trello's order: what is attached, the checklists,
         // what is open, the forms, the days planned — one under the other — and
         // the office's blocks folded under one line at the end.
-        <div className="grid gap-6">
+        <div className="grid grid-cols-1 gap-6">
         <div id="files" className="scroll-mt-24">
         <FilesCard
           projectId={project.id}
@@ -771,7 +777,7 @@ export async function ProjectDetail({
             <h2 className="text-sm font-semibold">{tChecklists('title')}</h2>
             <p className="mt-0.5 text-xs text-muted">{tChecklists('hint')}</p>
           </div>
-          <div className="p-5">
+          <div className="pt-3">
             <ChecklistSection
               projectId={project.id}
               templates={checklistTemplates}
@@ -839,7 +845,7 @@ export async function ProjectDetail({
           ) : (
             <ul className="divide-y divide-border">
               {project.scheduleEntries.map((entry) => (
-                <li key={entry.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2.5 text-sm">
+                <li key={entry.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 text-sm">
                   <span className="font-medium tabular-nums">{formatDate(entry.date, locale)}</span>
                   {(entry.startTime || entry.endTime) && <span className="text-muted">{[entry.startTime, entry.endTime].filter(Boolean).join('–')}</span>}
                   {entry.vehicles.length > 0 && (
@@ -862,7 +868,7 @@ export async function ProjectDetail({
             <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-90" aria-hidden />
             {t('sheetMoreData')}
           </summary>
-          <div className="grid gap-6 border-t border-border p-5">
+          <div className="grid grid-cols-1 gap-6 border-t border-border p-5">
         {/* `#material`: the CRM's missing-material lists link straight here. */}
         <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">
           <div className="border-b border-border px-5 py-3">
@@ -950,7 +956,7 @@ export async function ProjectDetail({
         </details>
       </div>
       ) : (
-      <div className={`grid gap-6 ${pairs}`}>
+      <div className={`grid grid-cols-1 gap-6 ${pairs}`}>
         {/* Tools & materials — no overflow-hidden: the picker dropdown must escape the card */}
         {showPrice && (
           <ProjectAddOns

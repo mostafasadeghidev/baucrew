@@ -157,7 +157,10 @@ function Section({
   return (
     <section
       id={anchor}
-      className={`scroll-mt-24 rounded-xl border border-border bg-surface p-5 shadow-sm ${
+      // A query container: the fields pair off by the card's own width, not the
+      // window's — the same card stands full width on a page and half width
+      // beside another, or in the narrow column of the card's back.
+      className={`@container scroll-mt-24 rounded-xl border border-border bg-surface p-5 shadow-sm ${
         // Every column there is, however many that is at this width.
         wide ? 'col-span-full' : ''
       }`}
@@ -206,7 +209,7 @@ function Section({
       {inline && !open && <div className={icon ? 'mt-3 pl-8' : 'mt-3'}>{view}</div>}
       {/* Hidden, not absent: the fields of a closed card still travel with the
           form, so saving one card cannot empty the other four. */}
-      <div hidden={inline && !open} className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div hidden={inline && !open} className="mt-4 grid grid-cols-1 gap-4 @xs:grid-cols-2">
         {children}
       </div>
     </section>
@@ -332,9 +335,11 @@ function CheckboxGroup({
   onToggle?: (value: string) => void
 }) {
   return (
-    <fieldset className="sm:col-span-2">
+    <fieldset className="col-span-full">
       <legend className="text-sm font-medium">{legend}</legend>
-      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {/* As many columns as the card has room for, each wide enough for the
+          longest trade on one line; a name longer still wraps inside its box. */}
+      <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2">
         {options.map((o) => (
           <label
             key={o.value}
@@ -347,9 +352,9 @@ function CheckboxGroup({
               {...(onToggle
                 ? { checked: selected.includes(o.value), onChange: () => onToggle(o.value) }
                 : { defaultChecked: selected.includes(o.value) })}
-              className="h-4 w-4 accent-[var(--accent)]"
+              className="h-4 w-4 shrink-0 accent-[var(--accent)]"
             />
-            {o.label}
+            <span className="min-w-0 break-words">{o.label}</span>
           </label>
         ))}
       </div>
@@ -636,7 +641,10 @@ export function ProjectForm({
    * The form has the same shape as the project's own page: cards side by side
    * across the width of the window rather than one narrow column of them. Two
    * columns only from xl up — a field needs more room than a line of read-only
-   * text, and the fields inside each card already pair off at sm.
+   * text, and the fields inside each card pair off by the card's own width.
+   * Folded on the card's back the form stands in a column of its own, so there
+   * the cards pair by the form's width instead: one under the other in the
+   * column beside the comments, two abreast where the column is the sheet.
    */
   return (
     <>
@@ -644,7 +652,7 @@ export function ProjectForm({
       key={formKey}
       id={inline ? PROJECT_FORM_ID : undefined}
       action={formAction}
-      className={`grid items-start gap-6 ${pairFrom === '2xl' ? '2xl:grid-cols-2' : 'xl:grid-cols-2'}`}
+      className={`grid grid-cols-1 items-start gap-6 ${fold ? '@container' : pairFrom === '2xl' ? '2xl:grid-cols-2' : 'xl:grid-cols-2'}`}
     >
       {inline ? null : (
       <FormHead
@@ -673,7 +681,7 @@ export function ProjectForm({
           {fold.title}
         </button>
       )}
-      <div className={fold ? `order-3 col-span-full grid items-start gap-6 xl:grid-cols-2 ${unfolded ? '' : 'hidden'}` : 'contents'}>
+      <div className={fold ? `order-3 col-span-full grid grid-cols-1 items-start gap-6 @3xl:grid-cols-2 ${unfolded ? '' : 'hidden'}` : 'contents'}>
       <Section title={t('basicData')} {...card('basic')}>
         <TextField label={t('name')} name="name" defaultValue={initial.name} required />
         <div>
@@ -749,7 +757,7 @@ export function ProjectForm({
           options={categories}
           selected={initial.categoryIds}
         />
-        <div className="sm:col-span-2">
+        <div className="col-span-full">
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
             <input
               type="checkbox"
@@ -763,7 +771,7 @@ export function ProjectForm({
       </Section>
 
       <Section title={t('addressSection')} {...card('address')}>
-        <div className="sm:col-span-2">
+        <div className="col-span-full">
           <label className={`flex items-center gap-2 text-sm font-medium ${customerHasAddress ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
             <input
               type="checkbox"
@@ -830,7 +838,7 @@ export function ProjectForm({
             the work is expected in, and how many months it runs. */}
         <TextField label={t('planMonth')} name="planMonth" type="month" defaultValue={initial.planMonth} />
         <TextField label={t('planMonths')} name="planMonths" type="number" min="1" defaultValue={initial.planMonths} />
-        <p className="text-xs text-muted sm:col-span-2">{t('planMonthHint')}</p>
+        <p className="col-span-full text-xs text-muted">{t('planMonthHint')}</p>
         {/* What was promised to the customer — a date of its own, so a plan
             that runs past it shows as one. */}
         <TextField label={t('dueDate')} name="dueDate" type="date" defaultValue={initial.dueDate} />
@@ -946,7 +954,7 @@ export function ProjectForm({
         {...card('description')}
         icon={fold ? <AlignLeft className="h-5 w-5 shrink-0 text-muted" aria-hidden /> : undefined}
       >
-        <div className="sm:col-span-2">
+        <div className="col-span-full">
           <label htmlFor="description" className="block text-sm font-medium">
             {t('description')}
           </label>
@@ -961,7 +969,7 @@ export function ProjectForm({
             className={inputClass}
           />
         </div>
-        <div className="sm:col-span-2">
+        <div className="col-span-full">
           <label htmlFor="internalNotes" className="block text-sm font-medium">
             {t('internalNotes')}
           </label>

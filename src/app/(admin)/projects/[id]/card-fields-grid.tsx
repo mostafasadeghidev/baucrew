@@ -8,21 +8,22 @@
  * As in Trello a box is typed into where it stands: the customer's wish, the
  * site visit, the order value and the site's address are saved the moment
  * Enter is pressed or the box is left; the type of work opens the labels
- * window, since the trades are the card's labels. The customer is changed in
- * the project's data, where the address and the phone come along; the
- * customer's number belongs to the customer, the day the card came in to
+ * window, since the trades are the card's labels. The customer is picked in a
+ * small window from a list searched as it is typed into, or made new there;
+ * the customer's number belongs to the customer, the day the card came in to
  * nobody.
  */
 
 import { useCallback, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { LayoutList } from 'lucide-react'
+import { Check, LayoutList, Plus } from 'lucide-react'
 import { FIELD_CHIP } from '@/components/swatches'
 import { CARD_FIELD_TONE, type CardFieldKey } from '@/lib/board-cards'
 import { Popover, PopoverHead } from '@/components/ui/popover'
 import { btn } from '@/components/ui/button'
 import { PROJECT_EDIT_CARD_EVENT, type ProjectSectionKey } from '../project-form'
+import { NewCustomerModal } from '../new-customer-modal'
 import { setCardField } from '../actions'
 import { CardPanelButton, type CardEditData } from './card-popovers'
 
@@ -39,6 +40,7 @@ export type CardFieldCell = {
     | { kind: 'text' | 'date' | 'number'; value: string }
     | { kind: 'address'; value: { street: string; postalCode: string; city: string } }
     | { kind: 'labels' }
+    | { kind: 'customer'; value: string; options: { value: string; label: string }[] }
     | null
 }
 
@@ -80,6 +82,8 @@ export function CardFieldsGrid({ projectId, cells, card }: { projectId: string; 
                   </CardPanelButton>
                 ) : cell.edit?.kind === 'address' ? (
                   <AddressField projectId={projectId} value={cell.edit.value} text={cell.text} empty={empty} className={box} />
+                ) : cell.edit?.kind === 'customer' ? (
+                  <CustomerField projectId={projectId} value={cell.edit.value} options={cell.edit.options} text={cell.text} empty={empty} className={box} />
                 ) : cell.edit && SAVE_KEY[cell.key] ? (
                   <InlineField
                     projectId={projectId}
@@ -281,6 +285,149 @@ function AddressField({
           )}
         </form>
       </Popover>
+    </>
+  )
+}
+
+const SEARCH = 'block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+/** How many customers the list draws at once; the search narrows the rest. */
+const CUSTOMERS_SHOWN = 50
+
+/**
+ * The customer, picked the way Trello picks from a list: a small window, a
+ * search that narrows the list as it is typed into, a click that saves. A
+ * customer not in the list yet is made new from there and taken at once.
+ */
+function CustomerField({
+  projectId,
+  value,
+  options,
+  text,
+  empty,
+  className,
+}: {
+  projectId: string
+  value: string
+  options: { value: string; label: string }[]
+  text: string | null
+  empty: string
+  className: string
+}) {
+  const t = useTranslations('projects')
+  const tc = useTranslations('common')
+  const tCustomers = useTranslations('customers')
+  const router = useRouter()
+  const anchor = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  /** The name typed so far while a new customer is being made; null while none is. */
+  const [making, setMaking] = useState<string | null>(null)
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState(false)
+  const close = useCallback(() => setOpen(false), [])
+
+  const pick = (id: string) => {
+    setOpen(false)
+    if (id === value) return
+    setError(false)
+    startTransition(async () => {
+      const result = await setCardField(projectId, { key: 'customer', value: id })
+      if (result.error) setError(true)
+      router.refresh()
+    })
+  }
+
+  const q = query.trim().toLowerCase()
+  const found = options.filter((o) => !q || o.label.toLowerCase().includes(q))
+  // Before anything is typed the card's own customer stands first, ticked.
+  const ordered = q ? found : [...found.filter((o) => o.value === value), ...found.filter((o) => o.value !== value)]
+  const shown = ordered.slice(0, CUSTOMERS_SHOWN)
+  // A name that is in the list already is not offered as a new customer.
+  const newName = q && !options.some((o) => o.label.trim().toLowerCase() === q) ? query.trim() : ''
+
+  return (
+    <>
+      <button
+        ref={anchor}
+        type="button"
+        title={text ?? undefined}
+        aria-expanded={open}
+        disabled={pending}
+        onClick={() => {
+          setQuery('')
+          setError(false)
+          setOpen((o) => !o)
+        }}
+        className={`${className} hover:brightness-95 dark:hover:brightness-110`}
+      >
+        <span className="truncate">{text ?? empty}</span>
+      </button>
+      {error && (
+        <p role="alert" className="mt-1 text-[11px] text-danger">
+          {tc('saveFailed')}
+        </p>
+      )}
+      <Popover open={open} onClose={close} anchor={anchor} label={t('cardField_customer')}>
+        <PopoverHead title={t('cardField_customer')} close={close} closeLabel={tc('close')} />
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter takes the first customer the search leaves.
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              if (shown[0]) pick(shown[0].value)
+            }
+          }}
+          placeholder={t('customerSearch')}
+          aria-label={t('customerSearch')}
+          className={SEARCH}
+        />
+        {shown.length === 0 ? (
+          <p className="px-1 py-3 text-sm text-muted">{tCustomers('noResults')}</p>
+        ) : (
+          <ul className="-mx-1 mt-2 max-h-[min(16rem,38vh)] space-y-0.5 overflow-y-auto px-1">
+            {shown.map((o) => (
+              <li key={o.value}>
+                <button
+                  type="button"
+                  onClick={() => pick(o.value)}
+                  aria-current={o.value === value ? 'true' : undefined}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-hover ${o.value === value ? 'font-medium' : ''}`}
+                >
+                  <span className="min-w-0 flex-1 truncate">{o.label}</span>
+                  {o.value === value && <Check className="h-4 w-4 shrink-0 text-accent" aria-hidden />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {ordered.length > shown.length && (
+          <p className="px-1 pt-1 text-[11px] text-muted">{t('customerMore', { count: ordered.length - shown.length })}</p>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false)
+            setMaking(newName)
+          }}
+          className={`${btn.outlineSm} mt-2 w-full`}
+        >
+          <Plus className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="truncate">{newName ? t('createCustomerOption', { name: newName }) : tCustomers('newCustomer')}</span>
+        </button>
+      </Popover>
+      {making !== null && (
+        <NewCustomerModal
+          prefillName={making}
+          onClose={() => setMaking(null)}
+          onCreated={(customer) => {
+            setMaking(null)
+            pick(customer.id)
+          }}
+        />
+      )}
     </>
   )
 }

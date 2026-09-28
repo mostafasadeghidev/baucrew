@@ -1597,11 +1597,13 @@ export type CardFieldEdit =
   | { key: 'inspection'; value: string }
   | { key: 'price'; value: string }
   | { key: 'address'; value: { street: string; postalCode: string; city: string } }
+  | { key: 'customer'; value: string }
 
 /**
  * One field of the card's grid, typed over in place: the customer's wish,
  * the site visit, the order value (for those who may see money), the site's
- * address. The history names the field, never an amount.
+ * address, the customer — whoever may change the project's data in its form
+ * may change it here. The history names the field, never an amount.
  */
 export async function setCardField(id: string, edit: CardFieldEdit): Promise<{ error?: 'saveFailed' | 'invalidPrice' }> {
   const user = await requireStaff()
@@ -1641,6 +1643,13 @@ export async function setCardField(id: string, edit: CardFieldEdit): Promise<{ e
         city,
         ...(place !== undefined ? { latitude: place?.latitude ?? null, longitude: place?.longitude ?? null } : {}),
       }
+      break
+    }
+    case 'customer': {
+      // Only the customer changes; the site's address stays the site's, as in the form.
+      const customer = await db.customer.findUnique({ where: { id: String(edit.value ?? '') }, select: { id: true } })
+      if (!customer) return { error: 'saveFailed' }
+      data = { customer: { connect: { id: customer.id } } }
       break
     }
     default:
