@@ -85,6 +85,7 @@ import { DoneTick } from './done-tick'
 import {
   addColumn,
   archiveCards,
+  archiveProject,
   copyProject,
   moveCard,
   moveCards,
@@ -269,6 +270,22 @@ export function ProjectsKanban({
     params.delete('template')
     params.set('card', id)
     return `${pathname}?${params.toString()}`
+  }
+  /** The card's sheet with one of its small windows open at once — the pencil's labels, members, cover, dates. */
+  const popHref = (id: string, pop: 'labels' | 'members' | 'cover' | 'dates') => `${openHref(id)}&pop=${pop}`
+  /** A line at the foot of the window for a moment — "Link kopiert". */
+  const [notice, setNotice] = useState<string | null>(null)
+  useEffect(() => {
+    if (!notice) return
+    const timer = setTimeout(() => setNotice(null), 2200)
+    return () => clearTimeout(timer)
+  }, [notice])
+  const copyLink = (id: string) => {
+    const url = new URL(openHref(id), window.location.origin).toString()
+    void navigator.clipboard?.writeText(url).then(
+      () => setNotice(t('cardLinkCopied')),
+      () => setNotice(url)
+    )
   }
   /** A card template on the same sheet, the way Trello opens a template card. */
   const templateHref = (id: string) => {
@@ -1195,14 +1212,33 @@ export function ProjectsKanban({
                         <button type="button" role="menuitem" className={menuItemClass} onClick={() => router.push(openHref(card.id), { scroll: false })}>
                           {t('cardOpen')}
                         </button>
+                        {/* Trello's quick editor: each opens the card with its window already open. */}
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => router.push(popHref(card.id, 'labels'), { scroll: false })}>
+                          {t('cardEditLabels')}
+                        </button>
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => router.push(popHref(card.id, 'members'), { scroll: false })}>
+                          {t('cardEditMembers')}
+                        </button>
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => router.push(popHref(card.id, 'cover'), { scroll: false })}>
+                          {t('cardEditCover')}
+                        </button>
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => router.push(popHref(card.id, 'dates'), { scroll: false })}>
+                          {t('cardEditDates')}
+                        </button>
                         <button type="button" role="menuitem" className={menuItemClass} onClick={() => setRenaming({ id: card.id, value: card.name })}>
                           {t('cardRename')}
                         </button>
                         <button type="button" role="menuitem" className={menuItemClass} onClick={() => copy(card)}>
                           {t('cardCopy')}
                         </button>
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => copyLink(card.id)}>
+                          {t('cardCopyLink')}
+                        </button>
                         <button type="button" role="menuitem" className={menuItemClass} onClick={() => quick(card, { urgent: !card.urgent })}>
                           {card.urgent ? t('cardUnmarkUrgent') : t('cardMarkUrgent')}
+                        </button>
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => runOnServer(() => archiveProject(card.id, true))}>
+                          {t('cardArchive')}
                         </button>
                         <MenuSeparator />
                         <div className="px-2 pb-0.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted">{t('cardMoveTo')}</div>
@@ -1659,6 +1695,11 @@ export function ProjectsKanban({
         }}
         onCancel={() => setArchivingAll(null)}
       />
+      {notice && (
+        <div role="status" className="fixed bottom-6 left-1/2 z-[90] max-w-[90vw] -translate-x-1/2 truncate rounded-lg bg-foreground px-4 py-2 text-sm text-background shadow-lg">
+          {notice}
+        </div>
+      )}
     </div>
   )
 }

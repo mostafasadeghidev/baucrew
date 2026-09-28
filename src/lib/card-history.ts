@@ -70,6 +70,8 @@ export function describeAudit(entry: AuditEntry, t: Words, statusLabel: (status:
       return t('labelRemoved', { name: oldValue === 'urgent' ? t('urgentLabel') : name(oldValue) })
     case 'project.dates':
       return t('datesChanged')
+    case 'project.field':
+      return t('fieldChanged', { field: t(`field_${field ?? ''}`) })
     case 'project.done':
       return t('done')
     case 'project.undone':

@@ -558,6 +558,27 @@ export async function ProjectDetail({
    */
   const pairs = sheet ? 'md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2' : 'lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2'
 
+  /** What Trello's small windows on the card's back work with. */
+  const cardEdit: CardEditData = {
+    projectId: project.id,
+    people: allEmployees.map((e) => {
+      const name = `${e.firstName} ${e.lastName}`.trim()
+      return { id: e.id, name, initials: initials(name), swatch: swatchOf(e.id) }
+    }),
+    members: [...new Set([...(project.managerId ? [project.managerId] : []), ...project.team.map((m) => m.employeeId)])],
+    managerId: project.managerId,
+    trades: allCategories.map((c) => ({ id: c.id, name: categoryLabel(c), swatch: labelSwatch(c.color, c.id) })),
+    labelIds: project.workCategories.map((wc) => wc.workCategoryId),
+    urgent: project.priority === 'HIGH',
+    sub: project.isSub,
+    dates: {
+      start: toDateInputValue(project.plannedStart) || null,
+      end: toDateInputValue(project.plannedEnd) || null,
+      due: toDateInputValue(project.dueDate) || null,
+    },
+    checklistTemplates: checklistTemplates.map((c) => ({ value: c.id, label: c.name })),
+    labelsHref: user.role === 'ADMIN' ? '/settings?tab=categories' : null,
+  }
   /**
    * The card's fields over its back, in the client's Trello order: each opens
    * the card of the form that holds it; the customer's number is the
@@ -566,18 +587,46 @@ export async function ProjectDetail({
    */
   const fieldCells: CardFieldCell[] = [
     { key: 'customer', text: project.customer.name, section: 'basic', href: null },
-    { key: 'address', text: address || null, section: 'address', href: null },
+    {
+      key: 'address',
+      text: address || null,
+      section: 'address',
+      href: null,
+      edit: { kind: 'address', value: { street: project.street ?? '', postalCode: project.postalCode ?? '', city: project.city ?? '' } },
+    },
     ...(showPrice
-      ? [{ key: 'value' as const, text: orderTotal != null ? formatCurrency(orderTotal, locale, { hidden: hidePrices }) : null, section: 'planning' as const, href: null }]
+      ? [
+          {
+            key: 'value' as const,
+            text: orderTotal != null ? formatCurrency(orderTotal, locale, { hidden: hidePrices }) : null,
+            section: 'planning' as const,
+            href: null,
+            // Typed into only while it is the price alone; with follow-on offers it is a sum, changed in the project's data.
+            edit:
+              project.addOns.length === 0 && !hidePrices
+                ? {
+                    kind: 'number' as const,
+                    value: project.price != null ? String(Number(project.price)).replace('.', locale === 'en' ? '.' : ',') : '',
+                  }
+                : null,
+          },
+        ]
       : []),
     {
       key: 'workType',
       text: project.workCategories.map((wc) => categoryLabel(wc.workCategory)).join(', ') || null,
       section: 'basic',
       href: null,
+      edit: { kind: 'labels' },
     },
-    { key: 'wish', text: project.executionWish, section: 'planning', href: null },
-    { key: 'inspection', text: project.inspectionDate ? formatDate(project.inspectionDate, locale) : null, section: 'planning', href: null },
+    { key: 'wish', text: project.executionWish, section: 'planning', href: null, edit: { kind: 'text', value: project.executionWish ?? '' } },
+    {
+      key: 'inspection',
+      text: project.inspectionDate ? formatDate(project.inspectionDate, locale) : null,
+      section: 'planning',
+      href: null,
+      edit: { kind: 'date', value: toDateInputValue(project.inspectionDate) },
+    },
     { key: 'created', text: formatDate(project.sourceCreatedAt ?? project.createdAt, locale), section: null, href: null },
     {
       key: 'customerNumber',
@@ -595,7 +644,7 @@ export async function ProjectDetail({
         showPrice={showPrice}
         pairFrom={sheet ? 'xl' : '2xl'}
         fold={sheet ? { title: t('sheetProjectData') } : undefined}
-        afterDescription={sheet ? <CardFieldsGrid cells={fieldCells} /> : undefined}
+        afterDescription={sheet ? <CardFieldsGrid projectId={project.id} cells={fieldCells} card={cardEdit} /> : undefined}
         inline={{
           views,
           labels: { edit: tc('edit'), save: tc('save'), cancel: tc('cancel') },
@@ -1139,27 +1188,6 @@ export async function ProjectDetail({
       : null
   const tone = dateTone(project.status, project.plannedStart, project.plannedEnd, todayUtc())
   const metaHead = 'text-[11px] font-semibold uppercase tracking-wide text-muted'
-  /** What Trello's small windows on the card's back work with. */
-  const cardEdit: CardEditData = {
-    projectId: project.id,
-    people: allEmployees.map((e) => {
-      const name = `${e.firstName} ${e.lastName}`.trim()
-      return { id: e.id, name, initials: initials(name), swatch: swatchOf(e.id) }
-    }),
-    members: [...new Set([...(project.managerId ? [project.managerId] : []), ...project.team.map((m) => m.employeeId)])],
-    managerId: project.managerId,
-    trades: allCategories.map((c) => ({ id: c.id, name: categoryLabel(c), swatch: labelSwatch(c.color, c.id) })),
-    labelIds: project.workCategories.map((wc) => wc.workCategoryId),
-    urgent: project.priority === 'HIGH',
-    sub: project.isSub,
-    dates: {
-      start: toDateInputValue(project.plannedStart) || null,
-      end: toDateInputValue(project.plannedEnd) || null,
-      due: toDateInputValue(project.dueDate) || null,
-    },
-    checklistTemplates: checklistTemplates.map((c) => ({ value: c.id, label: c.name })),
-    labelsHref: user.role === 'ADMIN' ? '/settings?tab=categories' : null,
-  }
   const round = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-subtle text-muted transition-colors hover:bg-surface-hover hover:text-foreground'
   const meta = sheet ? (
     <div className="flex flex-wrap gap-x-8 gap-y-3 px-1">
@@ -1354,6 +1382,7 @@ export async function ProjectDetail({
                   offerMailHref ? { href: offerMailHref, title: t(project.customer.email ? 'offerMailTitle' : 'offerMailNoAddress') } : null
                 }
                 canDelete={user.role === 'ADMIN'}
+                canMakeTemplate={isOffice(user)}
               />
               <SheetClose round />
             </div>

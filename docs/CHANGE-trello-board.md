@@ -342,3 +342,22 @@ DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928090000_card_don
   `project.dates`, described in `card-history.ts`) and announces the change.
 
 Rollback: revert the commit; no data of its own.
+
+### Fields typed into, the pencil's quick editor, the card menu
+
+- `[id]/card-fields-grid.tsx`: the wish, the site visit and the order value
+  (price alone, for those who may see money) turn into a field on a click;
+  the address opens a small window (street, postal code, town — a new town
+  is looked up for the map with `geocodeCity`); the type of work opens the
+  labels window. `setCardField` in `projects/actions.ts`, audit
+  `project.field` with the field's key (history `fieldChanged`, no amounts).
+- `kanban.tsx`: the pencil's menu adds labels, members, cover and dates —
+  each opens the card with that window open (`?pop=`, answered by
+  `CardPanelButton opensFromAddress` and `CoverPicker`) — plus copy link
+  (a short notice at the foot of the window) and archive.
+- `[id]/sheet-menu.tsx`: copy card, save as template
+  (`createTemplateFromProject` in `templates/actions.ts`: name, description,
+  first trade, manager, crew, vehicles, machines, items, checklist templates;
+  opens the new template's sheet), copy link.
+
+Rollback: revert the commit; no data of its own.

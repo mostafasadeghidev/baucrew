@@ -44,6 +44,7 @@ describe('what a card says happened to it', () => {
     expect(describeAudit(entry('project.label.add', { newValue: 'urgent' }), t, status)).toBe('labelAdded(name=urgentLabel)')
     expect(describeAudit(entry('project.label.remove', { oldValue: 'Fassade' }), t, status)).toBe('labelRemoved(name=Fassade)')
     expect(describeAudit(entry('project.dates'), t, status)).toBe('datesChanged')
+    expect(describeAudit(entry('project.field', { field: 'wish' }), t, status)).toBe('fieldChanged(field=field_wish)')
     expect(describeAudit(entry('project.undone'), t, status)).toBe('undone')
     expect(describeAudit(entry('project.invoice.ready', { field: 'invoice1' }), t, status)).toBe('invoiceReady(part=1)')
   })

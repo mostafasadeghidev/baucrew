@@ -10,6 +10,7 @@ import { audit } from '@/lib/audit'
 import { planChecklistChanges } from '@/lib/project-checklists'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
 import { ProjectStatus } from '@/generated/prisma/enums'
+import type { Prisma } from '@/generated/prisma/client'
 import { nextProjectNumber } from '@/lib/project-numbers'
 import {
   announceProjectChanges,
@@ -26,6 +27,7 @@ import { isColumnSort, orderCards, positionBetween, renumbered, sortedBy, tooClo
 import { columnRuleKey, dropPatch } from '@/lib/board-rules'
 import { keptParts, type TemplatePart } from '@/lib/card-templates'
 import { MAX_PLAN_MONTHS, parseMonthInput } from '@/lib/plan-month'
+import { geocodeCity } from '@/lib/geocode'
 
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
@@ -1485,6 +1487,68 @@ export async function setCardDates(
     entityId: id,
     newValue: `${day(plannedStart)} – ${day(plannedEnd)} · ${day(dueDate)}`,
   })
+  await afterCardEdit(user, id, snapshot)
+  return {}
+}
+
+/** The fields that are typed into on the card's back, where the client's Trello had them. */
+export type CardFieldEdit =
+  | { key: 'wish'; value: string }
+  | { key: 'inspection'; value: string }
+  | { key: 'price'; value: string }
+  | { key: 'address'; value: { street: string; postalCode: string; city: string } }
+
+/**
+ * One field of the card's grid, typed over in place: the customer's wish,
+ * the site visit, the order value (for those who may see money), the site's
+ * address. The history names the field, never an amount.
+ */
+export async function setCardField(id: string, edit: CardFieldEdit): Promise<{ error?: 'saveFailed' | 'invalidPrice' }> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const before = await db.project.findUnique({ where: { id }, select: { city: true } })
+  if (!before) return { error: 'saveFailed' }
+  let data: Prisma.ProjectUpdateInput
+  switch (edit.key) {
+    case 'wish': {
+      const wish = String(edit.value ?? '').trim().slice(0, 200)
+      data = { executionWish: wish || null }
+      break
+    }
+    case 'inspection': {
+      const day = dayOrNull(String(edit.value ?? ''))
+      if (day === undefined) return { error: 'saveFailed' }
+      data = { inspectionDate: day }
+      break
+    }
+    case 'price': {
+      if (!canViewFinancials(user)) return { error: 'saveFailed' }
+      const price = parsePrice(String(edit.value ?? ''))
+      if (!price.ok) return { error: 'invalidPrice' }
+      data = { price: price.value }
+      break
+    }
+    case 'address': {
+      const text = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max) || null
+      const street = text(edit.value?.street, 300)
+      const postalCode = text(edit.value?.postalCode, 20)
+      const city = text(edit.value?.city, 300)
+      // A new town is looked up for the map, as the form's town picker does.
+      const place = city && city !== before.city ? await geocodeCity(city).catch(() => null) : undefined
+      data = {
+        street,
+        postalCode,
+        city,
+        ...(place !== undefined ? { latitude: place?.latitude ?? null, longitude: place?.longitude ?? null } : {}),
+      }
+      break
+    }
+    default:
+      return { error: 'saveFailed' }
+  }
+  const snapshot = await projectBefore(id)
+  await db.project.update({ where: { id }, data })
+  await audit({ userId: user.id, action: 'project.field', entity: 'Project', entityId: id, field: edit.key })
   await afterCardEdit(user, id, snapshot)
   return {}
 }

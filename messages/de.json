@@ -562,7 +562,14 @@
     "addMembersHint": "Bauleitung und Team zuweisen",
     "addAttachmentHint": "Dateien anhängen",
     "addCommentHint": "Etwas zur Karte schreiben",
-    "titleEdit": "Titel bearbeiten"
+    "titleEdit": "Titel bearbeiten",
+    "cardEditLabels": "Etiketten bearbeiten",
+    "cardEditMembers": "Mitglieder ändern",
+    "cardEditCover": "Titelbild ändern",
+    "cardEditDates": "Termine bearbeiten",
+    "cardCopyLink": "Link kopieren",
+    "cardLinkCopied": "Link kopiert",
+    "cardSaveAsTemplate": "Als Vorlage speichern"
   },
   "history": {
     "created": "hat die Karte angelegt",
@@ -611,7 +618,12 @@
     "labelAdded": "hat das Etikett „{name}“ hinzugefügt",
     "labelRemoved": "hat das Etikett „{name}“ entfernt",
     "urgentLabel": "Hoch",
-    "datesChanged": "hat die Termine geändert"
+    "datesChanged": "hat die Termine geändert",
+    "fieldChanged": "hat „{field}“ geändert",
+    "field_wish": "Ausführungswunsch",
+    "field_inspection": "Termin Besichtigung",
+    "field_price": "Auftragswert",
+    "field_address": "Baustellenadresse"
   },
   "employees": {
     "title": "Mitarbeiter",

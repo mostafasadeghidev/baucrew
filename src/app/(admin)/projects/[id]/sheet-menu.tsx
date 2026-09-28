@@ -10,10 +10,11 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Archive, ArchiveRestore, ExternalLink, Mail, MoreHorizontal, Pencil, Printer, RotateCcw, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Copy, ExternalLink, LayoutTemplate, Link2, Mail, MoreHorizontal, Pencil, Printer, RotateCcw, Trash2 } from 'lucide-react'
 import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { AlertDialog } from '@/components/ui/alert-dialog'
-import { archiveProject, deleteProject } from '../actions'
+import { archiveProject, copyProject, deleteProject } from '../actions'
+import { createTemplateFromProject } from '../templates/actions'
 import { reopenProject } from '../../schedule/actions'
 import { PROJECT_EDIT_ALL_EVENT } from '../project-form'
 import { ROUND_BUTTON } from '../card-sheet'
@@ -26,6 +27,7 @@ export function SheetMenu({
   reopenable,
   offerMail,
   canDelete,
+  canMakeTemplate,
 }: {
   projectId: string
   projectLabel: string
@@ -35,6 +37,8 @@ export function SheetMenu({
   reopenable: boolean
   offerMail: { href: string; title: string } | null
   canDelete: boolean
+  /** Templates are the office's. */
+  canMakeTemplate: boolean
 }) {
   const t = useTranslations('projects')
   const ts = useTranslations('schedule')
@@ -44,6 +48,32 @@ export function SheetMenu({
   const [pending, startTransition] = useTransition()
   const [ask, setAsk] = useState<'reopen' | 'delete' | null>(null)
   const [failed, setFailed] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  /** This board's address with another card, or a template, open over it. */
+  const over = (key: 'card' | 'template', id: string) => {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('card')
+    url.searchParams.delete('template')
+    url.searchParams.set(key, id)
+    return `${url.pathname}${url.search}`
+  }
+  const run = (task: () => Promise<{ id?: string; error?: string }>, key: 'card' | 'template') =>
+    startTransition(async () => {
+      setFailed(false)
+      const result = await task()
+      if (!result.id) {
+        setFailed(true)
+        return
+      }
+      router.push(over(key, result.id), { scroll: false })
+    })
+  const copyLink = () => {
+    void navigator.clipboard?.writeText(window.location.href).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   const archive = () =>
     startTransition(async () => {
@@ -80,6 +110,22 @@ export function SheetMenu({
         <button type="button" role="menuitem" className={menuItemClass} onClick={() => window.dispatchEvent(new CustomEvent(PROJECT_EDIT_ALL_EVENT))}>
           <Pencil className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
           {t('sheetEditAll')}
+        </button>
+        <MenuSeparator />
+        {/* What Trello's card menu does to the card as a whole. */}
+        <button type="button" role="menuitem" className={menuItemClass} disabled={pending} onClick={() => run(() => copyProject(projectId), 'card')}>
+          <Copy className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+          {t('cardCopy')}
+        </button>
+        {canMakeTemplate && (
+          <button type="button" role="menuitem" className={menuItemClass} disabled={pending} onClick={() => run(() => createTemplateFromProject(projectId), 'template')}>
+            <LayoutTemplate className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+            {t('cardSaveAsTemplate')}
+          </button>
+        )}
+        <button type="button" role="menuitem" className={menuItemClass} onClick={copyLink}>
+          <Link2 className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+          {copied ? t('cardLinkCopied') : t('cardCopyLink')}
         </button>
         <MenuSeparator />
         {reopenable && (

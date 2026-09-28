@@ -167,6 +167,57 @@ export async function updateTemplate(
 export type DeleteState = { error?: string }
 
 /**
+ * Trello's "Als Vorlage speichern" on a card: a template made from the
+ * project — its name, description, first trade, site manager and crew,
+ * vehicles, machines, tools and materials, and the checklists it was given
+ * from checklist templates — opened afterwards on its own sheet over the
+ * board to be looked over.
+ */
+export async function createTemplateFromProject(projectId: string): Promise<{ id?: string; error?: 'saveFailed' }> {
+  const user = await requireManagement()
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    select: {
+      name: true,
+      description: true,
+      managerId: true,
+      workCategories: { select: { workCategoryId: true }, take: 1 },
+      team: { select: { employeeId: true } },
+      vehicles: { select: { vehicleId: true } },
+      deviceNeeds: { select: { deviceId: true } },
+      checklists: { select: { templateId: true } },
+      items: { select: { catalogItemId: true, quantity: true } },
+    },
+  })
+  if (!project) return { error: 'saveFailed' }
+  const checklistIds = [...new Set(project.checklists.map((c) => c.templateId).filter((c): c is string => c !== null))]
+  const template = await db.projectTemplate.create({
+    data: {
+      name: project.name.slice(0, 200),
+      description: project.description,
+      workCategoryId: project.workCategories[0]?.workCategoryId ?? null,
+      managerId: project.managerId,
+      employees: { create: project.team.map((m) => ({ employeeId: m.employeeId })) },
+      vehicles: { create: project.vehicles.map((v) => ({ vehicleId: v.vehicleId })) },
+      deviceNeeds: { create: project.deviceNeeds.map((d) => ({ deviceId: d.deviceId })) },
+      checklists: { create: checklistIds.map((checklistTemplateId) => ({ checklistTemplateId })) },
+      items: { create: project.items.map((i) => ({ catalogItemId: i.catalogItemId, quantity: i.quantity })) },
+    },
+    select: { id: true, name: true },
+  })
+  await audit({
+    userId: user.id,
+    action: 'template.create',
+    entity: 'ProjectTemplate',
+    entityId: template.id,
+    newValue: template.name,
+  })
+  revalidatePath('/projects/templates')
+  revalidatePath('/projects')
+  return { id: template.id }
+}
+
+/**
  * A template gone for good. From its sheet over the board the way leads back
  * to the board (`closeTo`, only ever a projects address); from its own page,
  * to the list of templates.

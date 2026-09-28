@@ -562,7 +562,14 @@
     "addMembersHint": "Assign site manager and crew",
     "addAttachmentHint": "Attach files",
     "addCommentHint": "Write something on the card",
-    "titleEdit": "Edit title"
+    "titleEdit": "Edit title",
+    "cardEditLabels": "Edit labels",
+    "cardEditMembers": "Change members",
+    "cardEditCover": "Change cover",
+    "cardEditDates": "Edit dates",
+    "cardCopyLink": "Copy link",
+    "cardLinkCopied": "Link copied",
+    "cardSaveAsTemplate": "Save as template"
   },
   "history": {
     "created": "created this card",
@@ -611,7 +618,12 @@
     "labelAdded": "added the label “{name}”",
     "labelRemoved": "removed the label “{name}”",
     "urgentLabel": "Urgent",
-    "datesChanged": "changed the dates"
+    "datesChanged": "changed the dates",
+    "fieldChanged": "changed “{field}”",
+    "field_wish": "Execution wish",
+    "field_inspection": "Site visit",
+    "field_price": "Order value",
+    "field_address": "Site address"
   },
   "employees": {
     "title": "Employees",

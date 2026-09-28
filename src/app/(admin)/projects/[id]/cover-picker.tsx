@@ -6,8 +6,8 @@
  * the card's back and on its front on the board.
  */
 
-import { useCallback, useRef, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Image as ImageIcon, X } from 'lucide-react'
 import { Popover } from '@/components/ui/popover'
@@ -30,9 +30,19 @@ export function CoverPicker({
   const tc = useTranslations('common')
   const tf = useTranslations('files')
   const router = useRouter()
+  const params = useSearchParams()
+  const pathname = usePathname()
   const anchor = useRef<HTMLButtonElement>(null)
   const input = useRef<HTMLInputElement>(null)
-  const [open, setOpen] = useState(false)
+  // "Titelbild ändern" from the pencil on a board card opens the window at once.
+  const asked = params.get('pop') === 'cover'
+  const [open, setOpen] = useState(asked)
+  useEffect(() => {
+    if (!asked) return
+    const next = new URLSearchParams(params)
+    next.delete('pop')
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false })
+  }, [asked, params, pathname, router])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
