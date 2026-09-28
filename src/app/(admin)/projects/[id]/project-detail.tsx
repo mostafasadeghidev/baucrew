@@ -114,6 +114,8 @@ export async function ProjectDetail({
         orderBy: { createdAt: 'desc' },
         include: { uploadedBy: { select: { username: true } } },
       },
+      // Web addresses attached beside the files, newest first.
+      cardLinks: { orderBy: { createdAt: 'desc' }, include: { createdBy: { select: { username: true } } } },
       workCategories: { include: { workCategory: true } },
       deviceNeeds: { select: { deviceId: true } },
       team: { include: { employee: true }, orderBy: { createdAt: 'asc' } },
@@ -730,6 +732,7 @@ export async function ProjectDetail({
             createdAt: d.createdAt,
             uploadedBy: d.uploadedBy,
           }))}
+          links={project.cardLinks}
         />
         </div>
 
@@ -1087,6 +1090,7 @@ export async function ProjectDetail({
             createdAt: d.createdAt,
             uploadedBy: d.uploadedBy,
           }))}
+          links={project.cardLinks}
         />
         </div>
 

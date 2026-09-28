@@ -80,6 +80,12 @@ export function describeAudit(entry: AuditEntry, t: Words, statusLabel: (status:
       return t('fileAdded', { name: name(newValue) })
     case 'project.file.delete':
       return t('fileDeleted', { name: name(oldValue) })
+    case 'project.file.rename':
+      return t('fileRenamed', { name: name(newValue) })
+    case 'project.link.add':
+      return t('linkAdded', { name: name(newValue) })
+    case 'project.link.remove':
+      return t('linkRemoved', { name: name(oldValue) })
     case 'project.file.visibility':
       return t(newValue === 'crew' ? 'fileShown' : 'fileHidden', { name: name(field) })
     case 'project.cover.set':

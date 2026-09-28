@@ -361,3 +361,26 @@ Rollback: revert the commit; no data of its own.
   opens the new template's sheet), copy link.
 
 Rollback: revert the commit; no data of its own.
+
+### Links as attachments, Trello's attach window, renaming a file
+
+- `CardLink` (migration `20260928100000_card_links`, in the backup as
+  `cardLinks`): a web address on a card with the words it is shown with.
+  `src/lib/card-links.ts` (tested): `normalizeLink` (http/https only, a
+  missing protocol read as https), `linkLabel`, `linkSite`, `renamedFile`
+  (the ending kept when a new name leaves it off).
+- `[id]/file-actions.ts`: `addCardLink`, `editCardLink`, `removeCardLink`,
+  `renameProjectFile`; audit `project.link.add|remove`, `project.file.rename`.
+- `[id]/attach-panel.tsx`: Trello's "Anhängen" (a file from the computer, or
+  a link with its text) — the attachments' "Hinzufügen" and "Anhang" under
+  "+ Hinzufügen" open it (`PanelKey 'attach'` in `card-popovers.tsx`).
+  `[id]/link-list.tsx`: the links above the files, with edit and remove.
+  `attachment-list.tsx`: "Umbenennen" in a file's "…". `file-upload.tsx`
+  keeps only `useUploadMessage`; the old upload button is gone.
+- The board card's attachment count adds the links (`projects/page.tsx`).
+
+Rollback: revert the commit, then
+```sql
+DROP TABLE "CardLink";
+DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928100000_card_links';
+```

@@ -53,6 +53,7 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   { key: 'defects', model: 'Defect' },
   { key: 'projectTasks', model: 'ProjectTask' },
   { key: 'documents', model: 'Document' },
+  { key: 'cardLinks', model: 'CardLink' },
   // After the documents: a signed form points at its PDF among them.
   { key: 'formTemplates', model: 'FormTemplate' },
   { key: 'filledForms', model: 'FilledForm' },

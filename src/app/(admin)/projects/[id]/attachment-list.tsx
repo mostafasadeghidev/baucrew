@@ -11,12 +11,12 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Download, ExternalLink, Eye, EyeOff, Image as ImageIcon, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Download, ExternalLink, Eye, EyeOff, Image as ImageIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { FilePreview } from '@/components/file-preview'
 import type { PreviewKind } from '@/lib/files'
-import { removeProjectFile, setProjectCover, toggleFileVisibility } from './file-actions'
+import { removeProjectFile, renameProjectFile, setProjectCover, toggleFileVisibility } from './file-actions'
 
 export type AttachmentRow = {
   id: string
@@ -42,6 +42,8 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
   const router = useRouter()
   const [all, setAll] = useState(false)
   const [removing, setRemoving] = useState<AttachmentRow | null>(null)
+  /** Trello's "Bearbeiten" on an attachment: the file's name typed over where it stands. */
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const labels = { preview: t('preview'), openInTab: t('openInTab'), download: t('download'), close: tc('close') }
@@ -74,6 +76,35 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
               </span>
             )}
             <div className="min-w-0 flex-1">
+              {renaming?.id === row.id ? (
+                <input
+                  autoFocus
+                  value={renaming.value}
+                  maxLength={200}
+                  aria-label={t('fileRename')}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onChange={(e) => setRenaming({ id: row.id, value: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const value = renaming.value
+                      setRenaming(null)
+                      if (value.trim() && value !== row.filename) run(() => renameProjectFile(row.id, value))
+                    } else if (e.key === 'Escape') {
+                      // The sheet closes on Escape too; here it only lets go of the name.
+                      e.stopPropagation()
+                      e.nativeEvent.stopImmediatePropagation()
+                      setRenaming(null)
+                    }
+                  }}
+                  onBlur={() => {
+                    const value = renaming.value
+                    setRenaming(null)
+                    if (value.trim() && value !== row.filename) run(() => renameProjectFile(row.id, value))
+                  }}
+                  className="block w-full rounded-md border border-accent bg-background px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              ) : (
               <div className="flex min-w-0 text-sm">
                 <FilePreview
                   id={row.id}
@@ -83,6 +114,7 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
                   nameClassName="min-w-0 flex-1 truncate text-left font-semibold text-foreground hover:underline"
                 />
               </div>
+              )}
               <p className="truncate text-[11px] text-muted">
                 {row.meta}
                 {row.isCover && ` · ${t('isCover')}`}
@@ -110,6 +142,10 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
                 <Download className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
                 {t('download')}
               </a>
+              <button type="button" role="menuitem" className={menuItemClass} onClick={() => setRenaming({ id: row.id, value: row.filename })}>
+                <Pencil className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+                {t('fileRename')}
+              </button>
               {row.kind === 'image' && (
                 <button type="button" role="menuitem" className={menuItemClass} onClick={() => run(() => setProjectCover(projectId, row.isCover ? null : row.id))}>
                   <ImageIcon className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />

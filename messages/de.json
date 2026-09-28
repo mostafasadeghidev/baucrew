@@ -623,7 +623,10 @@
     "field_wish": "Ausführungswunsch",
     "field_inspection": "Termin Besichtigung",
     "field_price": "Auftragswert",
-    "field_address": "Baustellenadresse"
+    "field_address": "Baustellenadresse",
+    "fileRenamed": "hat eine Datei in „{name}“ umbenannt",
+    "linkAdded": "hat den Link „{name}“ angehängt",
+    "linkRemoved": "hat den Link „{name}“ entfernt"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -1722,7 +1725,22 @@
     "sitePhotos": "Baustellenfotos",
     "setCover": "Titelbild",
     "clearCover": "Titelbild entfernen",
-    "isCover": "Titelbild ✓"
+    "isCover": "Titelbild ✓",
+    "attachTitle": "Anhängen",
+    "attachFromComputer": "Datei vom Computer anhängen",
+    "attachDropHint": "Dateien lassen sich auch einfach auf die Karte ziehen.",
+    "attachChoose": "Datei auswählen",
+    "attachSending": "Wird hochgeladen …",
+    "attachLink": "Link einfügen",
+    "attachLinkPlaceholder": "https://…",
+    "attachText": "Anzuzeigender Text (optional)",
+    "attachTextPlaceholder": "Text, der angezeigt wird",
+    "attachInsert": "Einfügen",
+    "linkInvalid": "Das ist keine gültige Webadresse.",
+    "linksHeading": "Links",
+    "linkRemove": "Entfernen",
+    "linkRemoveTitle": "Link entfernen?",
+    "fileRename": "Umbenennen"
   },
   "time": {
     "title": "Zeiterfassung (14 Tage)",

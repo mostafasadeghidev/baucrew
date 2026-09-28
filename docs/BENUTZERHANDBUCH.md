@@ -403,14 +403,23 @@ angelegte behalten ihre Felder.
 Auf der Projektseite und der Kartenrückseite gibt es die Karte **Anhänge**,
 aufgebaut wie in Trello: Angebots-PDFs, Pläne, **E-Mails aus Outlook**
 (.msg, auch .eml) und Fotos liegen am Projekt (PDF, Bilder, E-Mails, Excel,
-Word · max. 25 MB je Datei). Hinzufügen geht mit **Hinzufügen** oben in der
-Karte (mehrere Dateien auf einmal) oder einfach durch **Ziehen**: eine Datei
-oder eine E-Mail aus Outlook irgendwo auf die Kartenrückseite ziehen — ein
-gestrichelter Rahmen zeigt es an — und loslassen. Jede Datei ist eine Zeile:
+Word · max. 25 MB je Datei). **Hinzufügen** oben in der Karte (oder *Anhang*
+unter *+ Hinzufügen*) öffnet Trellos Fenster **Anhängen**: *Datei auswählen*
+(mehrere Dateien auf einmal) oder ein **Link** — eine Webadresse einfügen, auf
+Wunsch mit dem Text, der angezeigt werden soll, **Einfügen**. Links stehen
+über den Dateien unter **Links**: Name oder Adresse, die Seite, wann und von
+wem; ein Klick öffnet sie in einem neuen Tab, **…** → *Bearbeiten* ändert
+Adresse und Text, *Entfernen* nimmt den Link weg. Auf der Karte im Board
+zählen Links bei den Anhängen mit. Dateien kommen auch einfach durch
+**Ziehen** an: eine Datei oder eine E-Mail aus Outlook irgendwo auf die
+Kartenrückseite ziehen — ein gestrichelter Rahmen zeigt es an — und
+loslassen. Jede Datei ist eine Zeile:
 links eine Kachel (bei Fotos das Bild selbst, sonst die Dateiart groß: PDF rot,
 E-Mail blau, Excel grün), der Name, *hinzugefügt am …* und von wem; rechts
-**In neuem Tab öffnen** und das Menü **…** mit *Herunterladen*, *Titelbild*
-(bei Fotos), *Für das Team freigeben* / *Nur fürs Büro* und *Löschen*. Neue
+**In neuem Tab öffnen** und das Menü **…** mit *Herunterladen*, *Umbenennen*
+(der Name wird an Ort und Stelle getippt, Enter speichert; die Dateiendung
+bleibt, wenn man sie weglässt), *Titelbild* (bei Fotos), *Für das Team
+freigeben* / *Nur fürs Büro* und *Löschen*. Neue
 Dateien sieht nur das Büro; erst mit *Für das Team freigeben* erscheinen sie
 im Mitarbeiter-Bereich beim Einsatz — so bleiben Angebote mit Preisen
 automatisch beim Büro. Fotos *von der Baustelle* und Fotos zu einem **Mangel**

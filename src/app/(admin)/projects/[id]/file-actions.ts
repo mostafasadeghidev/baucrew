@@ -6,6 +6,7 @@ import { requireStaff } from '@/lib/authz'
 import { canWorkOn } from '@/lib/crew-access'
 import { audit } from '@/lib/audit'
 import { deleteStoredFile } from '@/lib/file-storage'
+import { linkLabel, normalizeLink, renamedFile } from '@/lib/card-links'
 
 /** Show/hide a file for the crew accounts (worker area, kiosk). */
 export async function toggleFileVisibility(fileId: string): Promise<void> {
@@ -78,6 +79,64 @@ export async function setProjectCover(projectId: string, fileId: string | null):
     newValue: fileId ?? undefined,
   })
   revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/projects')
+  return {}
+}
+
+// ── Links attached beside the files, and names changed — Trello's "Anhängen" ──
+
+type LinkResult = { error?: 'invalidLink' | 'saveFailed' }
+
+/** A web address attached to the card, with the words it is shown with. */
+export async function addCardLink(projectId: string, rawUrl: string, rawTitle: string): Promise<LinkResult> {
+  const user = await requireStaff()
+  if (!(await canWorkOn(user, projectId))) return { error: 'saveFailed' }
+  const url = normalizeLink(rawUrl)
+  if (!url) return { error: 'invalidLink' }
+  const title = rawTitle.trim().slice(0, 200) || null
+  await db.cardLink.create({ data: { projectId, url, title, createdById: user.id } })
+  await audit({ userId: user.id, action: 'project.link.add', entity: 'Project', entityId: projectId, newValue: linkLabel(url, title) })
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/projects')
+  return {}
+}
+
+/** A link's address or words changed from its "…". */
+export async function editCardLink(linkId: string, rawUrl: string, rawTitle: string): Promise<LinkResult> {
+  const user = await requireStaff()
+  const link = await db.cardLink.findUnique({ where: { id: linkId } })
+  if (!link || !(await canWorkOn(user, link.projectId))) return { error: 'saveFailed' }
+  const url = normalizeLink(rawUrl)
+  if (!url) return { error: 'invalidLink' }
+  const title = rawTitle.trim().slice(0, 200) || null
+  await db.cardLink.update({ where: { id: linkId }, data: { url, title } })
+  revalidatePath(`/projects/${link.projectId}`)
+  revalidatePath('/projects')
+  return {}
+}
+
+export async function removeCardLink(linkId: string): Promise<LinkResult> {
+  const user = await requireStaff()
+  const link = await db.cardLink.findUnique({ where: { id: linkId } })
+  if (!link || !(await canWorkOn(user, link.projectId))) return { error: 'saveFailed' }
+  await db.cardLink.delete({ where: { id: linkId } })
+  await audit({ userId: user.id, action: 'project.link.remove', entity: 'Project', entityId: link.projectId, oldValue: linkLabel(link.url, link.title) })
+  revalidatePath(`/projects/${link.projectId}`)
+  revalidatePath('/projects')
+  return {}
+}
+
+/** A file's name changed from its "…" — its ending kept when the new name leaves it off. */
+export async function renameProjectFile(fileId: string, typed: string): Promise<{ error?: 'saveFailed' }> {
+  const user = await requireStaff()
+  const doc = await db.document.findUnique({ where: { id: fileId }, select: { projectId: true, filename: true } })
+  if (!doc || !(await canWorkOn(user, doc.projectId))) return { error: 'saveFailed' }
+  const filename = renamedFile(doc.filename, typed)
+  if (!filename) return { error: 'saveFailed' }
+  if (filename === doc.filename) return {}
+  await db.document.update({ where: { id: fileId }, data: { filename } })
+  await audit({ userId: user.id, action: 'project.file.rename', entity: 'Project', entityId: doc.projectId, oldValue: doc.filename, newValue: filename })
+  revalidatePath(`/projects/${doc.projectId}`)
   revalidatePath('/projects')
   return {}
 }

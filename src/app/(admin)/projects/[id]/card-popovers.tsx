@@ -19,6 +19,7 @@ import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components
 import { addMonths, dayKey, inRange, monthGrid, monthOf } from '@/lib/calendar-grid'
 import { setCardDates, setCardLabel, setCardManager, setCardMember } from '../actions'
 import { addProjectChecklist } from './checklist-actions'
+import { AttachPanel } from './attach-panel'
 
 export type CardPerson = { id: string; name: string; initials: string; swatch: number }
 export type CardTrade = { id: string; name: string; swatch: number }
@@ -42,7 +43,7 @@ export type CardEditData = {
   labelsHref: string | null
 }
 
-export type PanelKey = 'members' | 'labels' | 'dates' | 'checklist'
+export type PanelKey = 'members' | 'labels' | 'dates' | 'checklist' | 'attach'
 
 type PanelProps = { data: CardEditData; close: () => void; back: (() => void) | null }
 
@@ -463,6 +464,7 @@ function Panel({ panel, ...props }: PanelProps & { panel: PanelKey }) {
   if (panel === 'members') return <MembersPanel {...props} />
   if (panel === 'labels') return <LabelsPanel {...props} />
   if (panel === 'dates') return <DatesPanel {...props} />
+  if (panel === 'attach') return <AttachPanel projectId={props.data.projectId} close={props.close} back={props.back} />
   return <ChecklistPanel {...props} />
 }
 
@@ -545,15 +547,7 @@ export function CardAddButton({ data, labels }: { data: CardEditData; labels: Ad
     { icon: Clock, label: labels.dates, hint: t('addDatesHint'), run: () => setPanel('dates') },
     { icon: CheckSquare, label: labels.checklist, hint: t('addChecklistHint'), run: () => setPanel('checklist') },
     { icon: Users, label: labels.members, hint: t('addMembersHint'), run: () => setPanel('members') },
-    {
-      icon: Paperclip,
-      label: labels.attachment,
-      hint: t('addAttachmentHint'),
-      run: () => {
-        close()
-        jump('files')
-      },
-    },
+    { icon: Paperclip, label: labels.attachment, hint: t('addAttachmentHint'), run: () => setPanel('attach') },
     {
       icon: MessageSquare,
       label: labels.comment,

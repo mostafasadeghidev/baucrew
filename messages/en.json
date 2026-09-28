@@ -623,7 +623,10 @@
     "field_wish": "Execution wish",
     "field_inspection": "Site visit",
     "field_price": "Order value",
-    "field_address": "Site address"
+    "field_address": "Site address",
+    "fileRenamed": "renamed a file to “{name}”",
+    "linkAdded": "attached the link “{name}”",
+    "linkRemoved": "removed the link “{name}”"
   },
   "employees": {
     "title": "Employees",
@@ -1722,7 +1725,22 @@
     "sitePhotos": "Site photos",
     "setCover": "Cover",
     "clearCover": "Remove cover",
-    "isCover": "Cover ✓"
+    "isCover": "Cover ✓",
+    "attachTitle": "Attach",
+    "attachFromComputer": "Attach a file from your computer",
+    "attachDropHint": "Files can also simply be dragged onto the card.",
+    "attachChoose": "Choose a file",
+    "attachSending": "Uploading…",
+    "attachLink": "Paste a link",
+    "attachLinkPlaceholder": "https://…",
+    "attachText": "Display text (optional)",
+    "attachTextPlaceholder": "Text to display",
+    "attachInsert": "Insert",
+    "linkInvalid": "That is not a valid web address.",
+    "linksHeading": "Links",
+    "linkRemove": "Remove",
+    "linkRemoveTitle": "Remove link?",
+    "fileRename": "Rename"
   },
   "time": {
     "title": "Time tracking (14 days)",

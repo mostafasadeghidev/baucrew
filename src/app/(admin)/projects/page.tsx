@@ -312,7 +312,7 @@ export default async function ProjectsPage({
           team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
           workCategories: { select: { workCategory: { select: { id: true, nameDe: true, nameEn: true, color: true } } } },
           checklists: { select: { items: { select: { ok: true } } } },
-          _count: { select: { documents: true, notes: true, defects: { where: { resolvedAt: null } }, tasks: { where: { doneAt: null } } } },
+          _count: { select: { documents: true, cardLinks: true, notes: true, defects: { where: { resolvedAt: null } }, tasks: { where: { doneAt: null } } } },
         },
         orderBy: { number: 'desc' },
       })
@@ -400,7 +400,8 @@ export default async function ProjectsPage({
             items.length > 0
               ? { done: items.filter((i) => i.ok !== null).length, total: items.length, problems: items.filter((i) => i.ok === false).length }
               : null,
-          files: p._count.documents,
+          // Trello counts the links with the files.
+          files: p._count.documents + p._count.cardLinks,
           comments: p._count.notes,
           defects: p._count.defects,
           tasks: p._count.tasks,
