@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  allStatusLists,
   BOARD_BACKGROUNDS,
   boardBackgroundCss,
   boardBackgroundKey,
@@ -9,7 +10,9 @@ import {
   columnsFromForm,
   moveColumn,
   pickBoard,
+  startingLists,
 } from '@/lib/boards'
+import { ALL_PROJECT_STATUSES } from '@/lib/prep-tab'
 
 const form = (picked: string[], titles: Record<string, string> = {}) => (name: string) => {
   if (name.startsWith('column_')) return picked.includes(name.slice('column_'.length)) ? 'on' : null
@@ -107,5 +110,31 @@ describe('backgrounds', () => {
     expect(boardBackgroundCss('ocean')).toContain('linear-gradient')
     expect(boardBackgroundCss(null)).toBeNull()
     expect(boardBackgroundCss('nope')).toBeNull()
+  })
+})
+
+describe('startingLists', () => {
+  it('reads the three ways a board made from the bar can start', () => {
+    expect(startingLists('all')).toEqual({ kind: 'all' })
+    expect(startingLists('preset:sites')).toEqual({ kind: 'preset', key: 'sites' })
+    expect(startingLists('copy:cmboard0000abcd1234')).toEqual({ kind: 'copy', boardId: 'cmboard0000abcd1234' })
+  })
+
+  it('takes nothing else', () => {
+    expect(startingLists('')).toBeNull()
+    expect(startingLists('copy:')).toBeNull()
+    expect(startingLists('copy:../x')).toBeNull()
+    expect(startingLists('preset:Sites')).toBeNull()
+    expect(startingLists('none')).toBeNull()
+    expect(startingLists(null)).toBeNull()
+    expect(startingLists(['all'])).toBeNull()
+  })
+})
+
+describe('allStatusLists', () => {
+  it('is every status once, as a plain list without a name of its own, in the order of the lifecycle', () => {
+    const lists = allStatusLists()
+    expect(lists.map((l) => l.status)).toEqual([...ALL_PROJECT_STATUSES])
+    expect(lists.every((l) => l.title === null && l.rule === null)).toBe(true)
   })
 })

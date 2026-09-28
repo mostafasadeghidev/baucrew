@@ -5,59 +5,93 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { Settings2 } from 'lucide-react'
 import { TabLink, TabsList } from '@/components/ui/tabs'
 import { rememberBoard } from './actions'
+import { EditBoardButton, NewBoardButton, type ManagedBoard } from './board-admin'
 
 /**
  * The boards, one tab each, the way Trello lines them up. Which board is open
  * lives in the address like the search and the year do, and is remembered for
- * this browser so the page comes back to it. Beside the tabs, for an
- * administrator, the way to the page where boards are made.
+ * this browser so the page comes back to it. For an administrator a "+"
+ * after the tabs makes a board and the arrow on the open tab changes it, the
+ * way Trello makes and changes boards where they stand.
  */
 export function BoardTabs({
   boards,
   current,
   ariaLabel,
   manage,
+  manageBoards = null,
   onGround = false,
 }: {
-  boards: Array<{ id: string; name: string }>
+  boards: Array<ManagedBoard>
   current: string
   ariaLabel: string
   /** The link to Einstellungen → Boards; null for those who may not go there. */
   manage: { href: string; label: string } | null
+  /** Making and changing boards from the bar — the ready-made boards on offer; null for those who may not. */
+  manageBoards?: { presets: Array<{ key: string; name: string; background: string }> } | null
   /** On a coloured ground the tabs are written in light on it, the way Trello's bar is. */
   onGround?: boolean
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const hrefFor = (id: string) => {
+  const hrefFor = (id: string | null) => {
     const params = new URLSearchParams(searchParams)
-    params.set('board', id)
+    if (id) params.set('board', id)
+    else params.delete('board')
     // What only the list understands would turn the board back into the list.
     params.delete('page')
     params.delete('status')
-    return `${pathname}?${params.toString()}`
+    const qs = params.toString()
+    return qs ? `${pathname}?${qs}` : pathname
   }
+  const index = boards.findIndex((b) => b.id === current)
+  const open = index >= 0 ? boards[index] : null
+  const edit = (ground: boolean) =>
+    manageBoards && open ? (
+      <EditBoardButton key={open.id} board={open} index={index} count={boards.length} onGround={ground} leaveHref={hrefFor(null)} />
+    ) : null
+  const add = manageBoards ? (
+    <NewBoardButton boards={boards} presets={manageBoards.presets} onGround={onGround} openHref={(id) => hrefFor(id)} />
+  ) : null
 
   if (onGround) {
     return (
-      <nav aria-label={ariaLabel} role="tablist" className="flex min-w-0 items-center gap-1 overflow-x-auto">
-        {boards.map((board) => (
-          <Link
-            key={board.id}
-            href={hrefFor(board.id)}
-            replace
-            role="tab"
-            aria-selected={board.id === current}
-            onClick={() => void rememberBoard(board.id)}
-            className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
-              board.id === current ? 'bg-white/90 text-neutral-900 shadow-sm' : 'text-white hover:bg-white/25'
-            }`}
-          >
-            {board.name}
-          </Link>
-        ))}
-      </nav>
+      <div className="flex min-w-0 items-center gap-1">
+        <nav aria-label={ariaLabel} role="tablist" className="flex min-w-0 items-center gap-1 overflow-x-auto">
+          {boards.map((board) =>
+            board.id === current ? (
+              // The open tab carries the arrow that changes its board, inside the same light pill.
+              <span key={board.id} className="flex shrink-0 items-center rounded-md bg-white/90 text-neutral-900 shadow-sm">
+                <Link
+                  href={hrefFor(board.id)}
+                  replace
+                  role="tab"
+                  aria-selected
+                  onClick={() => void rememberBoard(board.id)}
+                  className="whitespace-nowrap px-3 py-1.5 text-sm font-semibold"
+                >
+                  {board.name}
+                </Link>
+                {edit(true)}
+              </span>
+            ) : (
+              <Link
+                key={board.id}
+                href={hrefFor(board.id)}
+                replace
+                role="tab"
+                aria-selected={false}
+                onClick={() => void rememberBoard(board.id)}
+                className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/25"
+              >
+                {board.name}
+              </Link>
+            )
+          )}
+        </nav>
+        {add}
+      </div>
     )
   }
 
@@ -74,6 +108,8 @@ export function BoardTabs({
           />
         ))}
       </TabsList>
+      {edit(false)}
+      {add}
       {manage && (
         <Link
           href={manage.href}

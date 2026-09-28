@@ -65,7 +65,8 @@ projects and templates pick their lists), `docs/CHANGE-crm-tabs.md` (CRM page:
 eight tabs become Heute, Vergleich, Aufträge & Baustellen, Planumsatz,
 Auslastung, Datenlücken; old addresses redirect), `docs/CHANGE-project-boards.md`
 (the projects page's one board becomes several, each a set of status columns
-with names of their own; the old column setting becomes the first board),
+with names of their own; the old column setting becomes the first board;
+boards made and changed from the board's bar),
 `docs/CHANGE-trello-board.md` (the board drawn and moved like Trello's: a
 card's place in its list, the archive, the cover picture, the list menu, the
 board's own bar, the card templates at a list's foot), `docs/CHANGE-plan-month.md` (the month a job stands in is the

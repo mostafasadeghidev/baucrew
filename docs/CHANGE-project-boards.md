@@ -79,3 +79,31 @@ chosen — and deletes the setting.
    ```
 
 3. `npx prisma generate`.
+
+## Boards made and changed from the bar (2026-09-28)
+
+The owner asked for the boards to be made and changed where their tabs are,
+without the way through the settings. Done the way Trello does it, for the
+administrator (the same right as the settings page):
+
+- A **+** after the tabs opens *Board erstellen*: ground (with a small preview),
+  title, and the lists it starts with — every status, the client's Trello
+  board (`preset:sites`, which brings its name and ground), or the lists of a
+  board that is there already (`copy:<id>`, own names and rule lists
+  included). The new board opens at once.
+- An **arrow on the open tab** opens *Board bearbeiten*: title, ground, photo
+  (upload / remove), left / right among the tabs, delete (asked first; the
+  last board stays). Deleting a board now deletes its photo from the file
+  storage too — from the settings page as well.
+- The settings page is unchanged and stays for the lists' own names.
+
+Touched: `src/app/(admin)/projects/board-admin.tsx` (new: `NewBoardButton`,
+`EditBoardButton`), `board-tabs.tsx` (`manageBoards`), `page.tsx` (passes the
+boards' grounds and the preset); `src/app/(admin)/settings/boards/actions.ts`
+(`createBoardFromBar`, `renameBoard`, `setBoardBackground`, `removeBoard`,
+shared `dropBoard`); `src/lib/boards.ts` (`startingLists`, `allStatusLists`)
+with tests in `tests/unit/boards.test.ts`; `messages/*.json`
+(`projects.board*`); `docs/BENUTZERHANDBUCH.md`.
+
+Rollback: `git revert` the commit. No migration — nothing to undo in the
+database.

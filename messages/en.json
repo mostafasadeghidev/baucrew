@@ -641,7 +641,21 @@
     "reminder_2880": "2 days before",
     "nCheckItem": "assigned you a checklist item: {text}",
     "customerSearch": "Search customers",
-    "customerMore": "{count} more – keep typing to narrow the list"
+    "customerMore": "{count} more – keep typing to narrow the list",
+    "boardAdd": "Create board",
+    "boardEdit": "Edit board",
+    "boardTitleLabel": "Board title",
+    "boardListsLabel": "Lists",
+    "boardListsAll": "All nine statuses as lists",
+    "boardListsPreset": "As in Trello: {name}",
+    "boardListsCopy": "The lists of “{name}”",
+    "boardListsHint": "Lists are then added, renamed and moved on the board itself.",
+    "boardCreateButton": "Create",
+    "boardPlace": "Position",
+    "boardMoveLeft": "Move left",
+    "boardMoveRight": "Move right",
+    "boardDelete": "Delete board …",
+    "boardMoreSettings": "More board settings"
   },
   "history": {
     "created": "created this card",
