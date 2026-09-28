@@ -6,6 +6,8 @@ export type WeekDay = {
   weekday: string
   dayNumber: string
   jobs: number
+  /** Away that day — vacation or sick, as the office entered it. */
+  away: boolean
   isToday: boolean
   isSelected: boolean
 }
@@ -19,11 +21,14 @@ export function WeekStrip({
   prevWeek,
   nextWeek,
   weekLabel,
+  awayLabel,
 }: {
   days: WeekDay[]
   prevWeek: Date
   nextWeek: Date
   weekLabel: string
+  /** What the amber bar under a day means. */
+  awayLabel: string
 }) {
   return (
     <section className="rounded-xl border border-border bg-surface p-2 shadow-sm">
@@ -50,6 +55,7 @@ export function WeekStrip({
             key={d.iso}
             href={`/my?date=${d.iso}`}
             aria-current={d.isSelected ? 'page' : undefined}
+            title={d.away ? awayLabel : undefined}
             className={`flex flex-col items-center gap-0.5 rounded-lg py-2 text-center transition-colors ${
               d.isSelected
                 ? 'bg-accent text-accent-foreground'
@@ -61,6 +67,7 @@ export function WeekStrip({
             <span className="text-[11px] uppercase">{d.weekday}</span>
             <span className="text-base font-semibold tabular-nums">{d.dayNumber}</span>
             <span className="flex h-1.5 items-center gap-0.5">
+              {d.away && <span className={`h-1.5 w-4 rounded-full ${d.isSelected ? 'bg-accent-foreground' : 'bg-amber-500'}`} />}
               {Array.from({ length: Math.min(d.jobs, 3) }).map((_, i) => (
                 <span
                   key={i}
@@ -83,7 +90,9 @@ export function buildWeek(
   selected: Date,
   today: Date,
   jobsPerDay: Map<string, number>,
-  weekdayFmt: Intl.DateTimeFormat
+  weekdayFmt: Intl.DateTimeFormat,
+  /** The days the worker is away, "yyyy-mm-dd". */
+  awayDays: Set<string> = new Set()
 ): WeekDay[] {
   return Array.from({ length: 7 }, (_, i) => {
     const d = addDays(monday, i)
@@ -93,6 +102,7 @@ export function buildWeek(
       weekday: weekdayFmt.format(d),
       dayNumber: String(d.getUTCDate()).padStart(2, '0'),
       jobs: jobsPerDay.get(key) ?? 0,
+      away: awayDays.has(key),
       isToday: key === iso(today),
       isSelected: key === iso(selected),
     }

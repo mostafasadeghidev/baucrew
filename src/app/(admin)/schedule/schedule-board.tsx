@@ -96,6 +96,11 @@ export function ScheduleBoard({
   const [dialog, setDialog] = useState<DialogState>(
     openCreate ? { mode: 'create', date: newEntryDate } : { mode: 'closed' }
   )
+  // Who is away on a day, by name — said on the day itself, before anybody is
+  // planned onto it, not only as a conflict afterwards.
+  const nameOf = new Map(employees.map((e) => [e.value, e.label]))
+  const awayOn = (date: string) =>
+    absences.filter((a) => a.start <= date && date <= a.end).map((a) => `${nameOf.get(a.employeeId) ?? '?'} (${a.label})`)
   // The map sends people here with `new=1` to open this dialog. The flag comes
   // back out of the address once it has done that, or a reload would open the
   // dialog a second time.
@@ -389,6 +394,11 @@ export function ScheduleBoard({
                   </button>
                   )}
                 </div>
+                {awayOn(date).length > 0 && (
+                  <p className="border-b border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] leading-snug text-amber-800 dark:text-amber-300">
+                    <span className="font-semibold">{t('absentLabel')}:</span> {awayOn(date).join(', ')}
+                  </p>
+                )}
                 <div className="flex flex-1 flex-col gap-2 p-2">
                   {dayEntries.map((entry) => (
                     <div

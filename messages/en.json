@@ -203,7 +203,10 @@
     "jobsCount": "{count, plural, one {# assignment} other {# assignments}}",
     "noJobsShort": "Nothing planned",
     "navigate": "Navigate",
-    "itemVideo": "Video: {name}"
+    "itemVideo": "Video: {name}",
+    "absencesTitle": "My absences",
+    "noAbsences": "No vacation or sick leave entered.",
+    "absencesHint": "Vacation and sick days are entered by the office; such a day is marked amber in the week strip above."
   },
   "customers": {
     "title": "Customers",
@@ -1523,7 +1526,8 @@
     "applyOnly": "{count, plural, one {Save and update # day} other {Save and update # days}}",
     "dayPair": "{first} and {second}",
     "daysFromTo": "{count} days from {first} to {last}",
-    "noteHint": "Printed on this day's work order."
+    "noteHint": "Printed on this day's work order.",
+    "absentLabel": "Away"
   },
   "warehouse": {
     "title": "Warehouse",

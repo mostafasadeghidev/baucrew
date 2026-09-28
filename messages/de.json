@@ -203,7 +203,10 @@
     "jobsCount": "{count, plural, one {# Einsatz} other {# Einsätze}}",
     "noJobsShort": "Nichts geplant",
     "navigate": "Navigation",
-    "itemVideo": "Video: {name}"
+    "itemVideo": "Video: {name}",
+    "absencesTitle": "Meine Abwesenheiten",
+    "noAbsences": "Kein Urlaub und keine Krankmeldung eingetragen.",
+    "absencesHint": "Urlaub und Krankheit trägt das Büro ein; in der Wochenleiste oben ist so ein Tag gelb markiert."
   },
   "customers": {
     "title": "Kunden",
@@ -1523,7 +1526,8 @@
     "applyOnly": "{count, plural, one {Speichern und # Tag anpassen} other {Speichern und # Tage anpassen}}",
     "dayPair": "{first} und {second}",
     "daysFromTo": "{count} Tage von {first} bis {last}",
-    "noteHint": "Steht auf dem Arbeitsauftrag dieses Tages."
+    "noteHint": "Steht auf dem Arbeitsauftrag dieses Tages.",
+    "absentLabel": "Abwesend"
   },
   "warehouse": {
     "title": "Lager",

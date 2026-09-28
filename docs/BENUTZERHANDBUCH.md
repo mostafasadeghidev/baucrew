@@ -691,7 +691,12 @@ Auf der Seite eines Mitarbeiters gibt es die Karte **Abwesenheiten**: Art
 Einsatzplanung von selbst: Im Einsatzfenster steht neben dem Namen **⚠ Urlaub**,
 sobald das gewählte Datum in eine Abwesenheit fällt, und ist jemand trotzdem
 (oder schon vorher) verplant, erscheint es als Konflikt — im gelben Kasten der
-Wochenansicht und auf der Übersicht unter *Konflikte diese Woche*.
+Wochenansicht und auf der Übersicht unter *Konflikte diese Woche*. Wer an einem
+Tag fehlt, steht außerdem am Tag selbst: in der Wochenansicht als gelbe Zeile
+**Abwesend: Name (Urlaub)** unter dem Tageskopf, in der Monatsansicht mit dem
+Vornamen in der Tageszelle (der Rest im Tooltip). Der Mitarbeiter sieht seine
+eigenen Abwesenheiten in seinem Bereich: die Karte **Meine Abwesenheiten** am
+Ende der Seite und ein gelber Strich unter dem Tag in der Wochenleiste.
 
 ## 11. Fahrzeuge
 

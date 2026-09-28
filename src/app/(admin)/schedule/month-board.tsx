@@ -77,6 +77,12 @@ export function MonthBoard({
   /** Today when it falls in this month, otherwise the month's first day. */
   const newEntryDate = todayIso.startsWith(monthKey) ? todayIso : `${monthKey}-01`;
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" });
+  // Who is away on a day: first names in the cell, the whole in the tooltip.
+  const nameOf = new Map(employees.map((e) => [e.value, e.label]));
+  const awayOn = (day: string) =>
+    absences
+      .filter((a) => a.start <= day && day <= a.end)
+      .map((a) => ({ name: nameOf.get(a.employeeId) ?? "?", label: a.label }));
   const [boardError, setBoardError] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
@@ -318,6 +324,19 @@ export function MonthBoard({
                             </button>
                           )}
                         </div>
+                        {inMonth && awayOn(day).length > 0 && (
+                          <p
+                            className="mb-0.5 truncate text-[10px] text-amber-700 dark:text-amber-400"
+                            title={`${t("absentLabel")}: ${awayOn(day)
+                              .map((a) => `${a.name} (${a.label})`)
+                              .join(", ")}`}
+                          >
+                            {t("absentLabel")}:{" "}
+                            {awayOn(day)
+                              .map((a) => a.name.split(" ")[0])
+                              .join(", ")}
+                          </p>
+                        )}
                         <div className="space-y-0.5">
                           {shown.map((e) => (
                             <div
