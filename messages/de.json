@@ -339,7 +339,6 @@
     "yearsCount": "{count} Jahre",
     "yearHint": "Ein Projekt steht in jedem Jahr, das seine Termine berühren – ohne Termin im Jahr seiner Anlage. Das laufende Jahr zeigt dazu alle offenen Projekte.",
     "otherYearsHits": "{count, plural, one {# weiterer Treffer} other {# weitere Treffer}} in anderen Jahren",
-    "kanbanMore": "{count} weitere",
     "kanbanEmpty": "—",
     "kanbanConfirmTitle": "Status ändern",
     "kanbanConfirmBody": "Das wirkt sich auf die Planung und auf die Auswertungen aus.",
@@ -591,7 +590,18 @@
     "nDueTomorrow": "Die Karte ist morgen fällig.",
     "nOverdue": "Die Karte ist überfällig.",
     "nDueOn": "Die Karte ist am {date} fällig.",
-    "nUpdated": "hat die Karte geändert"
+    "nUpdated": "hat die Karte geändert",
+    "boardFilterNoMembers": "Keine Mitglieder",
+    "boardFilterMe": "Mir zugewiesene Karten",
+    "boardFilterStatus": "Kartenstatus",
+    "boardFilterDone": "Als erledigt markiert",
+    "boardFilterNotDone": "Nicht als erledigt markiert",
+    "boardFilterNoLabels": "Keine Etiketten",
+    "boardFilterActivity": "Aktivität",
+    "boardFilterActive1w": "Aktiv in der letzten Woche",
+    "boardFilterActive2w": "Aktiv in den letzten zwei Wochen",
+    "boardFilterActive4w": "Aktiv in den letzten vier Wochen",
+    "boardFilterStale": "Ohne Aktivität in den letzten vier Wochen"
   },
   "history": {
     "created": "hat die Karte angelegt",

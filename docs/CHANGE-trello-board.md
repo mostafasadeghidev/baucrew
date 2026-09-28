@@ -413,3 +413,22 @@ DROP TABLE "Notification";
 DROP TABLE "CardWatch";
 DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928110000_card_watch_notifications';
 ```
+
+### Trello's filter window, every card of a long list
+
+- `src/lib/board-cards.ts`: `BoardFilter` is now `{ members[], labels[],
+  urgent, due, done, activity }` — lists kept as "a,b" in the address
+  (`filterList`), `members` taking "me" and "none", `labels` "none";
+  `done` ("1"/"0"), `activity` (`1w`, `2w`, `4w`, `stale`, `activitySince`).
+  `BOARD_FILTER_PARAMS` and `projectsViewHref` carry the two new parameters.
+- `projects/page.tsx`: within people, and within labels (with "Hoch"), any
+  choice will do (`OR`); between them all must hold. Activity is a change of
+  the project, a comment or a file in the window.
+- `projects/board-filter.tsx`: a `Popover` with ticks instead of a menu,
+  staying open while choices are made.
+- `kanban.tsx`: the fifty-at-a-time limit and its "n weitere" button are gone
+  (`kanbanMore` removed); cards skip layout out of sight
+  (`content-visibility: auto`, `contain-intrinsic-size`).
+
+Rollback: revert the commit; no data of its own. Addresses with the new
+parameters simply lose them.

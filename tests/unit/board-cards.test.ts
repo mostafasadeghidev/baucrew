@@ -3,6 +3,7 @@ import {
   LABEL_COLORS,
   SWATCHES,
   addressLine,
+  activitySince,
   boardFilterCount,
   dateTone,
   dueTone,
@@ -94,14 +95,30 @@ describe('addressLine', () => {
 
 describe('the board filter', () => {
   it('reads the address and counts what is set', () => {
-    expect(parseBoardFilter({})).toEqual({ member: null, label: null, urgent: false, due: null })
+    expect(parseBoardFilter({})).toEqual({ members: [], labels: [], urgent: false, due: null, done: null, activity: null })
     expect(parseBoardFilter({ due: 'week' }).due).toBe('week')
     expect(parseBoardFilter({ due: 'someday' }).due).toBeNull()
     expect(boardFilterCount(parseBoardFilter({ due: 'overdue' }))).toBe(1)
     const filter = parseBoardFilter({ member: ' e1 ', label: 'c1', urgent: '1' })
-    expect(filter).toEqual({ member: 'e1', label: 'c1', urgent: true, due: null })
+    expect(filter).toEqual({ members: ['e1'], labels: ['c1'], urgent: true, due: null, done: null, activity: null })
     expect(boardFilterCount(filter)).toBe(3)
     expect(boardFilterCount(parseBoardFilter({ urgent: 'yes' }))).toBe(0)
+  })
+
+  it('takes several people and labels, "me" and "none", the tick and the activity', () => {
+    const filter = parseBoardFilter({ member: 'me,e1, e2,e1', label: 'none,c1', done: '0', activity: '2w' })
+    expect(filter.members).toEqual(['me', 'e1', 'e2'])
+    expect(filter.labels).toEqual(['none', 'c1'])
+    expect(filter.done).toBe(false)
+    expect(filter.activity).toBe('2w')
+    expect(boardFilterCount(filter)).toBe(7)
+    expect(parseBoardFilter({ done: 'maybe', activity: '3w' })).toMatchObject({ done: null, activity: null })
+  })
+
+  it('knows where an activity window starts', () => {
+    const now = new Date(Date.UTC(2026, 8, 28))
+    expect(activitySince('1w', now).toISOString().slice(0, 10)).toBe('2026-09-21')
+    expect(activitySince('stale', now).toISOString().slice(0, 10)).toBe('2026-08-31')
   })
 })
 

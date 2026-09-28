@@ -168,9 +168,6 @@ export type KanbanColumn = {
   cards: KanbanCard[]
 }
 
-/** How many cards a column shows before it says how many more it has. */
-const CARDS_AT_A_TIME = 50
-
 /** A list the way Trello draws one: a rounded grey slab floating on the ground. */
 const LIST = 'rounded-xl bg-[#f1f2f4] shadow-sm dark:bg-[#101204]'
 const HEAD_BUTTON = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-black/10 hover:text-foreground dark:hover:bg-white/10'
@@ -312,8 +309,6 @@ export function ProjectsKanban({
   const [sending, setSending] = useState<string | null>(null)
   /** The last move, and the board as it stood before it. */
   const [undo, setUndo] = useState<{ card: KanbanCard; to: string; before: KanbanColumn[] } | null>(null)
-  /** How many cards each column is showing, when it is showing more than the first lot. */
-  const [shown, setShown] = useState<Record<string, number>>({})
   /** The list (by id) whose "Karte hinzufügen" is open, the customer typed in new, and what went wrong. */
   const [adding, setAdding] = useState<string | null>(null)
   const [newCustomer, setNewCustomer] = useState<string | null>(null)
@@ -992,8 +987,6 @@ export function ProjectsKanban({
         }`}
       >
         {board.map((column) => {
-          const limit = shown[column.id] ?? CARDS_AT_A_TIME
-          const hidden = column.cards.length - limit
           if (collapsed.includes(column.id)) {
             // Folded to a strip: its name down the side, its count, and a click to open it again.
             return (
@@ -1125,7 +1118,10 @@ export function ProjectsKanban({
                 {column.cards.length === 0 && !dragging && (
                   <p className="px-1 py-4 text-center text-[11px] text-muted">{labels.empty}</p>
                 )}
-                {column.cards.slice(0, limit).map((card) =>
+                {/* Every card, as Trello shows them; a card out of sight is laid
+                    out only once it scrolls near, so a list of a hundred and
+                    fifty stays quick. */}
+                {column.cards.map((card) =>
                   dragging?.id === card.id ? (
                     // The card is in hand; this is the space it will drop into.
                     <div
@@ -1186,7 +1182,7 @@ export function ProjectsKanban({
                     // alone meant the board could only be moved by the narrow
                     // strips between the columns.
                     style={{ touchAction: 'pan-x pan-y' }}
-                    className={`group relative cursor-pointer overflow-hidden ${CARD} ring-accent/70 transition-shadow hover:ring-2 ${
+                    className={`group relative cursor-pointer overflow-hidden [contain-intrinsic-size:auto_140px] [content-visibility:auto] ${CARD} ring-accent/70 transition-shadow hover:ring-2 ${
                       fileOver === card.id ? 'ring-2 ring-accent' : ''
                     } ${sending === card.id ? 'opacity-60' : ''}`}
                   >
@@ -1414,22 +1410,6 @@ export function ProjectsKanban({
                     </div>
                   </div>
                   )
-                )}
-                {hidden > 0 && (
-                  // The rest are a click away rather than a page away: a column
-                  // that says "103 more" and does nothing about it is a dead end.
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShown((current) => ({
-                        ...current,
-                        [column.id]: limit + CARDS_AT_A_TIME,
-                      }))
-                    }
-                    className="w-full rounded-md px-1 py-1.5 text-center text-[11px] text-muted transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
-                  >
-                    {t('kanbanMore', { count: hidden })}
-                  </button>
                 )}
               </div>
 

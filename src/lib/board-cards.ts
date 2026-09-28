@@ -115,23 +115,67 @@ export function dueFilterKey(raw: unknown): DueFilter | null {
   return typeof raw === 'string' && (DUE_FILTERS as readonly string[]).includes(raw) ? (raw as DueFilter) : null
 }
 
-/** The filter above the board: one person, one trade, urgent only, a due — each in the address. */
-export type BoardFilter = { member: string | null; label: string | null; urgent: boolean; due: DueFilter | null }
+/** Trello's activity filter: touched within a week, two or four, or not within four. */
+export const ACTIVITY_FILTERS = ['1w', '2w', '4w', 'stale'] as const
+export type ActivityFilter = (typeof ACTIVITY_FILTERS)[number]
 
-export const BOARD_FILTER_PARAMS = ['member', 'label', 'urgent', 'due'] as const
+/**
+ * The filter above the board, the way Trello's asks: people — "me", "none" or
+ * any of several —, labels — "none", "Hoch" or any of several trades —, when
+ * it is due, whether it is ticked done, and how lately something happened on
+ * it. Within one of these any choice will do; between them all must hold.
+ * Each lives in the address, a list as "a,b".
+ */
+export type BoardFilter = {
+  members: string[]
+  labels: string[]
+  urgent: boolean
+  due: DueFilter | null
+  done: boolean | null
+  activity: ActivityFilter | null
+}
 
-export function parseBoardFilter(params: { member?: string; label?: string; urgent?: string; due?: string }): BoardFilter {
+export const BOARD_FILTER_PARAMS = ['member', 'label', 'urgent', 'due', 'done', 'activity'] as const
+
+/** "a, b,,a" → ["a", "b"]: a list from the address, at most twenty. */
+export function filterList(raw: string | undefined): string[] {
+  return [...new Set((raw ?? '').split(',').map((v) => v.trim()).filter(Boolean))].slice(0, 20)
+}
+
+export function parseBoardFilter(params: {
+  member?: string
+  label?: string
+  urgent?: string
+  due?: string
+  done?: string
+  activity?: string
+}): BoardFilter {
   return {
-    member: params.member?.trim() || null,
-    label: params.label?.trim() || null,
+    members: filterList(params.member),
+    labels: filterList(params.label),
     urgent: params.urgent === '1',
     due: dueFilterKey(params.due),
+    done: params.done === '1' ? true : params.done === '0' ? false : null,
+    activity: (ACTIVITY_FILTERS as readonly string[]).includes(params.activity ?? '') ? (params.activity as ActivityFilter) : null,
   }
 }
 
-/** How many of the four are set — the badge on the filter button. */
+/** How many choices are set — the badge on the filter button. */
 export function boardFilterCount(filter: BoardFilter): number {
-  return (filter.member ? 1 : 0) + (filter.label ? 1 : 0) + (filter.urgent ? 1 : 0) + (filter.due ? 1 : 0)
+  return (
+    filter.members.length +
+    filter.labels.length +
+    (filter.urgent ? 1 : 0) +
+    (filter.due ? 1 : 0) +
+    (filter.done !== null ? 1 : 0) +
+    (filter.activity ? 1 : 0)
+  )
+}
+
+/** Where an activity filter's window starts: a week, two or four back; "stale" asks about four. */
+export function activitySince(activity: ActivityFilter, now: Date): Date {
+  const weeks = activity === '1w' ? 1 : activity === '2w' ? 2 : 4
+  return new Date(now.getTime() - weeks * 7 * 86_400_000)
 }
 
 /**

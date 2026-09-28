@@ -45,7 +45,7 @@ import { TemplateSheet } from './template-sheet'
 import type { BoardTemplate } from './card-templates'
 import { LiveRefresh } from '@/components/live-refresh'
 import { Check } from 'lucide-react'
-import { addressLine, cardFieldLines, dateTone, dueFilterRange, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
+import { activitySince, addressLine, cardFieldLines, dateTone, dueFilterRange, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 import { orderValue } from '@/lib/reports'
 
 const STATUSES = Object.keys(ProjectStatus) as ProjectStatus[]
@@ -64,6 +64,10 @@ export default async function ProjectsPage({
     label?: string
     urgent?: string
     due?: string
+    /** Trello's card status in the filter: "1" done, "0" not. */
+    done?: string
+    /** Trello's activity filter: 1w, 2w, 4w or stale. */
+    activity?: string
     card?: string
     /** A card template opened over the board, from the templates at the foot of a list. */
     template?: string
@@ -73,7 +77,7 @@ export default async function ProjectsPage({
   }>
 }) {
   const user = await requireStaff()
-  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, due, card, template: templateParam, archived, aq } =
+  const { q, status, page: pageParam, view, year: yearValue, board: boardParam, member, label, urgent, due, done, activity, card, template: templateParam, archived, aq } =
     await searchParams
   // A year repeated in the address ("?year=2025&year=2026") comes as a list.
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
@@ -85,7 +89,7 @@ export default async function ProjectsPage({
   // cursor — so the list names itself once it is showing.
   if (!kanban && view !== 'list') {
     const params = new URLSearchParams({ view: 'list' })
-    for (const [key, value] of Object.entries({ q, status, page: pageParam, year: yearParam, board: boardParam, member, label, urgent, due }))
+    for (const [key, value] of Object.entries({ q, status, page: pageParam, year: yearParam, board: boardParam, member, label, urgent, due, done, activity }))
       if (value) params.set(key, value)
     redirect(`/projects?${params.toString()}`)
   }
@@ -103,7 +107,7 @@ export default async function ProjectsPage({
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
   // This very address — where the open card's forms return to.
   const here = new URLSearchParams()
-  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, due, card, archived, aq }))
+  for (const [key, value] of Object.entries({ q, status, page: pageParam, view, year: yearParam, board: boardParam, member, label, urgent, due, done, activity, card, archived, aq }))
     if (value) here.set(key, value)
   const returnTo = `/projects?${here.toString()}`
   /** This address with the archive panel open, and without it. */
@@ -122,7 +126,7 @@ export default async function ProjectsPage({
   const currentYear = today.getUTCFullYear()
   const years = parseProjectYears(yearParam, currentYear)
   // The filter beside the search, in both views: one person, one trade, urgent only, a due.
-  const filter = parseBoardFilter({ member, label, urgent, due })
+  const filter = parseBoardFilter({ member, label, urgent, due, done, activity })
   const dueWhere = (): Prisma.ProjectWhereInput => {
     if (!filter.due) return {}
     const range = dueFilterRange(filter.due, today)
@@ -130,11 +134,33 @@ export default async function ProjectsPage({
     if (filter.due === 'none') return { plannedStart: null, dueDate: null }
     return { dueDate: { ...(range.from ? { gte: range.from } : {}), ...(range.to ? { lt: range.to } : {}) } }
   }
+  // Within people, and within labels, any choice will do — Trello's filter; between them all must hold.
+  const meId = user.employee?.id ?? null
+  const memberIds = filter.members.map((m) => (m === 'me' ? meId : m)).filter((m): m is string => Boolean(m) && m !== 'none')
+  const memberOr: Prisma.ProjectWhereInput[] = [
+    ...(filter.members.includes('none') ? [{ managerId: null, team: { none: {} } }] : []),
+    ...(memberIds.length > 0 ? [{ managerId: { in: memberIds } }, { team: { some: { employeeId: { in: memberIds } } } }] : []),
+  ]
+  const tradeIds = filter.labels.filter((l) => l !== 'none')
+  const labelOr: Prisma.ProjectWhereInput[] = [
+    ...(filter.urgent ? [{ priority: 'HIGH' }] : []),
+    ...(filter.labels.includes('none') ? [{ workCategories: { none: {} } }] : []),
+    ...(tradeIds.length > 0 ? [{ workCategories: { some: { workCategoryId: { in: tradeIds } } } }] : []),
+  ]
+  // Something happened on it: the project changed, somebody wrote, a file came.
+  const since = filter.activity ? activitySince(filter.activity, new Date()) : null
+  const activeWhere: Prisma.ProjectWhereInput | null = since
+    ? { OR: [{ updatedAt: { gte: since } }, { notes: { some: { createdAt: { gte: since } } } }, { documents: { some: { createdAt: { gte: since } } } }] }
+    : null
   const filterWhere: Prisma.ProjectWhereInput = {
-    ...(filter.member ? { OR: [{ managerId: filter.member }, { team: { some: { employeeId: filter.member } } }] } : {}),
-    ...(filter.label ? { workCategories: { some: { workCategoryId: filter.label } } } : {}),
-    ...(filter.urgent ? { priority: 'HIGH' } : {}),
-    ...dueWhere(),
+    AND: [
+      // "Mir zugewiesen" for an account without a person behind it is nobody's card.
+      ...(memberOr.length > 0 ? [{ OR: memberOr }] : filter.members.length > 0 ? [{ id: { in: [] } }] : []),
+      ...(labelOr.length > 0 ? [{ OR: labelOr }] : []),
+      dueWhere(),
+      ...(filter.done !== null ? [{ doneAt: filter.done ? { not: null } : null }] : []),
+      ...(activeWhere ? [filter.activity === 'stale' ? { NOT: activeWhere } : activeWhere] : []),
+    ],
   }
   const [prepTab, boards, dated, statusChanges, people, trades, customerOptions, templateOptions] = await Promise.all([
     getPrepTabConfig(),
@@ -514,7 +540,7 @@ export default async function ProjectsPage({
     if (status) params.set('status', status)
     if (query) params.set('q', query)
     if (boardParam) params.set('board', boardParam)
-    for (const [key, value] of Object.entries({ member, label, urgent, due })) if (value) params.set(key, value)
+    for (const [key, value] of Object.entries({ member, label, urgent, due, done, activity })) if (value) params.set(key, value)
     params.set('year', ALL_YEARS)
     return `/projects?${params.toString()}`
   })()
@@ -554,6 +580,7 @@ export default async function ProjectsPage({
       people={people.map((e) => ({ id: e.id, name: `${e.firstName} ${e.lastName}`.trim() }))}
       labels={trades.map((c) => ({ id: c.id, name: locale === 'en' ? c.nameEn : c.nameDe, swatch: labelSwatch(c.color, c.id) }))}
       current={filter}
+      canMe={user.employee !== null}
     />
   )
   /** The status tab the board was narrowed to, with the way out of it. */
@@ -561,7 +588,7 @@ export default async function ProjectsPage({
     <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/40 bg-accent/10 py-0.5 pl-2.5 pr-1 text-xs font-medium text-accent">
       {t('boardStatusOnly', { status: statusFilter ? tStatus(statusFilter) : prepTab.label || t('tabPreparation') })}
       <Link
-        href={projectsViewHref('board', { q: query, year: yearParam, board: boardParam, member, label, urgent, due })}
+        href={projectsViewHref('board', { q: query, year: yearParam, board: boardParam, member, label, urgent, due, done, activity })}
         aria-label={t('boardStatusClear')}
         title={t('boardStatusClear')}
         className="rounded-full p-0.5 hover:bg-accent/20"
@@ -761,7 +788,7 @@ export default async function ProjectsPage({
             {yearPicker}
             <div className="flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
               <Link
-                href={projectsViewHref('list', { q: query, year: yearParam, board: boardParam, status: narrowed ? status : undefined, member, label, urgent, due })}
+                href={projectsViewHref('list', { q: query, year: yearParam, board: boardParam, status: narrowed ? status : undefined, member, label, urgent, due, done, activity })}
                 className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
               >
                 {t('viewList')}

@@ -339,7 +339,6 @@
     "yearsCount": "{count} years",
     "yearHint": "A project appears in every year its dates touch – without dates, in the year it was created. The current year also shows every open project.",
     "otherYearsHits": "{count, plural, one {# more match} other {# more matches}} in other years",
-    "kanbanMore": "{count} more",
     "kanbanEmpty": "—",
     "kanbanConfirmTitle": "Change status",
     "kanbanConfirmBody": "This affects the schedule and the reports.",
@@ -591,7 +590,18 @@
     "nDueTomorrow": "The card is due tomorrow.",
     "nOverdue": "The card is overdue.",
     "nDueOn": "The card is due on {date}.",
-    "nUpdated": "changed the card"
+    "nUpdated": "changed the card",
+    "boardFilterNoMembers": "No members",
+    "boardFilterMe": "Cards assigned to me",
+    "boardFilterStatus": "Card status",
+    "boardFilterDone": "Marked as complete",
+    "boardFilterNotDone": "Not marked as complete",
+    "boardFilterNoLabels": "No labels",
+    "boardFilterActivity": "Activity",
+    "boardFilterActive1w": "Active in the last week",
+    "boardFilterActive2w": "Active in the last two weeks",
+    "boardFilterActive4w": "Active in the last four weeks",
+    "boardFilterStale": "Without activity in the last four weeks"
   },
   "history": {
     "created": "created this card",
