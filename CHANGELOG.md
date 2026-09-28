@@ -3,6 +3,104 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.44.0] — 2026-09-28
+
+### Added
+- **A card that carries what a Trello card carries.** Its front shows the
+  field lines in the order the office's Trello cards had them — customer,
+  site address, order value (green, only for whoever may see money), type of
+  work, the customer's wish, the site visit, created, customer number — and
+  leaves an empty one out. A project has two new fields for it: the day of
+  the site visit and the customer's wish in their own words.
+- **The card's back as Trello's card modal.** Up to 1080 px wide, the cover
+  across the top in a band of its own colour, the list the card stands in
+  beside the title — opening *Karte verschieben* with board, list and
+  position — and round buttons for the cover, the card's "…" and the cross.
+  On a wide screen two columns scroll on their own: the card on the left,
+  *Kommentare und Aktivität* on the right, the card's history behind
+  *Details anzeigen*. The title is typed over where it stands. The project's
+  own page keeps its layout.
+- **Trello's small windows.** *+ Hinzufügen*, labels, dates, checklist and
+  members open their own windows, also from the faces, labels and dates under
+  the title: members searched, added, removed and one starred as the site
+  manager; urgent, SUB and the trades as coloured labels; a month calendar
+  for start, end and due, with a time on the due day and Trello's reminder
+  choice (Europe/Berlin time); a new checklist from a template. The fields
+  under the description are typed into in place — the wish, the site visit,
+  the order value, the address, a new town looked up for the map.
+- **The done tick.** The circle before a card's name marks it done, on the
+  board and on its back; its dates turn green, the list view shows the tick
+  and the Trello import reads it.
+- **Card templates at the foot of every list.** The button beside *Karte
+  hinzufügen* opens *Kartenvorlagen*: the templates drawn as cards, a card
+  made from one right in that list, templates made and edited over the board.
+  The card's "…" copies a card, saves it as a template and copies its link;
+  the pencil on a board card reaches labels, members, cover, dates, the link
+  and the archive.
+- **Attachments the way Trello takes them.** Outlook e-mails (.msg) and .eml,
+  several files at once, files dropped anywhere on a card's back or on a card
+  on the board; tiles with a "…" to download, make the cover, show to the
+  crew, rename or delete; web links attached beside the files through
+  Trello's *Anhängen* window.
+- **Comments and descriptions as Trello writes them.** Comments take
+  reactions, *Antworten* and *Bearbeiten*; descriptions and comments are read
+  as Markdown — headings, lists, quotes, code, bold, italic, links — drawn
+  with the page's own elements, never as HTML, with an editor bar and emoji.
+  Descriptions taken over from Trello show formatted.
+- **Following a card, and a bell that tells.** *Beobachten* on a card, an eye
+  on the board for the ones followed. Comments, moves, files, dates, the
+  tick, being added and a due day coming reach the card's members and
+  followers — never the one who did it, never the crew, a site manager only
+  while on the card. The office's bell holds mentions and news in one list,
+  each line opening its card.
+- **Trello's filter window**: several people or labels, my cards, cards
+  without members or labels, done or not, due, activity in the last weeks.
+  Long lists show every card.
+- **The board's activity**: who did what to which card, newest first, from
+  the board's menu; a site manager reads only the cards named on them.
+- **Trello's keyboard shortcuts**: the arrows walk the cards; Enter, e, t, l,
+  m, d, Space, s, c and n act on one; f, q, x and / filter and search; ?
+  lists them all.
+- **Checklists as Trello's**: a progress bar, checked items hidden on
+  request, and in the office's view a person and a day on an item and *In
+  Karte umwandeln*.
+- **A photo as a board's ground**, uploaded per board in Einstellungen →
+  Boards (JPG, PNG or WebP, up to 8 MB); the colour stays beneath it.
+- The list menu moves or archives every card of a list at once.
+- **API:** project bodies carry `inspectionDate` and `executionWish`; create
+  and PATCH accept them.
+
+### Changed
+- The board and the list redraw by themselves when a colleague changes
+  something: they ask every few seconds whether anything changed.
+- A card added at a list's foot stands last in it, the way Trello adds one;
+  a card added in a rule's list takes the rule.
+- The list's bar ends the way the board's bar does — year, list or board,
+  *Neues Projekt*, and the office's pages behind *Mehr*.
+- *Ausgegebene Geräte* moved from the Lager page to the top of the Geräte
+  page, beside the devices it is about.
+- Numbering a list afresh no longer touches the cards' last-change time.
+- Changes reach `main` as pull requests read by somebody else; a gate
+  (typecheck, ESLint, unit tests, the migrations and DB tests on a fresh
+  PostgreSQL, the build) runs on every pull request and push, and
+  `CONTRIBUTING.md` describes the routine.
+
+### Fixed
+- A page's bar ran off a phone's right edge and squeezed its title to
+  nothing; the projects page's header and search box overflowed on a phone.
+  They wrap now.
+- On a coloured board ground the year picker and the filter button were
+  white on white.
+- The option lists of fields lay hidden behind a card's back.
+
+### Upgrade
+- `docker compose up -d --build` applies seven migrations on start: the
+  card's new fields, comment edits and reactions, the done tick, links,
+  follows and notifications, the due time and reminder, a checklist item's
+  person and day, the board photo. Nothing to do by hand.
+  `docs/CHANGE-trello-board.md` holds the rollback of each. Notifications stay
+  out of the backup.
+
 ## [1.43.0] — 2026-09-25
 
 ### Added
