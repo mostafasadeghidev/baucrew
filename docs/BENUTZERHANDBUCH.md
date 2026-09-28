@@ -882,7 +882,9 @@ Die Reiter:
   Feld **Ausführung voraussichtlich (Monat)**; mit einem Ende, oder einer **Dauer**, verteilt sich sein
   Auftragswert gleichmäßig über die Monate dazwischen (Kapitel 6.2). **Ziehen Sie einen Auftrag** mit der
   Maus in eine andere Monatskarte — die Summen beider Monate ändern sich sofort, und ein fester Beginn
-  wandert um ganze Monate mit (der 15. bleibt der 15.). Projekte **ohne Monat** gehören zu keinem Monat
+  wandert um ganze Monate mit (der 15. bleibt der 15.). Auch ein **leerer Monat** steht als Karte da
+  (gestrichelt, ohne Zahlen), damit ein Auftrag hineingezogen werden kann — in den Bahnen ebenso; nur
+  die Jahresmatrix zeigt allein die Monate mit Einträgen. Projekte **ohne Monat** gehören zu keinem Monat
   und zählen erst, wenn einer eingetragen ist — unter *Datenlücken* sind sie aufgeführt. Ist eine
   **Jahresplanung** eingelesen (Kapitel 15), stehen ihre Zeilen, zu denen es noch kein Projekt gibt,
   ebenfalls in ihren Monaten — Arbeit, die noch ein Projekt braucht; eine Zeile, die im Planabgleich
