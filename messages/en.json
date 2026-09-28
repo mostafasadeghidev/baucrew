@@ -639,7 +639,9 @@
     "reminder_120": "2 hours before",
     "reminder_1440": "1 day before",
     "reminder_2880": "2 days before",
-    "nCheckItem": "assigned you a checklist item: {text}"
+    "nCheckItem": "assigned you a checklist item: {text}",
+    "customerSearch": "Search customers",
+    "customerMore": "{count} more – keep typing to narrow the list"
   },
   "history": {
     "created": "created this card",
@@ -697,7 +699,8 @@
     "fileRenamed": "renamed a file to “{name}”",
     "linkAdded": "attached the link “{name}”",
     "linkRemoved": "removed the link “{name}”",
-    "fromChecklist": "created this card from a checklist item of “{name}”"
+    "fromChecklist": "created this card from a checklist item of “{name}”",
+    "field_customer": "Customer"
   },
   "employees": {
     "title": "Employees",

@@ -639,7 +639,9 @@
     "reminder_120": "2 Stunden vorher",
     "reminder_1440": "1 Tag vorher",
     "reminder_2880": "2 Tage vorher",
-    "nCheckItem": "hat Ihnen einen Checklisten-Punkt zugewiesen: {text}"
+    "nCheckItem": "hat Ihnen einen Checklisten-Punkt zugewiesen: {text}",
+    "customerSearch": "Kunden suchen",
+    "customerMore": "{count} weitere – zum Eingrenzen weitertippen"
   },
   "history": {
     "created": "hat die Karte angelegt",
@@ -697,7 +699,8 @@
     "fileRenamed": "hat eine Datei in „{name}“ umbenannt",
     "linkAdded": "hat den Link „{name}“ angehängt",
     "linkRemoved": "hat den Link „{name}“ entfernt",
-    "fromChecklist": "hat die Karte aus einem Checklisten-Punkt von „{name}“ erstellt"
+    "fromChecklist": "hat die Karte aus einem Checklisten-Punkt von „{name}“ erstellt",
+    "field_customer": "Kunde"
   },
   "employees": {
     "title": "Mitarbeiter",
