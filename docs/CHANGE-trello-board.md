@@ -287,3 +287,34 @@ foot, beside "Karte hinzufügen".
 **Rollback:** revert the commit. No migration and no data of its own; the
 audit rows `project.fromTemplate` stay and are simply not described in the
 history any more.
+
+## Addendum (2026-09-28): what Trello does that needed nothing from the client
+
+Built one piece after another after the owner asked for everything that did
+not wait for the client (the Trello access key, the customer board's
+export, a mail server). Each piece is its own commit.
+
+### The done tick, a board that keeps level, new cards at the foot
+
+- `Project.doneAt` (migration `20260928090000_card_done`): Trello's tick.
+  `done-tick.tsx` — the circle before the name on the board (shown on hover,
+  kept once done) and before the title on the card's back; the list view
+  shows a green tick. `setCardDone` in `projects/actions.ts`, audit
+  `project.done` / `project.undone` (history words `done`, `undone`); a done
+  card's dates turn green. The Trello import reads `dueComplete`.
+- `api/board-version/route.ts` + `components/live-refresh.tsx`: every six
+  seconds, while the page is in front, the board and the list ask for a small
+  fingerprint (project count and last change, last audit id, boards) and
+  redraw when it changed — a colleague's move shows up without a reload.
+- `placeAtBottom` in `projects/actions.ts`: a card made at a list's foot
+  ("Karte hinzufügen", card templates) stands last in its status, which is
+  numbered afresh first when some of its cards have no place yet.
+- `src/lib/db.ts`: in development the kept Prisma client is replaced when
+  the generated client changed (a migration), so a running dev server knows
+  the new fields without a restart.
+
+Rollback: revert the commit, then
+```sql
+ALTER TABLE "Project" DROP COLUMN "doneAt";
+DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928090000_card_done';
+```

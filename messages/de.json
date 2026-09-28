@@ -533,7 +533,10 @@
     "offerMailGreeting": "Sehr geehrte Damen und Herren,",
     "offerMailBody": "anbei erhalten Sie unser Angebot {number} für {name}. Bei Fragen melden Sie sich gern – wir freuen uns auf Ihre Rückmeldung.",
     "offerMailAmount": "Angebotssumme: {amount} netto.",
-    "offerMailClosing": "Mit freundlichen Grüßen\n{company}"
+    "offerMailClosing": "Mit freundlichen Grüßen\n{company}",
+    "cardDoneMark": "Als erledigt markieren",
+    "cardDoneUnmark": "Als nicht erledigt markieren",
+    "cardDoneState": "Erledigt"
   },
   "history": {
     "created": "hat die Karte angelegt",
@@ -572,7 +575,9 @@
     "system": "System",
     "copiedFrom": "hat die Karte als Kopie von „{name}“ angelegt",
     "fromTemplate": "hat die Karte aus der Vorlage „{name}“ erstellt",
-    "movedMonth": "hat den Auftrag in den Monat {month} gelegt"
+    "movedMonth": "hat den Auftrag in den Monat {month} gelegt",
+    "done": "hat die Karte als erledigt markiert",
+    "undone": "hat die Karte als nicht erledigt markiert"
   },
   "employees": {
     "title": "Mitarbeiter",

@@ -139,6 +139,7 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
           externalUrl: card.shortUrl || undefined,
           sourceCreatedAt,
           plannedEnd: card.due ? new Date(card.due) : undefined,
+          ...(card.dueComplete ? { doneAt: new Date() } : {}),
         },
       })
       await linkCard(existing.id, card.id, card.shortUrl)
@@ -195,6 +196,7 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
         externalId,
         externalUrl: card.shortUrl || undefined,
         sourceCreatedAt,
+        doneAt: card.dueComplete ? new Date() : undefined,
       },
       select: { id: true },
     })

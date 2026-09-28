@@ -81,6 +81,7 @@ import { useCardDetails, useCollapsedColumns, useLabelsOpen } from './board-pref
 import { dragHasFiles, uploadProjectFiles } from './[id]/upload-files'
 import { CARD } from './board-card'
 import { CardTemplates, type BoardTemplate } from './card-templates'
+import { DoneTick } from './done-tick'
 import {
   addColumn,
   archiveCards,
@@ -136,11 +137,15 @@ export type KanbanCard = {
   fields: Array<{ key: CardFieldKey; text: string }>
   /** Whether the project has a description — the ≡ mark of a Trello card. */
   hasDescription: boolean
+  /** Trello's tick: the card marked done. Its dates turn green. */
+  done: boolean
 }
 
 const DATE_TONE = {
   late: 'bg-danger/10 text-danger',
   soon: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+  /** A card ticked done: its days are kept, not pressing — Trello's green. */
+  done: 'bg-emerald-600 text-white dark:bg-emerald-600',
 }
 
 export type KanbanColumn = {
@@ -1215,6 +1220,11 @@ export function ProjectsKanban({
                         SUB and the trades, each in its own colour — named, and
                         folded to bars by a click on any of them. */}
                     <CardLabels card={card} trades={!details} urgentText={t('priorityHigh')} toggleTitle={t('labelsToggle')} />
+                    <div className="flex items-start gap-1.5">
+                    {/* Trello's tick: there while the pointer is over the card, and for good once it is done. */}
+                    <span className={`mt-0.5 ${card.done ? 'flex' : 'hidden group-hover:flex [@media(hover:none)]:flex'}`}>
+                      <DoneTick projectId={card.id} done={card.done} />
+                    </span>
                     {renaming?.id === card.id ? (
                       <input
                         autoFocus
@@ -1240,11 +1250,12 @@ export function ProjectsKanban({
                         href={openHref(card.id)}
                         scroll={false}
                         draggable={false}
-                        className="block break-words pr-5 text-sm leading-snug text-foreground hover:text-accent"
+                        className="block min-w-0 flex-1 break-words pr-5 text-sm leading-snug text-foreground hover:text-accent"
                       >
                         {card.name}
                       </Link>
                     )}
+                    </div>
                     {/* What the card carries, as small marks: a description, the
                         dates coloured when they press, the checklist, what is
                         open, what is attached and said; and who is on it. */}
@@ -1257,8 +1268,8 @@ export function ProjectsKanban({
                         )}
                         {card.dates && (
                           <span
-                            title={card.dates.tone === 'late' ? t('cardLate') : card.dates.tone === 'soon' ? t('cardSoon') : t('cardDates')}
-                            className={mark('', card.dates.tone ? DATE_TONE[card.dates.tone] : '')}
+                            title={card.done ? t('cardDoneState') : card.dates.tone === 'late' ? t('cardLate') : card.dates.tone === 'soon' ? t('cardSoon') : t('cardDates')}
+                            className={mark('', card.done ? DATE_TONE.done : card.dates.tone ? DATE_TONE[card.dates.tone] : '')}
                           >
                             <CalendarDays className="h-3 w-3 shrink-0" aria-hidden />
                             {card.dates.text}
@@ -1266,8 +1277,8 @@ export function ProjectsKanban({
                         )}
                         {card.due && (
                           <span
-                            title={card.due.tone === 'late' ? t('cardDueLate') : card.due.tone === 'soon' ? t('cardDueSoon') : t('cardDue')}
-                            className={mark('', card.due.tone ? DATE_TONE[card.due.tone] : '')}
+                            title={card.done ? t('cardDoneState') : card.due.tone === 'late' ? t('cardDueLate') : card.due.tone === 'soon' ? t('cardDueSoon') : t('cardDue')}
+                            className={mark('', card.done ? DATE_TONE.done : card.due.tone ? DATE_TONE[card.due.tone] : '')}
                           >
                             <Clock className="h-3 w-3 shrink-0" aria-hidden />
                             {card.due.text}

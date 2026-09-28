@@ -11,6 +11,8 @@ export type TrelloCard = {
   idList: string
   closed: boolean
   due: string | null
+  /** Trello's tick: the card marked complete. */
+  dueComplete: boolean
   labels: string[]
   /** Permalink of the card, kept as the project's source link. */
   shortUrl: string
@@ -45,6 +47,7 @@ export function parseTrelloExport(json: unknown): TrelloBoard | null {
       idList: String(c.idList ?? ''),
       closed: Boolean(c.closed),
       due: typeof c.due === 'string' ? c.due : null,
+      dueComplete: c.dueComplete === true,
       shortUrl: typeof c.shortUrl === 'string' ? c.shortUrl : '',
       labels: Array.isArray(c.labels)
         ? c.labels

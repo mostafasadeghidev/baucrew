@@ -1205,6 +1205,28 @@ async function applyListRule(projectId: string, rule: string | null) {
 }
 
 /**
+ * A card made at the foot of a list stands at the foot of it, the way
+ * Trello's does: after the last card of its status. Where some cards of the
+ * status have no place yet, the status is numbered afresh in the order the
+ * board shows it, and the new card goes last.
+ */
+async function placeAtBottom(projectId: string) {
+  const project = await db.project.findUnique({ where: { id: projectId }, select: { status: true } })
+  if (!project) return
+  const column = await db.project.findMany({
+    where: { status: project.status, archivedAt: null, id: { not: projectId } },
+    select: { id: true, number: true, boardPosition: true },
+  })
+  const ordered = orderCards(column.map((c) => ({ ...c, position: c.boardPosition })))
+  if (ordered.every((c) => c.position != null)) {
+    await db.project.update({ where: { id: projectId }, data: { boardPosition: positionBetween(ordered.at(-1)?.position ?? null, null) } })
+    return
+  }
+  ordered.push({ id: projectId, number: '', position: null, boardPosition: null })
+  await db.$transaction(renumbered(ordered).map((row) => db.project.update({ where: { id: row.id }, data: { boardPosition: row.position } })))
+}
+
+/**
  * A site manager's own card stays on their board: they are named on it — as
  * its site manager when it has none, else in its crew — or it would vanish
  * from the board it was made on.
@@ -1246,6 +1268,7 @@ export async function quickAddProject(status: string, formData: FormData, rule: 
     const project = await createProjectRecord(user, input, { type: 'user', userId: user.id })
     await applyListRule(project.id, rule)
     await nameSiteManager(user, project.id)
+    await placeAtBottom(project.id)
   } catch (e) {
     console.error('quick add failed', e)
     return { error: 'saveFailed' }
@@ -1277,6 +1300,7 @@ export async function createCardFromTemplate(
     await applyTemplate(project.id, templateId, keptParts(formData.getAll('keep')))
     await applyListRule(project.id, place.rule)
     await nameSiteManager(user, project.id)
+    await placeAtBottom(project.id)
     await audit({
       userId: user.id,
       action: 'project.fromTemplate',
@@ -1290,6 +1314,24 @@ export async function createCardFromTemplate(
     console.error('card from template failed', e)
     return { error: 'saveFailed' }
   }
+}
+
+/**
+ * Trello's tick on a card: marked done, or not. The office's own mark,
+ * apart from the status — a job finished on the site may still wait for its
+ * invoice, and the tick says it needs nothing more from the office.
+ */
+export async function setCardDone(id: string, done: boolean): Promise<{ error?: 'saveFailed' }> {
+  const user = await requireStaff()
+  if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  const project = await db.project.findUnique({ where: { id }, select: { doneAt: true } })
+  if (!project) return { error: 'saveFailed' }
+  if ((project.doneAt !== null) === done) return {}
+  await db.project.update({ where: { id }, data: { doneAt: done ? new Date() : null } })
+  await audit({ userId: user.id, action: done ? 'project.done' : 'project.undone', entity: 'Project', entityId: id })
+  revalidatePath('/projects')
+  revalidatePath(`/projects/${id}`)
+  return {}
 }
 
 /** The quick menu on a card: another name, or urgent on and off. */

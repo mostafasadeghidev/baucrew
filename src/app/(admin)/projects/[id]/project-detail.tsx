@@ -30,6 +30,7 @@ import { SheetAddBar, SheetAddMenu } from '../sheet-add-bar'
 import { CoverPicker } from './cover-picker'
 import { SheetMenu } from './sheet-menu'
 import { SheetTitle } from './sheet-title'
+import { DoneTick } from '../done-tick'
 import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
 import { todayUtc } from '@/lib/dates'
 import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
@@ -1180,9 +1181,15 @@ export async function ProjectDetail({
         <p className={metaHead}>{t('sheetDates')}</p>
         <p
           className={`mt-1 inline-flex min-h-7 items-center rounded px-1.5 text-sm tabular-nums ${
-            tone === 'late' ? 'bg-danger/10 text-danger' : tone === 'soon' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : ''
+            project.doneAt && planned.length > 0
+              ? 'bg-emerald-600 text-white'
+              : tone === 'late'
+                ? 'bg-danger/10 text-danger'
+                : tone === 'soon'
+                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                  : ''
           }`}
-          title={tone === 'late' ? t('cardLate') : tone === 'soon' ? t('cardSoon') : undefined}
+          title={project.doneAt ? t('cardDoneState') : tone === 'late' ? t('cardLate') : tone === 'soon' ? t('cardSoon') : undefined}
         >
           {planned.length > 0 ? planned.join(' – ') : (roughMonth ?? '—')}
         </p>
@@ -1200,9 +1207,15 @@ export async function ProjectDetail({
           <p className={metaHead}>{t('dueDate')}</p>
           <p
             className={`mt-1 inline-flex min-h-7 items-center gap-1 rounded px-1.5 text-sm tabular-nums ${
-              due === 'late' ? 'bg-danger/10 text-danger' : due === 'soon' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : ''
+              project.doneAt
+                ? 'bg-emerald-600 text-white'
+                : due === 'late'
+                  ? 'bg-danger/10 text-danger'
+                  : due === 'soon'
+                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                    : ''
             }`}
-            title={due === 'late' ? t('cardDueLate') : due === 'soon' ? t('cardDueSoon') : undefined}
+            title={project.doneAt ? t('cardDoneState') : due === 'late' ? t('cardDueLate') : due === 'soon' ? t('cardDueSoon') : undefined}
           >
             <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {formatDate(project.dueDate, locale)}
@@ -1329,6 +1342,7 @@ export async function ProjectDetail({
               }
             >
               <div className="flex items-start gap-3 pt-5">
+                <DoneTick projectId={project.id} done={project.doneAt !== null} large className="mt-1" />
                 <h2 className="min-w-0 flex-1 break-words text-2xl font-semibold leading-tight">
                   {project.name}
                   <span className="ml-2 align-middle text-sm font-normal text-muted">{project.number}</span>

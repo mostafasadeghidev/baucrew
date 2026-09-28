@@ -533,7 +533,10 @@
     "offerMailGreeting": "Dear Sir or Madam,",
     "offerMailBody": "please find attached our offer {number} for {name}. Any questions, just get in touch – we look forward to hearing from you.",
     "offerMailAmount": "Offer total: {amount} net.",
-    "offerMailClosing": "Kind regards\n{company}"
+    "offerMailClosing": "Kind regards\n{company}",
+    "cardDoneMark": "Mark complete",
+    "cardDoneUnmark": "Mark incomplete",
+    "cardDoneState": "Complete"
   },
   "history": {
     "created": "created this card",
@@ -572,7 +575,9 @@
     "system": "System",
     "copiedFrom": "created this card as a copy of “{name}”",
     "fromTemplate": "created this card from the template “{name}”",
-    "movedMonth": "placed the job in {month}"
+    "movedMonth": "placed the job in {month}",
+    "done": "marked this card complete",
+    "undone": "marked this card incomplete"
   },
   "employees": {
     "title": "Employees",

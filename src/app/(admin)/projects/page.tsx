@@ -43,6 +43,8 @@ import type { CardMovePlaces } from './card-move'
 import { ProjectDetail } from './[id]/project-detail'
 import { TemplateSheet } from './template-sheet'
 import type { BoardTemplate } from './card-templates'
+import { LiveRefresh } from '@/components/live-refresh'
+import { Check } from 'lucide-react'
 import { addressLine, cardFieldLines, dateTone, dueFilterRange, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 import { orderValue } from '@/lib/reports'
 
@@ -303,6 +305,7 @@ export default async function ProjectsPage({
           coverDocumentId: true,
           description: true,
           pausedAt: true,
+          doneAt: true,
           invoices: { where: { part: 1 }, select: { id: true } },
           customer: { select: { name: true, number: true } },
           manager: { select: { id: true, firstName: true, lastName: true } },
@@ -408,6 +411,7 @@ export default async function ProjectsPage({
           more: Math.max(0, people.length - FACES),
           cover: p.coverDocumentId,
           hasDescription: Boolean(p.description?.trim()),
+          done: p.doneAt !== null,
           // The lines under the marks, in the order the client's Trello cards
           // show them; the order value only for whoever may see money.
           fields: cardFieldLines({
@@ -851,6 +855,8 @@ export default async function ProjectsPage({
         )}
 
         {sheet}
+        {/* What a colleague moves, adds or writes shows up here too, the way it does in Trello. */}
+        <LiveRefresh url="/api/board-version" />
       </div>
     )
   }
@@ -960,6 +966,9 @@ export default async function ProjectsPage({
                             !
                           </span>
                         )}
+                        {p.doneAt && (
+                          <Check className="mr-1 inline h-3.5 w-3.5 rounded-full bg-emerald-600 p-0.5 align-[-2px] text-white" strokeWidth={3} aria-label={t('cardDoneState')} />
+                        )}
                         <Link href={`/projects/${p.id}`} className="font-medium text-accent hover:underline">
                           {p.name}
                         </Link>
@@ -1019,6 +1028,7 @@ export default async function ProjectsPage({
       <Pagination page={page} total={total} />
 
       {sheet}
+      <LiveRefresh url="/api/board-version" />
     </div>
   )
 }

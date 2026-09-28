@@ -58,6 +58,10 @@ export function describeAudit(entry: AuditEntry, t: Words, statusLabel: (status:
       return t('copiedFrom', { name: name(oldValue) })
     case 'project.fromTemplate':
       return t('fromTemplate', { name: name(newValue) })
+    case 'project.done':
+      return t('done')
+    case 'project.undone':
+      return t('undone')
     case 'project.file.add':
       return t('fileAdded', { name: name(newValue) })
     case 'project.file.delete':

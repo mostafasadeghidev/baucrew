@@ -21,6 +21,7 @@ describe('parseTrelloExport', () => {
           idList: 'L1',
           closed: false,
           due: '2026-09-01T00:00:00.000Z',
+          dueComplete: true,
           shortUrl: 'https://trello.com/c/abc',
           labels: [{ name: 'Fassade' }, { name: '' }, null],
           attachments: [
@@ -38,6 +39,7 @@ describe('parseTrelloExport', () => {
       name: 'Muster Musterdorf DD',
       shortUrl: 'https://trello.com/c/abc',
       labels: ['Fassade'],
+      dueComplete: true,
     })
     expect(board!.cards[0].attachments).toEqual([
       { name: 'Angebot.pdf', url: 'https://trello.com/1/cards/C1/attachments/a/download' },
@@ -49,7 +51,7 @@ describe('parseTrelloExport', () => {
       lists: [{ id: 'L1', name: 'A' }],
       cards: [{ id: 'C1', name: 'Musterbau', idList: 'L1' }],
     })
-    expect(board!.cards[0]).toMatchObject({ shortUrl: '', attachments: [], labels: [] })
+    expect(board!.cards[0]).toMatchObject({ shortUrl: '', attachments: [], labels: [], dueComplete: false })
   })
 })
 
