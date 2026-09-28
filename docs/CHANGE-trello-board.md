@@ -497,3 +497,30 @@ Rollback: revert the commit, then
 ALTER TABLE "Project" DROP COLUMN "dueTime", DROP COLUMN "dueReminder";
 DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928120000_due_time_reminder';
 ```
+
+### Checklists as Trello's: a person and a day on an item, hide checked, item to card
+
+- `ProjectChecklistItem.assigneeId` (Employee, "ChecklistAssignee") and
+  `.dueDate`; migration `20260928130000_checklist_item_plan`.
+- `components/checklist.tsx`: a progress bar and "Erledigte ausblenden" for
+  everyone; with `office` (the office's view, `ChecklistSection people`) each
+  item has Trello's person and day buttons and a "…" with "In Karte
+  umwandeln" and delete; on site the person and day are shown, not set.
+- `setChecklistItemPlan` (`[id]/checklist-actions.ts`; the person put on an
+  item hears of it: notification kind `checkItem`), and
+  `convertChecklistItemToCard` (`projects/actions.ts`: the item's words as
+  the name, same customer and status, at the foot of the list; history
+  `fromChecklist`).
+- `writePositions` in `projects/actions.ts`: numbering a column afresh
+  (moves, sorting, new cards at the foot) no longer touches the cards'
+  `updatedAt`, so they do not all look recently active in the filter;
+  sorting a list writes an audit line (`board.column.sort`) so other boards
+  take the new order.
+
+Rollback: revert the commit, then
+```sql
+ALTER TABLE "ProjectChecklistItem" DROP CONSTRAINT "ProjectChecklistItem_assigneeId_fkey";
+DROP INDEX "ProjectChecklistItem_assigneeId_idx";
+ALTER TABLE "ProjectChecklistItem" DROP COLUMN "assigneeId", DROP COLUMN "dueDate";
+DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928130000_checklist_item_plan';
+```

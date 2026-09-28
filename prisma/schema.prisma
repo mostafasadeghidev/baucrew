@@ -150,6 +150,7 @@ model Employee {
   managedProjects     Project[]               @relation("ProjectManager")
   templateMemberships TemplateEmployee[]
   checkedItems        ProjectChecklistItem[]  @relation("ChecklistCheckedBy")
+  assignedCheckItems  ProjectChecklistItem[]  @relation("ChecklistAssignee")
   deviceAssignments   DeviceAssignment[]
   managedTemplates    ProjectTemplate[]       @relation("TemplateManager")
   absences            Absence[]
@@ -727,9 +728,15 @@ model ProjectChecklistItem {
   checkedAt   DateTime?
   checkedById String?
   checkedBy   Employee?        @relation("ChecklistCheckedBy", fields: [checkedById], references: [id], onDelete: SetNull)
+  /// Who is to see to the point, the way Trello assigns a checklist item.
+  assigneeId  String?
+  assignee    Employee?        @relation("ChecklistAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  /// The day the point is due by.
+  dueDate     DateTime?        @db.Date
 
   @@index([checklistId])
   @@index([checkedById])
+  @@index([assigneeId])
 }
 
 // ─────────────────────────────────────────────

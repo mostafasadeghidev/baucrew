@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { requireStaff, requireUser } from '@/lib/authz'
 import { canWorkOn } from '@/lib/crew-access'
 import { audit } from '@/lib/audit'
+import { notifyCard } from '@/lib/notifications-db'
 
 export type ChecklistResult = { error?: 'notAllowed' | 'saveFailed'; savedAt?: number }
 
@@ -157,3 +158,36 @@ export async function setChecklistItem(
 
 /** Who may tick and edit a project's checklists: whoever may work on the project (src/lib/crew-access.ts). */
 const mayEditChecklist = canWorkOn
+
+/**
+ * Trello's person and day on a checklist item: who is to see to it, and by
+ * when. The person put on it hears of it in the bell.
+ */
+export async function setChecklistItemPlan(
+  itemId: string,
+  plan: { assigneeId?: string | null; dueDate?: string | null }
+): Promise<ChecklistResult> {
+  const user = await requireStaff()
+  const item = await db.projectChecklistItem.findUnique({
+    where: { id: itemId },
+    select: { text: true, assigneeId: true, checklist: { select: { projectId: true } } },
+  })
+  if (!item) return { error: 'saveFailed' }
+  if (!(await mayEditChecklist(user, item.checklist.projectId))) return { error: 'notAllowed' }
+  const data: { assigneeId?: string | null; dueDate?: Date | null } = {}
+  if (plan.assigneeId !== undefined) {
+    if (plan.assigneeId && !(await db.employee.count({ where: { id: plan.assigneeId } }))) return { error: 'saveFailed' }
+    data.assigneeId = plan.assigneeId || null
+  }
+  if (plan.dueDate !== undefined) {
+    if (plan.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(plan.dueDate)) return { error: 'saveFailed' }
+    data.dueDate = plan.dueDate ? new Date(`${plan.dueDate}T00:00:00.000Z`) : null
+  }
+  await db.projectChecklistItem.update({ where: { id: itemId }, data })
+  if (data.assigneeId && data.assigneeId !== item.assigneeId)
+    await notifyCard(item.checklist.projectId, user.id, 'checkItem', { text: item.text.slice(0, 160), onlyEmployeeId: data.assigneeId })
+  revalidatePath(`/projects/${item.checklist.projectId}`)
+  revalidatePath('/projects')
+  revalidatePath('/my')
+  return {}
+}

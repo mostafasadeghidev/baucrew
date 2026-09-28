@@ -164,7 +164,10 @@ export async function ProjectDetail({
         include: {
           items: {
             orderBy: { sortOrder: 'asc' },
-            include: { checkedBy: { select: { firstName: true, lastName: true } } },
+            include: {
+              checkedBy: { select: { firstName: true, lastName: true } },
+              assignee: { select: { id: true, firstName: true, lastName: true } },
+            },
           },
         },
       },
@@ -279,6 +282,27 @@ export async function ProjectDetail({
       ),
     }
   })
+  /** Trello's person and day on a checklist item, as the office's view draws them. */
+  const checkPeople = allEmployees.map((e) => {
+    const name = `${e.firstName} ${e.lastName}`.trim()
+    return { id: e.id, name, initials: initials(name), swatch: swatchOf(e.id) }
+  })
+  const dayMonthShort = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { day: '2-digit', month: '2-digit', timeZone: 'UTC' })
+  const checkItemRow = (i: (typeof project.checklists)[number]['items'][number]) => {
+    const who = i.assignee ? `${i.assignee.firstName} ${i.assignee.lastName}`.trim() : null
+    return {
+      id: i.id,
+      text: i.text,
+      ok: i.ok,
+      note: i.note,
+      checkedBy: i.checkedBy ? `${i.checkedBy.firstName} ${i.checkedBy.lastName}`.trim() : null,
+      checkedAt: i.checkedAt ? formatDate(i.checkedAt, locale) : null,
+      assignee: i.assignee && who ? { id: i.assignee.id, name: who, initials: initials(who), swatch: swatchOf(i.assignee.id) } : null,
+      due: i.dueDate ? i.dueDate.toISOString().slice(0, 10) : null,
+      dueLabel: i.dueDate ? dayMonthShort.format(i.dueDate) : null,
+      dueLate: i.dueDate ? i.dueDate < todayUtc() : false,
+    }
+  }
   const assignedItemIds = new Set(project.items.map((i) => i.catalogItemId))
   const catalogOptions = (
     await db.catalogItem.findMany({
@@ -754,15 +778,9 @@ export async function ProjectDetail({
               checklists={project.checklists.map((c) => ({
                 id: c.id,
                 name: c.name,
-                items: c.items.map((i) => ({
-                  id: i.id,
-                  text: i.text,
-                  ok: i.ok,
-                  note: i.note,
-                  checkedBy: i.checkedBy ? `${i.checkedBy.firstName} ${i.checkedBy.lastName}`.trim() : null,
-                  checkedAt: i.checkedAt ? formatDate(i.checkedAt, locale) : null,
-                })),
+                items: c.items.map((i) => checkItemRow(i)),
               }))}
+              people={checkPeople}
             />
           </div>
         </section>
@@ -1029,15 +1047,9 @@ export async function ProjectDetail({
               checklists={project.checklists.map((c) => ({
                 id: c.id,
                 name: c.name,
-                items: c.items.map((i) => ({
-                  id: i.id,
-                  text: i.text,
-                  ok: i.ok,
-                  note: i.note,
-                  checkedBy: i.checkedBy ? `${i.checkedBy.firstName} ${i.checkedBy.lastName}`.trim() : null,
-                  checkedAt: i.checkedAt ? formatDate(i.checkedAt, locale) : null,
-                })),
+                items: c.items.map((i) => checkItemRow(i)),
               }))}
+              people={checkPeople}
             />
           </div>
         </section>

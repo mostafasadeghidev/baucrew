@@ -638,7 +638,8 @@
     "reminder_60": "1 Stunde vorher",
     "reminder_120": "2 Stunden vorher",
     "reminder_1440": "1 Tag vorher",
-    "reminder_2880": "2 Tage vorher"
+    "reminder_2880": "2 Tage vorher",
+    "nCheckItem": "hat Ihnen einen Checklisten-Punkt zugewiesen: {text}"
   },
   "history": {
     "created": "hat die Karte angelegt",
@@ -695,7 +696,8 @@
     "field_address": "Baustellenadresse",
     "fileRenamed": "hat eine Datei in „{name}“ umbenannt",
     "linkAdded": "hat den Link „{name}“ angehängt",
-    "linkRemoved": "hat den Link „{name}“ entfernt"
+    "linkRemoved": "hat den Link „{name}“ entfernt",
+    "fromChecklist": "hat die Karte aus einem Checklisten-Punkt von „{name}“ erstellt"
   },
   "employees": {
     "title": "Mitarbeiter",
@@ -1739,7 +1741,17 @@
     "projectChecklists": "Checklisten",
     "projectChecklistsHint": "Werden beim Speichern in das Projekt kopiert.",
     "keptBecauseTicked": "Bereits abgehakte Listen wurden behalten: {names}",
-    "templateChecklistsHint": "Jedes Projekt aus dieser Vorlage bekommt diese Listen."
+    "templateChecklistsHint": "Jedes Projekt aus dieser Vorlage bekommt diese Listen.",
+    "hideChecked": "Erledigte ausblenden ({count})",
+    "showChecked": "Erledigte einblenden",
+    "itemAssign": "Zuweisen",
+    "itemAssignNone": "Niemand",
+    "itemDue": "Fälligkeit",
+    "itemDueRemove": "Entfernen",
+    "itemMore": "Aktionen für diesen Punkt",
+    "itemToCard": "In Karte umwandeln",
+    "itemDelete": "Löschen",
+    "assignSearch": "Mitarbeiter suchen"
   },
   "absences": {
     "title": "Abwesenheiten",

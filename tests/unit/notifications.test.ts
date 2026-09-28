@@ -48,6 +48,7 @@ describe('notificationLine', () => {
     expect(notificationLine('comment', 'Gerüst steht', words, status, today)).toBe('nComment(Gerüst steht)')
     expect(notificationLine('moved', 'PLANNED', words, status, today)).toBe('nMoved([PLANNED])')
     expect(notificationLine('added', null, words, status, today)).toBe('nAdded')
+    expect(notificationLine('checkItem', 'Gerüst abnehmen', words, status, today)).toBe('nCheckItem(Gerüst abnehmen)')
     expect(notificationLine('attachment', 'plan.pdf', words, status, today)).toBe('nAttachment(plan.pdf)')
     expect(notificationLine('something', null, words, status, today)).toBe('nUpdated')
   })

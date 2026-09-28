@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus, Trash2 } from 'lucide-react'
-import { Checklist, type ChecklistRow } from '@/components/checklist'
+import { Checklist, type ChecklistRow, type CheckPerson } from '@/components/checklist'
 import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
 import { addProjectChecklist, removeProjectChecklist } from './checklist-actions'
@@ -17,10 +17,13 @@ export function ChecklistSection({
   checklists,
   templates,
   onChanged,
+  people = null,
 }: {
   projectId: string
   checklists: ChecklistRow[]
   templates: Array<{ id: string; name: string }>
+  /** The office's view: whom an item can be given to — Trello's person on an item. */
+  people?: CheckPerson[] | null
   /**
    * Called once an add or a remove has been saved. The project page does not
    * need it — the server re-renders the page — but the assignment dialog holds
@@ -70,7 +73,7 @@ export function ChecklistSection({
               </button>
             </div>
             <div className="p-3">
-              <Checklist checklist={{ ...c, name: '' }} canRemoveItems compact />
+              <Checklist checklist={{ ...c, name: '' }} canRemoveItems compact office={people ? { people } : null} />
             </div>
           </div>
         ))

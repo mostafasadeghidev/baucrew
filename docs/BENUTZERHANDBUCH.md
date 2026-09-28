@@ -774,6 +774,8 @@ Eine Checkliste ist eine wiederverwendbare Punkteliste für die Baustelle — z.
 2. **Über die Vorlage:** in einer Projektvorlage lassen sich Checklisten hinterlegen; jedes Projekt aus dieser Vorlage startet dann mit diesen Listen.
 3. **Direkt auf der Projektseite** wie bisher (Liste aus einer Vorlage oder leer hinzufügen).
 
+**Wie in Trello** zeigt jede Liste am Projekt einen **Fortschrittsbalken** (Prozent der abgehakten Punkte, grün bei 100 %) und **Erledigte ausblenden** — die abgehakten Punkte verschwinden, bis *Erledigte einblenden* sie wieder zeigt. Im Büro hat jeder Punkt rechts drei kleine Knöpfe: **Zuweisen** (eine Person wählen — sie steht dann als Kopf am Punkt, und wer ein Konto hat, bekommt eine Benachrichtigung; *Niemand* nimmt sie wieder weg), **Fälligkeit** (ein Tag; überfällig und offen wird er rot) und **…** mit **In Karte umwandeln** (aus dem Punkt wird eine eigene Karte für denselben Kunden in derselben Liste, ganz unten, und öffnet sich; der Punkt verschwindet aus der Liste) und *Löschen*. Mitarbeiter sehen Person und Tag am Handy mit, ändern sie aber nicht.
+
 **Wichtig zum Kopieren:** Die Liste im Projekt ist eine eigene Kopie. Ändern Sie später die Checkliste, ändern sich bereits angelegte Projektlisten **nicht** — abgehakte Arbeit bleibt, wie sie war. Nehmen Sie im Projektformular eine Liste wieder heraus, wird sie nur entfernt, **solange noch kein Punkt abgehakt ist**; sobald auf der Baustelle etwas angehakt wurde, bleibt die Liste am Projekt.
 
 ---

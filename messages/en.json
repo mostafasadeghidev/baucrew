@@ -638,7 +638,8 @@
     "reminder_60": "1 hour before",
     "reminder_120": "2 hours before",
     "reminder_1440": "1 day before",
-    "reminder_2880": "2 days before"
+    "reminder_2880": "2 days before",
+    "nCheckItem": "assigned you a checklist item: {text}"
   },
   "history": {
     "created": "created this card",
@@ -695,7 +696,8 @@
     "field_address": "Site address",
     "fileRenamed": "renamed a file to “{name}”",
     "linkAdded": "attached the link “{name}”",
-    "linkRemoved": "removed the link “{name}”"
+    "linkRemoved": "removed the link “{name}”",
+    "fromChecklist": "created this card from a checklist item of “{name}”"
   },
   "employees": {
     "title": "Employees",
@@ -1739,7 +1741,17 @@
     "projectChecklists": "Checklists",
     "projectChecklistsHint": "Copied into the project when you save.",
     "keptBecauseTicked": "Lists that were already ticked were kept: {names}",
-    "templateChecklistsHint": "Every project made from this template starts with these lists."
+    "templateChecklistsHint": "Every project made from this template starts with these lists.",
+    "hideChecked": "Hide checked items ({count})",
+    "showChecked": "Show checked items",
+    "itemAssign": "Assign",
+    "itemAssignNone": "Nobody",
+    "itemDue": "Due date",
+    "itemDueRemove": "Remove",
+    "itemMore": "Item actions",
+    "itemToCard": "Convert to card",
+    "itemDelete": "Delete",
+    "assignSearch": "Search employees"
   },
   "absences": {
     "title": "Absences",

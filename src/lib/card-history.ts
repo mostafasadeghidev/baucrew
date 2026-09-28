@@ -58,6 +58,8 @@ export function describeAudit(entry: AuditEntry, t: Words, statusLabel: (status:
       return t('copiedFrom', { name: name(oldValue) })
     case 'project.fromTemplate':
       return t('fromTemplate', { name: name(newValue) })
+    case 'project.fromChecklist':
+      return t('fromChecklist', { name: name(newValue) })
     case 'project.member.add':
       return t('memberAdded', { name: name(newValue) })
     case 'project.member.remove':

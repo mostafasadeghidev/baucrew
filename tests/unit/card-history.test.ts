@@ -37,6 +37,7 @@ describe('what a card says happened to it', () => {
     expect(describeAudit(entry('project.copy', { oldValue: '2026-0001 Muster' }), t, status)).toBe('copiedFrom(name=2026-0001 Muster)')
     expect(describeAudit(entry('project.fromTemplate', { newValue: 'Muster Fassade' }), t, status)).toBe('fromTemplate(name=Muster Fassade)')
     expect(describeAudit(entry('project.done'), t, status)).toBe('done')
+    expect(describeAudit(entry('project.fromChecklist', { newValue: '2026-0001 Muster' }), t, status)).toBe('fromChecklist(name=2026-0001 Muster)')
     expect(describeAudit(entry('project.member.add', { newValue: 'Max Muster' }), t, status)).toBe('memberAdded(name=Max Muster)')
     expect(describeAudit(entry('project.member.remove', { oldValue: 'Max Muster' }), t, status)).toBe('memberRemoved(name=Max Muster)')
     expect(describeAudit(entry('project.manager', { newValue: 'Max Muster' }), t, status)).toBe('managerSet(name=Max Muster)')

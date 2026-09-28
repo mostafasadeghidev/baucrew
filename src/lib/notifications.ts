@@ -8,7 +8,7 @@
  * Pure: who gets a line and what it says are tested without a database.
  */
 
-export const NOTIFY_KINDS = ['comment', 'moved', 'added', 'attachment', 'dates', 'done', 'archived', 'restored', 'due'] as const
+export const NOTIFY_KINDS = ['comment', 'moved', 'added', 'attachment', 'dates', 'done', 'archived', 'restored', 'due', 'checkItem'] as const
 export type NotifyKind = (typeof NOTIFY_KINDS)[number]
 
 export type NotifyCandidate = {
@@ -66,6 +66,8 @@ export function notificationLine(
       return words('nMoved', { list: text ? statusLabel(text) : '—' })
     case 'added':
       return words('nAdded')
+    case 'checkItem':
+      return words('nCheckItem', { text: text ?? '' })
     case 'attachment':
       return words('nAttachment', { name: text ?? '' })
     case 'dates':

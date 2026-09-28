@@ -31,6 +31,16 @@ import { geocodeCity } from '@/lib/geocode'
 import { notifyCard } from '@/lib/notifications-db'
 import { parseDueTime, reminderKey } from '@/lib/due-reminder'
 
+/**
+ * A column's places written afresh without touching the cards' `updatedAt`:
+ * numbering a list anew is no news of the cards in it — the activity filter
+ * and the board's fingerprint would otherwise call every one of them busy.
+ */
+async function writePositions(rows: Array<{ id: string; position: number }>) {
+  if (rows.length === 0) return
+  await db.$transaction(rows.map((row) => db.$executeRaw`UPDATE "Project" SET "boardPosition" = ${row.position} WHERE "id" = ${row.id}`))
+}
+
 export type ProjectFormState = {
   error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
 }
@@ -589,9 +599,7 @@ export async function moveCard(
     const ordered = orderCards(column.map((c) => ({ ...c, position: c.boardPosition })))
     const at = before ? ordered.findIndex((c) => c.id === before.id) + 1 : after ? ordered.findIndex((c) => c.id === after.id) : 0
     ordered.splice(Math.max(0, at), 0, { id, number: '', position: null, boardPosition: null })
-    await db.$transaction(
-      renumbered(ordered).map((row) => db.project.update({ where: { id: row.id }, data: { boardPosition: row.position } }))
-    )
+    await writePositions(renumbered(ordered))
   }
   refreshAfterStatus(id)
   return {}
@@ -709,15 +717,15 @@ export async function deleteArchivedProject(id: string, _prev: DeleteState, _for
 
 /** A column put in order from its menu: by name, number, planned start or the day the card was made. */
 export async function sortColumn(status: string, by: string): Promise<{ error?: string }> {
-  await requireManagement()
+  const user = await requireManagement()
   if (!(status in ProjectStatus) || !isColumnSort(by)) return { error: 'saveFailed' }
   const column = await db.project.findMany({
     where: { status: status as ProjectStatus, archivedAt: null },
     select: { id: true, name: true, number: true, plannedStart: true, createdAt: true },
   })
-  await db.$transaction(
-    renumbered(sortedBy(column, by)).map((row) => db.project.update({ where: { id: row.id }, data: { boardPosition: row.position } }))
-  )
+  await writePositions(renumbered(sortedBy(column, by)))
+  // Written down, so the other boards open elsewhere take the new order too.
+  await audit({ userId: user.id, action: 'board.column.sort', entity: 'Board', entityId: status, newValue: by })
   revalidatePath('/projects')
   return {}
 }
@@ -1233,7 +1241,7 @@ async function placeAtBottom(projectId: string) {
     return
   }
   ordered.push({ id: projectId, number: '', position: null, boardPosition: null })
-  await db.$transaction(renumbered(ordered).map((row) => db.project.update({ where: { id: row.id }, data: { boardPosition: row.position } })))
+  await writePositions(renumbered(ordered))
 }
 
 /**
@@ -1420,6 +1428,41 @@ export async function setCardMember(id: string, employeeId: string, on: boolean)
   if (on) await notifyCard(id, user.id, 'added', { onlyEmployeeId: employeeId })
   await afterCardEdit(user, id, snapshot)
   return {}
+}
+
+/**
+ * Trello's "In Karte umwandeln" on a checklist item: a card of its own with the
+ * item's words as its name, for the same customer, in the same list, at its
+ * foot — and the item goes from the checklist. The new card opens.
+ */
+export async function convertChecklistItemToCard(itemId: string): Promise<{ id?: string; error?: 'saveFailed' }> {
+  const user = await requireStaff()
+  const item = await db.projectChecklistItem.findUnique({
+    where: { id: itemId },
+    select: { text: true, checklist: { select: { projectId: true, project: { select: { number: true, name: true, status: true, customerId: true } } } } },
+  })
+  if (!item || !(await canSeeProject(user, item.checklist.projectId))) return { error: 'saveFailed' }
+  const source = item.checklist.project
+  try {
+    const input = createProjectInput.parse({ name: item.text.slice(0, 300), status: source.status, customerId: source.customerId })
+    const project = await createProjectRecord(user, input, { type: 'user', userId: user.id })
+    await nameSiteManager(user, project.id)
+    await placeAtBottom(project.id)
+    await db.projectChecklistItem.delete({ where: { id: itemId } })
+    await audit({
+      userId: user.id,
+      action: 'project.fromChecklist',
+      entity: 'Project',
+      entityId: project.id,
+      newValue: `${source.number} ${source.name}`,
+    })
+    revalidatePath('/projects')
+    revalidatePath(`/projects/${item.checklist.projectId}`)
+    return { id: project.id }
+  } catch (e) {
+    console.error('checklist item to card failed', e)
+    return { error: 'saveFailed' }
+  }
 }
 
 /** Trello's Space on a card: the reader puts themselves on it, or takes themselves off. */
