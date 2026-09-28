@@ -1,6 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { randomUUID } from 'crypto'
+import { deleteStoredFile, saveStoredFile } from '@/lib/file-storage'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
@@ -101,5 +103,42 @@ export async function moveBoard(id: string, direction: -1 | 1): Promise<void> {
   const order = boards.map((b) => b.id)
   ;[order[from], order[to]] = [order[to], order[from]]
   await db.$transaction(order.map((boardId, sortOrder) => db.board.update({ where: { id: boardId }, data: { sortOrder } })))
+  done()
+}
+
+// ── A photo as the board's ground ──
+
+export type BoardImageState = { error?: 'invalidType' | 'tooLarge' | 'saveFailed'; savedAt?: number }
+
+const IMAGE_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+const IMAGE_MAX_BYTES = 8 * 1024 * 1024
+
+/** A photo uploaded as the board's ground, the way Trello's boards wear one; the one before is deleted. */
+export async function uploadBoardImage(boardId: string, _prev: BoardImageState, formData: FormData): Promise<BoardImageState> {
+  const admin = await requireAdmin()
+  const file = formData.get('image')
+  if (!(file instanceof File) || file.size === 0) return { error: 'saveFailed' }
+  const ending = IMAGE_TYPES[file.type]
+  if (!ending) return { error: 'invalidType' }
+  if (file.size > IMAGE_MAX_BYTES) return { error: 'tooLarge' }
+  const board = await db.board.findUnique({ where: { id: boardId }, select: { backgroundImage: true } })
+  if (!board) return { error: 'saveFailed' }
+  const key = `boards/${boardId}/${randomUUID()}.${ending}`
+  await saveStoredFile(key, Buffer.from(await file.arrayBuffer()))
+  await db.board.update({ where: { id: boardId }, data: { backgroundImage: key } })
+  if (board.backgroundImage) await deleteStoredFile(board.backgroundImage)
+  await audit({ userId: admin.id, action: 'board.image', entity: 'Board', entityId: boardId })
+  done()
+  return { savedAt: Date.now() }
+}
+
+/** The photo taken away again: the board wears its colour. */
+export async function removeBoardImage(boardId: string): Promise<void> {
+  const admin = await requireAdmin()
+  const board = await db.board.findUnique({ where: { id: boardId }, select: { backgroundImage: true } })
+  if (!board?.backgroundImage) return
+  await db.board.update({ where: { id: boardId }, data: { backgroundImage: null } })
+  await deleteStoredFile(board.backgroundImage)
+  await audit({ userId: admin.id, action: 'board.image.remove', entity: 'Board', entityId: boardId })
   done()
 }

@@ -816,7 +816,11 @@ export default async function ProjectsPage({
         { href: '/projects/forms', label: tForms('templatesTitle') },
       ]
     : []
-  const ground = boardBackgroundCss(board?.background)
+  // A photo stands before the colour, which shows while it loads and if it is gone.
+  const colour = boardBackgroundCss(board?.background)
+  const ground = board?.backgroundImage
+    ? `url(/api/boards/${board.id}/background?v=${encodeURIComponent(board.backgroundImage)}) center / cover no-repeat${colour ? `, ${colour}` : ', #0079bf'}`
+    : colour
   const onGround = ground !== null
 
   if (kanban) {

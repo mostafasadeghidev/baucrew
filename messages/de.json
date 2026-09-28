@@ -973,7 +973,14 @@
     "boardRuleColumnsHint": "Listen nach einer Regel – Pause, nächstes Jahr, Warteliste, Abschlag gestellt – werden auf dem Board selbst über „Weitere Liste“ hinzugefügt und dort wieder entfernt.",
     "boardPresetTitle": "Board wie in Trello anlegen",
     "boardPresetHint": "Das Baustellen-Board, Liste für Liste, wie es in Trello stand – drei Listen füllen sich nach einer Regel (Pause, nächstes Jahr, Warteliste, Abschlag). Die Namen lassen sich auf dem Board ändern.",
-    "boardPresetCreate": "Board „Aktuell laufende Baustellen“ anlegen"
+    "boardPresetCreate": "Board „Aktuell laufende Baustellen“ anlegen",
+    "boardImage": "Hintergrundbild",
+    "boardImageNone": "Kein Bild",
+    "boardImageUpload": "Bild hochladen",
+    "boardImageRemove": "Bild entfernen",
+    "boardImageHint": "Ein Foto hinter den Listen statt der Farbe, wie bei Trello (JPG, PNG oder WebP, höchstens 8 MB). Die Farbe bleibt darunter.",
+    "boardImageInvalidType": "Bitte ein JPG-, PNG- oder WebP-Bild wählen.",
+    "boardImageTooLarge": "Das Bild ist größer als 8 MB."
   },
   "roles": {
     "ADMIN": "Administrator",

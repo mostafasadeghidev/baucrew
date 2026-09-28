@@ -1051,6 +1051,8 @@ model Board {
   name       String
   /// The ground the lists float on — a key from src/lib/boards.ts; null is the app's own.
   background String?
+  /// A photo as the ground instead, the way Trello's boards wear one: its key in the file storage.
+  backgroundImage String?
   sortOrder Int           @default(0)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt

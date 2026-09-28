@@ -7,6 +7,8 @@ export type BoardRow = {
   id: string
   name: string
   background: string | null
+  /** A photo as the ground instead (its storage key), or null. */
+  backgroundImage: string | null
   sortOrder: number
   columns: Array<{ id: string; status: string; title: string | null; rule: string | null; sortOrder: number }>
 }
@@ -19,6 +21,7 @@ export async function getBoards(): Promise<BoardRow[]> {
       id: true,
       name: true,
       background: true,
+      backgroundImage: true,
       sortOrder: true,
       columns: { orderBy: { sortOrder: 'asc' }, select: { id: true, status: true, title: true, rule: true, sortOrder: true } },
     },

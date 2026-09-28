@@ -973,7 +973,14 @@
     "boardRuleColumnsHint": "Lists by a rule – on hold, next year, waiting list, first invoice sent – are added on the board itself via “Add another list” and removed there.",
     "boardPresetTitle": "Create a board like in Trello",
     "boardPresetHint": "The sites board, list for list, as it stood in Trello – three lists fill by a rule (on hold, next year, waiting list, first invoice). The names can be changed on the board.",
-    "boardPresetCreate": "Create the board “Aktuell laufende Baustellen”"
+    "boardPresetCreate": "Create the board “Aktuell laufende Baustellen”",
+    "boardImage": "Background photo",
+    "boardImageNone": "No photo",
+    "boardImageUpload": "Upload photo",
+    "boardImageRemove": "Remove photo",
+    "boardImageHint": "A photo behind the lists instead of the colour, as in Trello (JPG, PNG or WebP, at most 8 MB). The colour stays beneath it.",
+    "boardImageInvalidType": "Please choose a JPG, PNG or WebP image.",
+    "boardImageTooLarge": "The image is larger than 8 MB."
   },
   "roles": {
     "ADMIN": "Administrator",

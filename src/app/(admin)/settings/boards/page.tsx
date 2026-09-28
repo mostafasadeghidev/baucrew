@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BoardImage } from './board-image'
 import { getTranslations } from 'next-intl/server'
 import { ArrowDown, ArrowUp } from 'lucide-react'
 import { requireAdmin } from '@/lib/authz'
@@ -196,6 +197,9 @@ export default async function BoardsPage() {
                 {tc('save')}
               </button>
             </SavedForm>
+
+            {/* A photo behind the lists instead of the colour. */}
+            <BoardImage boardId={board.id} image={board.backgroundImage} />
 
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
               {/* Where the board's tab stands among the others. */}

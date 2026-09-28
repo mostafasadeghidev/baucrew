@@ -524,3 +524,22 @@ DROP INDEX "ProjectChecklistItem_assigneeId_idx";
 ALTER TABLE "ProjectChecklistItem" DROP COLUMN "assigneeId", DROP COLUMN "dueDate";
 DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928130000_checklist_item_plan';
 ```
+
+### A photo as the board's ground
+
+- `Board.backgroundImage` (the photo's key in the file storage); migration
+  `20260928140000_board_background_image`. `getBoards` reads it.
+- `settings/boards/board-image.tsx` + `uploadBoardImage` /
+  `removeBoardImage` (`settings/boards/actions.ts`, administrator): JPG, PNG
+  or WebP up to 8 MB under `boards/<id>/`, the photo before deleted.
+- `api/boards/[id]/background/route.ts` serves it to everybody who sees the
+  board; `projects/page.tsx` stands it before the board's colour (which
+  shows while it loads, or when the file is gone). The JSON backup keeps the
+  board row, not the photo file — a restored board falls back to its colour
+  until a photo is uploaded again.
+
+Rollback: revert the commit, delete `storage/boards/`, then
+```sql
+ALTER TABLE "Board" DROP COLUMN "backgroundImage";
+DELETE FROM "_prisma_migrations" WHERE migration_name = '20260928140000_board_background_image';
+```
