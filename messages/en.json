@@ -646,7 +646,6 @@
     "boardEdit": "Edit board",
     "boardTitleLabel": "Board title",
     "boardListsLabel": "Lists",
-    "boardListsAll": "All nine statuses as lists",
     "boardListsPreset": "As in Trello: {name}",
     "boardListsCopy": "The lists of “{name}”",
     "boardListsHint": "Lists are then added, renamed and moved on the board itself.",
@@ -655,7 +654,10 @@
     "boardMoveLeft": "Move left",
     "boardMoveRight": "Move right",
     "boardDelete": "Delete board …",
-    "boardMoreSettings": "More board settings"
+    "boardMoreSettings": "More board settings",
+    "boardListsPick": "Choose the statuses one by one",
+    "boardListsPickAll": "Select all",
+    "boardListsPickNone": "Select none"
   },
   "history": {
     "created": "created this card",

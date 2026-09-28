@@ -87,8 +87,8 @@ without the way through the settings. Done the way Trello does it, for the
 administrator (the same right as the settings page):
 
 - A **+** after the tabs opens *Board erstellen*: ground (with a small preview),
-  title, and the lists it starts with — every status, the client's Trello
-  board (`preset:sites`, which brings its name and ground), or the lists of a
+  title, and the lists it starts with — the statuses ticked one by one (in the
+  order of the lifecycle), the client's Trello board (`preset:sites`, which brings its name and ground), or the lists of a
   board that is there already (`copy:<id>`, own names and rule lists
   included). The new board opens at once.
 - An **arrow on the open tab** opens *Board bearbeiten*: title, ground, photo

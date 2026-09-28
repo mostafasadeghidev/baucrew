@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  allStatusLists,
   BOARD_BACKGROUNDS,
   boardBackgroundCss,
   boardBackgroundKey,
@@ -115,26 +114,28 @@ describe('backgrounds', () => {
 
 describe('startingLists', () => {
   it('reads the three ways a board made from the bar can start', () => {
-    expect(startingLists('all')).toEqual({ kind: 'all' })
+    expect(startingLists('pick:LEAD,QUOTED')).toEqual({ kind: 'pick', statuses: ['LEAD', 'QUOTED'] })
     expect(startingLists('preset:sites')).toEqual({ kind: 'preset', key: 'sites' })
     expect(startingLists('copy:cmboard0000abcd1234')).toEqual({ kind: 'copy', boardId: 'cmboard0000abcd1234' })
   })
 
-  it('takes nothing else', () => {
+  it('puts the ticked statuses in the order of the lifecycle, each once, known ones only', () => {
+    expect(startingLists('pick:PAID,LEAD,LEAD,NOPE')).toEqual({ kind: 'pick', statuses: ['LEAD', 'PAID'] })
+    expect(startingLists(`pick:${[...ALL_PROJECT_STATUSES].reverse().join(',')}`)).toEqual({
+      kind: 'pick',
+      statuses: [...ALL_PROJECT_STATUSES],
+    })
+  })
+
+  it('takes nothing else — a pick of none is nothing too', () => {
+    expect(startingLists('pick:')).toBeNull()
+    expect(startingLists('pick:NOPE')).toBeNull()
+    expect(startingLists('all')).toBeNull()
     expect(startingLists('')).toBeNull()
     expect(startingLists('copy:')).toBeNull()
     expect(startingLists('copy:../x')).toBeNull()
     expect(startingLists('preset:Sites')).toBeNull()
-    expect(startingLists('none')).toBeNull()
     expect(startingLists(null)).toBeNull()
-    expect(startingLists(['all'])).toBeNull()
-  })
-})
-
-describe('allStatusLists', () => {
-  it('is every status once, as a plain list without a name of its own, in the order of the lifecycle', () => {
-    const lists = allStatusLists()
-    expect(lists.map((l) => l.status)).toEqual([...ALL_PROJECT_STATUSES])
-    expect(lists.every((l) => l.title === null && l.rule === null)).toBe(true)
+    expect(startingLists(['pick:LEAD'])).toBeNull()
   })
 })

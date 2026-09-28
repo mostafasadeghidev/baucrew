@@ -646,7 +646,6 @@
     "boardEdit": "Board bearbeiten",
     "boardTitleLabel": "Board-Titel",
     "boardListsLabel": "Listen",
-    "boardListsAll": "Alle neun Status als Listen",
     "boardListsPreset": "Wie in Trello: {name}",
     "boardListsCopy": "Die Listen von „{name}“",
     "boardListsHint": "Listen werden danach auf dem Board selbst hinzugefügt, umbenannt und verschoben.",
@@ -655,7 +654,10 @@
     "boardMoveLeft": "Nach links",
     "boardMoveRight": "Nach rechts",
     "boardDelete": "Board löschen …",
-    "boardMoreSettings": "Weitere Einstellungen der Boards"
+    "boardMoreSettings": "Weitere Einstellungen der Boards",
+    "boardListsPick": "Status einzeln auswählen",
+    "boardListsPickAll": "Alle auswählen",
+    "boardListsPickNone": "Keine auswählen"
   },
   "history": {
     "created": "hat die Karte angelegt",

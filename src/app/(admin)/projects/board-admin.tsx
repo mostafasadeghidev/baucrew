@@ -17,6 +17,8 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown, ImagePlus, Plus, Trash2 } fr
 import { Popover, PopoverHead } from '@/components/ui/popover'
 import { btn } from '@/components/ui/button'
 import { BOARD_BACKGROUNDS, BOARD_NAME_MAX, type BoardBackground } from '@/lib/boards'
+import { ALL_PROJECT_STATUSES, type ProjectStatusKey } from '@/lib/prep-tab'
+import { STATUS_STYLES } from '@/components/status-badge'
 import {
   createBoardFromBar,
   moveBoard,
@@ -35,6 +37,8 @@ const FIELD =
   'block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 const HEAD = 'mb-1.5 mt-3 block text-[11px] font-semibold text-muted'
 const KEYS = Object.keys(BOARD_BACKGROUNDS) as BoardBackground[]
+/** The heights of the little lists in the preview, one per list the board will have. */
+const PREVIEW = [0.9, 0.6, 0.75, 0.5, 0.85, 0.65]
 
 /** The grounds as Trello shows them: a row of small tiles, the chosen one ticked; the first is none. */
 function Swatches({ value, onPick, noneLabel }: { value: string | null; onPick: (key: string | null) => void; noneLabel: string }) {
@@ -80,12 +84,15 @@ export function NewBoardButton({
   const t = useTranslations('projects')
   const ts = useTranslations('settings')
   const tc = useTranslations('common')
+  const tStatus = useTranslations('status')
   const router = useRouter()
   const anchor = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [background, setBackground] = useState<string | null>('blue')
-  const [lists, setLists] = useState('all')
+  /** `pick` while the statuses are ticked one by one; else a preset or a board to copy. */
+  const [lists, setLists] = useState('pick')
+  const [picked, setPicked] = useState<ProjectStatusKey[]>([])
   const [error, setError] = useState(false)
   const [pending, startTransition] = useTransition()
   const close = useCallback(() => setOpen(false), [])
@@ -100,12 +107,19 @@ export function NewBoardButton({
     }
   }
 
+  const toggle = (status: ProjectStatusKey) =>
+    setPicked((now) => (now.includes(status) ? now.filter((s) => s !== status) : [...now, status]))
+  const everyStatus = picked.length === ALL_PROJECT_STATUSES.length
+  const ready = name.trim() !== '' && (lists !== 'pick' || picked.length > 0)
+
   const create = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!ready) return
     setError(false)
     startTransition(async () => {
-      const result = await createBoardFromBar({ name, background, lists })
+      // The ticked statuses in the order of the lifecycle; the board's own order is dragged afterwards.
+      const start = lists === 'pick' ? `pick:${ALL_PROJECT_STATUSES.filter((s) => picked.includes(s)).join(',')}` : lists
+      const result = await createBoardFromBar({ name, background, lists: start })
       if (!result.id) {
         setError(true)
         return
@@ -113,12 +127,15 @@ export function NewBoardButton({
       await rememberBoard(result.id)
       setOpen(false)
       setName('')
-      setLists('all')
+      setLists('pick')
+      setPicked([])
       router.push(openHref(result.id))
     })
   }
 
   const ground = background ? BOARD_BACKGROUNDS[background as BoardBackground] : undefined
+  // As many little lists as the board will start with, the way the choice stands.
+  const bars = lists === 'pick' ? Math.min(picked.length, PREVIEW.length) : 4
 
   return (
     <>
@@ -143,9 +160,13 @@ export function NewBoardButton({
           style={ground ? { background: ground } : undefined}
           className={`flex h-20 items-start justify-center gap-1.5 rounded-md pt-3 ${ground ? '' : 'border border-border bg-subtle'}`}
         >
-          {[0.9, 0.6, 0.75].map((h, i) => (
-            <span key={i} className="w-12 rounded bg-white/80 shadow-sm" style={{ height: `${h * 3.5}rem` }} />
-          ))}
+          {bars === 0 ? (
+            <span className="h-9 w-12 rounded border border-dashed border-white/80" />
+          ) : (
+            PREVIEW.slice(0, bars).map((h, i) => (
+              <span key={i} className="w-8 rounded bg-white/80 shadow-sm" style={{ height: `${h * 3.5}rem` }} />
+            ))
+          )}
         </div>
         <form onSubmit={create}>
           <span className={HEAD}>{ts('boardBackground')}</span>
@@ -167,7 +188,7 @@ export function NewBoardButton({
             {t('boardListsLabel')}
           </label>
           <select id="new-board-lists" value={lists} onChange={(e) => pickLists(e.target.value)} className={FIELD}>
-            <option value="all">{t('boardListsAll')}</option>
+            <option value="pick">{t('boardListsPick')}</option>
             {presets.map((p) => (
               <option key={p.key} value={`preset:${p.key}`}>
                 {t('boardListsPreset', { name: p.name })}
@@ -179,8 +200,34 @@ export function NewBoardButton({
               </option>
             ))}
           </select>
+          {lists === 'pick' && (
+            // The statuses one by one, as many as wanted: each ticked one becomes a list.
+            <fieldset className="mt-2">
+              <legend className="sr-only">{t('boardListsPick')}</legend>
+              <div className="grid grid-cols-2 gap-x-1 gap-y-0.5">
+                {ALL_PROJECT_STATUSES.map((status) => (
+                  <label key={status} className="flex min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1 py-1 hover:bg-surface-hover">
+                    <input
+                      type="checkbox"
+                      checked={picked.includes(status)}
+                      onChange={() => toggle(status)}
+                      className="h-4 w-4 shrink-0 accent-[var(--accent)]"
+                    />
+                    <span className={`min-w-0 truncate rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLES[status]}`}>{tStatus(status)}</span>
+                  </label>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPicked(everyStatus ? [] : [...ALL_PROJECT_STATUSES])}
+                className="mt-1 px-1 text-[11px] font-medium text-accent hover:underline"
+              >
+                {everyStatus ? t('boardListsPickNone') : t('boardListsPickAll')}
+              </button>
+            </fieldset>
+          )}
           <p className="mt-1 text-[11px] text-muted">{t('boardListsHint')}</p>
-          <button type="submit" disabled={pending || !name.trim()} className={`${btn.primarySm} mt-3 w-full`}>
+          <button type="submit" disabled={pending || !ready} className={`${btn.primarySm} mt-3 w-full`}>
             {t('boardCreateButton')}
           </button>
           {error && (

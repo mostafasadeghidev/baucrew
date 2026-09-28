@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { audit } from '@/lib/audit'
-import { allStatusLists, boardBackgroundKey, cleanBoardName, columnsFromForm, startingLists } from '@/lib/boards'
+import { boardBackgroundKey, cleanBoardName, columnsFromForm, startingLists } from '@/lib/boards'
 import type { ProjectStatusKey } from '@/lib/prep-tab'
 import { createBoardFromPreset, saveBoardColumns } from '@/lib/boards-db'
 import { boardPreset, presetIsSound } from '@/lib/board-presets'
@@ -131,7 +131,7 @@ export async function createBoardFromBar(input: {
     if (!source || source.columns.length === 0) return { error: 'invalid' }
     columns = source.columns
   } else {
-    columns = allStatusLists()
+    columns = start.statuses.map((status) => ({ status, title: null, rule: null }))
   }
   const last = await db.board.aggregate({ _max: { sortOrder: true } })
   const board = await db.board.create({

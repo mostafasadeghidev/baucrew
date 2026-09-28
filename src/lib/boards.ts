@@ -141,24 +141,28 @@ export function columnLabel(column: { title: string | null }, statusLabel: strin
 
 /**
  * What a board made from the board's own bar starts with, the way Trello
- * offers a blank board or a template: every status as a plain list
- * (`all`), a preset such as the client's Trello board (`preset:<key>`), or
- * the lists of a board that is there already, with their own names and rule
- * lists (`copy:<board id>`). Anything else is nothing.
+ * offers a blank board or a template: the statuses ticked one by one, each a
+ * plain list (`pick:LEAD,QUOTED`), a preset such as the client's Trello board
+ * (`preset:<key>`), or the lists of a board that is there already, with their
+ * own names and rule lists (`copy:<board id>`). Ticked statuses stand in the
+ * order of the lifecycle, each once; a pick of none, or anything else, is
+ * nothing.
  */
-export type StartingLists = { kind: 'all' } | { kind: 'preset'; key: string } | { kind: 'copy'; boardId: string }
+export type StartingLists =
+  | { kind: 'pick'; statuses: ProjectStatusKey[] }
+  | { kind: 'preset'; key: string }
+  | { kind: 'copy'; boardId: string }
 
 export function startingLists(raw: unknown): StartingLists | null {
   if (typeof raw !== 'string') return null
-  if (raw === 'all') return { kind: 'all' }
+  if (raw.startsWith('pick:')) {
+    const wanted = new Set(raw.slice('pick:'.length).split(','))
+    const statuses = ALL_PROJECT_STATUSES.filter((s) => wanted.has(s))
+    return statuses.length > 0 ? { kind: 'pick', statuses } : null
+  }
   const preset = /^preset:([a-z]{1,20})$/.exec(raw)
   if (preset) return { kind: 'preset', key: preset[1] }
   const copy = /^copy:([a-z0-9]{10,40})$/.exec(raw)
   if (copy) return { kind: 'copy', boardId: copy[1] }
   return null
-}
-
-/** Every status as a plain list, in the order of the lifecycle — a new board's lists when nothing else is chosen. */
-export function allStatusLists(): Array<{ status: ProjectStatusKey; title: null; rule: null }> {
-  return ALL_PROJECT_STATUSES.map((status) => ({ status, title: null, rule: null }))
 }
