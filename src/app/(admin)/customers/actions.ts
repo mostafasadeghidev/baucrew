@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
+import { formPlace } from '@/lib/site-place'
 
 const optional = z
   .string()
@@ -48,6 +49,11 @@ const customerSchema = z.object({
 
 export type CustomerFormState = { error?: 'nameRequired' | 'saveFailed' }
 
+/** The town picker's coordinates, kept only beside a town and only where they are a place on earth. */
+function withPlace<T extends { city: string | null; latitude: number | null; longitude: number | null }>(d: T): T {
+  return { ...d, ...formPlace(d.city, d.latitude, d.longitude) }
+}
+
 function parseCustomerForm(formData: FormData) {
   return customerSchema.safeParse({
     name: formData.get('name') ?? '',
@@ -75,7 +81,7 @@ export async function createCustomer(
   if (!parsed.success) {
     return { error: parsed.error.issues.some((i) => i.path[0] === 'name') ? 'nameRequired' : 'saveFailed' }
   }
-  const customer = await db.customer.create({ data: parsed.data })
+  const customer = await db.customer.create({ data: withPlace(parsed.data) })
   await audit({
     userId: user.id,
     action: 'customer.create',
@@ -99,7 +105,7 @@ export async function updateCustomer(
   }
   const before = await db.customer.findUnique({ where: { id } })
   if (!before) return { error: 'saveFailed' }
-  await db.customer.update({ where: { id }, data: parsed.data })
+  await db.customer.update({ where: { id }, data: withPlace(parsed.data) })
   await audit({
     userId: user.id,
     action: 'customer.update',
@@ -142,7 +148,7 @@ export async function createCustomerInline(input: {
   if (!parsed.success) {
     return { error: parsed.error.issues.some((i) => i.path[0] === 'name') ? 'nameRequired' : 'saveFailed' }
   }
-  const customer = await db.customer.create({ data: parsed.data })
+  const customer = await db.customer.create({ data: withPlace(parsed.data) })
   await audit({
     userId: user.id,
     action: 'customer.create',

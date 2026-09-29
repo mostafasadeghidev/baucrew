@@ -43,8 +43,8 @@ export function CityPicker({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
   const [searchStatus, setStatus] = useState<'idle' | 'loading' | 'found' | 'notFound'>('idle')
-  // Coordinates present (picked, copied from the customer, or loaded) always mean "found".
-  const status = value.latitude != null && value.longitude != null ? 'found' : searchStatus
+  // A town with coordinates (picked, copied from the customer, or loaded) is "found"; coordinates without a town are nothing.
+  const status = value.city.trim() && value.latitude != null && value.longitude != null ? 'found' : searchStatus
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -103,7 +103,8 @@ export function CityPicker({
       <input
         id={id}
         ref={inputRef}
-        name={name}
+        // A disabled field is left out of the form; the hidden one below carries the town then.
+        name={disabled ? undefined : name}
         value={value.city}
         disabled={disabled}
         autoComplete="off"
@@ -124,6 +125,8 @@ export function CityPicker({
             e.preventDefault()
             pick(suggestions[active])
           } else if (e.key === 'Escape') {
+            // Closes the list, and only the list — not the window the field is in.
+            e.preventDefault()
             setOpen(false)
           }
         }}
@@ -133,6 +136,7 @@ export function CityPicker({
         aria-autocomplete="list"
         className={`${inputClassName} disabled:opacity-60`}
       />
+      {disabled && <input type="hidden" name={name} value={value.city} />}
       <input type="hidden" name="latitude" value={value.latitude ?? ''} />
       <input type="hidden" name="longitude" value={value.longitude ?? ''} />
       <DropdownPortal anchorRef={inputRef} open={open} id={`${id}-list`}>

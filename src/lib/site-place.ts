@@ -17,6 +17,20 @@ export type SitePlaceChoice = SitePlace | null | 'lookUp' | 'keep'
 const degrees = (v: unknown, max: number): number | null =>
   typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= max ? v : null
 
+/**
+ * The coordinates a form sends with its town (the town picker's hidden
+ * fields): kept only beside a town, and only where they are a place on earth.
+ */
+export function formPlace(
+  city: string | null,
+  latitude: number | null,
+  longitude: number | null
+): { latitude: number | null; longitude: number | null } {
+  const lat = degrees(latitude, 90)
+  const lon = degrees(longitude, 180)
+  return city && lat != null && lon != null ? { latitude: lat, longitude: lon } : { latitude: null, longitude: null }
+}
+
 export function sitePlaceChoice(
   city: string | null,
   sent: { latitude?: unknown; longitude?: unknown },

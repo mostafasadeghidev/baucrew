@@ -962,8 +962,10 @@ Die Reiter:
 
 - **Zusammenführen** (Projektseite, nur Admin): Ein doppelt angelegtes Projekt — etwa von
   Hand erfasst und später noch einmal aus dem Board importiert — wird in das geöffnete
-  aufgenommen: Einsätze, Team, Fahrzeuge, Material, Listen, Dateien, Notizen, Zeiten und
-  Planzeilen wandern hierher, Lücken in den Stammdaten werden aus dem anderen gefüllt, die
+  aufgenommen: Einsätze, Team, Fahrzeuge, Material, Listen, Dateien, Notizen, Zeiten,
+  Planzeilen, Aufgaben, Mängel, Formulare (mit ihren Unterschriften), Links und Beobachter
+  wandern hierher, Lücken in den Stammdaten werden aus dem anderen gefüllt — die Adresse und
+  die Termine jeweils als Ganzes, damit kein Ort mit dem Kartenpunkt eines anderen endet —, die
   Kennung der Board-Karte kommt mit (der nächste Import aktualisiert dann das behaltene
   Projekt), und das andere wird gelöscht. Ein Einsatz an einem Tag, den das behaltene Projekt
   schon hat, bleibt außen vor und wird gemeldet.

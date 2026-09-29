@@ -13,14 +13,16 @@ import type { ProjectFormState } from './actions'
 import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
 import { FormHead } from '@/components/ui/form-head'
+import { PROJECT_SECTIONS, SECTIONS_FIELD } from '@/lib/project-sections'
 
 /**
  * The project's own page shows these five cards read-only and lets each one be
  * opened for editing where it stands. It is this very form that does the
  * editing — the fields are defined once, here, and the page hands in what each
  * card should look like while it is closed. A closed card keeps its fields in
- * the page, hidden: they still travel with the form, so one card can be saved
- * without the other four losing what they hold.
+ * the page, hidden, but the form names the cards that are open and only
+ * theirs are written: the windows around the form change the project too, and
+ * what a closed card still holds may be older than what they saved.
  */
 export type ProjectSectionKey = 'basic' | 'address' | 'planning' | 'assignment' | 'description'
 
@@ -208,7 +210,8 @@ function Section({
       </div>
       {inline && !open && <div className={icon ? 'mt-3 pl-8' : 'mt-3'}>{view}</div>}
       {/* Hidden, not absent: the fields of a closed card still travel with the
-          form, so saving one card cannot empty the other four. */}
+          form (the name and the customer are checked on every save), but only
+          the open cards are written. */}
       <div hidden={inline && !open} className="mt-4 grid grid-cols-1 gap-4 @xs:grid-cols-2">
         {children}
       </div>
@@ -531,6 +534,45 @@ export function ProjectForm({
     if (key !== 'description') setUnfolded(true)
   }
 
+  /** Every field back to what is stored; the inputs that keep their own value are built again. */
+  function takeStored() {
+    setVehicleIds(initial.vehicleIds)
+    setChecklistIds(initial.checklistIds)
+    setDeviceIds(initial.deviceIds)
+    setTeamIds(initial.teamIds)
+    setManagerId(initial.managerId)
+    setManagerAdded(false)
+    setCustomerId(initial.customerId)
+    setSameAsCustomer(false)
+    setAddress({
+      street: initial.street,
+      postalCode: initial.postalCode,
+      city: initial.city,
+      latitude: initial.latitude,
+      longitude: initial.longitude,
+      phone: initial.phone,
+    })
+    setFormKey((k) => k + 1)
+  }
+
+  function cancelInline() {
+    setOpenCards({})
+    setMode('none')
+    takeStored()
+    router.refresh()
+  }
+
+  // The project changed under the form while no card was open — a window on
+  // the card, a move to another list, another tab: the fields take what is
+  // stored now, so the next card opened starts from it. A card open for
+  // editing keeps what is being typed; it is caught up once it closes.
+  const stored = JSON.stringify(initial)
+  const [shownStored, setShownStored] = useState(stored)
+  if (inline && mode === 'none' && shownStored !== stored) {
+    setShownStored(stored)
+    takeStored()
+  }
+
   // The bar tells the form to open or to give up; the form tells the bar what
   // it should call itself.
   useEffect(() => {
@@ -562,29 +604,6 @@ export function ProjectForm({
     if (!inline) return
     window.dispatchEvent(new CustomEvent(PROJECT_EDIT_STATE_EVENT, { detail: mode }))
   }, [inline, mode])
-
-  function cancelInline() {
-    setOpenCards({})
-    setMode('none')
-    setVehicleIds(initial.vehicleIds)
-    setChecklistIds(initial.checklistIds)
-    setDeviceIds(initial.deviceIds)
-    setTeamIds(initial.teamIds)
-    setManagerId(initial.managerId)
-    setManagerAdded(false)
-    setCustomerId(initial.customerId)
-    setSameAsCustomer(false)
-    setAddress({
-      street: initial.street,
-      postalCode: initial.postalCode,
-      city: initial.city,
-      latitude: initial.latitude,
-      longitude: initial.longitude,
-      phone: initial.phone,
-    })
-    setFormKey((k) => k + 1)
-    router.refresh()
-  }
 
   /** The props every card needs in inline mode, and nothing at all otherwise. */
   const card = (key: ProjectSectionKey) =>
@@ -665,11 +684,13 @@ export function ProjectForm({
         extra={headExtra}
       />
       )}
+      {/* The cards being saved; the others keep what is stored (src/lib/project-sections.ts). */}
+      {inline && <input type="hidden" name={SECTIONS_FIELD} value={PROJECT_SECTIONS.filter((key) => openCards[key]).join(',')} />}
       {templateId && <input type="hidden" name="templateId" value={templateId} />}
       {draftId && <input type="hidden" name="draftId" value={draftId} />}
       {/* Folded: the four cards of facts under one line, which a click opens.
-          They are drawn either way — a hidden field still travels with the
-          form — so saving the description cannot empty the rest. */}
+          They are drawn either way; saving the description writes only the
+          description. */}
       {fold && (
         <button
           type="button"

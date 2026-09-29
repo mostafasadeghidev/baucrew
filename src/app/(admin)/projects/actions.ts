@@ -28,7 +28,10 @@ import { columnRuleKey, dropPatch } from '@/lib/board-rules'
 import { keptParts, type TemplatePart } from '@/lib/card-templates'
 import { MAX_PLAN_MONTHS, parseMonthInput } from '@/lib/plan-month'
 import { geocodeCity } from '@/lib/geocode'
-import { sitePlaceChoice } from '@/lib/site-place'
+import { formPlace, sitePlaceChoice } from '@/lib/site-place'
+import { SECTIONS_FIELD, savedSections } from '@/lib/project-sections'
+import { mergedFields } from '@/lib/project-merge'
+import { parseAmount } from '@/lib/amount'
 import { notifyCard } from '@/lib/notifications-db'
 import { parseDueTime, reminderKey } from '@/lib/due-reminder'
 
@@ -130,15 +133,10 @@ const projectSchema = z
     { path: ['plannedEnd'], message: 'dateOrder' }
   )
 
+/** The order value as typed: "12.000" is twelve thousand (src/lib/amount.ts). */
 function parsePrice(raw: string): { ok: true; value: number | null } | { ok: false } {
-  const v = raw.trim()
-  if (!v) return { ok: true, value: null }
-  const normalized = v.replace(/\./g, '').replace(',', '.').replace(/\s|€/g, '')
-  // Accept plain "12000.50" too: if the original had no comma, don't strip dots
-  const candidate = v.includes(',') ? normalized : v.replace(/\s|€/g, '')
-  const num = Number(candidate)
-  if (!Number.isFinite(num) || num < 0 || num > 999_999_999) return { ok: false }
-  return { ok: true, value: num }
+  const amount = parseAmount(raw)
+  return amount === 'invalid' ? { ok: false } : { ok: true, value: amount }
 }
 
 function parseProjectForm(formData: FormData) {
@@ -261,8 +259,7 @@ export async function createProject(
           street: d.street,
           postalCode: d.postalCode,
           city: d.city,
-          latitude: d.latitude,
-          longitude: d.longitude,
+          ...formPlace(d.city, d.latitude, d.longitude),
           phone: d.phone,
           contact: d.contact,
           price: canViewFinancials(user) ? price.value : null,
@@ -393,72 +390,90 @@ export async function updateProject(
   const snapshot = await projectBefore(id)
 
   const d = parsed.data
+  // Only the cards being saved are written (src/lib/project-sections.ts).
+  const saving = savedSections(formData.get(SECTIONS_FIELD))
   const financials = canViewFinancials(user)
   let priceValue: number | null | undefined
-  if (financials) {
+  if (financials && saving.has('planning')) {
     const price = parsePrice(String(formData.get('price') ?? ''))
     if (!price.ok) return { error: 'invalidPrice' }
     priceValue = price.value
   }
+  const status = saving.has('basic') ? d.status : before.status
+  // Status moved forward by hand and the actual dates were left empty → derive them.
+  const actualStart = saving.has('planning') ? d.actualStart : before.actualStart
+  const actualEnd = saving.has('planning') ? d.actualEnd : before.actualEnd
+  const derived = before.status !== status ? await actualDatesForStatus(id, status, { actualStart, actualEnd }) : {}
 
   await db.project.update({
     where: { id },
     data: {
-      name: d.name,
-      customerId: d.customerId,
-      status: d.status,
-      isSub: d.isSub,
-      clientType: d.clientType,
-      priority: d.priority,
-      leadSource: d.leadSource,
-      buildingType: d.buildingType,
-      street: d.street,
-      postalCode: d.postalCode,
-      city: d.city,
-      latitude: d.latitude,
-      longitude: d.longitude,
-      phone: d.phone,
-      contact: d.contact,
-      // Users without financial access must never overwrite the price.
-      ...(financials ? { price: priceValue } : {}),
-      plannedStart: d.plannedStart,
-      plannedEnd: d.plannedEnd,
-      planMonth: d.planMonth,
-      planMonths: d.planMonths,
-      dueDate: d.dueDate,
-      inspectionDate: d.inspectionDate,
-      executionWish: d.executionWish,
-      actualStart: d.actualStart,
-      actualEnd: d.actualEnd,
-      // Status moved forward by hand and the actual dates were left empty → derive them.
-      ...(before.status !== d.status
-        ? await actualDatesForStatus(id, d.status, { actualStart: d.actualStart, actualEnd: d.actualEnd })
+      ...(saving.has('basic')
+        ? {
+            name: d.name,
+            customerId: d.customerId,
+            status: d.status,
+            isSub: d.isSub,
+            clientType: d.clientType,
+            priority: d.priority,
+            leadSource: d.leadSource,
+            buildingType: d.buildingType,
+            workCategories: {
+              deleteMany: {},
+              create: d.categoryIds.map((cid) => ({ workCategoryId: cid })),
+            },
+          }
         : {}),
-      managerId: d.managerId,
-      description: d.description,
-      internalNotes: d.internalNotes,
-      workCategories: {
-        deleteMany: {},
-        create: d.categoryIds.map((cid) => ({ workCategoryId: cid })),
-      },
-      team: {
-        deleteMany: {},
-        create: d.teamIds.map((eid) => ({ employeeId: eid })),
-      },
-      vehicles: {
-        deleteMany: {},
-        create: d.vehicleIds.map((vid) => ({ vehicleId: vid })),
-      },
-      deviceNeeds: {
-        deleteMany: {},
-        create: d.deviceIds.map((did) => ({ deviceId: did })),
-      },
+      ...(saving.has('address')
+        ? {
+            street: d.street,
+            postalCode: d.postalCode,
+            city: d.city,
+            ...formPlace(d.city, d.latitude, d.longitude),
+            phone: d.phone,
+            contact: d.contact,
+          }
+        : {}),
+      ...(saving.has('planning')
+        ? {
+            // Users without financial access must never overwrite the price.
+            ...(financials ? { price: priceValue } : {}),
+            plannedStart: d.plannedStart,
+            plannedEnd: d.plannedEnd,
+            planMonth: d.planMonth,
+            planMonths: d.planMonths,
+            dueDate: d.dueDate,
+            inspectionDate: d.inspectionDate,
+            executionWish: d.executionWish,
+            actualStart: d.actualStart,
+            actualEnd: d.actualEnd,
+          }
+        : {}),
+      ...derived,
+      ...(saving.has('assignment')
+        ? {
+            managerId: d.managerId,
+            team: {
+              deleteMany: {},
+              create: d.teamIds.map((eid) => ({ employeeId: eid })),
+            },
+            vehicles: {
+              deleteMany: {},
+              create: d.vehicleIds.map((vid) => ({ vehicleId: vid })),
+            },
+            deviceNeeds: {
+              deleteMany: {},
+              create: d.deviceIds.map((did) => ({ deviceId: did })),
+            },
+          }
+        : {}),
+      ...(saving.has('description') ? { description: d.description, internalNotes: d.internalNotes } : {}),
     },
   })
 
-  await syncProjectChecklists(id, d.checklistIds)
+  if (saving.has('assignment')) await syncProjectChecklists(id, d.checklistIds)
 
-  if (before.status !== d.status) {
+  if (before.status !== status) {
     await audit({
       userId: user.id,
       action: 'project.status',
@@ -466,7 +481,7 @@ export async function updateProject(
       entityId: id,
       field: 'status',
       oldValue: before.status,
-      newValue: d.status,
+      newValue: status,
     })
   }
   await audit({
@@ -474,13 +489,15 @@ export async function updateProject(
     action: 'project.update',
     entity: 'Project',
     entityId: id,
-    newValue: `${before.number} ${d.name}`,
+    newValue: `${before.number} ${saving.has('basic') ? d.name : before.name}`,
   })
   await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
   // Whoever the form put on the card hears of it, as from the members window.
-  const had = new Set([before.managerId, ...before.team.map((m) => m.employeeId)])
-  for (const joined of new Set([d.managerId, ...d.teamIds].filter((e): e is string => Boolean(e) && !had.has(e))))
-    await notifyCard(id, user.id, 'added', { onlyEmployeeId: joined })
+  if (saving.has('assignment')) {
+    const had = new Set([before.managerId, ...before.team.map((m) => m.employeeId)])
+    for (const joined of new Set([d.managerId, ...d.teamIds].filter((e): e is string => Boolean(e) && !had.has(e))))
+      await notifyCard(id, user.id, 'added', { onlyEmployeeId: joined })
+  }
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
   redirect(returnTo ?? `/projects/${id}`)
@@ -1059,11 +1076,10 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
   const conflicts = await db.scheduleEntry.count({ where: { projectId: dropId, date: { in: keepDays } } })
   const keepLinks = await db.projectLink.findMany({ where: { projectId: keepId }, select: { system: true } })
   const keepInvoices = await db.projectInvoice.findMany({ where: { projectId: keepId }, select: { part: true } })
+  const keepWatchers = await db.cardWatch.findMany({ where: { projectId: keepId }, select: { userId: true } })
   const [keepSnapshot, dropSnapshot] = await Promise.all([projectBefore(keepId), projectBefore(dropId)])
 
   const from = `${drop.number} ${drop.name}`
-  const joined = (mine: string | null, theirs: string | null) =>
-    theirs ? `${mine ? `${mine}\n\n` : ''}--- ${from} ---\n${theirs}` : mine
 
   try {
     await db.$transaction([
@@ -1098,6 +1114,19 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
       db.timeEntry.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.deviceAssignment.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.planEntry.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      // What would otherwise go with the dropped project: its tasks, defects,
+      // forms (signatures and all), web links, the notices about it, and its
+      // watchers — each watcher once.
+      db.projectTask.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.defect.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.filledForm.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.cardLink.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.notification.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.projectDraft.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.cardWatch.updateMany({
+        where: { projectId: dropId, userId: { notIn: keepWatchers.map((w) => w.userId) } },
+        data: { projectId: keepId },
+      }),
       db.projectLink.updateMany({
         where: { projectId: dropId, system: { notIn: keepLinks.map((l) => l.system) } },
         data: { projectId: keepId },
@@ -1108,33 +1137,8 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
       }),
       db.project.update({
         where: { id: keepId },
-        data: {
-          externalSystem: keep.externalSystem ?? drop.externalSystem,
-          externalId: keep.externalId ?? drop.externalId,
-          externalUrl: keep.externalUrl ?? drop.externalUrl,
-          sourceCreatedAt: keep.sourceCreatedAt ?? drop.sourceCreatedAt,
-          clientType: keep.clientType ?? drop.clientType,
-          buildingType: keep.buildingType ?? drop.buildingType,
-          priority: keep.priority ?? drop.priority,
-          leadSource: keep.leadSource ?? drop.leadSource,
-          street: keep.street ?? drop.street,
-          city: keep.city ?? drop.city,
-          postalCode: keep.postalCode ?? drop.postalCode,
-          latitude: keep.latitude ?? drop.latitude,
-          longitude: keep.longitude ?? drop.longitude,
-          phone: keep.phone ?? drop.phone,
-          contact: keep.contact ?? drop.contact,
-          price: keep.price ?? drop.price,
-          isSub: keep.isSub || drop.isSub,
-          plannedStart: keep.plannedStart ?? drop.plannedStart,
-          plannedEnd: keep.plannedEnd ?? drop.plannedEnd,
-          dueDate: keep.dueDate ?? drop.dueDate,
-          actualStart: keep.actualStart ?? drop.actualStart,
-          actualEnd: keep.actualEnd ?? drop.actualEnd,
-          managerId: keep.managerId ?? drop.managerId,
-          description: joined(keep.description, drop.description),
-          internalNotes: joined(keep.internalNotes, drop.internalNotes),
-        },
+        // What the kept one lacks, the address and the dates each taken whole (src/lib/project-merge.ts).
+        data: { ...mergedFields(keep, drop, from), price: keep.price ?? drop.price },
       }),
       db.project.delete({ where: { id: dropId } }),
     ])

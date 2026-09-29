@@ -774,7 +774,10 @@ export default async function ProjectsPage({
   /** A card opened over the board or the list: the project's page in a sheet, the board still underneath. It streams in after the board. */
   const cardSheet = card && (
     <CardSheet>
+      {/* Keyed by the card: a card copied, or made from a checklist line, opens
+          in the same sheet and must not inherit the last card's fields. */}
       <Suspense
+        key={card}
         fallback={
           <div className="flex items-center justify-between gap-3 p-4">
             <p className="px-2 py-6 text-sm text-muted">{t('cardLoading')}</p>

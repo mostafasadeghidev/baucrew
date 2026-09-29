@@ -79,6 +79,8 @@ export function Combobox({
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (!open && (e.key === 'ArrowDown' || e.key === 'Enter')) {
+      // Enter opens the list; it must not also send the form the field is in.
+      e.preventDefault()
       openList()
       return
     }
@@ -93,7 +95,9 @@ export function Combobox({
         e.preventDefault()
         choose(filtered[highlight])
       }
-    } else if (e.key === 'Escape') {
+    } else if (e.key === 'Escape' && open) {
+      // Closes the list, and only the list — not the window the field is in.
+      e.preventDefault()
       setOpen(false)
     }
   }

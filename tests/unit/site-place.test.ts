@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { sitePlaceChoice } from '@/lib/site-place'
+import { formPlace, sitePlaceChoice } from '@/lib/site-place'
+
+describe('the coordinates a form sends with its town', () => {
+  it('keeps them beside a town', () => {
+    expect(formPlace('Musterstadt', 50.1, 8.6)).toEqual({ latitude: 50.1, longitude: 8.6 })
+  })
+
+  it('drops them without a town — a town field left out of the form must not leave a pin', () => {
+    expect(formPlace(null, 50.1, 8.6)).toEqual({ latitude: null, longitude: null })
+    expect(formPlace('', 50.1, 8.6)).toEqual({ latitude: null, longitude: null })
+  })
+
+  it('drops coordinates that are no place on earth, or only half of a pair', () => {
+    expect(formPlace('Musterstadt', 500, 8.6)).toEqual({ latitude: null, longitude: null })
+    expect(formPlace('Musterstadt', 50.1, null)).toEqual({ latitude: null, longitude: null })
+  })
+})
 
 const placed = { city: 'Musterstadt', latitude: 50.1 }
 const unplaced = { city: 'Musterstadt', latitude: null }

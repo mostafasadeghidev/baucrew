@@ -92,6 +92,9 @@ export function Popover({
     moved()
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
+      // A field's list of options open in the window closes first, by the
+      // field's own hand; the window, and what was typed into it, stays.
+      if (document.querySelector('[role="listbox"]')) return
       e.stopImmediatePropagation()
       onClose()
     }

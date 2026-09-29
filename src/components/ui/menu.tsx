@@ -57,6 +57,8 @@ export function Menu({
     const items = () => [...(panelRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? [])]
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // The menu's own: a sheet under it stays open (see card-sheet.tsx).
+        e.preventDefault()
         setOpen(false)
         anchorRef.current?.focus()
         return
