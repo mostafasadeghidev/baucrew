@@ -396,8 +396,13 @@ steht im Änderungsprotokoll.
 
 **Vorlagen bauen:** Unter **Projekte → Formularvorlagen** legen Sie eigene
 Formulare an: Felder der Reihe nach — *Überschrift*, *Text (kurz/lang)*,
-*Datum*, *Häkchen*, *Auswahl* —, je Feld die **Vorbelegung** aus dem Projekt
-und ob es ein **Pflichtfeld** ist; darunter, wer unterschreibt (eine Zeile je
+*Zahl*, *Datum*, *Häkchen*, *Auswahl* (eine Antwort), *Mehrfachauswahl*
+(mehrere Antworten, eine je Zeile eingetragen), *Tabelle* (die Spalten eine je
+Zeile, höchstens sechs; beim Ausfüllen kommen die Zeilen mit **Zeile
+hinzufügen** dazu) und *Fotos* (beim Ausfüllen mit der Kamera aufgenommen oder
+aus dem Speicher gewählt; jedes Foto landet zugleich in den Dateien des
+Projekts und steht im PDF, zwei je Reihe) —, je Feld die **Vorbelegung** aus
+dem Projekt (bei Text, Datum und Auswahl) und ob es ein **Pflichtfeld** ist; darunter, wer unterschreibt (eine Zeile je
 Person, höchstens vier). Das **Abnahmeprotokoll** ist von Anfang an da und
 lässt sich anpassen. Eine geänderte Vorlage gilt für neue Formulare; bereits
 angelegte behalten ihre Felder.
@@ -691,7 +696,12 @@ Auf der Seite eines Mitarbeiters gibt es die Karte **Abwesenheiten**: Art
 Einsatzplanung von selbst: Im Einsatzfenster steht neben dem Namen **⚠ Urlaub**,
 sobald das gewählte Datum in eine Abwesenheit fällt, und ist jemand trotzdem
 (oder schon vorher) verplant, erscheint es als Konflikt — im gelben Kasten der
-Wochenansicht und auf der Übersicht unter *Konflikte diese Woche*.
+Wochenansicht und auf der Übersicht unter *Konflikte diese Woche*. Wer an einem
+Tag fehlt, steht außerdem am Tag selbst: in der Wochenansicht als gelbe Zeile
+**Abwesend: Name (Urlaub)** unter dem Tageskopf, in der Monatsansicht mit dem
+Vornamen in der Tageszelle (der Rest im Tooltip). Der Mitarbeiter sieht seine
+eigenen Abwesenheiten in seinem Bereich: die Karte **Meine Abwesenheiten** am
+Ende der Seite und ein gelber Strich unter dem Tag in der Wochenleiste.
 
 ## 11. Fahrzeuge
 
@@ -882,7 +892,9 @@ Die Reiter:
   Feld **Ausführung voraussichtlich (Monat)**; mit einem Ende, oder einer **Dauer**, verteilt sich sein
   Auftragswert gleichmäßig über die Monate dazwischen (Kapitel 6.2). **Ziehen Sie einen Auftrag** mit der
   Maus in eine andere Monatskarte — die Summen beider Monate ändern sich sofort, und ein fester Beginn
-  wandert um ganze Monate mit (der 15. bleibt der 15.). Projekte **ohne Monat** gehören zu keinem Monat
+  wandert um ganze Monate mit (der 15. bleibt der 15.). Auch ein **leerer Monat** steht als Karte da
+  (gestrichelt, ohne Zahlen), damit ein Auftrag hineingezogen werden kann — in den Bahnen ebenso; nur
+  die Jahresmatrix zeigt allein die Monate mit Einträgen. Projekte **ohne Monat** gehören zu keinem Monat
   und zählen erst, wenn einer eingetragen ist — unter *Datenlücken* sind sie aufgeführt. Ist eine
   **Jahresplanung** eingelesen (Kapitel 15), stehen ihre Zeilen, zu denen es noch kein Projekt gibt,
   ebenfalls in ihren Monaten — Arbeit, die noch ein Projekt braucht; eine Zeile, die im Planabgleich
@@ -1002,6 +1014,8 @@ Die Reiter:
 Der Import darf **jederzeit wiederholt** werden. Steht am Ende eines Kartentitels eine Nummer in Klammern, gilt sie als Kennung der Baustelle: beim nächsten Import wird dasselbe Projekt **aktualisiert** statt doppelt angelegt, und ein Kartenwechsel in eine andere Liste ändert den Projektstatus mit. Am Ende steht, wie viele Projekte neu angelegt und wie viele aktualisiert wurden.
 
 Der Kunde wird aus dem Titel gelesen: normalerweise das erste Wort, bei „HV …“ oder „BV: …“ der Name dahinter, bei „Gemeinde …“ oder „Stadt …“ beides zusammen. Nennt ein Titel nur ein Gebäude („Kläranlage …“), steht dort der ganze Titel als Kunde und der Import weist am Ende darauf hin — diese Karten bitte nachsehen. Dateien an einer Karte werden mit Link in die Projektbeschreibung übernommen.
+
+Die **Checklisten** einer Karte kommen mit ihren Häkchen als Checklisten des Projekts mit, die **Kommentare** als Kommentare (mit Name und Tag aus Trello unter dem Text; die Exportdatei enthält nur die jüngeren, etwa die letzten tausend Vorgänge des Boards) — beides über Häkchen vor dem Import, beides ohne Dubletten beim zweiten Mal. Ein drittes Häkchen legt aus den Checklisten des Boards **Checklisten-Vorlagen** an: je Name eine, mit allen Punkten, die dieser Name auf den Karten je hatte — so kommen die Standard-Checklisten eines Trello-Boards mit einem Import als Vorlagen ins System (Projekte → Checklisten).
 
 **Jahresplanung importieren** — die eigene Monatsplanumsatz-Tabelle einlesen, damit im CRM
 neben dem tatsächlichen Umsatz auch der **Plan** steht.

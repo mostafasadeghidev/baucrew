@@ -380,6 +380,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     : []
   const monthsDescending = orderParam === 'desc'
   const orderedMonths = monthsDescending ? [...visibleMonths].reverse() : visibleMonths
+  // Every month of the period for the cards and the lanes, an empty one too:
+  // a job is dragged into a month that has nothing yet, so that month must
+  // be there to drop it on. The matrix keeps to the months with something.
+  const periodMonths = revenue ? revenue.months.filter((m) => !range || (m.month >= range.from && m.month <= range.to)) : []
+  const orderedPeriod = monthsDescending ? [...periodMonths].reverse() : periodMonths
   // The months as a grid of cards, as lanes or as the year matrix, and each
   // one's zoom: what the address says, else what this browser chose last time.
   const monthsLayout = resolveRevenueLayout(
@@ -392,7 +397,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   // a card of three. From four to a row the right-hand card's run off the
   // window, so there the labels stand on their own.
   const hints = monthsLayout.grid === '2' || monthsLayout.grid === '3'
-  const monthOrder = orderedMonths.map((m) => m.month)
+  // The lanes count a site's months over every month they show; the matrix over the months it shows.
+  const monthOrder = (monthsLayout.layout === 'lanes' ? orderedPeriod : orderedMonths).map((m) => m.month)
   const foldSites = onRevenue && revenue !== null && monthsLayout.layout !== 'grid'
   const siteRows = foldSites ? siteMonthRows(revenue.months, monthOrder) : []
   const lastYearMonths = prevRevenue && prevRevenue.yearTotal > 0 ? prevTotals : null
@@ -976,7 +982,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               // running month again, not wherever the last one was left.
               key={`lanes|${year}|${periodParam ?? ''}|${monthsDescending ? 'desc' : 'asc'}`}
               year={year}
-              months={orderedMonths}
+              months={orderedPeriod}
               density={monthsLayout.lanes}
               runningMonth={runningMonth}
               spans={new Map(siteRows.map((r) => [r.key, r.span]))}
@@ -999,8 +1005,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 {/* Cards in one row share their rows (subgrid): the "Eigene Leute"
                     line, the SUB line and the rest sit at the same height in every
                     card beside each other, however long the lists above them are. */}
-                {orderedMonths.map((m) => (
-                  <DropMonth key={m.month} year={year} month={m.month} className={`grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid row-span-6 ${card}`}>
+                {orderedPeriod.map((m) => (
+                  <DropMonth
+                    key={m.month}
+                    year={year}
+                    month={m.month}
+                    // An empty month is drawn lighter: it is there to take a job, not to be read.
+                    className={`grid grid-cols-[minmax(0,1fr)] grid-rows-subgrid row-span-6 ${card} ${
+                      m.own.length === 0 && m.sub.length === 0 && (plan?.months[m.month].total ?? 0) === 0 ? 'border-dashed bg-surface/60 text-muted' : ''
+                    }`}
+                  >
                     <div
                       className={`flex items-center justify-between border-b border-border ${
                         denseCards ? 'flex-wrap gap-x-2 px-2 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'

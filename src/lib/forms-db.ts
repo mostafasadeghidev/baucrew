@@ -5,7 +5,7 @@ import { audit } from './audit'
 import { getBranding } from './branding'
 import { iso, todayUtc } from './dates'
 import { safeFileName, storageKeyFor } from './files'
-import { deleteStoredFile, saveStoredFile } from './file-storage'
+import { deleteStoredFile, readStoredFile, saveStoredFile } from './file-storage'
 import {
   cleanValues,
   formStatus,
@@ -18,7 +18,7 @@ import {
   type FormValues,
   type PrefillContext,
 } from './forms'
-import { renderFormPdf } from './forms-pdf'
+import { renderFormPdf, type FormPdfPhoto } from './forms-pdf'
 
 export type FormError = 'notFound' | 'locked' | 'incomplete' | 'alreadySigned' | 'badSlot' | 'nameRequired' | 'badSignature'
 
@@ -217,6 +217,24 @@ export async function filledFormPdf(id: string, locale: string): Promise<{ filen
   const dayFmt = new Intl.DateTimeFormat(intl, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
   const stampFmt = new Intl.DateTimeFormat(intl, { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Berlin' })
   const en = locale === 'en'
+  // The photo fields' pictures: the project's own files, the ones the sheet can draw (PNG, JPEG).
+  const photoIds = form.fields.filter((f) => f.type === 'photo').flatMap((f) => (Array.isArray(form.values[f.id]) ? (form.values[f.id] as string[]) : []))
+  const photos = new Map<string, FormPdfPhoto>()
+  if (photoIds.length > 0) {
+    const docs = await db.document.findMany({
+      where: { id: { in: photoIds }, projectId: form.projectId },
+      select: { id: true, path: true, mimeType: true },
+    })
+    for (const doc of docs) {
+      const type = doc.mimeType === 'image/png' ? 'png' : doc.mimeType === 'image/jpeg' ? 'jpg' : null
+      if (!type) continue
+      try {
+        photos.set(doc.id, { bytes: new Uint8Array(await readStoredFile(doc.path)), type })
+      } catch {
+        // A file that is gone leaves its place on the sheet empty.
+      }
+    }
+  }
   const data = await renderFormPdf({
     title: form.title,
     projectLine: `${form.project.number} — ${form.project.name}`,
@@ -224,6 +242,7 @@ export async function filledFormPdf(id: string, locale: string): Promise<{ filen
     logo: logo?.value ?? null,
     fields: form.fields,
     values: form.values,
+    photos,
     signers: form.signers,
     signatures: form.signatures,
     digest: form.digest,

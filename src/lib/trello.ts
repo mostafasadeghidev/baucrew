@@ -4,6 +4,10 @@
 
 export type TrelloList = { id: string; name: string; closed: boolean }
 export type TrelloAttachment = { name: string; url: string }
+export type TrelloChecklistItem = { name: string; complete: boolean }
+export type TrelloChecklist = { name: string; items: TrelloChecklistItem[] }
+/** A comment on a card: when, by whom (as Trello names them), and what. */
+export type TrelloComment = { date: string; author: string; text: string }
 export type TrelloCard = {
   id: string
   name: string
@@ -17,6 +21,10 @@ export type TrelloCard = {
   /** Permalink of the card, kept as the project's source link. */
   shortUrl: string
   attachments: TrelloAttachment[]
+  /** The card's checklists, in their order on the card, each item with its tick. */
+  checklists: TrelloChecklist[]
+  /** The card's comments, oldest first — as far as the export holds them. */
+  comments: TrelloComment[]
 }
 export type TrelloBoard = {
   name: string
@@ -24,13 +32,69 @@ export type TrelloBoard = {
   cards: TrelloCard[]
 }
 
+const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
+
+/**
+ * The board's checklists by the card they hang on. Trello keeps them in one
+ * list on the board, each with its card's id and a position; the items carry
+ * their own position and a state of "complete" or "incomplete".
+ */
+function checklistsByCard(raw: unknown): Map<string, TrelloChecklist[]> {
+  const byCard = new Map<string, Array<TrelloChecklist & { pos: number }>>()
+  if (!Array.isArray(raw)) return new Map()
+  for (const entry of raw) {
+    if (!record(entry)) continue
+    const cardId = String(entry.idCard ?? '')
+    const name = String(entry.name ?? '').trim()
+    if (!cardId || !name) continue
+    const items = (Array.isArray(entry.checkItems) ? entry.checkItems : [])
+      .filter(record)
+      .map((item) => ({ name: String(item.name ?? '').trim(), complete: item.state === 'complete', pos: num(item.pos) }))
+      .filter((item) => item.name)
+      .sort((a, b) => a.pos - b.pos)
+      .map(({ name: itemName, complete }) => ({ name: itemName, complete }))
+    const list = byCard.get(cardId) ?? []
+    list.push({ name, items, pos: num(entry.pos) })
+    byCard.set(cardId, list)
+  }
+  return new Map(
+    [...byCard].map(([cardId, lists]) => [cardId, lists.sort((a, b) => a.pos - b.pos).map(({ name, items }) => ({ name, items }))])
+  )
+}
+
+/**
+ * The comments by card, out of the board's actions — Trello writes a comment
+ * as an action of type "commentCard". An export holds the newest thousand or
+ * so actions; older comments are simply not in the file.
+ */
+function commentsByCard(raw: unknown): Map<string, TrelloComment[]> {
+  const byCard = new Map<string, TrelloComment[]>()
+  if (!Array.isArray(raw)) return byCard
+  for (const action of raw) {
+    if (!record(action) || action.type !== 'commentCard' || !record(action.data)) continue
+    const card = record(action.data.card) ? action.data.card : null
+    const cardId = card ? String(card.id ?? '') : ''
+    const text = String(action.data.text ?? '').trim()
+    const date = typeof action.date === 'string' && !Number.isNaN(Date.parse(action.date)) ? action.date : ''
+    if (!cardId || !text || !date) continue
+    const creator = record(action.memberCreator) ? action.memberCreator : null
+    const author = creator ? String(creator.fullName ?? creator.username ?? '').trim() : ''
+    const list = byCard.get(cardId) ?? []
+    list.push({ date, author, text })
+    byCard.set(cardId, list)
+  }
+  for (const list of byCard.values()) list.sort((a, b) => a.date.localeCompare(b.date))
+  return byCard
+}
+
 export function parseTrelloExport(json: unknown): TrelloBoard | null {
-  if (typeof json !== 'object' || json === null) return null
-  const raw = json as Record<string, unknown>
+  if (!record(json)) return null
+  const raw = json
   if (!Array.isArray(raw.lists) || !Array.isArray(raw.cards)) return null
 
   const lists: TrelloList[] = raw.lists
-    .filter((l): l is Record<string, unknown> => typeof l === 'object' && l !== null)
+    .filter(record)
     .map((l) => ({
       id: String(l.id ?? ''),
       name: String(l.name ?? '').trim(),
@@ -38,31 +102,35 @@ export function parseTrelloExport(json: unknown): TrelloBoard | null {
     }))
     .filter((l) => l.id && l.name)
 
+  const checklists = checklistsByCard(raw.checklists)
+  const comments = commentsByCard(raw.actions)
+
   const cards: TrelloCard[] = raw.cards
-    .filter((c): c is Record<string, unknown> => typeof c === 'object' && c !== null)
-    .map((c) => ({
-      id: String(c.id ?? ''),
-      name: String(c.name ?? '').trim(),
-      desc: String(c.desc ?? '').trim(),
-      idList: String(c.idList ?? ''),
-      closed: Boolean(c.closed),
-      due: typeof c.due === 'string' ? c.due : null,
-      dueComplete: c.dueComplete === true,
-      shortUrl: typeof c.shortUrl === 'string' ? c.shortUrl : '',
-      labels: Array.isArray(c.labels)
-        ? c.labels
-            .map((lb) =>
-              typeof lb === 'object' && lb !== null ? String((lb as { name?: unknown }).name ?? '') : ''
-            )
-            .filter(Boolean)
-        : [],
-      attachments: Array.isArray(c.attachments)
-        ? c.attachments
-            .filter((a): a is Record<string, unknown> => typeof a === 'object' && a !== null)
-            .map((a) => ({ name: String(a.name ?? '').trim(), url: String(a.url ?? '').trim() }))
-            .filter((a) => a.url)
-        : [],
-    }))
+    .filter(record)
+    .map((c) => {
+      const id = String(c.id ?? '')
+      return {
+        id,
+        name: String(c.name ?? '').trim(),
+        desc: String(c.desc ?? '').trim(),
+        idList: String(c.idList ?? ''),
+        closed: Boolean(c.closed),
+        due: typeof c.due === 'string' ? c.due : null,
+        dueComplete: c.dueComplete === true,
+        shortUrl: typeof c.shortUrl === 'string' ? c.shortUrl : '',
+        labels: Array.isArray(c.labels)
+          ? c.labels.map((lb) => (record(lb) ? String(lb.name ?? '') : '')).filter(Boolean)
+          : [],
+        attachments: Array.isArray(c.attachments)
+          ? c.attachments
+              .filter(record)
+              .map((a) => ({ name: String(a.name ?? '').trim(), url: String(a.url ?? '').trim() }))
+              .filter((a) => a.url)
+          : [],
+        checklists: checklists.get(id) ?? [],
+        comments: comments.get(id) ?? [],
+      }
+    })
     .filter((c) => c.id && c.name)
 
   return { name: String(raw.name ?? 'Trello').trim(), lists, cards }
@@ -234,4 +302,34 @@ export function suggestStatus(listName: string): string {
   if (/(beauftragt|zusage|warteliste)/.test(n)) return 'APPROVED'
   if (/(anfrage|lead|neu|eingang|todo|to do|offen)/.test(n)) return 'LEAD'
   return 'LEAD'
+}
+
+/**
+ * A Trello comment as it is written onto the project: the text, and under it
+ * who said it and when in Trello — the note has no account of its own here.
+ */
+export function trelloCommentBody(comment: TrelloComment, formatDay: (date: Date) => string): string {
+  const who = comment.author || 'Trello'
+  return `${comment.text}\n\n— ${who} (Trello, ${formatDay(new Date(comment.date))})`
+}
+
+/**
+ * The checklists of a board as templates: one per name (case does not
+ * matter), holding every item that name ever had, in the order the items
+ * first appeared — the way a standard checklist that lives on many cards
+ * becomes one template to reuse.
+ */
+export function checklistTemplatesOf(cards: Array<Pick<TrelloCard, 'checklists'>>): Array<{ name: string; items: string[] }> {
+  const byName = new Map<string, { name: string; items: string[] }>()
+  for (const card of cards) {
+    for (const list of card.checklists) {
+      const key = list.name.toLowerCase()
+      const template = byName.get(key) ?? { name: list.name, items: [] }
+      for (const item of list.items) {
+        if (!template.items.some((known) => known.toLowerCase() === item.name.toLowerCase())) template.items.push(item.name)
+      }
+      byName.set(key, template)
+    }
+  }
+  return [...byName.values()].filter((t) => t.items.length > 0)
 }

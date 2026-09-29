@@ -203,7 +203,10 @@
     "jobsCount": "{count, plural, one {# assignment} other {# assignments}}",
     "noJobsShort": "Nothing planned",
     "navigate": "Navigate",
-    "itemVideo": "Video: {name}"
+    "itemVideo": "Video: {name}",
+    "absencesTitle": "My absences",
+    "noAbsences": "No vacation or sick leave entered.",
+    "absencesHint": "Vacation and sick days are entered by the office; such a day is marked amber in the week strip above."
   },
   "customers": {
     "title": "Customers",
@@ -657,7 +660,8 @@
     "boardMoreSettings": "More board settings",
     "boardListsPick": "Choose the statuses one by one",
     "boardListsPickAll": "Select all",
-    "boardListsPickNone": "Select none"
+    "boardListsPickNone": "Select none",
+    "linkedSystems": "Linked systems"
   },
   "history": {
     "created": "created this card",
@@ -1522,7 +1526,8 @@
     "applyOnly": "{count, plural, one {Save and update # day} other {Save and update # days}}",
     "dayPair": "{first} and {second}",
     "daysFromTo": "{count} days from {first} to {last}",
-    "noteHint": "Printed on this day's work order."
+    "noteHint": "Printed on this day's work order.",
+    "absentLabel": "Away"
   },
   "warehouse": {
     "title": "Warehouse",
@@ -1638,6 +1643,13 @@
     "doneIgnored": "{count} cards not imported (list excluded or archived)",
     "goToProjects": "Go to projects",
     "doneUpdated": "{count, plural, one {# project} other {# projects}} updated (status taken from the board)",
+    "includeChecklists": "Take over the cards' checklists ({count})",
+    "includeComments": "Take over the cards' comments ({count})",
+    "checklistsAsTemplates": "Also make checklist templates from the checklists",
+    "checklistsAsTemplatesHint": "One template per checklist name, with every item that name had on the cards — for a board of standard checklists. Templates of the same name that exist stay.",
+    "doneChecklists": "{count, plural, one {# checklist} other {# checklists}} taken over",
+    "doneComments": "{count, plural, one {# comment} other {# comments}} taken over",
+    "doneTemplates": "{count, plural, one {# checklist template} other {# checklist templates}} made",
     "doneFlagged": "⚠ {count, plural, one {# card gives} other {# cards give}} no clear customer in the title (e.g. \"Kläranlage …\"). The whole title was used as the customer — please check."
   },
   "geo": {
@@ -2158,7 +2170,21 @@
     "prefill_workTypes": "Trades",
     "prefill_today": "Today's date",
     "prefill_openDefects": "Open defects",
-    "prefill_companyName": "Own company"
+    "prefill_companyName": "Own company",
+    "type_number": "Number",
+    "type_multi": "Multiple choice",
+    "type_table": "Table",
+    "type_photo": "Photos",
+    "fieldColumns": "Columns",
+    "fieldColumnsPlaceholder": "One column per line (at most 6)",
+    "photoAdd": "Add photo",
+    "photoRemove": "Take off the form",
+    "photoUploading": "Uploading …",
+    "photoFailed": "The photo could not be uploaded.",
+    "photoLimit": "At most {max} photos per field.",
+    "tableAddRow": "Add row",
+    "tableRemoveRow": "Remove row",
+    "tableEmpty": "No rows yet."
   },
   "importMaster": {
     "title": "Import master data",

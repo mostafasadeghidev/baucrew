@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { extractJobNumber, parseTrelloExport, splitCardTitle, suggestStatus } from '@/lib/trello'
+import { checklistTemplatesOf, extractJobNumber, parseTrelloExport, splitCardTitle, suggestStatus, trelloCommentBody } from '@/lib/trello'
 
 describe('parseTrelloExport', () => {
   it('rejects non-Trello JSON', () => {
@@ -254,5 +254,77 @@ describe('suggestStatus', () => {
   it('does not cancel a job because an offer for extra work was turned down', () => {
     expect(suggestStatus('Nachtragsangebot abgelehnt')).toBe('IN_PROGRESS')
     expect(suggestStatus('Angebot abgelehnt')).toBe('CANCELLED')
+  })
+})
+
+describe('checklists and comments in the export', () => {
+  const board = parseTrelloExport({
+    name: 'Muster',
+    lists: [{ id: 'L1', name: 'Anfragen', closed: false }],
+    cards: [
+      { id: 'C1', name: 'Muster Musterdorf', idList: 'L1' },
+      { id: 'C2', name: 'Beispiel Musterstadt', idList: 'L1' },
+    ],
+    checklists: [
+      { id: 'K2', idCard: 'C1', name: 'Abnahme', pos: 2, checkItems: [{ name: 'Fotos', state: 'incomplete', pos: 1 }] },
+      {
+        id: 'K1',
+        idCard: 'C1',
+        name: 'Baustart',
+        pos: 1,
+        checkItems: [
+          { name: 'Gerüst', state: 'complete', pos: 2 },
+          { name: 'Material', state: 'incomplete', pos: 1 },
+          { name: '', state: 'complete', pos: 3 },
+        ],
+      },
+      { id: 'K3', idCard: 'C2', name: 'baustart', pos: 1, checkItems: [{ name: 'Material', state: 'complete', pos: 1 }, { name: 'Schlüssel', state: 'incomplete', pos: 2 }] },
+      { id: 'K4', idCard: 'nobody', name: 'lost', checkItems: [] },
+      'junk',
+    ],
+    actions: [
+      { type: 'commentCard', date: '2026-03-02T10:00:00.000Z', data: { card: { id: 'C1' }, text: 'Später' }, memberCreator: { fullName: 'Max Muster' } },
+      { type: 'commentCard', date: '2026-03-01T10:00:00.000Z', data: { card: { id: 'C1' }, text: 'Kunde angerufen' }, memberCreator: { username: 'mm' } },
+      { type: 'updateCard', date: '2026-03-01T10:00:00.000Z', data: { card: { id: 'C1' }, text: 'nicht' } },
+      { type: 'commentCard', date: 'no date', data: { card: { id: 'C1' }, text: 'ohne Datum' } },
+      { type: 'commentCard', date: '2026-03-01T10:00:00.000Z', data: { card: { id: 'C1' }, text: '   ' } },
+    ],
+  })!
+
+  it('hangs the checklists on their cards in order, items in order, ticks kept, empty items dropped', () => {
+    expect(board.cards[0].checklists).toEqual([
+      { name: 'Baustart', items: [{ name: 'Material', complete: false }, { name: 'Gerüst', complete: true }] },
+      { name: 'Abnahme', items: [{ name: 'Fotos', complete: false }] },
+    ])
+    expect(board.cards[1].checklists).toHaveLength(1)
+  })
+
+  it('reads the comments only, oldest first, with the author Trello names', () => {
+    expect(board.cards[0].comments).toEqual([
+      { date: '2026-03-01T10:00:00.000Z', author: 'mm', text: 'Kunde angerufen' },
+      { date: '2026-03-02T10:00:00.000Z', author: 'Max Muster', text: 'Später' },
+    ])
+    expect(board.cards[1].comments).toEqual([])
+  })
+
+  it('writes a comment with who said it and when under the text', () => {
+    expect(trelloCommentBody({ date: '2026-03-02T10:00:00.000Z', author: 'Max Muster', text: 'Später' }, () => '02.03.2026')).toBe(
+      'Später\n\n— Max Muster (Trello, 02.03.2026)'
+    )
+    expect(trelloCommentBody({ date: '2026-03-02T10:00:00.000Z', author: '', text: 'x' }, () => 'd')).toContain('— Trello (Trello, d)')
+  })
+
+  it('makes one template per checklist name with every item that name ever had', () => {
+    expect(checklistTemplatesOf(board.cards)).toEqual([
+      { name: 'Baustart', items: ['Material', 'Gerüst', 'Schlüssel'] },
+      { name: 'Abnahme', items: ['Fotos'] },
+    ])
+    expect(checklistTemplatesOf([{ checklists: [{ name: 'Leer', items: [] }] }])).toEqual([])
+  })
+
+  it('reads a board without checklists or actions as before', () => {
+    const plain = parseTrelloExport({ lists: [{ id: 'L1', name: 'A' }], cards: [{ id: 'C1', name: 'X', idList: 'L1' }] })!
+    expect(plain.cards[0].checklists).toEqual([])
+    expect(plain.cards[0].comments).toEqual([])
   })
 })

@@ -15,7 +15,7 @@
  * Pure: no database, no React, no Node — the browser reads these rules too.
  */
 
-export const FIELD_TYPES = ['heading', 'text', 'longtext', 'date', 'checkbox', 'choice'] as const
+export const FIELD_TYPES = ['heading', 'text', 'longtext', 'number', 'date', 'checkbox', 'choice', 'multi', 'table', 'photo'] as const
 export type FieldType = (typeof FIELD_TYPES)[number]
 
 /** What a field can be filled with from the project when the form is made. */
@@ -38,13 +38,18 @@ export type FormField = {
   type: FieldType
   label: string
   required?: boolean
-  /** The answers of a `choice`. */
+  /** The answers of a `choice` or a `multi`; the columns of a `table`. */
   options?: string[]
   prefill?: PrefillSource
 }
 
-/** A text for every field but a checkbox, which is true or false. */
-export type FormValues = Record<string, string | boolean>
+/**
+ * What a field holds: a text for most, true or false for a checkbox, the
+ * chosen answers of a `multi` and the photos' document ids of a `photo` as a
+ * list, the rows of a `table` as a list of lists (one text per column).
+ */
+export type FormValue = string | boolean | string[] | string[][]
+export type FormValues = Record<string, FormValue>
 
 export const FORM_NAME_MAX = 200
 export const FIELD_LABEL_MAX = 200
@@ -52,10 +57,25 @@ export const FIELD_TEXT_MAX = 300
 export const FIELD_LONGTEXT_MAX = 5000
 export const MAX_FIELDS = 80
 export const MAX_OPTIONS = 12
+/** The columns a table may have, and the rows a filled one may hold. */
+export const MAX_COLUMNS = 6
+export const MAX_ROWS = 40
+/** The photos one field may carry. */
+export const MAX_PHOTOS = 12
 export const MAX_SIGNERS = 4
 export const SIGNER_MAX = 80
 /** A drawn signature as a PNG, base64: a few kilobytes; this is a generous ceiling. */
 export const SIGNATURE_MAX_BASE64 = 400_000
+
+/** A number as it is typed in German or English: "1.250,50", "12,5", "-3", "0.75". */
+const NUMBER = /^-?\d{1,3}(\.\d{3})*(,\d{1,4})?$|^-?\d{1,12}([.,]\d{1,4})?$/
+/** A document's id, the way the database makes them. */
+const DOCUMENT_ID = /^[a-z0-9]{10,40}$/
+
+/** The types whose value is typed with the project's words put in first. */
+const PREFILLABLE: ReadonlySet<FieldType> = new Set(['text', 'longtext', 'date', 'choice'])
+/** The types that carry answers or columns. */
+const WITH_OPTIONS: ReadonlySet<FieldType> = new Set(['choice', 'multi', 'table'])
 
 const isType = (v: unknown): v is FieldType => (FIELD_TYPES as readonly unknown[]).includes(v)
 const isPrefill = (v: unknown): v is PrefillSource => (PREFILL_SOURCES as readonly unknown[]).includes(v)
@@ -86,11 +106,12 @@ export function parseFields(raw: unknown): FormField[] {
     const field: FormField = { id, type: source.type, label }
     if (source.type !== 'heading') {
       if (source.required === true) field.required = true
-      if (isPrefill(source.prefill) && source.type !== 'checkbox') field.prefill = source.prefill
+      if (isPrefill(source.prefill) && PREFILLABLE.has(source.type)) field.prefill = source.prefill
     }
-    if (source.type === 'choice') {
+    if (WITH_OPTIONS.has(source.type)) {
+      const max = source.type === 'table' ? MAX_COLUMNS : MAX_OPTIONS
       const options = Array.isArray(source.options)
-        ? [...new Set(source.options.map((o) => text(o, FIELD_TEXT_MAX)).filter(Boolean))].slice(0, MAX_OPTIONS)
+        ? [...new Set(source.options.map((o) => text(o, FIELD_TEXT_MAX)).filter(Boolean))].slice(0, max)
         : []
       if (options.length === 0) continue
       field.options = options
@@ -109,21 +130,31 @@ export function parseSigners(raw: unknown): string[] {
 /** What the project knows, in words, for the fields that ask for it. */
 export type PrefillContext = Partial<Record<PrefillSource, string>>
 
+/** What an untouched field holds. */
+export function emptyValue(type: FieldType): FormValue {
+  if (type === 'checkbox') return false
+  if (type === 'multi' || type === 'photo' || type === 'table') return []
+  return ''
+}
+
 /** The values a new form starts with. */
 export function prefillValues(fields: FormField[], context: PrefillContext): FormValues {
   const values: FormValues = {}
   for (const field of fields) {
     if (field.type === 'heading') continue
-    if (field.type === 'checkbox') values[field.id] = false
-    else values[field.id] = field.prefill ? (context[field.prefill] ?? '') : ''
+    values[field.id] = field.prefill ? (context[field.prefill] ?? '') : emptyValue(field.type)
   }
   return values
 }
 
+const stringList = (value: unknown): string[] => (Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [])
+
 /**
  * What was sent for a form, held against its fields: only fields the form has,
- * a checkbox true or false, a date a date, a choice one of its answers, a text
- * no longer than it may be.
+ * a checkbox true or false, a date a date, a number a number, a choice one of
+ * its answers, a multi some of them in their order, a table its rows with one
+ * text per column, a photo its documents' ids, a text no longer than it may
+ * be.
  */
 export function cleanValues(fields: FormField[], raw: unknown): FormValues {
   const sent = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
@@ -136,9 +167,26 @@ export function cleanValues(fields: FormField[], raw: unknown): FormValues {
     } else if (field.type === 'date') {
       const day = text(value, 10)
       values[field.id] = /^\d{4}-\d{2}-\d{2}$/.test(day) && !Number.isNaN(Date.parse(`${day}T00:00:00Z`)) ? day : ''
+    } else if (field.type === 'number') {
+      const typed = text(value, 24).replace(/\s/g, '')
+      values[field.id] = NUMBER.test(typed) ? typed : ''
     } else if (field.type === 'choice') {
       const answer = text(value, FIELD_TEXT_MAX)
       values[field.id] = field.options?.includes(answer) ? answer : ''
+    } else if (field.type === 'multi') {
+      const chosen = new Set(stringList(value).map((v) => v.trim()))
+      values[field.id] = (field.options ?? []).filter((o) => chosen.has(o))
+    } else if (field.type === 'photo') {
+      values[field.id] = [...new Set(stringList(value).filter((id) => DOCUMENT_ID.test(id)))].slice(0, MAX_PHOTOS)
+    } else if (field.type === 'table') {
+      const columns = field.options?.length ?? 0
+      const rows = (Array.isArray(value) ? value : [])
+        .filter(Array.isArray)
+        .map((row) => Array.from({ length: columns }, (_, i) => text(row[i], FIELD_TEXT_MAX)))
+        // A row nobody wrote into is no row.
+        .filter((row) => row.some(Boolean))
+        .slice(0, MAX_ROWS)
+      values[field.id] = rows
     } else {
       values[field.id] = text(value, field.type === 'longtext' ? FIELD_LONGTEXT_MAX : FIELD_TEXT_MAX)
     }
@@ -146,13 +194,16 @@ export function cleanValues(fields: FormField[], raw: unknown): FormValues {
   return values
 }
 
+/** Whether a field holds nothing yet. */
+export function isEmptyValue(value: FormValue | undefined): boolean {
+  if (value === undefined) return true
+  if (Array.isArray(value)) return value.length === 0
+  return value === false || value === ''
+}
+
 /** The required fields that are still empty — a checkbox that must be ticked counts. */
 export function missingRequired(fields: FormField[], values: FormValues): FormField[] {
-  return fields.filter((field) => {
-    if (!field.required || field.type === 'heading') return false
-    const value = values[field.id]
-    return field.type === 'checkbox' ? value !== true : !value
-  })
+  return fields.filter((field) => field.required && field.type !== 'heading' && isEmptyValue(values[field.id]))
 }
 
 export type FormStatus = 'draft' | 'partly' | 'signed'
@@ -172,15 +223,23 @@ export function formStatus(signers: string[], signedSlots: number[]): FormStatus
 export function signedContent(title: string, fields: FormField[], values: FormValues, signers: string[]): string {
   return JSON.stringify({
     title,
-    fields: fields.map((f) => [f.id, f.type, f.label, f.type === 'heading' ? null : (values[f.id] ?? (f.type === 'checkbox' ? false : ''))]),
+    fields: fields.map((f) => [f.id, f.type, f.label, f.type === 'heading' ? null : (values[f.id] ?? emptyValue(f.type))]),
     signers,
   })
 }
 
-/** A value as a reader sees it on paper. */
-export function displayValue(field: FormField, value: string | boolean | undefined, words: { yes: string; no: string }, formatDay: (iso: string) => string): string {
+/** A value as a reader sees it on paper; a table and a photo are drawn, not written, so they say how many rows or photos. */
+export function displayValue(
+  field: FormField,
+  value: FormValue | undefined,
+  words: { yes: string; no: string; rows?: (count: number) => string; photos?: (count: number) => string },
+  formatDay: (iso: string) => string
+): string {
   if (field.type === 'checkbox') return value === true ? words.yes : words.no
   if (field.type === 'date') return typeof value === 'string' && value ? formatDay(value) : ''
+  if (field.type === 'multi') return Array.isArray(value) ? (value as string[]).join(', ') : ''
+  if (field.type === 'table') return Array.isArray(value) ? (words.rows ? words.rows(value.length) : String(value.length)) : ''
+  if (field.type === 'photo') return Array.isArray(value) ? (words.photos ? words.photos(value.length) : String(value.length)) : ''
   return typeof value === 'string' ? value : ''
 }
 

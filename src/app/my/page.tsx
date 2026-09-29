@@ -40,7 +40,7 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, tDefects, tForms, tTasks, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, tDefects, tForms, tTasks, tAbsences, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
     getTranslations('checklists'),
@@ -51,6 +51,7 @@ export default async function MyAreaPage({
     getTranslations('defects'),
     getTranslations('forms'),
     getTranslations('tasks'),
+    getTranslations('absences'),
     getLocale(),
   ])
 
@@ -162,6 +163,21 @@ export default async function MyAreaPage({
       })
     : []
   // What a new form can be made from — an acceptance protocol, say.
+  // The worker's own vacation and sick days, as the office entered them: from
+  // this week on, so the strip marks them and the list below says when.
+  const myAbsences = employeeId
+    ? await db.absence.findMany({
+        where: { employeeId, endDate: { gte: monday < today ? monday : today } },
+        orderBy: { startDate: 'asc' },
+        take: 12,
+        select: { id: true, startDate: true, endDate: true, type: true, note: true },
+      })
+    : []
+  const awayDays = new Set<string>()
+  for (const a of myAbsences) {
+    for (let d = a.startDate; d <= a.endDate; d = addDays(d, 1)) awayDays.add(iso(d))
+  }
+
   const formTemplates = employeeId
     ? await db.formTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } })
     : []
@@ -187,7 +203,7 @@ export default async function MyAreaPage({
     timeZone: 'UTC',
   })
   const weekdayFmt = new Intl.DateTimeFormat(intl, { weekday: 'short', timeZone: 'UTC' })
-  const week = buildWeek(monday, day, today, jobsPerDay, weekdayFmt)
+  const week = buildWeek(monday, day, today, jobsPerDay, weekdayFmt, awayDays)
 
   const todayMinutes = sumMinutes(todayTime, new Date())
 
@@ -212,6 +228,7 @@ export default async function MyAreaPage({
       </div>
 
       <WeekStrip
+        awayLabel={t('absencesTitle')}
         days={week}
         prevWeek={addDays(monday, -7)}
         nextWeek={addDays(monday, 7)}
@@ -589,6 +606,30 @@ export default async function MyAreaPage({
           ) : (
             <p className="mt-1 text-sm text-muted">{t('noNextJob')}</p>
           )}
+        </section>
+      )}
+
+      {/* Own vacation and sick days — read here, entered by the office */}
+      {employeeId && (
+        <section className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-muted">{t('absencesTitle')}</p>
+          {myAbsences.length === 0 ? (
+            <p className="mt-1 text-sm text-muted">{t('noAbsences')}</p>
+          ) : (
+            <ul className="mt-1 space-y-1 text-sm">
+              {myAbsences.map((a) => (
+                <li key={a.id} className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-semibold">{tAbsences(`type${a.type}` as 'typeVACATION')}</span>
+                  <span className="tabular-nums">
+                    {fmtShort.format(a.startDate)}
+                    {iso(a.startDate) !== iso(a.endDate) && ` – ${fmtShort.format(a.endDate)}`}
+                  </span>
+                  {a.note && <span className="text-muted">· {a.note}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 text-xs text-muted">{t('absencesHint')}</p>
         </section>
       )}
     </div>

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { isOffice, requireUser } from '@/lib/authz'
 import { canWorkOn } from '@/lib/crew-access'
-import { signatureBase64 } from '@/lib/forms'
+import { signatureBase64, type FormValues } from '@/lib/forms'
 import { createFilledForm, deleteFilledForm, removeFormSignature, saveFormValues, signFilledForm, type FormError } from '@/lib/forms-db'
 
 /**
@@ -39,7 +39,7 @@ export async function addForm(projectId: string, templateId: string): Promise<Fo
   return { id: result.id }
 }
 
-export async function saveForm(formId: string, values: Record<string, string | boolean>): Promise<FormActionResult> {
+export async function saveForm(formId: string, values: FormValues): Promise<FormActionResult> {
   const user = await requireUser()
   const projectId = await projectOf(formId)
   if (!projectId) return { error: 'notFound' }

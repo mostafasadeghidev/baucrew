@@ -15,6 +15,8 @@ import { displayValue, type FormField, type FormValues } from './forms'
  * written as "?" instead of stopping the whole sheet.
  */
 
+export type FormPdfPhoto = { bytes: Uint8Array; type: 'png' | 'jpg' }
+
 export type FormPdfInput = {
   title: string
   /** "2026-0048 — Musterhaus Fassade" */
@@ -24,6 +26,8 @@ export type FormPdfInput = {
   logo: string | null
   fields: FormField[]
   values: FormValues
+  /** The pictures of the photo fields, by document id — the ones that could be read. */
+  photos?: Map<string, FormPdfPhoto>
   signers: string[]
   signatures: Array<{ slot: number; role: string; name: string; image: string; signedAt: Date; digest: string }>
   /** The digest of the form as it stands — differs from a signature's when the content was changed after it. */
@@ -101,6 +105,61 @@ export async function renderFormPdf(input: FormPdfInput): Promise<Uint8Array> {
     }
   }
 
+  /** A table's rows under their column heads; a row never breaks over a page, a long table does. */
+  const drawTable = (columns: string[], rows: string[][]) => {
+    const size = 9
+    const pad = 4
+    const colWidth = width / columns.length
+    const lineHeight = size * 1.3
+    const rowLines = (row: string[]) => columns.map((_, c) => wrap(row[c] ?? '', regular, size, colWidth - pad * 2))
+    const drawRow = (cells: string[][], font: PDFFont, color = INK) => {
+      const height = Math.max(1, ...cells.map((c) => c.length)) * lineHeight + pad * 2
+      need(height)
+      const top = y
+      cells.forEach((lines, c) => {
+        const x = MARGIN + c * colWidth
+        page.drawLine({ start: { x, y: top }, end: { x, y: top - height }, thickness: 0.4, color: RULE })
+        lines.forEach((line, n) => page.drawText(line, { x: x + pad, y: top - pad - size - n * lineHeight, size, font, color }))
+      })
+      page.drawLine({ start: { x: MARGIN + width, y: top }, end: { x: MARGIN + width, y: top - height }, thickness: 0.4, color: RULE })
+      page.drawLine({ start: { x: MARGIN, y: top - height }, end: { x: MARGIN + width, y: top - height }, thickness: 0.4, color: RULE })
+      y = top - height
+    }
+    page.drawLine({ start: { x: MARGIN, y }, end: { x: MARGIN + width, y }, thickness: 0.4, color: RULE })
+    drawRow(columns.map((c) => wrap(c, bold, size, colWidth - pad * 2)), bold, GREY)
+    for (const row of rows) drawRow(rowLines(row), regular)
+  }
+
+  /** The pictures two to a row, each scaled to fit its half; one the file cannot give is left out. */
+  const drawPhotos = async (ids: string[]) => {
+    const gap = 10
+    const boxWidth = (width - gap) / 2
+    const boxHeight = 170
+    let drawn = 0
+    for (const id of ids) {
+      const photo = input.photos?.get(id)
+      if (!photo) continue
+      let image: PDFImage
+      try {
+        image = photo.type === 'png' ? await pdf.embedPng(photo.bytes) : await pdf.embedJpg(photo.bytes)
+      } catch {
+        continue
+      }
+      const scale = Math.min(boxWidth / image.width, boxHeight / image.height, 1)
+      const w = image.width * scale
+      const h = image.height * scale
+      if (drawn % 2 === 0) {
+        need(boxHeight + 6)
+      }
+      const x = MARGIN + (drawn % 2) * (boxWidth + gap)
+      page.drawImage(image, { x, y: y - h, width: w, height: h })
+      drawn++
+      if (drawn % 2 === 0) y -= boxHeight + 6
+    }
+    if (drawn % 2 === 1) y -= boxHeight + 6
+    return drawn
+  }
+
   // ── Head: the company, its logo on the right, the form's name, the project ──
   let logo: PDFImage | null = null
   const match = input.logo ? /^data:image\/(png|jpe?g);base64,([\s\S]+)$/.exec(input.logo) : null
@@ -145,6 +204,24 @@ export async function renderFormPdf(input: FormPdfInput): Promise<Uint8Array> {
       }
       write(field.label, regular, 10, INK, MARGIN + size + 7, width - size - 7)
       y -= 5
+      continue
+    }
+    if (field.type === 'table') {
+      const rows = Array.isArray(input.values[field.id]) ? (input.values[field.id] as string[][]) : []
+      need(30)
+      write(field.label, regular, 8.5, GREY)
+      if (rows.length === 0) write('—', regular, 10.5)
+      else drawTable(field.options ?? [], rows)
+      y -= 6
+      continue
+    }
+    if (field.type === 'photo') {
+      const ids = Array.isArray(input.values[field.id]) ? (input.values[field.id] as string[]) : []
+      need(30)
+      write(field.label, regular, 8.5, GREY)
+      const drawn = await drawPhotos(ids)
+      if (drawn === 0) write('—', regular, 10.5)
+      y -= 6
       continue
     }
     need(30)
