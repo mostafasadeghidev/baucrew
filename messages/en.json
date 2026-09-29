@@ -1388,6 +1388,11 @@
     "timelineHint": "Each site's planned span, two weeks back and six ahead; the red line is today.",
     "timelineWeek": "Wk {week}",
     "timelineMore": "{count, plural, one {# more site outside these weeks} other {# more sites outside these weeks}}",
+    "unplacedTitle": "No month",
+    "unplacedHint": "This year's jobs without a month — drag one into a month to place it there.",
+    "unplacedSearch": "Search jobs …",
+    "unplacedNoMatch": "Nothing found.",
+    "unplacedDrag": "Drag into a month",
     "timelineNoDates": "{count, plural, one {# without dates not drawn} other {# without dates not drawn}}"
   },
   "sheet": {

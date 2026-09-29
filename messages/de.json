@@ -1388,6 +1388,11 @@
     "timelineHint": "Der geplante Zeitraum jeder Baustelle, zwei Wochen zurück und sechs voraus; die rote Linie ist heute.",
     "timelineWeek": "KW {week}",
     "timelineMore": "{count, plural, one {# weitere Baustelle außerhalb dieser Wochen} other {# weitere Baustellen außerhalb dieser Wochen}}",
+    "unplacedTitle": "Ohne Monat",
+    "unplacedHint": "Aufträge dieses Jahres ohne Monat — in einen Monat ziehen, um sie dort einzuplanen.",
+    "unplacedSearch": "Auftrag suchen …",
+    "unplacedNoMatch": "Nichts gefunden.",
+    "unplacedDrag": "In einen Monat ziehen",
     "timelineNoDates": "{count, plural, one {# ohne Termin nicht eingezeichnet} other {# ohne Termin nicht eingezeichnet}}"
   },
   "sheet": {

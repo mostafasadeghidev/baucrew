@@ -81,6 +81,7 @@ import { JobsView } from './jobs-view'
 import { PipelineView } from './pipeline-view'
 import { UsageView } from './usage-view'
 import { GapsView } from './gaps-view'
+import { UnplacedJobs } from './unplaced-jobs'
 
 const card = 'rounded-xl border border-border bg-surface shadow-sm'
 const th = 'px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted'
@@ -419,6 +420,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   /** Whole euros on a dense card — the cents do not fit — with the exact figure on hover. */
   const cardMoney = (v: number | null) => (denseCards ? whole(v) : money(v))
   const exact = (v: number | null) => (denseCards ? money(v) : undefined)
+  // The year's jobs without a month, as a column beside the cards and the
+  // lanes to drag them from into a month — the matrix has no month to drop on.
+  const unplaced = onRevenue && revenue && monthsLayout.layout !== 'matrix' ? revenue.undated : []
+  const showMonths = orderedMonths.length > 0 || unplaced.length > 0
   /**
    * A site's line on a month card: its name, cut short with the whole of it on
    * hover, and its amount. A job over several months lights up in all of them
@@ -974,7 +979,23 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           )}
 
           {/* ── Monate ── */}
-          {orderedMonths.length === 0 ? (
+          <div className={unplaced.length > 0 ? 'grid grid-cols-1 items-start gap-3 lg:grid-cols-[15rem_minmax(0,1fr)]' : ''}>
+          {unplaced.length > 0 && (
+            <UnplacedJobs
+              jobs={unplaced.map((p) => ({
+                id: p.id,
+                number: p.number,
+                name: p.name,
+                customer: p.customer,
+                amount: cardMoney(p.price),
+                exact: exact(p.price),
+              }))}
+              total={money(revenue?.undatedTotal ?? 0)}
+              labels={{ title: t('unplacedTitle'), hint: t('unplacedHint'), search: t('unplacedSearch'), noMatch: t('unplacedNoMatch'), drag: t('unplacedDrag') }}
+            />
+          )}
+          <div className="min-w-0">
+          {!showMonths ? (
             <p className={`${card} p-6 text-sm text-muted`}>{t('noRevenueInPeriod')}</p>
           ) : monthsLayout.layout === 'lanes' ? (
             <RevenueLanes
@@ -1075,6 +1096,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               </div>
             </HoverGroups>
           )}
+          </div>
+          </div>
 
           {/* ── Planumsatz nach Stand, under the months for now ── */}
           {situationMonths && (
