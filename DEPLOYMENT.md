@@ -73,14 +73,31 @@ Trello imports may need to be split; keep the Docker path for heavy use.
 
 ## Backups
 
-The database is the single source of truth; uploaded documents (later phase)
-will live in a volume that must be backed up too.
+Two things make up the company's data, and both are backed up:
+
+- **the database** — every project, customer, plan, comment, form;
+- **the files** — uploaded PDFs, photos, Outlook e-mails, signed forms, the
+  logo and board photos. They live in the Docker volume `baucrew_files`
+  (mounted at `/app/storage` in the app container), not in the database. A
+  board taken over from Trello brings its attachments along, so expect several
+  hundred megabytes, growing by about a gigabyte a year.
+
+A database dump without the files restores projects whose attachments are
+missing; a files copy without the dump restores files nothing points to. Take
+both at the same time.
 
 **Backup (daily via cron):**
 
 ```bash
+# the database
 docker compose exec -T db pg_dump -U baucrew -Fc baucrew > backup_$(date +%F).dump
+# the files — the volume as a tar archive, read from the running app container
+docker compose exec -T app tar -czf - -C /app/storage . > files_$(date +%F).tar.gz
 ```
+
+The files archive only grows; keep fewer copies of it than of the dump (for
+example 7 daily + 4 weekly), or copy the volume incrementally with `rsync`
+from `docker volume inspect baucrew_files` → `Mountpoint` instead.
 
 Suggested policy: daily backups, keep 14 daily + 8 weekly, store copies
 off-machine (e.g. object storage or a second server).
@@ -89,7 +106,15 @@ off-machine (e.g. object storage or a second server).
 
 ```bash
 docker compose exec -T db pg_restore -U baucrew -d baucrew --clean < backup_2026-08-14.dump
+# the files of the same day, into the (empty or old) volume
+docker compose exec -T app sh -c 'rm -rf /app/storage/* && tar -xzf - -C /app/storage' < files_2026-08-14.tar.gz
 ```
+
+The in-app backup (Einstellungen → Daten & Protokoll) carries the project
+files as well, base64 inside one JSON — right for a small installation or a
+move to another server, too heavy once the files run into hundreds of
+megabytes, and without the board photos. Past that size the two lines above
+are the backup.
 
 Test the restore path regularly — a backup that has never been restored is not a backup.
 

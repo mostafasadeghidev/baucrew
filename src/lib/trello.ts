@@ -2,6 +2,8 @@
 // Export as JSON"). Only the fields we import are read; everything else in the
 // (large) file is ignored.
 
+import { cardFields, powerUpFields, type TrelloCardFields } from './trello-fields'
+
 export type TrelloList = { id: string; name: string; closed: boolean }
 export type TrelloAttachment = { name: string; url: string }
 export type TrelloChecklistItem = { name: string; complete: boolean }
@@ -25,6 +27,8 @@ export type TrelloCard = {
   checklists: TrelloChecklist[]
   /** The card's comments, oldest first — as far as the export holds them. */
   comments: TrelloComment[]
+  /** What the card's custom-fields power-up says: customer, address, order value … (src/lib/trello-fields.ts). */
+  fields: TrelloCardFields
 }
 export type TrelloBoard = {
   name: string
@@ -104,6 +108,7 @@ export function parseTrelloExport(json: unknown): TrelloBoard | null {
 
   const checklists = checklistsByCard(raw.checklists)
   const comments = commentsByCard(raw.actions)
+  const definitions = powerUpFields(raw.pluginData)
 
   const cards: TrelloCard[] = raw.cards
     .filter(record)
@@ -129,6 +134,7 @@ export function parseTrelloExport(json: unknown): TrelloBoard | null {
           : [],
         checklists: checklists.get(id) ?? [],
         comments: comments.get(id) ?? [],
+        fields: cardFields(definitions, c.pluginData),
       }
     })
     .filter((c) => c.id && c.name)

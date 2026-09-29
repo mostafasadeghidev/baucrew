@@ -894,7 +894,10 @@ Die Reiter:
   Maus in eine andere Monatskarte — die Summen beider Monate ändern sich sofort, und ein fester Beginn
   wandert um ganze Monate mit (der 15. bleibt der 15.). Auch ein **leerer Monat** steht als Karte da
   (gestrichelt, ohne Zahlen), damit ein Auftrag hineingezogen werden kann — in den Bahnen ebenso; nur
-  die Jahresmatrix zeigt allein die Monate mit Einträgen. Projekte **ohne Monat** gehören zu keinem Monat
+  die Jahresmatrix zeigt allein die Monate mit Einträgen. Links neben den Monaten steht die Spalte
+  **Ohne Monat**: die Aufträge des Jahres, die noch keinen Monat haben, mit ihrer Summe und einem
+  Suchfeld. Ein Auftrag daraus wird in einen Monat gezogen und steht von da an dort (er bekommt diesen
+  Monat als *Ausführung voraussichtlich*). Projekte **ohne Monat** gehören zu keinem Monat
   und zählen erst, wenn einer eingetragen ist — unter *Datenlücken* sind sie aufgeführt. Ist eine
   **Jahresplanung** eingelesen (Kapitel 15), stehen ihre Zeilen, zu denen es noch kein Projekt gibt,
   ebenfalls in ihren Monaten — Arbeit, die noch ein Projekt braucht; eine Zeile, die im Planabgleich
@@ -1014,6 +1017,8 @@ Die Reiter:
 Der Import darf **jederzeit wiederholt** werden. Steht am Ende eines Kartentitels eine Nummer in Klammern, gilt sie als Kennung der Baustelle: beim nächsten Import wird dasselbe Projekt **aktualisiert** statt doppelt angelegt, und ein Kartenwechsel in eine andere Liste ändert den Projektstatus mit. Am Ende steht, wie viele Projekte neu angelegt und wie viele aktualisiert wurden.
 
 Der Kunde wird aus dem Titel gelesen: normalerweise das erste Wort, bei „HV …“ oder „BV: …“ der Name dahinter, bei „Gemeinde …“ oder „Stadt …“ beides zusammen. Nennt ein Titel nur ein Gebäude („Kläranlage …“), steht dort der ganze Titel als Kunde und der Import weist am Ende darauf hin — diese Karten bitte nachsehen. Dateien an einer Karte werden mit Link in die Projektbeschreibung übernommen.
+
+Hat das Board **eigene Felder** auf den Karten (eine Erweiterung wie in der Trello-Karte: Kundenname, Baustellenadresse, Auftragswert, Art der Arbeit, Ausführungswunsch, Termin Besichtigung, Kundennummer), liest der Import sie mit: der Kundenname ersetzt das Raten aus dem Titel, die Adresse wird in Straße, PLZ und Ort zerlegt (und der Ort für die Karte gesucht), der Auftragswert wird zum Auftragswert, die Art der Arbeit zu den Gewerken (was es als Gewerk nicht gibt, steht als Zeile in der Beschreibung), die Kundennummer kommt zum Kunden, wenn er noch keine hat. Bei einem Projekt, das schon da ist, füllt ein neuer Import nur, was noch leer ist — was im Büro inzwischen eingetragen wurde, bleibt.
 
 Die **Checklisten** einer Karte kommen mit ihren Häkchen als Checklisten des Projekts mit, die **Kommentare** als Kommentare (mit Name und Tag aus Trello unter dem Text; die Exportdatei enthält nur die jüngeren, etwa die letzten tausend Vorgänge des Boards) — beides über Häkchen vor dem Import, beides ohne Dubletten beim zweiten Mal. Ein drittes Häkchen legt aus den Checklisten des Boards **Checklisten-Vorlagen** an: je Name eine, mit allen Punkten, die dieser Name auf den Karten je hatte — so kommen die Standard-Checklisten eines Trello-Boards mit einem Import als Vorlagen ins System (Projekte → Checklisten).
 
