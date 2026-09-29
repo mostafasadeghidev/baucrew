@@ -648,7 +648,16 @@ export async function ProjectDetail({
       text: address || null,
       section: 'address',
       href: null,
-      edit: { kind: 'address', value: { street: project.street ?? '', postalCode: project.postalCode ?? '', city: project.city ?? '' } },
+      edit: {
+        kind: 'address',
+        value: {
+          street: project.street ?? '',
+          postalCode: project.postalCode ?? '',
+          city: project.city ?? '',
+          latitude: project.latitude,
+          longitude: project.longitude,
+        },
+      },
     },
     ...(showPrice
       ? [

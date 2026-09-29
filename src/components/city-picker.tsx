@@ -23,6 +23,8 @@ export function CityPicker({
   onPostcode,
   disabled,
   name = 'city',
+  labelClassName = 'block text-sm font-medium',
+  inputClassName = inputClass,
 }: {
   label: string
   value: CityValue
@@ -31,6 +33,9 @@ export function CityPicker({
   onPostcode?: (postcode: string) => void
   disabled?: boolean
   name?: string
+  /** The label's and the field's look, where the picker sits in a small window among smaller fields. */
+  labelClassName?: string
+  inputClassName?: string
 }) {
   const t = useTranslations('geo')
   const id = useId()
@@ -92,7 +97,7 @@ export function CityPicker({
 
   return (
     <div ref={wrapRef} className="relative">
-      <label htmlFor={id} className="block text-sm font-medium">
+      <label htmlFor={id} className={labelClassName}>
         {label}
       </label>
       <input
@@ -126,7 +131,7 @@ export function CityPicker({
         aria-expanded={open}
         aria-controls={`${id}-list`}
         aria-autocomplete="list"
-        className={`${inputClass} disabled:opacity-60`}
+        className={`${inputClassName} disabled:opacity-60`}
       />
       <input type="hidden" name="latitude" value={value.latitude ?? ''} />
       <input type="hidden" name="longitude" value={value.longitude ?? ''} />
@@ -142,12 +147,13 @@ export function CityPicker({
                 pick(s)
               }}
               onMouseEnter={() => setActive(i)}
-              className={`mx-1 cursor-pointer rounded-md px-2 py-1.5 text-sm ${
+              // A narrow field (the card's small window) puts the region under the name rather than beside it.
+              className={`mx-1 flex cursor-pointer flex-wrap items-baseline gap-x-2 rounded-md px-2 py-1.5 text-sm ${
                 i === active ? 'bg-surface-hover text-foreground' : 'hover:bg-surface-hover'
               }`}
             >
               {s.name}
-              <span className="ml-2 text-xs text-muted">
+              <span className="text-xs text-muted">
                 {[s.postcode, s.admin1].filter(Boolean).join(' · ')}
               </span>
             </li>

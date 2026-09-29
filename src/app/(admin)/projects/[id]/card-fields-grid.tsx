@@ -24,8 +24,12 @@ import { Popover, PopoverHead } from '@/components/ui/popover'
 import { btn } from '@/components/ui/button'
 import { PROJECT_EDIT_CARD_EVENT, type ProjectSectionKey } from '../project-form'
 import { NewCustomerModal } from '../new-customer-modal'
+import { CityPicker } from '@/components/city-picker'
 import { setCardField } from '../actions'
 import { CardPanelButton, type CardEditData } from './card-popovers'
+
+/** The site's address as the card's window changes it; the place found for the town rides along, for the map and the weather. */
+export type CardAddress = { street: string; postalCode: string; city: string; latitude: number | null; longitude: number | null }
 
 export type CardFieldCell = {
   key: CardFieldKey
@@ -38,7 +42,7 @@ export type CardFieldCell = {
   /** Typed into in place: the value as the field takes it. */
   edit?:
     | { kind: 'text' | 'date' | 'number'; value: string }
-    | { kind: 'address'; value: { street: string; postalCode: string; city: string } }
+    | { kind: 'address'; value: CardAddress }
     | { kind: 'labels' }
     | { kind: 'customer'; value: string; options: { value: string; label: string }[] }
     | null
@@ -203,7 +207,12 @@ function InlineField({
   )
 }
 
-/** The site's address: street, postal code and town in a small window. */
+/**
+ * The site's address: street, postal code and town in a small window. The
+ * town is the form's town picker — a list of places while it is typed, and a
+ * line saying whether the place was found, since only a found place has a
+ * weather forecast and a pin on the map.
+ */
 function AddressField({
   projectId,
   value,
@@ -212,7 +221,7 @@ function AddressField({
   className,
 }: {
   projectId: string
-  value: { street: string; postalCode: string; city: string }
+  value: CardAddress
   text: string | null
   empty: string
   className: string
@@ -265,15 +274,19 @@ function AddressField({
             {t('street')}
             <input autoFocus value={draft.street} maxLength={300} onChange={(e) => setDraft({ ...draft, street: e.target.value })} className={field} />
           </label>
-          <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-2">
+          <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-start gap-2">
             <label className="block text-[11px] font-semibold text-muted">
               {t('postalCode')}
               <input value={draft.postalCode} maxLength={20} onChange={(e) => setDraft({ ...draft, postalCode: e.target.value })} className={field} />
             </label>
-            <label className="block text-[11px] font-semibold text-muted">
-              {t('city')}
-              <input value={draft.city} maxLength={300} onChange={(e) => setDraft({ ...draft, city: e.target.value })} className={field} />
-            </label>
+            <CityPicker
+              label={t('city')}
+              value={draft}
+              onChange={(place) => setDraft((d) => ({ ...d, ...place }))}
+              onPostcode={(code) => setDraft((d) => (d.postalCode ? d : { ...d, postalCode: code }))}
+              labelClassName="block text-[11px] font-semibold text-muted"
+              inputClassName={field}
+            />
           </div>
           <button type="submit" disabled={pending} className={btn.primarySm}>
             {tc('save')}

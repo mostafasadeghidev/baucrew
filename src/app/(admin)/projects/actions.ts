@@ -28,6 +28,7 @@ import { columnRuleKey, dropPatch } from '@/lib/board-rules'
 import { keptParts, type TemplatePart } from '@/lib/card-templates'
 import { MAX_PLAN_MONTHS, parseMonthInput } from '@/lib/plan-month'
 import { geocodeCity } from '@/lib/geocode'
+import { sitePlaceChoice } from '@/lib/site-place'
 import { notifyCard } from '@/lib/notifications-db'
 import { parseDueTime, reminderKey } from '@/lib/due-reminder'
 
@@ -1596,7 +1597,10 @@ export type CardFieldEdit =
   | { key: 'wish'; value: string }
   | { key: 'inspection'; value: string }
   | { key: 'price'; value: string }
-  | { key: 'address'; value: { street: string; postalCode: string; city: string } }
+  | {
+      key: 'address'
+      value: { street: string; postalCode: string; city: string; latitude?: number | null; longitude?: number | null }
+    }
   | { key: 'customer'; value: string }
 
 /**
@@ -1608,7 +1612,7 @@ export type CardFieldEdit =
 export async function setCardField(id: string, edit: CardFieldEdit): Promise<{ error?: 'saveFailed' | 'invalidPrice' }> {
   const user = await requireStaff()
   if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
-  const before = await db.project.findUnique({ where: { id }, select: { city: true } })
+  const before = await db.project.findUnique({ where: { id }, select: { city: true, latitude: true } })
   if (!before) return { error: 'saveFailed' }
   let data: Prisma.ProjectUpdateInput
   switch (edit.key) {
@@ -1635,13 +1639,14 @@ export async function setCardField(id: string, edit: CardFieldEdit): Promise<{ e
       const street = text(edit.value?.street, 300)
       const postalCode = text(edit.value?.postalCode, 20)
       const city = text(edit.value?.city, 300)
-      // A new town is looked up for the map, as the form's town picker does.
-      const place = city && city !== before.city ? await geocodeCity(city).catch(() => null) : undefined
+      // The place the town picker found is taken; a town it did not find is looked up (src/lib/site-place.ts).
+      const choice = sitePlaceChoice(city, edit.value ?? {}, before)
+      const place = choice === 'lookUp' && city ? await geocodeCity(city).catch(() => null) : choice
       data = {
         street,
         postalCode,
         city,
-        ...(place !== undefined ? { latitude: place?.latitude ?? null, longitude: place?.longitude ?? null } : {}),
+        ...(place !== 'keep' && place !== 'lookUp' ? { latitude: place?.latitude ?? null, longitude: place?.longitude ?? null } : {}),
       }
       break
     }
