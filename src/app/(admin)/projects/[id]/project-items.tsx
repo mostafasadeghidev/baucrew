@@ -27,6 +27,7 @@ export function ProjectItemsEditor({
   options,
   onChanged,
   pending: externalPending = false,
+  canCreateItems = true,
 }: {
   projectId: string
   items: ProjectItemRow[]
@@ -36,6 +37,8 @@ export function ProjectItemsEditor({
   onChanged?: () => void
   /** The parent is reloading the list (dialog) — disables the controls. */
   pending?: boolean
+  /** A new catalog item is the office's to make; a site manager picks from the catalog. */
+  canCreateItems?: boolean
 }) {
   const t = useTranslations('projects')
   const tc = useTranslations('common')
@@ -185,8 +188,8 @@ export function ProjectItemsEditor({
             defaultValue={selectedId}
             placeholder={t('selectItem')}
             noResultsLabel={tWarehouse('noResults')}
-            onCreateNew={(name) => setNewItemName(name)}
-            createLabel={(name) => `+ ${tWarehouse('createItemOption', { name })}`}
+            onCreateNew={canCreateItems ? (name) => setNewItemName(name) : undefined}
+            createLabel={canCreateItems ? (name) => `+ ${tWarehouse('createItemOption', { name })}` : undefined}
           />
         </div>
         <input

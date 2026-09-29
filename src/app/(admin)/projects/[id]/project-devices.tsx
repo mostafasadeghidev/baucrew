@@ -32,12 +32,15 @@ export function ProjectDevicesEditor({
   options,
   onChanged,
   pending: externalPending = false,
+  canHandOut = true,
 }: {
   projectId: string
   devices: ProjectDeviceRow[]
   options: ComboboxOption[]
   onChanged?: () => void
   pending?: boolean
+  /** Handing a machine out and taking it back is the office's; a site manager sees where it is. */
+  canHandOut?: boolean
 }) {
   const t = useTranslations('devices')
   const tc = useTranslations('common')
@@ -56,6 +59,16 @@ export function ProjectDevicesEditor({
         setAddKey((k) => k + 1)
         onChanged?.()
       }
+    })
+  }
+
+  /** A hand-out or a return, and what went wrong with it — a machine still out elsewhere, say. */
+  function move(run: () => Promise<{ error?: 'busy' | 'saveFailed' }>) {
+    setError(null)
+    startTransition(async () => {
+      const res = await run()
+      if (res.error) setError(res.error === 'busy' ? t('alreadyOut') : tc('saveFailed'))
+      onChanged?.()
     })
   }
 
@@ -105,31 +118,21 @@ export function ProjectDevicesEditor({
               </span>
 
               <span className="flex shrink-0 items-center gap-2">
-                {device.state === 'free' && (
+                {canHandOut && device.state === 'free' && (
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() =>
-                      startTransition(async () => {
-                        await handOutDevice(device.id, { projectId })
-                        onChanged?.()
-                      })
-                    }
+                    onClick={() => move(() => handOutDevice(device.id, { projectId }))}
                     className={`${btn.outlineSm} px-2 py-1 text-xs`}
                   >
                     {t('handOutNow')}
                   </button>
                 )}
-                {device.state === 'here' && (
+                {canHandOut && device.state === 'here' && (
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() =>
-                      startTransition(async () => {
-                        await returnDevice(device.id)
-                        onChanged?.()
-                      })
-                    }
+                    onClick={() => move(() => returnDevice(device.id))}
                     className={`${btn.outlineSm} px-2 py-1 text-xs`}
                   >
                     {t('takeBack')}

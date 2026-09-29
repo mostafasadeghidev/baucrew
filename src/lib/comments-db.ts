@@ -1,7 +1,7 @@
 import 'server-only'
 import { db } from './db'
 import { audit } from './audit'
-import { COMMENT_MAX, mentionedUsers, type Mentionable } from './comments'
+import { COMMENT_MAX, OFFICE_COMMENT, mentionedUsers, type Mentionable } from './comments'
 import { announceCommentCreated, type EventActor } from './project-events'
 import { notifyCard } from './notifications-db'
 
@@ -50,6 +50,8 @@ export async function createComment(input: {
     action: 'project.comment',
     entity: 'Project',
     entityId: project.id,
+    // Marked, so the card's history keeps an office-only word from the site manager too.
+    field: input.office ? OFFICE_COMMENT : undefined,
     newValue: body.slice(0, 200),
   })
   await announceCommentCreated(note.id, input.actor)

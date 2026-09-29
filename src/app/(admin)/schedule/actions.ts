@@ -14,6 +14,10 @@ import { expandDateRange } from '@/lib/schedule-range'
 import { assignmentBlock } from '@/lib/schedule-block'
 import { entrySchema, entryErrorKey, type EntryInput, type EntryResult } from '@/lib/schedule-entry'
 import { createEntries } from '@/lib/schedule-service'
+import { canSeeProject } from '@/lib/project-scope'
+
+/** The statuses "reopen" takes back: the work was done. */
+const REOPENABLE = new Set<string>(['COMPLETED', 'INVOICED', 'PAID'])
 
 export type { EntryInput, EntryResult }
 
@@ -53,7 +57,8 @@ export async function completeProjectFromEntry(
     where: { id: entryId },
     include: { project: { select: { id: true, number: true, status: true, actualStart: true, actualEnd: true } } },
   })
-  if (!entry) return { error: 'saveFailed' }
+  // The plan is everyone's; a project's status is only for those who may see the project.
+  if (!entry || !(await canSeeProject(user, entry.project.id))) return { error: 'saveFailed' }
   const p = entry.project
   if (p.status === 'INVOICED' || p.status === 'PAID' || p.status === 'CANCELLED') return {}
   const snapshot = await projectBefore(p.id)
@@ -110,17 +115,31 @@ export async function completeProjectFromEntry(
  */
 export async function reopenProject(projectId: string): Promise<{ error?: string; restored?: number }> {
   const user = await requireStaff()
+  if (!(await canSeeProject(user, projectId))) return { error: 'saveFailed' }
   const p = await db.project.findUnique({
     where: { id: projectId },
     select: { id: true, number: true, status: true, actualStart: true },
   })
-  if (!p) return { error: 'saveFailed' }
+  // Only a finished job is reopened; a lead or a cancelled one has nothing to take back.
+  if (!p || !REOPENABLE.has(p.status)) return { error: 'saveFailed' }
   const snapshot = await projectBefore(projectId)
 
-  const restoredEntries = await db.scheduleEntry.updateMany({
-    where: { projectId, cancelledAt: { not: null } },
-    data: { cancelledAt: null },
+  // Only the days cancelled together with the completion come back — not days
+  // the office took out of the plan by hand, before or since (shortening a
+  // block with "Bis" cancels them the same way).
+  const completion = await db.auditLog.findFirst({
+    where: { entity: 'Project', entityId: projectId, action: 'schedule.cancelLaterDays' },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
   })
+  const at = completion?.createdAt.getTime()
+  const restoredEntries =
+    at === undefined
+      ? { count: 0 }
+      : await db.scheduleEntry.updateMany({
+          where: { projectId, cancelledAt: { gte: new Date(at - 60_000), lte: new Date(at + 60_000) } },
+          data: { cancelledAt: null },
+        })
   const next = p.actualStart ? 'IN_PROGRESS' : 'PLANNED'
   await db.project.update({
     where: { id: projectId },

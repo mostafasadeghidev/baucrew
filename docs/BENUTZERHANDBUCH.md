@@ -126,6 +126,8 @@ Jedes Benutzerkonto hat eine Rolle. Sie bestimmt, was jemand sieht und darf.
 
 Preise werden Mitarbeitern nicht nur ausgeblendet — sie werden gar nicht erst an ihr Handy geschickt. Auch auf dem Arbeitsauftrag stehen keine Preise und keine internen Notizen.
 
+Für die **Bauleitung** gilt dasselbe: Die **internen Notizen** eines Projekts sieht sie nicht und kann sie nicht ändern; den Kunden einer Karte wählt sie aus der Liste der Namen (Adressen und Telefonnummern der Kunden bekommt sie nicht) und legt keinen neuen an; Geräte ausgeben und zurücknehmen, neue Artikel im Katalog und die Reihenfolge der Listen auf dem Board bleiben beim Büro. Checklisten und Material ändert sie nur an ihren eigenen Projekten, und nur diese kann sie abschließen oder wieder öffnen.
+
 **Konten direkt nach der Installation** (Passwörter bitte sofort ändern — Kapitel 15):
 
 | Benutzer | Rolle | Gedacht für |

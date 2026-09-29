@@ -44,7 +44,7 @@ export type CardFieldCell = {
     | { kind: 'text' | 'date' | 'number'; value: string }
     | { kind: 'address'; value: CardAddress }
     | { kind: 'labels' }
-    | { kind: 'customer'; value: string; options: { value: string; label: string }[] }
+    | { kind: 'customer'; value: string; options: { value: string; label: string }[]; canCreate: boolean }
     | null
 }
 
@@ -87,7 +87,15 @@ export function CardFieldsGrid({ projectId, cells, card }: { projectId: string; 
                 ) : cell.edit?.kind === 'address' ? (
                   <AddressField projectId={projectId} value={cell.edit.value} text={cell.text} empty={empty} className={box} />
                 ) : cell.edit?.kind === 'customer' ? (
-                  <CustomerField projectId={projectId} value={cell.edit.value} options={cell.edit.options} text={cell.text} empty={empty} className={box} />
+                  <CustomerField
+                    projectId={projectId}
+                    value={cell.edit.value}
+                    options={cell.edit.options}
+                    canCreate={cell.edit.canCreate}
+                    text={cell.text}
+                    empty={empty}
+                    className={box}
+                  />
                 ) : cell.edit && SAVE_KEY[cell.key] ? (
                   <InlineField
                     projectId={projectId}
@@ -315,6 +323,7 @@ function CustomerField({
   projectId,
   value,
   options,
+  canCreate,
   text,
   empty,
   className,
@@ -322,6 +331,8 @@ function CustomerField({
   projectId: string
   value: string
   options: { value: string; label: string }[]
+  /** A customer made new from here is the office's; a site manager picks from the list. */
+  canCreate: boolean
   text: string | null
   empty: string
   className: string
@@ -419,17 +430,19 @@ function CustomerField({
         {ordered.length > shown.length && (
           <p className="px-1 pt-1 text-[11px] text-muted">{t('customerMore', { count: ordered.length - shown.length })}</p>
         )}
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false)
-            setMaking(newName)
-          }}
-          className={`${btn.outlineSm} mt-2 w-full`}
-        >
-          <Plus className="h-4 w-4 shrink-0" aria-hidden />
-          <span className="truncate">{newName ? t('createCustomerOption', { name: newName }) : tCustomers('newCustomer')}</span>
-        </button>
+        {canCreate && (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              setMaking(newName)
+            }}
+            className={`${btn.outlineSm} mt-2 w-full`}
+          >
+            <Plus className="h-4 w-4 shrink-0" aria-hidden />
+            <span className="truncate">{newName ? t('createCustomerOption', { name: newName }) : tCustomers('newCustomer')}</span>
+          </button>
+        )}
       </Popover>
       {making !== null && (
         <NewCustomerModal

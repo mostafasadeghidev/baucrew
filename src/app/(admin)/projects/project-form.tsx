@@ -381,6 +381,7 @@ export function ProjectForm({
   buildingTypes,
   leadSources,
   showPrice,
+  office = true,
   templateId,
   draftId,
   extraSection,
@@ -410,6 +411,11 @@ export function ProjectForm({
   buildingTypes: Option[]
   leadSources: Option[]
   showPrice: boolean
+  /**
+   * The office's own: the internal notes and a customer made new from the
+   * customer field. A site manager has neither.
+   */
+  office?: boolean
   /** When creating from a template, its items are copied on save. */
   templateId?: string
   /** Taking over an inbox draft: marks it done on save. */
@@ -720,19 +726,21 @@ export function ProjectForm({
                 noResultsLabel={tCustomers('noResults')}
                 required
                 onSelect={selectCustomer}
-                onCreateNew={(q) => setCustomerModal({ open: true, prefill: q })}
-                createLabel={(q) => t('createCustomerOption', { name: q })}
+                onCreateNew={office ? (q) => setCustomerModal({ open: true, prefill: q }) : undefined}
+                createLabel={office ? (q) => t('createCustomerOption', { name: q }) : undefined}
               />
             </div>
-            <button
-              type="button"
-              onClick={() => setCustomerModal({ open: true, prefill: '' })}
-              title={tCustomers('newCustomer')}
-              aria-label={tCustomers('newCustomer')}
-              className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-lg text-muted hover:bg-surface-hover hover:text-foreground"
-            >
-              +
-            </button>
+            {office && (
+              <button
+                type="button"
+                onClick={() => setCustomerModal({ open: true, prefill: '' })}
+                title={tCustomers('newCustomer')}
+                aria-label={tCustomers('newCustomer')}
+                className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-lg text-muted hover:bg-surface-hover hover:text-foreground"
+              >
+                +
+              </button>
+            )}
           </div>
         </div>
         <SelectField
@@ -990,18 +998,20 @@ export function ProjectForm({
             className={inputClass}
           />
         </div>
-        <div className="col-span-full">
-          <label htmlFor="internalNotes" className="block text-sm font-medium">
-            {t('internalNotes')}
-          </label>
-          <textarea
-            id="internalNotes"
-            name="internalNotes"
-            rows={3}
-            defaultValue={initial.internalNotes}
-            className={inputClass}
-          />
-        </div>
+        {office && (
+          <div className="col-span-full">
+            <label htmlFor="internalNotes" className="block text-sm font-medium">
+              {t('internalNotes')}
+            </label>
+            <textarea
+              id="internalNotes"
+              name="internalNotes"
+              rows={3}
+              defaultValue={initial.internalNotes}
+              className={inputClass}
+            />
+          </div>
+        )}
       </Section>
       </div>
       {fold && afterDescription && <div className="order-1 col-span-full">{afterDescription}</div>}

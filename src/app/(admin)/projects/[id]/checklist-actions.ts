@@ -15,6 +15,7 @@ export async function addProjectChecklist(
   input: { templateId?: string; name?: string }
 ): Promise<ChecklistResult> {
   const user = await requireStaff()
+  if (!(await mayEditChecklist(user, projectId))) return { error: 'notAllowed' }
   const name = (input.name ?? '').trim().slice(0, 200)
 
   let items: Array<{ text: string; sortOrder: number }> = []
@@ -57,6 +58,7 @@ export async function removeProjectChecklist(checklistId: string): Promise<Check
     select: { projectId: true, name: true },
   })
   if (!checklist) return { error: 'saveFailed' }
+  if (!(await mayEditChecklist(user, checklist.projectId))) return { error: 'notAllowed' }
   await db.projectChecklist.delete({ where: { id: checklistId } })
   await audit({
     userId: user.id,
@@ -104,6 +106,7 @@ export async function removeChecklistItem(itemId: string): Promise<ChecklistResu
     select: { text: true, checklist: { select: { projectId: true } } },
   })
   if (!item) return { error: 'saveFailed' }
+  if (!(await mayEditChecklist(user, item.checklist.projectId))) return { error: 'notAllowed' }
   await db.projectChecklistItem.delete({ where: { id: itemId } })
   await audit({
     userId: user.id,

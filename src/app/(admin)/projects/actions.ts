@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requireAdmin, requireManagement, requireStaff, canViewFinancials, isOffice } from '@/lib/authz'
 import { canSeeProject } from '@/lib/project-scope'
+import { canWorkOn } from '@/lib/crew-access'
 import { audit } from '@/lib/audit'
 import { planChecklistChanges } from '@/lib/project-checklists'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
@@ -467,7 +468,13 @@ export async function updateProject(
             },
           }
         : {}),
-      ...(saving.has('description') ? { description: d.description, internalNotes: d.internalNotes } : {}),
+      ...(saving.has('description')
+        ? {
+            description: d.description,
+            // The office's own notes: a site manager's form does not carry them, and cannot empty them.
+            ...(isOffice(user) ? { internalNotes: d.internalNotes } : {}),
+          }
+        : {}),
     },
   })
 
@@ -858,7 +865,7 @@ export async function removeColumn(columnId: string): Promise<{ error?: string }
  * the company records.
  */
 export async function setBoardOrder(boardId: string, columnIds: string[]): Promise<{ error?: string }> {
-  const user = await requireStaff()
+  const user = await requireManagement()
   if (!(await saveColumnOrder(boardId, columnIds))) return { error: 'notFound' }
   await audit({ userId: user.id, action: 'board.columns', entity: 'Board', entityId: boardId, newValue: columnIds.join(',') })
   revalidatePath('/projects')
@@ -884,7 +891,7 @@ export async function addProjectItem(
   quantity: number | null
 ): Promise<{ error?: 'itemAlreadyAdded' | 'saveFailed' }> {
   const user = await requireStaff()
-  if (!catalogItemId) return { error: 'saveFailed' }
+  if (!catalogItemId || !(await canWorkOn(user, projectId))) return { error: 'saveFailed' }
   const qty =
     quantity != null && Number.isFinite(quantity) && quantity >= 0 && quantity <= 999_999_999
       ? quantity
@@ -917,7 +924,7 @@ export async function removeProjectItem(projectId: string, projectItemId: string
     where: { id: projectItemId },
     include: { catalogItem: { select: { name: true } } },
   })
-  if (!item || item.projectId !== projectId) return
+  if (!item || item.projectId !== projectId || !(await canWorkOn(user, projectId))) return
   await db.projectItem.delete({ where: { id: projectItemId } })
   await audit({
     userId: user.id,
@@ -940,7 +947,7 @@ export async function setProjectItemStatus(
     where: { id: projectItemId },
     include: { catalogItem: { select: { name: true } } },
   })
-  if (!item || item.projectId !== projectId) return
+  if (!item || item.projectId !== projectId || !(await canWorkOn(user, projectId))) return
   await db.projectItem.update({
     where: { id: projectItemId },
     data: { status: status as ItemStatus },

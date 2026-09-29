@@ -6,6 +6,13 @@
 
 export const COMMENT_MAX = 4000
 
+/**
+ * The mark an office-only comment leaves on its history rows (written,
+ * changed, taken back): the site manager's view of the card's history leaves
+ * those rows out, as it leaves out the comment.
+ */
+export const OFFICE_COMMENT = 'office'
+
 /** What writing or taking back a comment can come to. */
 export type CommentResult = { error?: 'empty' | 'notAllowed' | 'saveFailed' }
 
