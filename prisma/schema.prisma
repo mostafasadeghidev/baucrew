@@ -248,6 +248,8 @@ model WorkCategory {
   color     String?
   active    Boolean @default(true)
   sortOrder Int     @default(0)
+  /// Work done outside (facade, scaffolding …): its jobs are warned of rain on the schedule and the overview.
+  outdoor   Boolean @default(false)
 
   projects  ProjectWorkCategory[]
   templates ProjectTemplate[]

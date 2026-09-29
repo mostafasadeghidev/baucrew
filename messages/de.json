@@ -813,6 +813,8 @@
     "categoriesTitle": "Arbeitskategorien",
     "categoryColor": "Farbe des Etiketts",
     "categoryColorAuto": "automatisch",
+    "categoryOutdoor": "Außenarbeit",
+    "categoryOutdoorHint": "Aufträge mit diesem Gewerk bekommen in Einsatzplanung und Übersicht eine Regenwarnung.",
     "categoryColorHint": "Jedes Gewerk trägt auf dem Projekt-Board ein Etikett in seiner Farbe. Ein Klick auf einen der zehn Punkte legt sie fest; bei einem neuen Gewerk nimmt „A“ die Farbe, die noch am wenigsten vergeben ist.",
     "nameDe": "Bezeichnung (DE)",
     "nameEn": "Bezeichnung (EN)",

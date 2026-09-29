@@ -3,7 +3,7 @@ import { showsWeekend, weekendParam, weekendSuffix } from '@/lib/schedule-weeken
 import { db } from '@/lib/db'
 import { requireStaff } from '@/lib/authz'
 import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflicts'
-import { getRainWarnings, OUTDOOR_CATEGORIES, weatherPlace } from '@/lib/weather'
+import { getRainWarnings, isOutdoorJob, weatherPlace } from '@/lib/weather'
 import { addDays, addMonths, iso, isoWeek, mondayOf, monthStart, utcDate } from '@/lib/dates'
 import { MonthBoard } from './month-board'
 import { ScheduleBoard, type BoardEntry } from './schedule-board'
@@ -48,7 +48,7 @@ const ENTRY_INCLUDE = {
       latitude: true,
       longitude: true,
       customer: { select: { name: true } },
-      workCategories: { select: { workCategory: { select: { nameDe: true } } } },
+      workCategories: { select: { workCategory: { select: { nameDe: true, outdoor: true } } } },
     },
   },
   vehicles: { include: { vehicle: { select: { id: true, name: true, status: true } } } },
@@ -255,7 +255,7 @@ export default async function SchedulePage({
     .filter(
       (entry) =>
         entry.project.city &&
-        entry.project.workCategories.some((wc) => OUTDOOR_CATEGORIES.includes(wc.workCategory.nameDe))
+        isOutdoorJob(entry.project)
     )
     .map((entry) => ({
       city: entry.project.city!,

@@ -19,7 +19,8 @@ async function main() {
   // Data shared with scripts/bootstrap.mjs (Docker first start)
   const data = JSON.parse(readFileSync(new URL('./seed-data.json', import.meta.url), 'utf8')) as {
     users: Array<{ username: string; password: string; role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE'; canViewFinancials?: boolean }>
-    workCategories: Array<[string, string]>
+    /** German name, English name, and `true` for a trade done outside (rain warnings). */
+    workCategories: Array<[string, string] | [string, string, boolean]>
     catalogItems: Array<{ kind: 'TOOL' | 'MATERIAL'; name: string; unit?: string; category?: string }>
   }
 
@@ -38,9 +39,10 @@ async function main() {
   }
 
   // ── Work categories ──────────────────────────────────────
-  for (const [i, [nameDe, nameEn]] of data.workCategories.entries()) {
+  // A third element `true` marks a trade done outside: its jobs get the rain warnings.
+  for (const [i, [nameDe, nameEn, outdoor]] of data.workCategories.entries()) {
     const existing = await db.workCategory.findFirst({ where: { nameDe } })
-    if (!existing) await db.workCategory.create({ data: { nameDe, nameEn, sortOrder: i } })
+    if (!existing) await db.workCategory.create({ data: { nameDe, nameEn, sortOrder: i, outdoor: outdoor === true } })
   }
 
   // ── Catalog basics ───────────────────────────────────────

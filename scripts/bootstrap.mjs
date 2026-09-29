@@ -28,10 +28,17 @@ try {
         [cid(), u.username, await bcrypt.hash(u.password, 12), u.role, !!u.canViewFinancials]
       )
     }
-    for (const [i, [nameDe, nameEn]] of data.workCategories.entries()) {
+    // A third element `true` marks a trade done outside: its jobs get the rain warnings.
+    for (const [i, [nameDe, nameEn, outdoor]] of data.workCategories.entries()) {
       const exists = await client.query('SELECT 1 FROM "WorkCategory" WHERE "nameDe" = $1', [nameDe])
       if (!exists.rowCount)
-        await client.query('INSERT INTO "WorkCategory" (id, "nameDe", "nameEn", active, "sortOrder") VALUES ($1,$2,$3,true,$4)', [cid(), nameDe, nameEn, i])
+        await client.query('INSERT INTO "WorkCategory" (id, "nameDe", "nameEn", active, "sortOrder", outdoor) VALUES ($1,$2,$3,true,$4,$5)', [
+          cid(),
+          nameDe,
+          nameEn,
+          i,
+          outdoor === true,
+        ])
     }
     for (const it of data.catalogItems) {
       const exists = await client.query('SELECT 1 FROM "CatalogItem" WHERE name = $1', [it.name])
