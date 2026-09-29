@@ -1650,6 +1650,9 @@
     "doneChecklists": "{count, plural, one {# checklist} other {# checklists}} taken over",
     "doneComments": "{count, plural, one {# comment} other {# comments}} taken over",
     "doneTemplates": "{count, plural, one {# checklist template} other {# checklist templates}} made",
+    "includeFields": "Take over the cards' fields ({count} cards)",
+    "includeFieldsHint": "Customer name, site address, order value, type of work, execution wish, site visit, customer number. Projects that exist only get what is still empty.",
+    "doneFields": "{count, plural, one {# card} other {# cards}} taken over with their fields",
     "doneFlagged": "⚠ {count, plural, one {# card gives} other {# cards give}} no clear customer in the title (e.g. \"Kläranlage …\"). The whole title was used as the customer — please check."
   },
   "geo": {

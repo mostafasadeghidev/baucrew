@@ -5,6 +5,8 @@ import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { COMMENT_MAX } from '@/lib/comments'
+import { geocodeCity } from '@/lib/geocode'
+import { hasFields, matchTrades, type TrelloCardFields } from '@/lib/trello-fields'
 import {
   cardCreatedAt,
   checklistTemplatesOf,
@@ -33,6 +35,8 @@ export type PreviewState =
       checklists: number
       comments: number
       templates: number
+      /** Cards whose power-up fields filled something in. */
+      fields: number
     }
 
 const STATUS_VALUES = Object.keys(ProjectStatus) as ProjectStatus[]
@@ -129,6 +133,54 @@ async function takeOverCardExtras(
   }
 }
 
+/** Trades as the fields' type of work is matched against them: by the German and the English name. */
+type TradeNames = Array<{ id: string; names: string[] }>
+
+/**
+ * What a card's power-up fields put into its project. A new project takes all
+ * of it; a project that is there already only where it is still empty — what
+ * the office has typed in since stays. The trades are added, never taken
+ * away. A town is looked up for the map once per import.
+ */
+async function fieldData(
+  fields: TrelloCardFields,
+  trades: TradeNames,
+  existing: {
+    street: string | null
+    postalCode: string | null
+    city: string | null
+    price: unknown
+    executionWish: string | null
+    inspectionDate: Date | null
+    trades: string[]
+  } | null,
+  places: Map<string, { latitude: number; longitude: number } | null>
+): Promise<{ data: Record<string, unknown>; tradeIds: string[]; unknownTrades: string[] }> {
+  const data: Record<string, unknown> = {}
+  const empty = (v: unknown) => existing === null || v === null || v === undefined || v === ''
+  const address = fields.siteAddress
+  if (address && empty(existing?.street) && empty(existing?.city) && empty(existing?.postalCode)) {
+    if (address.street) data.street = address.street.slice(0, 300)
+    if (address.postalCode) data.postalCode = address.postalCode
+    if (address.city) {
+      data.city = address.city.slice(0, 300)
+      const key = address.city.toLowerCase()
+      if (!places.has(key)) places.set(key, await geocodeCity(address.city).catch(() => null))
+      const place = places.get(key)
+      if (place) {
+        data.latitude = place.latitude
+        data.longitude = place.longitude
+      }
+    }
+  }
+  if (fields.orderValue !== undefined && empty(existing?.price)) data.price = fields.orderValue
+  if (fields.executionWish && empty(existing?.executionWish)) data.executionWish = fields.executionWish
+  if (fields.inspectionDate && empty(existing?.inspectionDate)) data.inspectionDate = new Date(`${fields.inspectionDate}T00:00:00Z`)
+  const matched = fields.workTypes ? matchTrades(fields.workTypes, trades) : { ids: [], unknown: [] }
+  const tradeIds = matched.ids.filter((id) => !existing?.trades.includes(id))
+  return { data, tradeIds, unknownTrades: matched.unknown }
+}
+
 export async function importTrello(prev: PreviewState, formData: FormData): Promise<PreviewState> {
   const admin = await requireAdmin()
   if (prev.step !== 'preview') return { step: 'upload', error: 'invalidFile' }
@@ -145,7 +197,14 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
     checklists: formData.get('includeChecklists') === 'on',
     comments: formData.get('includeComments') === 'on',
     templates: formData.get('checklistsAsTemplates') === 'on',
+    fields: formData.get('includeFields') === 'on',
   }
+  const trades: TradeNames = want.fields
+    ? (await db.workCategory.findMany({ select: { id: true, nameDe: true, nameEn: true } })).map((t) => ({ id: t.id, names: [t.nameDe, t.nameEn] }))
+    : []
+  /** Towns looked up for the map in this import, so each is asked for once. */
+  const places = new Map<string, { latitude: number; longitude: number } | null>()
+  let fieldsTaken = 0
 
   let created = 0
   let updated = 0
@@ -177,8 +236,11 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
       continue
     }
     taken.push(card)
-    const { customer: customerName, project: projectName, number, confident } = splitCardTitle(card.name)
-    if (!confident) flagged++
+    const { customer: titleCustomer, project: projectName, number, confident } = splitCardTitle(card.name)
+    // The power-up's customer name is the office's own word for it; the title is only a guess.
+    const fields: TrelloCardFields = want.fields ? card.fields : {}
+    const customerName = fields.customerName ?? titleCustomer
+    if (!confident && !fields.customerName) flagged++
 
     // The job number in the title is what the office's other systems use, so it
     // is the identity across imports. A card without one falls back to the
@@ -190,14 +252,33 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
 
     const listName = board.lists.find((l) => l.id === card.idList)?.name ?? ''
     const attachmentLines = card.attachments.slice(0, 20).map((a) => `- ${a.name || 'Anhang'}: ${a.url}`)
+    // A type of work the app has no trade for is kept in words.
+    const unknownTrades = fields.workTypes ? matchTrades(fields.workTypes, trades).unknown : []
     const description = [
       card.desc,
       card.labels.length ? `Labels: ${card.labels.join(', ')}` : '',
+      unknownTrades.length ? `Art der Arbeit: ${unknownTrades.join(', ')}` : '',
       attachmentLines.length ? `Anhänge in Trello:\n${attachmentLines.join('\n')}` : '',
       `Trello: ${board.name} / ${listName}`,
     ]
       .filter(Boolean)
       .join('\n\n')
+    /** What the fields put into a project that is there already, only where it is empty. */
+    const fillExisting = async (projectId: string) => {
+      if (!hasFields(fields)) return
+      const row = await db.project.findUnique({
+        where: { id: projectId },
+        select: { street: true, postalCode: true, city: true, price: true, executionWish: true, inspectionDate: true, workCategories: { select: { workCategoryId: true } } },
+      })
+      if (!row) return
+      const fill = await fieldData(fields, trades, { ...row, trades: row.workCategories.map((w) => w.workCategoryId) }, places)
+      if (Object.keys(fill.data).length === 0 && fill.tradeIds.length === 0) return
+      await db.project.update({
+        where: { id: projectId },
+        data: { ...fill.data, ...(fill.tradeIds.length ? { workCategories: { create: fill.tradeIds.map((workCategoryId) => ({ workCategoryId })) } } : {}) },
+      })
+      fieldsTaken++
+    }
 
     // A second import must move the project on, not double it.
     const existing = await db.project.findFirst({
@@ -219,6 +300,7 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
       })
       await linkCard(existing.id, card.id, card.shortUrl)
       await takeOverCardExtras(existing.id, card, want, extras)
+      await fillExisting(existing.id)
       updated++
       continue
     }
@@ -242,6 +324,7 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
       })
       await linkCard(byName.id, card.id, card.shortUrl)
       await takeOverCardExtras(byName.id, card, want, extras)
+      await fillExisting(byName.id)
       skipped++
       continue
     }
@@ -254,12 +337,18 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
       })
       if (found) customerId = found.id
       else {
-        const createdCustomer = await db.customer.create({ data: { name: customerName } })
+        const createdCustomer = await db.customer.create({ data: { name: customerName.slice(0, 200), number: fields.customerNumber ?? null } })
         customerId = createdCustomer.id
         customersCreated++
       }
       customerCache.set(customerName.toLowerCase(), customerId)
     }
+    // A customer without a number takes the one the card names.
+    if (fields.customerNumber) {
+      await db.customer.updateMany({ where: { id: customerId, number: null }, data: { number: fields.customerNumber } })
+    }
+    const fill = hasFields(fields) ? await fieldData(fields, trades, null, places) : { data: {}, tradeIds: [] as string[] }
+    if (Object.keys(fill.data).length > 0 || fill.tradeIds.length > 0) fieldsTaken++
 
     const createdProject = await db.project.create({
       data: {
@@ -274,6 +363,8 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
         externalUrl: card.shortUrl || undefined,
         sourceCreatedAt,
         doneAt: card.dueComplete ? new Date() : undefined,
+        ...fill.data,
+        ...(fill.tradeIds.length ? { workCategories: { create: fill.tradeIds.map((workCategoryId) => ({ workCategoryId })) } } : {}),
       },
       select: { id: true },
     })
@@ -308,9 +399,9 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
     action: 'import.trello',
     entity: 'System',
     entityId: 'trello',
-    newValue: `${board.name}: ${created} neu, ${updated} aktualisiert, ${customersCreated} Kunden, ${extras.checklists} Checklisten, ${extras.comments} Kommentare, ${templates} Vorlagen`,
+    newValue: `${board.name}: ${created} neu, ${updated} aktualisiert, ${customersCreated} Kunden, ${fieldsTaken} mit Feldern, ${extras.checklists} Checklisten, ${extras.comments} Kommentare, ${templates} Vorlagen`,
   })
   revalidatePath('/projects')
   revalidatePath('/customers')
-  return { step: 'done', created, updated, skipped, customersCreated, ignored, flagged, checklists: extras.checklists, comments: extras.comments, templates }
+  return { step: 'done', created, updated, skipped, customersCreated, ignored, flagged, checklists: extras.checklists, comments: extras.comments, templates, fields: fieldsTaken }
 }

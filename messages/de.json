@@ -1650,6 +1650,9 @@
     "doneChecklists": "{count, plural, one {# Checkliste} other {# Checklisten}} übernommen",
     "doneComments": "{count, plural, one {# Kommentar} other {# Kommentare}} übernommen",
     "doneTemplates": "{count, plural, one {# Checklisten-Vorlage} other {# Checklisten-Vorlagen}} angelegt",
+    "includeFields": "Felder der Karten übernehmen ({count} Karten)",
+    "includeFieldsHint": "Kundenname, Baustellenadresse, Auftragswert, Art der Arbeit, Ausführungswunsch, Termin Besichtigung, Kundennummer. Bei vorhandenen Projekten wird nur Leeres gefüllt.",
+    "doneFields": "{count, plural, one {# Karte} other {# Karten}} mit ihren Feldern übernommen",
     "doneFlagged": "⚠ Bei {count, plural, one {# Karte} other {# Karten}} steht im Titel kein eindeutiger Kunde (z. B. „Kläranlage …“). Dort wurde der ganze Titel als Kunde eingetragen — bitte nachsehen."
   },
   "geo": {

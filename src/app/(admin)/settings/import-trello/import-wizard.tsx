@@ -44,6 +44,7 @@ export function ImportWizard() {
             {effective.updated > 0 && <li>{t('doneUpdated', { count: effective.updated })}</li>}
             <li>{t('doneCustomers', { count: effective.customersCreated })}</li>
             {effective.skipped > 0 && <li>{t('doneSkipped', { count: effective.skipped })}</li>}
+            {effective.fields > 0 && <li>{t('doneFields', { count: effective.fields })}</li>}
             {effective.checklists > 0 && <li>{t('doneChecklists', { count: effective.checklists })}</li>}
             {effective.comments > 0 && <li>{t('doneComments', { count: effective.comments })}</li>}
             {effective.templates > 0 && <li>{t('doneTemplates', { count: effective.templates })}</li>}
@@ -74,6 +75,7 @@ export function ImportWizard() {
     const archived = board.cards.filter((c) => c.closed).length
     const checklists = board.cards.reduce((n, c) => n + c.checklists.length, 0)
     const comments = board.cards.reduce((n, c) => n + c.comments.length, 0)
+    const withFields = board.cards.filter((c) => Object.keys(c.fields).length > 0).length
 
     return (
       <form action={importAction} className="max-w-3xl space-y-4">
@@ -127,6 +129,15 @@ export function ImportWizard() {
           {t('includeArchived', { count: archived })}
         </label>
         {/* What hangs on the cards comes along by default; a second import does not double it. */}
+        {withFields > 0 && (
+          <label className="flex cursor-pointer items-start gap-2 text-sm">
+            <input type="checkbox" name="includeFields" defaultChecked className="mt-0.5 h-4 w-4 accent-[var(--accent)]" />
+            <span>
+              {t('includeFields', { count: withFields })}
+              <span className="block text-xs text-muted">{t('includeFieldsHint')}</span>
+            </span>
+          </label>
+        )}
         <label className="flex cursor-pointer items-center gap-2 text-sm">
           <input type="checkbox" name="includeChecklists" defaultChecked className="h-4 w-4 accent-[var(--accent)]" />
           {t('includeChecklists', { count: checklists })}
