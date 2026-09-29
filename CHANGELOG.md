@@ -3,6 +3,53 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.45.0] — 2026-09-29
+
+### Added
+- **Boards made and changed in the board's own bar**, the way Trello does
+  it (administrator). The **+** after the tabs opens *Board erstellen*: the
+  ground with a small preview, the title, and the lists the board starts
+  with — the statuses ticked one by one, the client's Trello board, or the
+  lists of a board that is there already, their own names and rule lists
+  included; the new board opens at once. The arrow on the open tab opens
+  *Board bearbeiten*: the title, the ground, a photo, left and right among
+  the tabs, and delete — asked first; the projects stay, the last board
+  stays. The settings page remains for the lists' own names.
+- **The customer picked in a small window** on the card's back, like the
+  other fields: a list searched as it is typed into, a click or Enter takes
+  the customer, a new one is made there and taken at once.
+- **Four more kinds of form field:** a *number*, a *multiple choice*, a
+  *table* (its columns from the template, its rows while the form is filled
+  in) and *photos* — taken on the phone or chosen from it, each filed on the
+  project as it is chosen and drawn into the PDF, two to a row. A required
+  list counts as missing while it is empty; a signature signs the lists as
+  they stand.
+- **The Trello import brings the cards' checklists and comments** — the
+  ticks kept, the author and the day from Trello under a comment's text; a
+  second import does not double them — and can make **checklist templates**
+  of a board's checklists, one per name, with every item that name had.
+- **Who is away stands on the day:** the week board says it under the day's
+  head, the month board in the day's cell; the worker's page lists their own
+  absences, and the week strip marks such a day with an amber bar.
+- The ids a project carries in other systems (Trello, the tools system …)
+  stand in its basic data, each with its link.
+
+### Changed
+- The card's back lays out its project data in its own column: the four
+  cards pair by the column's width, the trades and the crew tick in as many
+  columns as fit, a long label is hyphenated, and on a phone the lower half
+  no longer runs off the edge.
+- In the Planumsatz an empty month is drawn too — dashed, lighter — so a job
+  can be dragged into a month that has nothing yet. The year matrix keeps to
+  the months with entries.
+- Switching from the list to the board keeps the *done* and *activity*
+  filters as it keeps the others.
+- The phone on an employee's contact card and the one under a card's title
+  are callable like every other number in the office.
+
+### Upgrade
+- No migration. `docker compose up -d --build` is all.
+
 ## [1.44.0] — 2026-09-28
 
 ### Added
