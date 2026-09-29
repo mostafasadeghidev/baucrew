@@ -4,7 +4,7 @@ import { CloudRain, MapPin } from 'lucide-react'
 import { db } from '@/lib/db'
 import { requireStaff } from '@/lib/authz'
 import { addDays, iso, mondayOf, todayUtc, utcDate } from '@/lib/dates'
-import { getRainWarnings } from '@/lib/weather'
+import { getRainWarnings, weatherPlace } from '@/lib/weather'
 import { geocodeCity } from '@/lib/geocode'
 import { btn } from '@/components/ui/button'
 import { PagePanel } from '@/components/ui/page-panel'
@@ -109,7 +109,7 @@ export default async function ScheduleMapPage({
         longitude: e.project.longitude,
       }))
   )
-  const rainAt = new Map(rain.map((r) => [`${r.city}|${r.date}`, r.probability]))
+  const rainAt = new Map(rain.map((r) => [`${r.place}|${r.date}`, r.probability]))
 
   const addressOf = (p: (typeof entries)[number]['project']) =>
     [p.street, [p.postalCode, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
@@ -187,7 +187,9 @@ export default async function ScheduleMapPage({
           address: addressOf(entry.project) || entry.project.customer.name,
           located: { lat: hit.lat, lng: hit.lng },
           approx: hit.approx,
-          rain: entry.project.city ? rainAt.get(`${entry.project.city}|${dateIso}`) : undefined,
+          rain: entry.project.city
+            ? rainAt.get(`${weatherPlace({ city: entry.project.city, latitude: entry.project.latitude, longitude: entry.project.longitude })}|${dateIso}`)
+            : undefined,
         })
       }
       return {

@@ -24,8 +24,12 @@ import { Popover, PopoverHead } from '@/components/ui/popover'
 import { btn } from '@/components/ui/button'
 import { PROJECT_EDIT_CARD_EVENT, type ProjectSectionKey } from '../project-form'
 import { NewCustomerModal } from '../new-customer-modal'
+import { CityPicker } from '@/components/city-picker'
 import { setCardField } from '../actions'
 import { CardPanelButton, type CardEditData } from './card-popovers'
+
+/** The site's address as the card's window changes it; the place found for the town rides along, for the map and the weather. */
+export type CardAddress = { street: string; postalCode: string; city: string; latitude: number | null; longitude: number | null }
 
 export type CardFieldCell = {
   key: CardFieldKey
@@ -38,9 +42,9 @@ export type CardFieldCell = {
   /** Typed into in place: the value as the field takes it. */
   edit?:
     | { kind: 'text' | 'date' | 'number'; value: string }
-    | { kind: 'address'; value: { street: string; postalCode: string; city: string } }
+    | { kind: 'address'; value: CardAddress }
     | { kind: 'labels' }
-    | { kind: 'customer'; value: string; options: { value: string; label: string }[] }
+    | { kind: 'customer'; value: string; options: { value: string; label: string }[]; canCreate: boolean }
     | null
 }
 
@@ -83,7 +87,15 @@ export function CardFieldsGrid({ projectId, cells, card }: { projectId: string; 
                 ) : cell.edit?.kind === 'address' ? (
                   <AddressField projectId={projectId} value={cell.edit.value} text={cell.text} empty={empty} className={box} />
                 ) : cell.edit?.kind === 'customer' ? (
-                  <CustomerField projectId={projectId} value={cell.edit.value} options={cell.edit.options} text={cell.text} empty={empty} className={box} />
+                  <CustomerField
+                    projectId={projectId}
+                    value={cell.edit.value}
+                    options={cell.edit.options}
+                    canCreate={cell.edit.canCreate}
+                    text={cell.text}
+                    empty={empty}
+                    className={box}
+                  />
                 ) : cell.edit && SAVE_KEY[cell.key] ? (
                   <InlineField
                     projectId={projectId}
@@ -203,7 +215,12 @@ function InlineField({
   )
 }
 
-/** The site's address: street, postal code and town in a small window. */
+/**
+ * The site's address: street, postal code and town in a small window. The
+ * town is the form's town picker — a list of places while it is typed, and a
+ * line saying whether the place was found, since only a found place has a
+ * weather forecast and a pin on the map.
+ */
 function AddressField({
   projectId,
   value,
@@ -212,7 +229,7 @@ function AddressField({
   className,
 }: {
   projectId: string
-  value: { street: string; postalCode: string; city: string }
+  value: CardAddress
   text: string | null
   empty: string
   className: string
@@ -225,10 +242,8 @@ function AddressField({
   const [draft, setDraft] = useState(value)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState(false)
-  const close = useCallback(() => setOpen(false), [])
 
-  const save = (e: React.FormEvent) => {
-    e.preventDefault()
+  const store = () => {
     setError(false)
     startTransition(async () => {
       const result = await setCardField(projectId, { key: 'address', value: draft })
@@ -239,6 +254,18 @@ function AddressField({
       setOpen(false)
       router.refresh()
     })
+  }
+  const save = (e: React.FormEvent) => {
+    e.preventDefault()
+    store()
+  }
+  const changed =
+    draft.street !== value.street || draft.postalCode !== value.postalCode || draft.city !== value.city || draft.latitude !== value.latitude
+  // Left by a click beside it, the window keeps what was typed, as a box on
+  // the card does when it is left; Escape and the cross let it go.
+  const close = (how?: unknown) => {
+    if (how === 'outside' && changed && !pending) store()
+    else setOpen(false)
   }
   const field = 'mt-1 block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
@@ -265,15 +292,19 @@ function AddressField({
             {t('street')}
             <input autoFocus value={draft.street} maxLength={300} onChange={(e) => setDraft({ ...draft, street: e.target.value })} className={field} />
           </label>
-          <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-2">
+          <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-start gap-2">
             <label className="block text-[11px] font-semibold text-muted">
               {t('postalCode')}
               <input value={draft.postalCode} maxLength={20} onChange={(e) => setDraft({ ...draft, postalCode: e.target.value })} className={field} />
             </label>
-            <label className="block text-[11px] font-semibold text-muted">
-              {t('city')}
-              <input value={draft.city} maxLength={300} onChange={(e) => setDraft({ ...draft, city: e.target.value })} className={field} />
-            </label>
+            <CityPicker
+              label={t('city')}
+              value={draft}
+              onChange={(place) => setDraft((d) => ({ ...d, ...place }))}
+              onPostcode={(code, replaces) => setDraft((d) => (!d.postalCode || d.postalCode === replaces ? { ...d, postalCode: code } : d))}
+              labelClassName="block text-[11px] font-semibold text-muted"
+              inputClassName={field}
+            />
           </div>
           <button type="submit" disabled={pending} className={btn.primarySm}>
             {tc('save')}
@@ -302,6 +333,7 @@ function CustomerField({
   projectId,
   value,
   options,
+  canCreate,
   text,
   empty,
   className,
@@ -309,6 +341,8 @@ function CustomerField({
   projectId: string
   value: string
   options: { value: string; label: string }[]
+  /** A customer made new from here is the office's; a site manager picks from the list. */
+  canCreate: boolean
   text: string | null
   empty: string
   className: string
@@ -406,17 +440,19 @@ function CustomerField({
         {ordered.length > shown.length && (
           <p className="px-1 pt-1 text-[11px] text-muted">{t('customerMore', { count: ordered.length - shown.length })}</p>
         )}
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false)
-            setMaking(newName)
-          }}
-          className={`${btn.outlineSm} mt-2 w-full`}
-        >
-          <Plus className="h-4 w-4 shrink-0" aria-hidden />
-          <span className="truncate">{newName ? t('createCustomerOption', { name: newName }) : tCustomers('newCustomer')}</span>
-        </button>
+        {canCreate && (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              setMaking(newName)
+            }}
+            className={`${btn.outlineSm} mt-2 w-full`}
+          >
+            <Plus className="h-4 w-4 shrink-0" aria-hidden />
+            <span className="truncate">{newName ? t('createCustomerOption', { name: newName }) : tCustomers('newCustomer')}</span>
+          </button>
+        )}
       </Popover>
       {making !== null && (
         <NewCustomerModal

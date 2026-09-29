@@ -9,13 +9,14 @@
  *
  * It is closed on purpose only: Escape, or the cross at the right end of the
  * project's own bar. A click beside the sheet does nothing — the sheet holds
- * forms, and a slip of the mouse must not throw away what was typed.
+ * forms, and a slip of the mouse must not throw away what was typed. Escape
+ * closes whatever stands over the card first — a list, a menu, a small window.
  *
  * A card template opens in the same window (`?template=<id>`), narrower, the
  * way Trello opens a template card.
  */
 
-import { useEffect, useSyncExternalStore, useTransition, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -58,8 +59,25 @@ export function SheetClose({ round = false }: { round?: boolean }) {
   )
 }
 
+/**
+ * Whether something stands over the sheet that Escape closes first: a list of
+ * options, a menu, a confirmation, another window (a small window on the card,
+ * the new-customer window, a file's preview). Escape then closes that, and the
+ * card with what was typed on it stays.
+ */
+function layerAbove(sheet: HTMLElement | null) {
+  if (document.querySelector('[role="listbox"], [role="menu"], [role="alertdialog"]')) return true
+  return [...document.querySelectorAll('[role="dialog"]')].some((d) => d !== sheet)
+}
+
 export function CardSheet({ children, narrow = false }: { children: ReactNode; narrow?: boolean }) {
   const close = useCloseSheet()
+  const sheet = useRef<HTMLDivElement>(null)
+  // The address as it stands when the key is pressed, not as it stood when the sheet opened.
+  const closeNow = useRef(close)
+  useEffect(() => {
+    closeNow.current = close
+  })
 
   // Client-only render (portal target); no setState-in-effect.
   const mounted = useSyncExternalStore(
@@ -67,19 +85,21 @@ export function CardSheet({ children, narrow = false }: { children: ReactNode; n
     () => true,
     () => false
   )
+  // On a phone the whole sheet scrolls, the cross at its top with it: once
+  // that is out of sight a cross of its own stays at the top of the screen.
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     const unlock = lockPageScroll()
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
+      if (e.key !== 'Escape' || e.defaultPrevented || layerAbove(sheet.current)) return
+      closeNow.current()
     }
     window.addEventListener('keydown', onKey)
     return () => {
       window.removeEventListener('keydown', onKey)
       unlock()
     }
-    // `close` reads the address as it stands when the key is pressed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (!mounted) return null
@@ -88,10 +108,16 @@ export function CardSheet({ children, narrow = false }: { children: ReactNode; n
   // top, and on a wide screen two columns that scroll on their own — the card
   // on the left, the talk on the right. On a phone the whole sheet scrolls.
   return createPortal(
-    <div className="fixed inset-0 z-[70] overflow-y-auto">
+    <div className="fixed inset-0 z-[70] overflow-y-auto" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 72)}>
       <div aria-hidden className="fixed inset-0 bg-black/60" />
+      {scrolled && (
+        <div className="fixed right-5 top-3 z-[72] lg:hidden">
+          <SheetClose round />
+        </div>
+      )}
       <div className={`relative mx-auto my-3 w-full px-3 sm:my-10 ${narrow ? 'max-w-[800px]' : 'max-w-[1080px]'}`}>
         <div
+          ref={sheet}
           role="dialog"
           aria-modal="true"
           className="overflow-hidden rounded-xl bg-surface shadow-2xl lg:flex lg:max-h-[calc(100dvh-5rem)] lg:flex-col"

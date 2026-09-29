@@ -469,7 +469,9 @@ export function ProjectsKanban({
       if (result?.error) {
         setBoard(before)
         setUndo(null)
-        setError(result.error === 'ruleRefused' ? t('kanbanRuleRefused') : labels.saveFailed)
+        setError(
+          result.error === 'ruleRefused' ? t('kanbanRuleRefused') : result.error === 'fixedStart' ? t('kanbanFixedStart') : labels.saveFailed
+        )
         return
       }
       router.refresh()
@@ -1710,7 +1712,14 @@ export function ProjectsKanban({
               setError(null)
               startTransition(async () => {
                 const result = await moveCards(ids, to.status, { from: from.rule, to: to.rule }, to.cards[0]?.id ?? null)
-                if (result.error) setError(result.error === 'ruleRefused' ? t('kanbanRuleRefused') : labels.saveFailed)
+                if (result.error)
+                  setError(
+                    result.error === 'ruleRefused'
+                      ? t('kanbanRuleRefused')
+                      : result.error === 'fixedStart'
+                        ? t('kanbanFixedStart')
+                        : labels.saveFailed
+                  )
                 router.refresh()
               })
             }}

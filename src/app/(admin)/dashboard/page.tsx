@@ -3,7 +3,7 @@ import { LayoutGrid } from 'lucide-react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflicts'
-import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
+import { getRainWarnings, OUTDOOR_CATEGORIES, weatherPlace } from '@/lib/weather'
 import { addDays, iso, isoWeek, mondayOf, todayUtc } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
 import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
@@ -378,10 +378,10 @@ export default async function DashboardPage({
             <ul className="mt-2 space-y-1 text-sm">
               {rain.map((w) => {
                 const names = outdoorPairs
-                  .filter((p) => p.city === w.city && p.date === w.date)
+                  .filter((p) => weatherPlace(p) === w.place && p.date === w.date)
                   .map((p) => p.name)
                 return (
-                  <li key={`${w.city}-${w.date}`}>
+                  <li key={`${w.place}-${w.date}`}>
                     <span className="font-medium">{[...new Set(names)].join(', ')}</span> ·{' '}
                     {dateFmt.format(new Date(`${w.date}T00:00:00Z`))} · {w.city} · {w.probability}%
                   </li>

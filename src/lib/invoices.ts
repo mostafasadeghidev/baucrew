@@ -5,6 +5,8 @@
  * Pure, so the rules are tested without a database.
  */
 
+import { parseAmount } from './amount'
+
 export const INVOICE_PARTS = [1, 2] as const
 export type InvoicePart = (typeof INVOICE_PARTS)[number]
 
@@ -36,17 +38,7 @@ export function suggestedInvoiceAmount(part: InvoicePart, orderValue: number | n
   return cents(Math.max(0, rest))
 }
 
-/**
- * An amount as the office types it: "12.500,50", "12.500", "12500.50",
- * "12 500 €". Empty is null; anything else that is not a sum of money is
- * `invalid`.
- */
+/** An invoice's amount as the office types it — see `parseAmount`. */
 export function parseInvoiceAmount(raw: string): number | null | 'invalid' {
-  const v = raw.replace(/\s|€/g, '')
-  if (!v) return null
-  const thousands = /^\d{1,3}(\.\d{3})+$/.test(v)
-  const plain = v.includes(',') || thousands ? v.replace(/\./g, '').replace(',', '.') : v
-  if (!/^\d+(\.\d{1,2})?$/.test(plain)) return 'invalid'
-  const n = Number(plain)
-  return n > 999_999_999 ? 'invalid' : n
+  return parseAmount(raw)
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ACCEPTANCE_PROTOCOL,
+  badNumbers,
   cleanValues,
   displayValue,
   formStatus,
@@ -218,5 +219,22 @@ describe('the newer kinds of field — number, several answers, a table, photos'
     const b = signedContent('T', fields, { qty: '1', trades: ['Malern'], rooms: [['Bad', '', 'x']], pics: ['cmabc1234567890'] }, [])
     expect(a).not.toBe(b)
     expect(signedContent('T', fields, {}, [])).toContain('["qty","number","Menge",""],["trades","multi","Gewerke",[]]')
+  })
+})
+
+describe('badNumbers', () => {
+  const fields: FormField[] = [
+    { id: 'qty', type: 'number', label: 'Menge' },
+    { id: 'area', type: 'number', label: 'Fläche' },
+    { id: 'note', type: 'text', label: 'Notiz' },
+  ]
+
+  it('names the number fields holding something that is no number, so it is not emptied silently', () => {
+    expect(badNumbers(fields, { qty: '12 m²', area: 'ca. 4', note: 'frei' })).toEqual(['Menge', 'Fläche'])
+  })
+
+  it('lets numbers and empty fields pass', () => {
+    expect(badNumbers(fields, { qty: '1.250,5', area: '' })).toEqual([])
+    expect(badNumbers(fields, null)).toEqual([])
   })
 })

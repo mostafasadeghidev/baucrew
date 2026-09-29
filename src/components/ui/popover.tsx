@@ -59,7 +59,8 @@ export function Popover({
   children,
 }: {
   open: boolean
-  onClose: () => void
+  /** How it was left: a click beside it, or Escape. A window may keep what was typed on the first and drop it on the second. */
+  onClose: (how: 'outside' | 'escape') => void
   anchor: RefObject<HTMLElement | null>
   label: string
   width?: number
@@ -92,14 +93,17 @@ export function Popover({
     moved()
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
+      // A field's list of options open in the window closes first, by the
+      // field's own hand; the window, and what was typed into it, stays.
+      if (document.querySelector('[role="listbox"]')) return
       e.stopImmediatePropagation()
-      onClose()
+      onClose('escape')
     }
     const onDown = (e: MouseEvent) => {
       const target = e.target as Node
       // A field's list of options is drawn at the end of the page, but it is the popover's own.
       if (target instanceof Element && target.closest('[role="listbox"]')) return
-      if (!anchor.current?.contains(target) && !panel.current?.contains(target)) onClose()
+      if (!anchor.current?.contains(target) && !panel.current?.contains(target)) onClose('outside')
     }
     window.addEventListener('scroll', moved, true)
     window.addEventListener('resize', moved)

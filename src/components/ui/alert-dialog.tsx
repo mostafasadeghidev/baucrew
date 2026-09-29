@@ -40,7 +40,10 @@ export function AlertDialog({
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
+      if (e.key !== 'Escape') return
+      // The question's own: a sheet under it stays open (see card-sheet.tsx).
+      e.preventDefault()
+      onCancel()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

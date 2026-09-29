@@ -450,7 +450,7 @@ export async function updateProject(
   assertManagement(user)
   const current = await db.project.findFirst({
     where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] },
-    select: { id: true, status: true, actualStart: true, actualEnd: true, plannedStart: true, plannedEnd: true },
+    select: { id: true, status: true, actualStart: true, actualEnd: true, plannedStart: true, plannedEnd: true, city: true },
   })
   if (!current) throw new ApiError(404, 'notFound', 'No such project.')
 
@@ -461,7 +461,12 @@ export async function updateProject(
   if (input.description !== undefined) data.description = input.description
   if (input.street !== undefined) data.street = input.street
   if (input.postalCode !== undefined) data.postalCode = input.postalCode
-  if (input.city !== undefined) data.city = input.city
+  if (input.city !== undefined && input.city !== current.city) {
+    data.city = input.city
+    // The old town's place would pin the site and its weather to the wrong town; the name is looked up instead.
+    data.latitude = null
+    data.longitude = null
+  }
   if (input.plannedStart !== undefined) data.plannedStart = input.plannedStart ? utcDay(input.plannedStart) : null
   if (input.plannedEnd !== undefined) data.plannedEnd = input.plannedEnd ? utcDay(input.plannedEnd) : null
   if (input.dueDate !== undefined) data.dueDate = input.dueDate ? utcDay(input.dueDate) : null
@@ -1010,8 +1015,11 @@ export const updateCustomerInput = z
 /** Changes what is sent; an absent field stays, null clears it. */
 export async function updateCustomer(user: CurrentUser, id: string, input: z.infer<typeof updateCustomerInput>) {
   assertManagement(user)
-  if (!(await db.customer.findUnique({ where: { id }, select: { id: true } }))) throw new ApiError(404, 'notFound', 'No such customer.')
-  const data = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined))
+  const current = await db.customer.findUnique({ where: { id }, select: { id: true, city: true } })
+  if (!current) throw new ApiError(404, 'notFound', 'No such customer.')
+  const data: Record<string, unknown> = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined))
+  // Another town drops the old one's place; the name is looked up instead.
+  if (input.city !== undefined && input.city !== current.city) Object.assign(data, { latitude: null, longitude: null })
   if (Object.keys(data).length > 0) {
     await db.customer.update({ where: { id }, data })
     await audit({ userId: user.id, action: 'api.customer.update', entity: 'Customer', entityId: id, newValue: Object.keys(data).join(', ') })

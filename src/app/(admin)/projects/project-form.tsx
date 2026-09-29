@@ -13,14 +13,16 @@ import type { ProjectFormState } from './actions'
 import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
 import { FormHead } from '@/components/ui/form-head'
+import { PROJECT_SECTIONS, SECTIONS_FIELD } from '@/lib/project-sections'
 
 /**
  * The project's own page shows these five cards read-only and lets each one be
  * opened for editing where it stands. It is this very form that does the
  * editing — the fields are defined once, here, and the page hands in what each
  * card should look like while it is closed. A closed card keeps its fields in
- * the page, hidden: they still travel with the form, so one card can be saved
- * without the other four losing what they hold.
+ * the page, hidden, but the form names the cards that are open and only
+ * theirs are written: the windows around the form change the project too, and
+ * what a closed card still holds may be older than what they saved.
  */
 export type ProjectSectionKey = 'basic' | 'address' | 'planning' | 'assignment' | 'description'
 
@@ -208,7 +210,8 @@ function Section({
       </div>
       {inline && !open && <div className={icon ? 'mt-3 pl-8' : 'mt-3'}>{view}</div>}
       {/* Hidden, not absent: the fields of a closed card still travel with the
-          form, so saving one card cannot empty the other four. */}
+          form (the name and the customer are checked on every save), but only
+          the open cards are written. */}
       <div hidden={inline && !open} className="mt-4 grid grid-cols-1 gap-4 @xs:grid-cols-2">
         {children}
       </div>
@@ -378,6 +381,7 @@ export function ProjectForm({
   buildingTypes,
   leadSources,
   showPrice,
+  office = true,
   templateId,
   draftId,
   extraSection,
@@ -407,6 +411,11 @@ export function ProjectForm({
   buildingTypes: Option[]
   leadSources: Option[]
   showPrice: boolean
+  /**
+   * The office's own: the internal notes and a customer made new from the
+   * customer field. A site manager has neither.
+   */
+  office?: boolean
   /** When creating from a template, its items are copied on save. */
   templateId?: string
   /** Taking over an inbox draft: marks it done on save. */
@@ -531,6 +540,45 @@ export function ProjectForm({
     if (key !== 'description') setUnfolded(true)
   }
 
+  /** Every field back to what is stored; the inputs that keep their own value are built again. */
+  function takeStored() {
+    setVehicleIds(initial.vehicleIds)
+    setChecklistIds(initial.checklistIds)
+    setDeviceIds(initial.deviceIds)
+    setTeamIds(initial.teamIds)
+    setManagerId(initial.managerId)
+    setManagerAdded(false)
+    setCustomerId(initial.customerId)
+    setSameAsCustomer(false)
+    setAddress({
+      street: initial.street,
+      postalCode: initial.postalCode,
+      city: initial.city,
+      latitude: initial.latitude,
+      longitude: initial.longitude,
+      phone: initial.phone,
+    })
+    setFormKey((k) => k + 1)
+  }
+
+  function cancelInline() {
+    setOpenCards({})
+    setMode('none')
+    takeStored()
+    router.refresh()
+  }
+
+  // The project changed under the form while no card was open — a window on
+  // the card, a move to another list, another tab: the fields take what is
+  // stored now, so the next card opened starts from it. A card open for
+  // editing keeps what is being typed; it is caught up once it closes.
+  const stored = JSON.stringify(initial)
+  const [shownStored, setShownStored] = useState(stored)
+  if (inline && mode === 'none' && shownStored !== stored) {
+    setShownStored(stored)
+    takeStored()
+  }
+
   // The bar tells the form to open or to give up; the form tells the bar what
   // it should call itself.
   useEffect(() => {
@@ -562,29 +610,6 @@ export function ProjectForm({
     if (!inline) return
     window.dispatchEvent(new CustomEvent(PROJECT_EDIT_STATE_EVENT, { detail: mode }))
   }, [inline, mode])
-
-  function cancelInline() {
-    setOpenCards({})
-    setMode('none')
-    setVehicleIds(initial.vehicleIds)
-    setChecklistIds(initial.checklistIds)
-    setDeviceIds(initial.deviceIds)
-    setTeamIds(initial.teamIds)
-    setManagerId(initial.managerId)
-    setManagerAdded(false)
-    setCustomerId(initial.customerId)
-    setSameAsCustomer(false)
-    setAddress({
-      street: initial.street,
-      postalCode: initial.postalCode,
-      city: initial.city,
-      latitude: initial.latitude,
-      longitude: initial.longitude,
-      phone: initial.phone,
-    })
-    setFormKey((k) => k + 1)
-    router.refresh()
-  }
 
   /** The props every card needs in inline mode, and nothing at all otherwise. */
   const card = (key: ProjectSectionKey) =>
@@ -665,11 +690,13 @@ export function ProjectForm({
         extra={headExtra}
       />
       )}
+      {/* The cards being saved; the others keep what is stored (src/lib/project-sections.ts). */}
+      {inline && <input type="hidden" name={SECTIONS_FIELD} value={PROJECT_SECTIONS.filter((key) => openCards[key]).join(',')} />}
       {templateId && <input type="hidden" name="templateId" value={templateId} />}
       {draftId && <input type="hidden" name="draftId" value={draftId} />}
       {/* Folded: the four cards of facts under one line, which a click opens.
-          They are drawn either way — a hidden field still travels with the
-          form — so saving the description cannot empty the rest. */}
+          They are drawn either way; saving the description writes only the
+          description. */}
       {fold && (
         <button
           type="button"
@@ -699,19 +726,21 @@ export function ProjectForm({
                 noResultsLabel={tCustomers('noResults')}
                 required
                 onSelect={selectCustomer}
-                onCreateNew={(q) => setCustomerModal({ open: true, prefill: q })}
-                createLabel={(q) => t('createCustomerOption', { name: q })}
+                onCreateNew={office ? (q) => setCustomerModal({ open: true, prefill: q }) : undefined}
+                createLabel={office ? (q) => t('createCustomerOption', { name: q }) : undefined}
               />
             </div>
-            <button
-              type="button"
-              onClick={() => setCustomerModal({ open: true, prefill: '' })}
-              title={tCustomers('newCustomer')}
-              aria-label={tCustomers('newCustomer')}
-              className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-lg text-muted hover:bg-surface-hover hover:text-foreground"
-            >
-              +
-            </button>
+            {office && (
+              <button
+                type="button"
+                onClick={() => setCustomerModal({ open: true, prefill: '' })}
+                title={tCustomers('newCustomer')}
+                aria-label={tCustomers('newCustomer')}
+                className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-lg text-muted hover:bg-surface-hover hover:text-foreground"
+              >
+                +
+              </button>
+            )}
           </div>
         </div>
         <SelectField
@@ -804,7 +833,7 @@ export function ProjectForm({
           label={t('city')}
           value={{ city: address.city, latitude: address.latitude, longitude: address.longitude }}
           onChange={(v) => setAddress((a) => ({ ...a, city: v.city, latitude: v.latitude, longitude: v.longitude }))}
-          onPostcode={(pc) => setAddress((a) => (a.postalCode ? a : { ...a, postalCode: pc }))}
+          onPostcode={(pc, replaces) => setAddress((a) => (!a.postalCode || a.postalCode === replaces ? { ...a, postalCode: pc } : a))}
           disabled={sameAsCustomer}
         />
         <ControlledField
@@ -969,18 +998,20 @@ export function ProjectForm({
             className={inputClass}
           />
         </div>
-        <div className="col-span-full">
-          <label htmlFor="internalNotes" className="block text-sm font-medium">
-            {t('internalNotes')}
-          </label>
-          <textarea
-            id="internalNotes"
-            name="internalNotes"
-            rows={3}
-            defaultValue={initial.internalNotes}
-            className={inputClass}
-          />
-        </div>
+        {office && (
+          <div className="col-span-full">
+            <label htmlFor="internalNotes" className="block text-sm font-medium">
+              {t('internalNotes')}
+            </label>
+            <textarea
+              id="internalNotes"
+              name="internalNotes"
+              rows={3}
+              defaultValue={initial.internalNotes}
+              className={inputClass}
+            />
+          </div>
+        )}
       </Section>
       </div>
       {fold && afterDescription && <div className="order-1 col-span-full">{afterDescription}</div>}

@@ -80,6 +80,8 @@ export function CategoryPicker({
             e.preventDefault()
             choose(rows[active])
           } else if (e.key === 'Escape') {
+            // Closes the list, and only the list — not the window the field is in.
+            e.preventDefault()
             setOpen(false)
           }
         }}

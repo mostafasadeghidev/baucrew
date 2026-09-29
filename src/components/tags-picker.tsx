@@ -114,6 +114,8 @@ export function TagsPicker({
               e.preventDefault()
               setActive((a) => Math.max(0, a - 1))
             } else if (e.key === 'Escape') {
+              // Closes the list, and only the list — not the window the field is in.
+              e.preventDefault()
               setOpen(false)
             }
           }}

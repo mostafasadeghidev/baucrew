@@ -181,6 +181,8 @@ export function ProjectComments({
         return
       }
       if (e.key === 'Escape') {
+        // Closes the list of names, and only that — not the card the comment is written on.
+        e.preventDefault()
         setPick(null)
         return
       }
@@ -324,8 +326,11 @@ export function ProjectComments({
                     aria-label={t('commentEdit')}
                     onChange={(e) => setEditing({ id: comment.id, text: e.target.value })}
                     onKeyDown={(e) => {
-                      if (e.key === 'Escape') setEditing(null)
-                      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      if (e.key === 'Escape') {
+                        // Lets go of the comment, not of the card it stands on.
+                        e.preventDefault()
+                        setEditing(null)
+                      } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                         e.preventDefault()
                         saveEdit()
                       }

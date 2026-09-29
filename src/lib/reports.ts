@@ -102,6 +102,9 @@ export type YearRevenue = {
  * day it was typed in says nothing about when the work happens — but listed
  * as "undated".
  */
+/** The statuses of a job still ahead: offered, agreed, planned or under way. */
+const OPEN_STATUSES = ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED', 'IN_PROGRESS'] as const
+
 export async function getYearRevenue(year: number): Promise<YearRevenue> {
   const start = new Date(Date.UTC(year, 0, 1))
   const end = new Date(Date.UTC(year + 1, 0, 1))
@@ -118,6 +121,13 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     db.planEntry.count({ where: { year, month: { not: null } } }),
   ])
 
+  // A job still open that nobody has given a month stands in this year's
+  // undated list, whichever year it was typed in — it is waiting to be placed
+  // now, not last year.
+  const waiting =
+    year === new Date().getUTCFullYear()
+      ? [{ plannedStart: null, planMonth: null, createdAt: { lt: start }, archivedAt: null, status: { in: [...OPEN_STATUSES] } }]
+      : []
   const projects = await db.project.findMany({
     where: {
       status: { not: 'CANCELLED' },
@@ -125,6 +135,7 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
         { plannedStart: { gte: earliest, lt: end } },
         { plannedStart: null, planMonth: { gte: earliest, lt: end } },
         { plannedStart: null, planMonth: null, createdAt: { gte: start, lt: end } },
+        ...waiting,
       ],
     },
     select: {
@@ -143,6 +154,7 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
       actualEnd: true,
       sourceCreatedAt: true,
       createdAt: true,
+      archivedAt: true,
       customer: { select: { id: true, name: true } },
       addOns: { select: { amount: true } },
     },
@@ -188,7 +200,8 @@ export async function getYearRevenue(year: number): Promise<YearRevenue> {
     const settled = isHistorical(p, cutoff)
     if (span.length === 0) {
       if (settled) undatedHistorical++
-      else
+      // An archived job was put away on purpose; it is waiting for no month.
+      else if (p.archivedAt === null)
         undated.push({
           key: p.id,
           id: p.id,

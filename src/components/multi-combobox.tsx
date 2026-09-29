@@ -61,6 +61,8 @@ export function MultiCombobox({
       return
     }
     if (!open && (e.key === 'ArrowDown' || e.key === 'Enter')) {
+      // Enter opens the list; it must not also send the form the field is in.
+      e.preventDefault()
       openList()
       return
     }
@@ -75,7 +77,9 @@ export function MultiCombobox({
         e.preventDefault()
         add(available[highlight])
       }
-    } else if (e.key === 'Escape') {
+    } else if (e.key === 'Escape' && open) {
+      // Closes the list, and only the list — not the window the field is in.
+      e.preventDefault()
       setOpen(false)
     }
   }

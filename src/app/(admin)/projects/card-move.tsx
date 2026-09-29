@@ -113,7 +113,9 @@ export function CardMove({
     startTransition(async () => {
       const result = await moveCard(projectId, target.status, { prev, next }, { from: currentColumn?.rule ?? null, to: target.rule })
       if (result?.error) {
-        setError(result.error === 'ruleRefused' ? t('kanbanRuleRefused') : tc('saveFailed'))
+        setError(
+          result.error === 'ruleRefused' ? t('kanbanRuleRefused') : result.error === 'fixedStart' ? t('kanbanFixedStart') : tc('saveFailed')
+        )
         return
       }
       setOpen(false)
@@ -147,7 +149,8 @@ export function CardMove({
           if (!open) reset()
           setOpen((o) => !o)
         }}
-        className="inline-flex max-w-[16rem] shrink-0 items-center gap-1 rounded-md bg-subtle px-2 py-1 text-xs font-semibold transition-colors hover:bg-surface-hover"
+        // It gives way to the round buttons beside it: a long list name is cut short, the cross never pushed off the card.
+        className="inline-flex min-w-0 max-w-[16rem] items-center gap-1 rounded-md bg-subtle px-2 py-1 text-xs font-semibold transition-colors hover:bg-surface-hover"
       >
         <span className="truncate">{currentColumn?.label ?? statusLabel}</span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />

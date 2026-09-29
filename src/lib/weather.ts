@@ -50,7 +50,17 @@ async function rainProbabilities(
   return out
 }
 
-export type RainWarning = { city: string; date: string; probability: number }
+/**
+ * Where a site's weather is looked up, and so the name its warnings carry:
+ * the stored coordinates when there are some, else the town's name. Matching
+ * a warning back by this rather than by the town's name keeps two towns of
+ * one name apart, and one town written two ways together.
+ */
+export function weatherPlace(p: { city: string; latitude?: number | null; longitude?: number | null }): string {
+  return p.latitude != null && p.longitude != null ? `${p.latitude},${p.longitude}` : `name:${p.city.trim().toLowerCase()}`
+}
+
+export type RainWarning = { city: string; date: string; probability: number; place: string }
 
 export type WeatherPair = { city: string; date: string; latitude?: number | null; longitude?: number | null }
 
@@ -70,11 +80,11 @@ export async function getRainWarnings(pairs: WeatherPair[]): Promise<RainWarning
   if (inRange.length === 0) return []
   const threshold = await getRainThreshold()
 
-  // Group by location key: coordinates when known, otherwise the city name.
+  // Group by place: coordinates when known, otherwise the town's name.
   const groups = new Map<string, { city: string; coords: Coords | null; dates: string[] }>()
   for (const p of inRange) {
     const hasCoords = p.latitude != null && p.longitude != null
-    const key = hasCoords ? `${p.latitude},${p.longitude}` : `name:${p.city}`
+    const key = weatherPlace(p)
     const g = groups.get(key) ?? {
       city: p.city,
       coords: hasCoords ? { latitude: p.latitude!, longitude: p.longitude! } : null,
@@ -86,7 +96,7 @@ export async function getRainWarnings(pairs: WeatherPair[]): Promise<RainWarning
 
   const warnings: RainWarning[] = []
   await Promise.all(
-    [...groups.values()].map(async (g) => {
+    [...groups.entries()].map(async ([place, g]) => {
       const coords = g.coords ?? (await geocodeCity(g.city))
       if (!coords) return
       const sorted = [...g.dates].sort()
@@ -94,7 +104,7 @@ export async function getRainWarnings(pairs: WeatherPair[]): Promise<RainWarning
       for (const date of new Set(g.dates)) {
         const p = probs.get(date)
         if (p != null && p >= threshold) {
-          warnings.push({ city: g.city, date, probability: p })
+          warnings.push({ city: g.city, date, probability: p, place })
         }
       }
     })

@@ -56,7 +56,7 @@ import { ProjectInvoices, type InvoiceRow } from './invoices-card'
 import { ProjectComments, type ActivityRow, type CommentRow } from '@/components/project-comments'
 import { addProjectComment, deleteProjectComment, editProjectComment, toggleCommentReaction } from './comment-actions'
 import { displayName, mentionablePeople } from '@/lib/comments-db'
-import { canDeleteComment, canEditComment, reactionSummary } from '@/lib/comments'
+import { OFFICE_COMMENT, canDeleteComment, canEditComment, reactionSummary } from '@/lib/comments'
 import { ChevronRight, Clock, Plus } from 'lucide-react'
 import { dateTone, dueTone, initials, labelSwatch, swatchOf } from '@/lib/board-cards'
 import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
@@ -205,17 +205,19 @@ export async function ProjectDetail({
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true },
     }),
+    // The customers to pick from. Their addresses and phones are the office's:
+    // a site manager picks a card's customer by name, as when adding a card.
     db.customer.findMany({
       orderBy: { name: 'asc' },
       select: {
         id: true,
         name: true,
-        street: true,
-        postalCode: true,
-        city: true,
-        phone: true,
-        latitude: true,
-        longitude: true,
+        street: isOffice(user),
+        postalCode: isOffice(user),
+        city: isOffice(user),
+        phone: isOffice(user),
+        latitude: isOffice(user),
+        longitude: isOffice(user),
       },
     }),
     db.workCategory.findMany({
@@ -247,19 +249,20 @@ export async function ProjectDetail({
   ])
   const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { dateStyle: 'short', timeStyle: 'short' })
   // Money never reaches the story: an invoice line names the invoice, not the amount — and not the site manager.
+  // Nor does an office-only comment: not even that one was written, changed or taken back.
+  const readable = auditEntries.filter(
+    (e) =>
+      (canViewFinancials(user) || !e.action.startsWith('project.invoice')) &&
+      (isOffice(user) || !(e.action.startsWith('project.comment') && e.field === OFFICE_COMMENT))
+  )
   const history = historyLines(
-    auditEntries.filter((e) => canViewFinancials(user) || !e.action.startsWith('project.invoice')),
+    readable,
     (key, values) => tHistory(key as 'created', values),
     (status) => (status in ProjectStatus ? tStatus(status as ProjectStatus) : status)
   ).slice(0, 25)
   /** Trello's activity under "Details anzeigen": the card's history, the comments being shown as comments already. */
   const activityRows: ActivityRow[] = historyLines(
-    auditEntries.filter(
-      (e) =>
-        e.action !== 'project.comment' &&
-        e.action !== 'project.commentEdited' &&
-        (canViewFinancials(user) || !e.action.startsWith('project.invoice'))
-    ),
+    readable.filter((e) => e.action !== 'project.comment' && e.action !== 'project.commentEdited'),
     (key, values) => tHistory(key as 'created', values),
     (status) => (status in ProjectStatus ? tStatus(status as ProjectStatus) : status)
   )
@@ -586,7 +589,8 @@ export async function ProjectDetail({
         ) : (
           <p className="text-muted">—</p>
         )}
-        {project.internalNotes && (
+        {/* The office's own notes — not a site manager's to read. */}
+        {isOffice(user) && project.internalNotes && (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
             <p className="text-xs font-semibold">{t('internalNotes')}</p>
             <NoteText text={project.internalNotes} className="mt-1 text-muted" />
@@ -641,14 +645,23 @@ export async function ProjectDetail({
       text: project.customer.name,
       section: 'basic',
       href: null,
-      edit: { kind: 'customer', value: project.customerId, options: customers.map((c) => ({ value: c.id, label: c.name })) },
+      edit: { kind: 'customer', value: project.customerId, options: customers.map((c) => ({ value: c.id, label: c.name })), canCreate: isOffice(user) },
     },
     {
       key: 'address',
       text: address || null,
       section: 'address',
       href: null,
-      edit: { kind: 'address', value: { street: project.street ?? '', postalCode: project.postalCode ?? '', city: project.city ?? '' } },
+      edit: {
+        kind: 'address',
+        value: {
+          street: project.street ?? '',
+          postalCode: project.postalCode ?? '',
+          city: project.city ?? '',
+          latitude: project.latitude,
+          longitude: project.longitude,
+        },
+      },
     },
     ...(showPrice
       ? [
@@ -698,6 +711,7 @@ export async function ProjectDetail({
         cancelHref={sheet?.returnTo ?? `/projects/${project.id}`}
         title={project.name}
         showPrice={showPrice}
+        office={isOffice(user)}
         pairFrom="2xl"
         fold={sheet ? { title: t('sheetProjectData') } : undefined}
         afterDescription={sheet ? <CardFieldsGrid projectId={project.id} cells={fieldCells} card={cardEdit} /> : undefined}
@@ -707,7 +721,7 @@ export async function ProjectDetail({
         }}
         customers={customers.map((c) => ({ value: c.id, label: c.name }))}
         customerAddresses={Object.fromEntries(
-          customers.map((c) => [
+          (isOffice(user) ? customers : []).map((c) => [
             c.id,
             {
               street: c.street ?? '',
@@ -756,7 +770,7 @@ export async function ProjectDetail({
           managerId: project.managerId ?? '',
           vehicleIds: project.vehicles.map((pv) => pv.vehicleId),
           description: project.description ?? '',
-          internalNotes: project.internalNotes ?? '',
+          internalNotes: isOffice(user) ? (project.internalNotes ?? '') : '',
           categoryIds: project.workCategories.map((wc) => wc.workCategoryId),
           teamIds: project.team.map((m) => m.employeeId),
           checklistIds: project.checklists
@@ -893,21 +907,24 @@ export async function ProjectDetail({
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
           </div>
-          <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} />
+          <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} canCreateItems={isOffice(user)} />
         </section>
 
         {/* Machines this site needs — same shape as the tools/materials list */}
         <section className="rounded-xl border border-border bg-surface shadow-sm">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
-            <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
-              {tDevices('openDevices')} <span aria-hidden>→</span>
-            </Link>
+            {isOffice(user) && (
+              <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+                {tDevices('openDevices')} <span aria-hidden>→</span>
+              </Link>
+            )}
           </div>
           <ProjectDevicesEditor
             projectId={project.id}
             devices={deviceRows}
             options={deviceOptions}
+            canHandOut={isOffice(user)}
           />
           {project.devices.length > 0 && (
             <div className="border-t border-border px-5 py-3">
@@ -999,21 +1016,24 @@ export async function ProjectDetail({
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
           </div>
-          <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} />
+          <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} canCreateItems={isOffice(user)} />
         </section>
 
         {/* Machines this site needs — same shape as the tools/materials list */}
         <section className="rounded-xl border border-border bg-surface shadow-sm">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
-            <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
-              {tDevices('openDevices')} <span aria-hidden>→</span>
-            </Link>
+            {isOffice(user) && (
+              <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+                {tDevices('openDevices')} <span aria-hidden>→</span>
+              </Link>
+            )}
           </div>
           <ProjectDevicesEditor
             projectId={project.id}
             devices={deviceRows}
             options={deviceOptions}
+            canHandOut={isOffice(user)}
           />
           {project.devices.length > 0 && (
             <div className="border-t border-border px-5 py-3">

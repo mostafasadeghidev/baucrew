@@ -164,8 +164,9 @@ async function fieldData(
     if (address.postalCode) data.postalCode = address.postalCode
     if (address.city) {
       data.city = address.city.slice(0, 300)
-      const key = address.city.toLowerCase()
-      if (!places.has(key)) places.set(key, await geocodeCity(address.city).catch(() => null))
+      // The postal code tells a town from another of the same name.
+      const key = `${address.city.toLowerCase()}|${address.postalCode ?? ''}`
+      if (!places.has(key)) places.set(key, await geocodeCity(address.city, address.postalCode).catch(() => null))
       const place = places.get(key)
       if (place) {
         data.latitude = place.latitude
@@ -268,9 +269,22 @@ export async function importTrello(prev: PreviewState, formData: FormData): Prom
       if (!hasFields(fields)) return
       const row = await db.project.findUnique({
         where: { id: projectId },
-        select: { street: true, postalCode: true, city: true, price: true, executionWish: true, inspectionDate: true, workCategories: { select: { workCategoryId: true } } },
+        select: {
+          customerId: true,
+          street: true,
+          postalCode: true,
+          city: true,
+          price: true,
+          executionWish: true,
+          inspectionDate: true,
+          workCategories: { select: { workCategoryId: true } },
+        },
       })
       if (!row) return
+      // The project's customer without a number takes the one the card names, as on a first import.
+      if (fields.customerNumber) {
+        await db.customer.updateMany({ where: { id: row.customerId, number: null }, data: { number: fields.customerNumber } })
+      }
       const fill = await fieldData(fields, trades, { ...row, trades: row.workCategories.map((w) => w.workCategoryId) }, places)
       if (Object.keys(fill.data).length === 0 && fill.tradeIds.length === 0) return
       await db.project.update({

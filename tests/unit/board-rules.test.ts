@@ -62,6 +62,8 @@ describe('what a drop does beyond the status', () => {
 
   it('refuses the invoice list: that is marked on the project, not dragged', () => {
     expect(dropPatch(null, 'invoice1', facts(), now)).toBe('refused')
+    // A fixed start this year outranks the rough month the list would set: the card would not move.
+    expect(dropPatch(null, 'nextYear', facts({ plannedStart: new Date(Date.UTC(2026, 10, 3)) }), now)).toBe('fixedStart')
     expect(dropPatch('invoice1', null, facts({ invoice1: true }), now)).toEqual({})
   })
 })

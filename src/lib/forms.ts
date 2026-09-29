@@ -194,6 +194,22 @@ export function cleanValues(fields: FormField[], raw: unknown): FormValues {
   return values
 }
 
+/**
+ * The number fields something was typed into that is not a number ("12 m²",
+ * "ca. 12"), by their labels. Saving would empty them — a signed sheet would
+ * show a gap where the person saw a figure — so the form says which instead.
+ */
+export function badNumbers(fields: FormField[], raw: unknown): string[] {
+  const sent = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
+  return fields
+    .filter((field) => field.type === 'number')
+    .filter((field) => {
+      const typed = text(sent[field.id], 24).replace(/\s/g, '')
+      return typed !== '' && !NUMBER.test(typed)
+    })
+    .map((field) => field.label)
+}
+
 /** Whether a field holds nothing yet. */
 export function isEmptyValue(value: FormValue | undefined): boolean {
   if (value === undefined) return true

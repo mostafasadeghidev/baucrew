@@ -14,6 +14,7 @@
  * Pure: the importer reads the result, nothing here touches the database.
  */
 import { decompressFromUTF16 } from 'lz-string'
+import { parseAmount } from './amount'
 
 /** A field as the power-up defines it: `T` text, `N` number, `D` date, `L` a list of options. */
 export type PowerUpField = { id: string; type: string; name: string; options: Array<{ id: string; text: string }> }
@@ -162,8 +163,10 @@ export function cardFields(definitions: { pluginId: string; fields: PowerUpField
     const raw = data[field.id]
     if (!key || raw === null || raw === undefined) continue
     if (key === 'orderValue') {
-      const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw.replace(/\./g, '').replace(',', '.')) : NaN
-      if (Number.isFinite(n) && n >= 0) out.orderValue = Math.round(n * 100) / 100
+      const typed = typeof raw === 'string' ? parseAmount(raw) : null
+      const n = typeof raw === 'number' ? raw : typeof typed === 'number' ? typed : NaN
+      // Past what the order value can hold it is no amount but a typing slip; the import goes on without it.
+      if (Number.isFinite(n) && n >= 0 && n <= 999_999_999) out.orderValue = Math.round(n * 100) / 100
     } else if (key === 'inspectionDate') {
       const d = day(raw)
       if (d) out.inspectionDate = d

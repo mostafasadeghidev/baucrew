@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import { lockPageScroll } from '@/lib/scroll-lock'
 import { useTranslations } from 'next-intl'
 import { createCustomerInline } from '../customers/actions'
@@ -39,6 +40,21 @@ export function NewCustomerModal({
   // page bar and the sidebar stop sticking. See lockPageScroll.
   useEffect(() => lockPageScroll(), [])
 
+  // Escape closes this window, and only this one: a card's sheet under it stays open.
+  const closeNow = useRef(onClose)
+  useEffect(() => {
+    closeNow.current = onClose
+  })
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      e.preventDefault()
+      closeNow.current()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
@@ -66,11 +82,20 @@ export function NewCustomerModal({
     })
   }
 
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-lg border border-border bg-surface p-5 shadow-xl">
+  // Drawn at the end of the page, not where it is opened: opened from a card's
+  // fields it would stand inside the project's form (a form in a form) and be
+  // placed by that form rather than by the window. Over the card's sheet (70)
+  // and its small windows (80), under the confirmations (90).
+  return createPortal(
+    <div className="fixed inset-0 z-[88] flex items-center justify-center bg-black/40 p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="nc-title"
+        className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-lg border border-border bg-surface p-5 shadow-xl"
+      >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">{t('createTitle')}</h2>
+          <h2 id="nc-title" className="text-lg font-semibold">{t('createTitle')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -139,7 +164,7 @@ export function NewCustomerModal({
                 name="city"
                 value={city}
                 onChange={setCity}
-                onPostcode={(plz) => setPostalCode((prev) => prev || plz)}
+                onPostcode={(plz, replaces) => setPostalCode((prev) => (!prev || prev === replaces ? plz : prev))}
               />
             </div>
           </div>
@@ -168,6 +193,7 @@ export function NewCustomerModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

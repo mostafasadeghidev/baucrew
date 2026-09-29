@@ -513,6 +513,7 @@
     "rule_invoice1": "First invoice sent",
     "kanbanRuleMark": "Rule",
     "kanbanRuleList": "This list fills by a rule: it shows only the cards of its status the rule picks.",
+    "kanbanFixedStart": "This card has a fixed start this year — move the date first, and it will stand in next year by itself.",
     "kanbanRuleRefused": "A card arrives in this list by itself once invoice 1 is marked ready on the project – it cannot be dragged here.",
     "cardPausedSince": "On hold since {date}",
     "boardFilterDue": "Due",
@@ -1663,6 +1664,7 @@
   "geo": {
     "found": "Place recognised — weather data available",
     "notFound": "Place not found — no weather warning possible. Please pick from the list.",
+    "unavailable": "Place search is not reachable right now — the town will be looked up by its name later.",
     "typeToPick": "Pick from the list to enable weather data."
   },
   "audit": {
@@ -2127,6 +2129,7 @@
     "lockedHint": "The form is signed and can no longer be changed. For a correction the office removes the signature.",
     "lockedHintOffice": "The form is signed and locked. For a correction remove the signatures, change it and have it signed again.",
     "notIntact": "Warning: the content no longer fits the signatures. Please remove the signatures and have it signed again.",
+    "errorNumber": "Please enter a plain number here (e.g. 12 or 12.5), the unit belongs elsewhere: {fields}",
     "errorIncomplete": "Please fill in before signing: {fields}",
     "errorLocked": "The form is already signed and locked.",
     "errorAlreadySigned": "This place has been signed already.",

@@ -3,7 +3,7 @@ import { showsWeekend, weekendParam, weekendSuffix } from '@/lib/schedule-weeken
 import { db } from '@/lib/db'
 import { requireStaff } from '@/lib/authz'
 import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflicts'
-import { getRainWarnings, OUTDOOR_CATEGORIES } from '@/lib/weather'
+import { getRainWarnings, OUTDOOR_CATEGORIES, weatherPlace } from '@/lib/weather'
 import { addDays, addMonths, iso, isoWeek, mondayOf, monthStart, utcDate } from '@/lib/dates'
 import { MonthBoard } from './month-board'
 import { ScheduleBoard, type BoardEntry } from './schedule-board'
@@ -27,10 +27,10 @@ function projectOptions(
 }
 
 
-/** Absences overlapping [start, end) — feeds warnings in every view. */
+/** Absences overlapping [start, end) — feeds warnings in every view. Only of people still here: a former one's would stand on the day as "?". */
 function absencesBetween(start: Date, end: Date) {
   return db.absence.findMany({
-    where: { startDate: { lt: end }, endDate: { gte: start } },
+    where: { startDate: { lt: end }, endDate: { gte: start }, employee: { active: true } },
     select: { employeeId: true, startDate: true, endDate: true, type: true },
   })
 }
@@ -267,7 +267,7 @@ export default async function SchedulePage({
   const rainWarnings = await getRainWarnings(outdoorPairs)
   const weatherMessages = rainWarnings.flatMap((w) =>
     outdoorPairs
-      .filter((p) => p.city === w.city && p.date === w.date)
+      .filter((p) => weatherPlace(p) === w.place && p.date === w.date)
       .map((p) =>
         t('weatherWarning', {
           project: p.entry.project.name,

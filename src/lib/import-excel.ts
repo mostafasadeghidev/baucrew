@@ -1,5 +1,7 @@
 // Pure mapping logic for the Excel/CSV import — unit-tested, no server import.
 
+import { parseAmount } from './amount'
+
 /** Target fields a spreadsheet column can be mapped onto. */
 export const IMPORT_FIELDS = [
   'name',
@@ -21,17 +23,13 @@ export type ImportMapping = Partial<Record<ImportField, string>>
 
 export type ImportProfile = { name: string; mapping: ImportMapping }
 
-/** "50.000,00 €", "50000", 50000 → 50000. Garbage → null. */
+/** "50.000,00 €", "50.000", "50000", 50000 → 50000. Garbage → null. */
 export function normalizePrice(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value !== 'string') return null
-  const cleaned = value.replace(/[^\d,.-]/g, '')
-  if (!cleaned) return null
-  // German format: dots group thousands, the comma is the decimal separator.
-  const normalized =
-    cleaned.includes(',') ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned
-  const n = Number(normalized)
-  return Number.isFinite(n) ? n : null
+  // German format: dots group thousands, the comma is the decimal separator (src/lib/amount.ts).
+  const amount = parseAmount(value.replace(/[^\d,.]/g, ''))
+  return typeof amount === 'number' ? amount : null
 }
 
 /** Date cell, ISO string or German dd.mm.yyyy → UTC midnight. */

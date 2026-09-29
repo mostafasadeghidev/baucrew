@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { isOffice, requireStaff } from '@/lib/authz'
 import { canWorkOn } from '@/lib/crew-access'
 import { audit } from '@/lib/audit'
-import { COMMENT_MAX, canDeleteComment, canEditComment, isReaction, mentionedUsers, type CommentResult } from '@/lib/comments'
+import { COMMENT_MAX, OFFICE_COMMENT, canDeleteComment, canEditComment, isReaction, mentionedUsers, type CommentResult } from '@/lib/comments'
 import { createComment, mentionablePeople } from '@/lib/comments-db'
 
 function refresh(projectId: string) {
@@ -32,11 +32,18 @@ export async function addProjectComment(projectId: string, formData: FormData): 
 /** The author takes a comment back, or an administrator does. */
 export async function deleteProjectComment(noteId: string): Promise<CommentResult> {
   const user = await requireStaff()
-  const note = await db.note.findUnique({ where: { id: noteId }, select: { id: true, projectId: true, authorId: true, body: true } })
+  const note = await db.note.findUnique({ where: { id: noteId }, select: { id: true, projectId: true, authorId: true, body: true, visibility: true } })
   if (!note) return { error: 'saveFailed' }
   if (!canDeleteComment(user, note) || !(await canWorkOn(user, note.projectId))) return { error: 'notAllowed' }
   await db.note.delete({ where: { id: noteId } })
-  await audit({ userId: user.id, action: 'project.commentDeleted', entity: 'Project', entityId: note.projectId, oldValue: note.body.slice(0, 200) })
+  await audit({
+    userId: user.id,
+    action: 'project.commentDeleted',
+    entity: 'Project',
+    entityId: note.projectId,
+    field: note.visibility === 'MANAGEMENT' ? OFFICE_COMMENT : undefined,
+    oldValue: note.body.slice(0, 200),
+  })
   refresh(note.projectId)
   return {}
 }
@@ -48,7 +55,7 @@ export async function deleteProjectComment(noteId: string): Promise<CommentResul
  */
 export async function editProjectComment(noteId: string, body: string): Promise<CommentResult> {
   const user = await requireStaff()
-  const note = await db.note.findUnique({ where: { id: noteId }, select: { id: true, projectId: true, authorId: true, body: true } })
+  const note = await db.note.findUnique({ where: { id: noteId }, select: { id: true, projectId: true, authorId: true, body: true, visibility: true } })
   if (!note) return { error: 'saveFailed' }
   if (!canEditComment(user, note) || !(await canWorkOn(user, note.projectId))) return { error: 'notAllowed' }
   const text = body.trim().slice(0, COMMENT_MAX)
@@ -61,6 +68,7 @@ export async function editProjectComment(noteId: string, body: string): Promise<
     action: 'project.commentEdited',
     entity: 'Project',
     entityId: note.projectId,
+    field: note.visibility === 'MANAGEMENT' ? OFFICE_COMMENT : undefined,
     oldValue: note.body.slice(0, 200),
     newValue: text.slice(0, 200),
   })

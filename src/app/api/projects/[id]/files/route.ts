@@ -53,7 +53,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       size: file.size,
       path: key,
       source: crew ? 'site' : 'manual',
-      visibleToCrew: crew || Boolean(defectId),
+      // A defect's photo and a form's photo are the crew's to see too, whoever took them.
+      visibleToCrew: crew || Boolean(defectId) || (picture && form.get('forForm') === '1'),
       defectId: defectId || null,
       uploadedById: user.id,
     },

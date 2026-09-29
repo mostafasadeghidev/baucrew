@@ -97,6 +97,8 @@ export function FilledFormEditor({
     setError(
       code === 'incomplete'
         ? t('errorIncomplete', { fields: (missing ?? []).join(', ') })
+        : code === 'badNumber'
+          ? t('errorNumber', { fields: (missing ?? []).join(', ') })
         : code === 'locked'
           ? t('errorLocked')
           : code === 'alreadySigned'
@@ -114,7 +116,7 @@ export function FilledFormEditor({
     setError(null)
     startTransition(async () => {
       const result = await saveForm(formId, values)
-      if (result.error) return say(result.error)
+      if (result.error) return say(result.error, result.missing)
       setDirty(false)
       setSaved(true)
       router.refresh()
@@ -152,19 +154,22 @@ export function FilledFormEditor({
     if (!files || files.length === 0) return
     setPhotoError(null)
     setUploading(f.id)
-    let ids = list(values[f.id])
+    let count = list(values[f.id]).length
     for (const file of Array.from(files)) {
-      if (ids.length >= MAX_PHOTOS) {
+      if (count >= MAX_PHOTOS) {
         setPhotoError(t('photoLimit', { max: MAX_PHOTOS }))
         break
       }
-      const result = await uploadProjectPhoto(projectId, file)
+      const result = await uploadProjectPhoto(projectId, file, undefined, true)
       if ('error' in result) {
         setPhotoError(t('photoFailed'))
         continue
       }
-      ids = [...ids, result.id]
-      set(f.id, ids)
+      count++
+      // Added to the field as it stands now: a photo taken off while the others were on their way stays off.
+      setValues((v) => ({ ...v, [f.id]: [...list(v[f.id]), result.id] }))
+      setDirty(true)
+      setSaved(false)
     }
     setUploading(null)
     const el = fileInputs.current[f.id]
