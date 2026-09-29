@@ -19,8 +19,16 @@ export const BOARD_COOKIE = 'project-board'
 
 export type BoardColumnDef = { status: ProjectStatusKey; title: string | null }
 
+/**
+ * How a board or a column is told apart: by its own id. A cuid for what was
+ * made in the app — but the first board and its columns were made by the
+ * migration that brought boards in, as `board_all` and with uuids, and those
+ * must pass too, or that board could be neither copied nor reordered.
+ */
+export const RECORD_ID = /^[a-z0-9][a-z0-9_-]{7,39}$/
+
 /** How a column is told apart on the board and in the order it is dragged into: by its own id. */
-export const COLUMN_ID = /^[a-z0-9]{10,40}$/
+export const COLUMN_ID = RECORD_ID
 
 /**
  * The grounds a board can stand on, the way Trello offers them: plain colours
@@ -162,7 +170,7 @@ export function startingLists(raw: unknown): StartingLists | null {
   }
   const preset = /^preset:([a-z]{1,20})$/.exec(raw)
   if (preset) return { kind: 'preset', key: preset[1] }
-  const copy = /^copy:([a-z0-9]{10,40})$/.exec(raw)
-  if (copy) return { kind: 'copy', boardId: copy[1] }
+  const copy = /^copy:(.+)$/.exec(raw)
+  if (copy && RECORD_ID.test(copy[1])) return { kind: 'copy', boardId: copy[1] }
   return null
 }

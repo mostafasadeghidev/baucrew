@@ -56,11 +56,14 @@ export type PhotoUploadError = 'tooLarge' | 'badType' | 'empty' | 'forbidden' | 
 export async function uploadProjectPhoto(
   projectId: string,
   file: File,
-  defectId?: string
+  defectId?: string,
+  /** A photo on a form: whoever fills in or signs the form on the site sees it, whoever took it. */
+  forForm = false
 ): Promise<{ id: string } | { error: PhotoUploadError }> {
   const data = new FormData()
   data.set('file', await downscaleImage(file))
   if (defectId) data.set('defectId', defectId)
+  if (forForm) data.set('forForm', '1')
   try {
     const response = await fetch(`/api/projects/${projectId}/files`, { method: 'POST', body: data })
     const body = (await response.json().catch(() => null)) as { id?: string; error?: string } | null

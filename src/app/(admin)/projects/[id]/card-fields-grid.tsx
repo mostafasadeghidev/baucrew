@@ -242,10 +242,8 @@ function AddressField({
   const [draft, setDraft] = useState(value)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState(false)
-  const close = useCallback(() => setOpen(false), [])
 
-  const save = (e: React.FormEvent) => {
-    e.preventDefault()
+  const store = () => {
     setError(false)
     startTransition(async () => {
       const result = await setCardField(projectId, { key: 'address', value: draft })
@@ -256,6 +254,18 @@ function AddressField({
       setOpen(false)
       router.refresh()
     })
+  }
+  const save = (e: React.FormEvent) => {
+    e.preventDefault()
+    store()
+  }
+  const changed =
+    draft.street !== value.street || draft.postalCode !== value.postalCode || draft.city !== value.city || draft.latitude !== value.latitude
+  // Left by a click beside it, the window keeps what was typed, as a box on
+  // the card does when it is left; Escape and the cross let it go.
+  const close = (how?: unknown) => {
+    if (how === 'outside' && changed && !pending) store()
+    else setOpen(false)
   }
   const field = 'mt-1 block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
@@ -291,7 +301,7 @@ function AddressField({
               label={t('city')}
               value={draft}
               onChange={(place) => setDraft((d) => ({ ...d, ...place }))}
-              onPostcode={(code) => setDraft((d) => (d.postalCode ? d : { ...d, postalCode: code }))}
+              onPostcode={(code, replaces) => setDraft((d) => (!d.postalCode || d.postalCode === replaces ? { ...d, postalCode: code } : d))}
               labelClassName="block text-[11px] font-semibold text-muted"
               inputClassName={field}
             />

@@ -367,3 +367,41 @@ describe('what the data-quality report asks for', () => {
     expect(noCity.has(`${year}-9305`)).toBe(false)
   })
 })
+
+describe('the year’s jobs without a month', () => {
+  const thisYear = new Date().getUTCFullYear()
+  const made: string[] = []
+
+  beforeAll(async () => {
+    const mk = (n: string, data: object) =>
+      prisma.project.create({ data: { number: `${TAG}-u${n}`, name: `${TAG} u${n}`, customerId, ...data }, select: { id: true } })
+    made.push(
+      // Typed in years ago, still ahead and never placed: waiting now.
+      (await mk('1', { status: 'QUOTED', createdAt: new Date(Date.UTC(thisYear - 3, 5, 1)) })).id,
+      // Typed in years ago and done: not waiting for anything.
+      (await mk('2', { status: 'PAID', createdAt: new Date(Date.UTC(thisYear - 3, 5, 1)) })).id,
+      // This year's, but put away in the archive.
+      (await mk('3', { status: 'LEAD', archivedAt: new Date() })).id,
+      // This year's and open.
+      (await mk('4', { status: 'LEAD' })).id
+    )
+  })
+
+  afterAll(async () => {
+    await prisma.project.deleteMany({ where: { id: { in: made } } })
+  })
+
+  it('holds this year’s open ones and the older ones still waiting, not the archived or the finished', async () => {
+    const { getYearRevenue } = await import('@/lib/reports')
+    const r = await getYearRevenue(thisYear)
+    const mine = r.undated.map((p) => p.number).filter((n) => n.startsWith(`${TAG}-u`)).sort()
+    expect(mine).toEqual([`${TAG}-u1`, `${TAG}-u4`])
+  })
+
+  it('leaves an older year’s list as it was', async () => {
+    const { getYearRevenue } = await import('@/lib/reports')
+    const r = await getYearRevenue(thisYear - 3)
+    const mine = r.undated.map((p) => p.number).filter((n) => n.startsWith(`${TAG}-u`))
+    expect(mine).toContain(`${TAG}-u1`)
+  })
+})

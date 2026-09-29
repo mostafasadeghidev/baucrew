@@ -45,7 +45,7 @@ export async function saveForm(formId: string, values: FormValues): Promise<Form
   if (!projectId) return { error: 'notFound' }
   if (!(await canWorkOn(user, projectId))) return { error: 'notAllowed' }
   const result = await saveFormValues({ id: formId, values, userId: user.id })
-  if ('error' in result) return { error: result.error }
+  if ('error' in result) return { error: result.error, missing: result.missing }
   refresh(projectId, formId)
   return {}
 }

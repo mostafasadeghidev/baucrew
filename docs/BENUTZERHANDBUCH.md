@@ -900,7 +900,7 @@ Die Reiter:
   (gestrichelt, ohne Zahlen), damit ein Auftrag hineingezogen werden kann — in den Bahnen ebenso; nur
   die Jahresmatrix zeigt allein die Monate mit Einträgen. Links neben den Monaten steht die Spalte
   **Ohne Monat**: die Aufträge des Jahres, die noch keinen Monat haben, mit ihrer Summe und einem
-  Suchfeld. Ein Auftrag daraus wird in einen Monat gezogen und steht von da an dort (er bekommt diesen
+  Suchfeld — im laufenden Jahr auch die noch offenen aus früheren Jahren, archivierte nicht. Ein Auftrag daraus wird in einen Monat gezogen und steht von da an dort (er bekommt diesen
   Monat als *Ausführung voraussichtlich*). Projekte **ohne Monat** gehören zu keinem Monat
   und zählen erst, wenn einer eingetragen ist — unter *Datenlücken* sind sie aufgeführt. Ist eine
   **Jahresplanung** eingelesen (Kapitel 15), stehen ihre Zeilen, zu denen es noch kein Projekt gibt,

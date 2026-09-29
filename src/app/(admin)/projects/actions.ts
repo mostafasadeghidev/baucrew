@@ -590,6 +590,7 @@ export async function moveCard(
     new Date()
   )
   if (patch === 'refused') return { error: 'ruleRefused' }
+  if (patch === 'fixedStart') return { error: 'fixedStart' }
   const moved = await changeStatus(user, id, status)
   if (moved.error) return moved
   if (Object.keys(patch).length > 0) {
@@ -1230,7 +1231,7 @@ async function applyListRule(projectId: string, rule: string | null) {
   const key = columnRuleKey(rule)
   if (!key) return
   const patch = dropPatch(null, key, { pausedAt: null, plannedStart: null, planMonth: null, priority: null, invoice1: false }, new Date())
-  if (patch === 'refused' || Object.keys(patch).length === 0) return
+  if (patch === 'refused' || patch === 'fixedStart' || Object.keys(patch).length === 0) return
   await db.project.update({ where: { id: projectId }, data: patch })
 }
 
@@ -1652,7 +1653,7 @@ export async function setCardField(id: string, edit: CardFieldEdit): Promise<{ e
       const city = text(edit.value?.city, 300)
       // The place the town picker found is taken; a town it did not find is looked up (src/lib/site-place.ts).
       const choice = sitePlaceChoice(city, edit.value ?? {}, before)
-      const place = choice === 'lookUp' && city ? await geocodeCity(city).catch(() => null) : choice
+      const place = choice === 'lookUp' && city ? await geocodeCity(city, postalCode).catch(() => null) : choice
       data = {
         street,
         postalCode,

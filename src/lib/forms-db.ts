@@ -7,6 +7,7 @@ import { iso, todayUtc } from './dates'
 import { safeFileName, storageKeyFor } from './files'
 import { deleteStoredFile, readStoredFile, saveStoredFile } from './file-storage'
 import {
+  badNumbers,
   cleanValues,
   formStatus,
   missingRequired,
@@ -20,7 +21,7 @@ import {
 } from './forms'
 import { renderFormPdf, type FormPdfPhoto } from './forms-pdf'
 
-export type FormError = 'notFound' | 'locked' | 'incomplete' | 'alreadySigned' | 'badSlot' | 'nameRequired' | 'badSignature'
+export type FormError = 'notFound' | 'locked' | 'incomplete' | 'alreadySigned' | 'badSlot' | 'nameRequired' | 'badSignature' | 'badNumber'
 
 /** SHA-256 of what a signature signs. */
 export function formDigest(title: string, fields: FormField[], values: FormValues, signers: string[]): string {
@@ -125,10 +126,17 @@ export async function loadFilledForm(id: string) {
 export type LoadedForm = NonNullable<Awaited<ReturnType<typeof loadFilledForm>>>
 
 /** The fields' values, saved. Not once somebody has signed: a signature stands for what was on the sheet. */
-export async function saveFormValues(input: { id: string; values: unknown; userId: string }): Promise<{ projectId: string } | { error: FormError }> {
+export async function saveFormValues(input: {
+  id: string
+  values: unknown
+  userId: string
+}): Promise<{ projectId: string } | { error: FormError; missing?: string[] }> {
   const form = await loadFilledForm(input.id)
   if (!form) return { error: 'notFound' }
   if (form.signatures.length > 0) return { error: 'locked' }
+  // A figure that is no number is said, not dropped.
+  const bad = badNumbers(form.fields, input.values)
+  if (bad.length > 0) return { error: 'badNumber', missing: bad }
   await db.filledForm.update({ where: { id: form.id }, data: { values: cleanValues(form.fields, input.values) } })
   return { projectId: form.projectId }
 }

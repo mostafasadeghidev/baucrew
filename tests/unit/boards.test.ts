@@ -69,6 +69,11 @@ describe('cleanColumnOrder', () => {
     expect(cleanColumnOrder(['cmabcdefgh0001', 'cmabcdefgh0002', 'cmabcdefgh0001', 'NOPE!', 7])).toEqual(['cmabcdefgh0001', 'cmabcdefgh0002'])
     expect(cleanColumnOrder('cmabcdefgh0001')).toEqual([])
   })
+
+  it('keeps the uuids the migration gave the first board’s columns', () => {
+    const uuid = '3f2c9a1e-8b7d-4c6e-9f10-2a3b4c5d6e7f'
+    expect(cleanColumnOrder([uuid, 'cmabcdefgh0001', '../x', '-leading'])).toEqual([uuid, 'cmabcdefgh0001'])
+  })
 })
 
 describe('pickBoard', () => {
@@ -117,6 +122,8 @@ describe('startingLists', () => {
     expect(startingLists('pick:LEAD,QUOTED')).toEqual({ kind: 'pick', statuses: ['LEAD', 'QUOTED'] })
     expect(startingLists('preset:sites')).toEqual({ kind: 'preset', key: 'sites' })
     expect(startingLists('copy:cmboard0000abcd1234')).toEqual({ kind: 'copy', boardId: 'cmboard0000abcd1234' })
+    // The first board, made by the migration that brought boards in.
+    expect(startingLists('copy:board_all')).toEqual({ kind: 'copy', boardId: 'board_all' })
   })
 
   it('puts the ticked statuses in the order of the lifecycle, each once, known ones only', () => {

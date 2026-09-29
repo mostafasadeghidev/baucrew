@@ -108,7 +108,7 @@ export function CustomerForm({
             label={t('city')}
             value={cityValue}
             onChange={setCityValue}
-            onPostcode={(pc) => setPostalCode((prev) => prev || pc)}
+            onPostcode={(pc, replaces) => setPostalCode((prev) => (!prev || prev === replaces ? pc : prev))}
           />
           <Field label={t('country')} name="country" defaultValue={initial.country} />
         </div>

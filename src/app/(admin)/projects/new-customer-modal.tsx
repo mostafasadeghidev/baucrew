@@ -164,7 +164,7 @@ export function NewCustomerModal({
                 name="city"
                 value={city}
                 onChange={setCity}
-                onPostcode={(plz) => setPostalCode((prev) => prev || plz)}
+                onPostcode={(plz, replaces) => setPostalCode((prev) => (!prev || prev === replaces ? plz : prev))}
               />
             </div>
           </div>

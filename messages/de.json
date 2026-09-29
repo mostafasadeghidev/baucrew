@@ -513,6 +513,7 @@
     "rule_invoice1": "Abschlag gestellt",
     "kanbanRuleMark": "Regel",
     "kanbanRuleList": "Diese Liste füllt sich nach einer Regel: Sie zeigt nur die Karten ihres Status, auf die die Regel zutrifft.",
+    "kanbanFixedStart": "Diese Karte hat einen festen Beginn in diesem Jahr — erst den Termin verschieben, dann steht sie von selbst im nächsten Jahr.",
     "kanbanRuleRefused": "In diese Liste kommt eine Karte von selbst, sobald Rechnung 1 am Projekt als bereit gemeldet ist – ziehen geht hier nicht.",
     "cardPausedSince": "Pause seit {date}",
     "boardFilterDue": "Fällig",
@@ -1663,6 +1664,7 @@
   "geo": {
     "found": "Ort erkannt — Wetterdaten verfügbar",
     "notFound": "Ort nicht gefunden — keine Wetterwarnung möglich. Bitte aus der Liste wählen.",
+    "unavailable": "Ortssuche gerade nicht erreichbar — der Ort wird später nach dem Namen gesucht.",
     "typeToPick": "Aus der Liste wählen, damit Wetterdaten möglich sind."
   },
   "audit": {
@@ -2127,6 +2129,7 @@
     "lockedHint": "Das Formular ist unterschrieben und kann nicht mehr geändert werden. Für eine Korrektur entfernt das Büro die Unterschrift.",
     "lockedHintOffice": "Das Formular ist unterschrieben und gesperrt. Für eine Korrektur die Unterschriften entfernen, ändern und neu unterschreiben lassen.",
     "notIntact": "Achtung: Der Inhalt passt nicht mehr zu den Unterschriften. Bitte Unterschriften entfernen und neu unterschreiben lassen.",
+    "errorNumber": "Hier bitte nur eine Zahl eintragen (z. B. 12 oder 12,5), die Einheit gehört ins Feld daneben: {fields}",
     "errorIncomplete": "Vor der Unterschrift bitte ausfüllen: {fields}",
     "errorLocked": "Das Formular ist bereits unterschrieben und gesperrt.",
     "errorAlreadySigned": "An dieser Stelle wurde schon unterschrieben.",

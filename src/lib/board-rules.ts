@@ -93,8 +93,11 @@ export function dropPatch(
   to: ColumnRule | null,
   facts: RuleFacts,
   now: Date
-): RulePatch | 'refused' {
+): RulePatch | 'refused' | 'fixedStart' {
   if (to === 'invoice1') return 'refused'
+  // A fixed start this year or earlier outranks a rough month: the card would
+  // stay where it is while its month changed unseen. The date is moved first.
+  if (to === 'nextYear' && facts.plannedStart && facts.plannedStart.getUTCFullYear() <= now.getUTCFullYear()) return 'fixedStart'
   const patch: RulePatch = {}
   if (from === 'paused' && to !== 'paused') patch.pausedAt = null
   if (from === 'lowPriority' && to !== 'lowPriority' && facts.priority === 'LOW') patch.priority = null

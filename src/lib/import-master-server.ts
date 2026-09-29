@@ -56,8 +56,10 @@ export async function runMasterImport(
         result.unchanged++
         continue
       }
+      // A customer moved to another town leaves the old one's place behind; the name is looked up instead.
+      const moved = kind === 'customers' && 'city' in changes ? { latitude: null, longitude: null } : {}
       const updated = (await (kind === 'customers'
-        ? db.customer.update({ where: { id: found.id }, data: changes })
+        ? db.customer.update({ where: { id: found.id }, data: { ...changes, ...moved } })
         : kind === 'employees'
           ? db.employee.update({ where: { id: found.id }, data: changes })
           : db.vehicle.update({ where: { id: found.id }, data: changes }))) as Existing

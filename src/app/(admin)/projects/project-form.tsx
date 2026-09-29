@@ -833,7 +833,7 @@ export function ProjectForm({
           label={t('city')}
           value={{ city: address.city, latitude: address.latitude, longitude: address.longitude }}
           onChange={(v) => setAddress((a) => ({ ...a, city: v.city, latitude: v.latitude, longitude: v.longitude }))}
-          onPostcode={(pc) => setAddress((a) => (a.postalCode ? a : { ...a, postalCode: pc }))}
+          onPostcode={(pc, replaces) => setAddress((a) => (!a.postalCode || a.postalCode === replaces ? { ...a, postalCode: pc } : a))}
           disabled={sameAsCustomer}
         />
         <ControlledField

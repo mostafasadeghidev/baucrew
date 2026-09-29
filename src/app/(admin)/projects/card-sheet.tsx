@@ -16,7 +16,7 @@
  * way Trello opens a template card.
  */
 
-import { useEffect, useRef, useSyncExternalStore, useTransition, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -85,6 +85,9 @@ export function CardSheet({ children, narrow = false }: { children: ReactNode; n
     () => true,
     () => false
   )
+  // On a phone the whole sheet scrolls, the cross at its top with it: once
+  // that is out of sight a cross of its own stays at the top of the screen.
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     const unlock = lockPageScroll()
@@ -105,8 +108,13 @@ export function CardSheet({ children, narrow = false }: { children: ReactNode; n
   // top, and on a wide screen two columns that scroll on their own — the card
   // on the left, the talk on the right. On a phone the whole sheet scrolls.
   return createPortal(
-    <div className="fixed inset-0 z-[70] overflow-y-auto">
+    <div className="fixed inset-0 z-[70] overflow-y-auto" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 72)}>
       <div aria-hidden className="fixed inset-0 bg-black/60" />
+      {scrolled && (
+        <div className="fixed right-5 top-3 z-[72] lg:hidden">
+          <SheetClose round />
+        </div>
+      )}
       <div className={`relative mx-auto my-3 w-full px-3 sm:my-10 ${narrow ? 'max-w-[800px]' : 'max-w-[1080px]'}`}>
         <div
           ref={sheet}
