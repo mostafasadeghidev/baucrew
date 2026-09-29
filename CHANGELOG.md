@@ -3,6 +3,36 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.46.0] — 2026-09-29
+
+### Added
+- **A column of the year's jobs without a month** in the Planumsatz. Beside
+  the month cards and the lanes stands *Ohne Monat*: the jobs of the year
+  that have no month yet, their count and sum, and a search that narrows the
+  list as it is typed into. A job dragged onto a month takes that month as
+  its rough placing and leaves the column. The year matrix goes without it —
+  it has no month to drop on; on a phone the column stands above the months.
+- **The Trello import reads the cards' own fields** — the values of the
+  board's custom-fields power-up, kept compressed in the export: the
+  customer's name (instead of the guess from the title), the site address
+  split into street, postal code and town, the order value, the type of work
+  as the project's trades (a word without a trade stays as a line in the
+  description), the customer's wish, the site visit and the customer number
+  for a customer that has none yet. A board that defines a field twice is
+  read whole. On a project that is there already a new import fills only
+  what is still empty and adds trades without taking any away. A tick before
+  the import, on by default; the result counts the cards that brought fields.
+
+### Changed
+- DEPLOYMENT.md backs up the files beside the database: the volume
+  `baucrew_files` (uploaded PDFs, photos, e-mails, signed forms, the logo,
+  board photos) as a daily tar archive, restored together with the dump of
+  the same day, and says when the in-app JSON backup is too heavy.
+
+### Upgrade
+- No migration. One new dependency, `lz-string` 1.5.0 (MIT);
+  `docker compose up -d --build` installs it.
+
 ## [1.45.0] — 2026-09-29
 
 ### Added
