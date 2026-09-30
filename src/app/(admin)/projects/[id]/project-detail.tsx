@@ -29,6 +29,7 @@ import { ArchiveButton } from '../archive-button'
 import { CardAddBar, CardAddButton, CardPanelButton, type CardEditData } from './card-popovers'
 import { EditableTitle } from './editable-title'
 import { WatchButton } from './watch-button'
+import { CardSeen } from './card-seen'
 import { CoverPicker } from './cover-picker'
 import { SheetMenu } from './sheet-menu'
 import { SheetTitle } from './sheet-title'
@@ -196,7 +197,7 @@ export async function ProjectDetail({
   // A site manager opens the projects they are named on and no other.
   if (!(await canSeeProject(user, project.id))) redirect('/projects')
 
-  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people, formTemplates, auditEntries, watching] =
+  const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people, formTemplates, auditEntries, watching, unseen] =
     await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
     db.vehicle.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
@@ -246,6 +247,8 @@ export async function ProjectDetail({
     }),
     // Whether the reader follows the card — Trello's "Beobachten".
     db.cardWatch.count({ where: { userId: user.id, projectId: id } }),
+    // What the bell has on this card that the reader has not seen: opening the card reads it.
+    db.notification.count({ where: { userId: user.id, projectId: id, readAt: null } }),
   ])
   const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { dateStyle: 'short', timeStyle: 'short' })
   // Money never reaches the story: an invoice line names the invoice, not the amount — and not the site manager.
@@ -706,6 +709,7 @@ export async function ProjectDetail({
   ]
   const body = (
     <>
+      {unseen > 0 && <CardSeen projectId={project.id} />}
       <ProjectForm
         action={updateProject.bind(null, project.id, sheet?.returnTo ?? null)}
         cancelHref={sheet?.returnTo ?? `/projects/${project.id}`}

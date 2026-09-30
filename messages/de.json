@@ -581,6 +581,7 @@
     "watching": "Beobachtet",
     "watchHint": "Karte beobachten: Kommentare, Verschiebungen und Fälligkeiten erscheinen in Ihren Benachrichtigungen.",
     "watchingHint": "Sie beobachten diese Karte — ein Klick hört damit auf.",
+    "cardUnread": "{count, plural, one {# neue Benachrichtigung} other {# neue Benachrichtigungen}} zu dieser Karte",
     "cardWatched": "Sie beobachten diese Karte.",
     "nComment": "hat kommentiert: {text}",
     "nMoved": "hat die Karte nach „{list}“ verschoben",

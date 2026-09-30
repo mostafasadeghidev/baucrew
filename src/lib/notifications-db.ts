@@ -149,3 +149,8 @@ export async function notificationsFor(user: {
 export async function markNotificationsRead(userId: string) {
   await db.notification.updateMany({ where: { userId, readAt: null }, data: { readAt: new Date() } })
 }
+
+/** The user opened a card: what the bell had to say about that card is seen. */
+export async function markCardNotificationsRead(userId: string, projectId: string) {
+  await db.notification.updateMany({ where: { userId, projectId, readAt: null }, data: { readAt: new Date() } })
+}
