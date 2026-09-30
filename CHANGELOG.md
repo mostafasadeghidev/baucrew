@@ -3,6 +3,64 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.47.0] — 2026-09-30
+
+### Added
+- **Outdoor work is a tick per trade.** Settings → Arbeitskategorien has an
+  *Außenarbeit* tick on every trade and on a new one; jobs with a ticked
+  trade get the rain warnings on the schedule and the overview. Until now the
+  warnings went by three trade names in the code, and renaming one switched
+  its warnings off. The three trades they went by are ticked by the update.
+- **The town in the card's address window is the town picker** of the
+  forms: places suggested while typing, the postal code filled in, and a
+  line saying whether the place was found — only a found place has weather
+  and a pin on the map. The place picked is kept as it is.
+
+### Fixed
+- **The card's own form no longer puts back what its small windows
+  changed.** It wrote all five cards on every save, from the values it held
+  since the card opened: saving the description reverted an address, a
+  customer, members, the list or the urgent flag changed meanwhile, and
+  deleted a checklist just added from a template. Only the card being saved
+  is written now; a copied card, or one made from a checklist line, no
+  longer takes over the previous card's fields.
+- **"Same as customer"** saved the project without its town.
+- **Merging two projects** deleted the dropped one's tasks, defects, filled
+  forms with their signatures, web links and watchers; they move now, and
+  the address and the dates are taken over whole.
+- **An amount typed as "12.000"** was stored as 12 — in the order value,
+  invoices and the imports it is twelve thousand.
+- **Escape** in a list, a menu, a confirmation or the new-customer window
+  closed the whole card and lost what was typed; it closes what stands over
+  the card now. Enter in the customer field no longer saves the form.
+- **Site managers** were sent every customer's address and phone, saw and
+  wrote the internal notes, and could change checklists, material and the
+  completion of projects not their own: customers come as names only, the
+  notes and the office's buttons (new customer, new catalog item, handing
+  out machines, the board's column order) are the office's, and the
+  per-project actions check the project. Reopening a job brings back only
+  the days cancelled with its completion.
+- **Towns and weather:** a town changed through the API or an import drops
+  the old coordinates; the town picker ignores stale answers, tells towns of
+  one name apart by the postal code and says when the search is
+  unreachable; rain warnings are matched to the sites by their place, no
+  longer by the town's name.
+- **The first board** (made by the update that brought boards) can be copied
+  and reordered again.
+- **Forms:** a number field holding "12 m²" is named on saving instead of
+  emptied; photos the office adds are visible to the crew.
+- **The card's address window** keeps what was typed when it is left by a
+  click beside it.
+- **On a phone** the card's cross stays in reach while scrolling.
+- **Next year's list** refuses a card with a fixed start this year, with a
+  word, instead of changing its month unseen.
+- **Jobs without a month** leaves archived jobs out and, in the current
+  year, also shows open jobs typed in earlier years.
+
+### Upgrade
+- One migration (`WorkCategory.outdoor`), applied automatically when the
+  container starts; `docker compose up -d --build` is all.
+
 ## [1.46.0] — 2026-09-29
 
 ### Added
