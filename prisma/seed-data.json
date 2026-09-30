@@ -48,15 +48,18 @@
     ],
     [
       "Außenfassade",
-      "Exterior facade"
+      "Exterior facade",
+      true
     ],
     [
       "WDVS",
-      "ETICS insulation"
+      "ETICS insulation",
+      true
     ],
     [
       "Gerüstbau",
-      "Scaffolding"
+      "Scaffolding",
+      true
     ],
     [
       "Renovierung",

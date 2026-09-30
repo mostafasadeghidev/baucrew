@@ -257,7 +257,7 @@ Boards anlegen und ändern geht wie in Trello direkt in der **Leiste über dem B
 - **Kunde** (Pflicht) — tippen und wählen, oder neu anlegen (siehe 5.1).
 - **Status** — beginnt meist bei *Anfrage* oder *Beauftragt*.
 - **Auftragsart** (privat / gewerblich / öffentlich …), **Objektart** (Wohnung, Haus, Gewerbe …).
-- **Bezeichnung der Arbeit** — ein oder mehrere Kreuze (Malern, Putz, Außenfassade, WDVS …). Außenfassade, WDVS und Gerüstbau gelten als *Außenarbeit* → Wetterwarnung.
+- **Bezeichnung der Arbeit** — ein Kreuz je Gewerk, auch mehrere. Ein Gewerk mit dem Häkchen *Außenarbeit* (Einstellungen → Arbeitskategorien) bringt die Wetterwarnung mit.
 - **Subunternehmer (SUB)** — ankreuzen, wenn ein Subunternehmer die Arbeit macht. Diese Projekte werden im CRM getrennt gezählt.
 - Die **Projektnummer** (z. B. `2026-0031`) vergibt BauCrew selbst.
 
@@ -1078,7 +1078,7 @@ Benutzername und Passwort prüfen (Groß-/Kleinschreibung!). Nach mehreren Fehlv
 Ihr Konto hat keine Finanzfreigabe. Der Administrator kann sie setzen.
 
 **… keine Wetterwarnung erscheint?**
-Nur wenn das Projekt einen **erkannten Ort** hat („✓ Ort erkannt“), eine Außen-Kategorie (Außenfassade, WDVS, Gerüstbau) angekreuzt ist, der Einsatz in den nächsten 16 Tagen liegt und die Regenwahrscheinlichkeit ≥ 60 % ist. *CRM → Datenqualität* zeigt Projekte mit unauffindbarem Ort.
+Nur wenn das Projekt einen **erkannten Ort** hat („✓ Ort erkannt“), ein Gewerk mit dem Häkchen **Außenarbeit** angekreuzt ist, der Einsatz in den nächsten 16 Tagen liegt und die Regenwahrscheinlichkeit ≥ 60 % ist. Welche Gewerke draußen arbeiten, legt der Administrator unter **Einstellungen → Arbeitskategorien** mit dem Häkchen *Außenarbeit* fest — ab Werk die drei Außen-Gewerke der Grunddaten; ein umbenanntes Gewerk behält seine Warnung.
 
 **… die Kundenadresse nicht ins Projekt übernommen wurde?**
 Der Haken „Wie Kundenadresse“ wird nur automatisch gesetzt, wenn die Adressfelder leer sind und der Kunde eine Adresse hat. Haken von Hand setzen — oder beim Kunden die Adresse nachtragen.

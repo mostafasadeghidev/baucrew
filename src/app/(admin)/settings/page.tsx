@@ -593,6 +593,15 @@ export default async function SettingsPage({
                     className={`${inputClass} min-w-40 flex-1`}
                   />
                   {labelColorPicker(c.id, c.color ?? LABEL_COLORS[swatchOf(c.id)], false)}
+                  <label className="flex cursor-pointer items-center gap-1.5 px-1 text-sm" title={t("categoryOutdoorHint")}>
+                    <input
+                      type="checkbox"
+                      name="outdoor"
+                      defaultChecked={c.outdoor}
+                      className="h-4 w-4 accent-[var(--accent)]"
+                    />
+                    {t("categoryOutdoor")}
+                  </label>
                   <label className="flex cursor-pointer items-center gap-1.5 px-1 text-sm">
                     <input
                       type="checkbox"
@@ -626,6 +635,10 @@ export default async function SettingsPage({
                   className={`${inputClass} min-w-40 flex-1`}
                 />
                 {labelColorPicker("new", null, true)}
+                <label className="flex cursor-pointer items-center gap-1.5 px-1 text-sm" title={t("categoryOutdoorHint")}>
+                  <input type="checkbox" name="outdoor" className="h-4 w-4 accent-[var(--accent)]" />
+                  {t("categoryOutdoor")}
+                </label>
                 <button type="submit" className={btn.primarySm}>
                   {t("addCategory")}
                 </button>

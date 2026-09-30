@@ -3,7 +3,7 @@ import { LayoutGrid } from 'lucide-react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflicts'
-import { getRainWarnings, OUTDOOR_CATEGORIES, weatherPlace } from '@/lib/weather'
+import { getRainWarnings, isOutdoorJob, weatherPlace } from '@/lib/weather'
 import { addDays, iso, isoWeek, mondayOf, todayUtc } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
 import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
@@ -83,7 +83,7 @@ export default async function DashboardPage({
             city: true,
             latitude: true,
             longitude: true,
-            workCategories: { select: { workCategory: { select: { nameDe: true } } } },
+            workCategories: { select: { workCategory: { select: { nameDe: true, outdoor: true } } } },
           },
         },
         vehicles: { include: { vehicle: { select: { id: true, name: true, status: true } } } },
@@ -129,7 +129,7 @@ export default async function DashboardPage({
     .filter(
       (e) =>
         e.project.city &&
-        e.project.workCategories.some((wc) => OUTDOOR_CATEGORIES.includes(wc.workCategory.nameDe))
+        isOutdoorJob(e.project)
     )
     .map((e) => ({
       city: e.project.city!,

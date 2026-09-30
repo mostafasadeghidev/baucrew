@@ -322,6 +322,8 @@ const categorySchema = z.object({
   nameDe: z.string().trim().min(1).max(100),
   nameEn: z.string().trim().min(1).max(100),
   active: z.string().transform((v) => v === 'on'),
+  // Work done outside: its jobs are warned of rain.
+  outdoor: z.string().transform((v) => v === 'on'),
 })
 
 export async function createCategory(formData: FormData): Promise<SaveState> {
@@ -330,6 +332,7 @@ export async function createCategory(formData: FormData): Promise<SaveState> {
     nameDe: formData.get('nameDe') ?? '',
     nameEn: formData.get('nameEn') ?? '',
     active: 'on',
+    outdoor: formData.get('outdoor') ?? '',
   })
   if (!parsed.success) return { error: 'saveFailed' }
   const maxSort = await db.workCategory.aggregate({ _max: { sortOrder: true } })
@@ -356,6 +359,7 @@ export async function updateCategory(id: string, formData: FormData): Promise<Sa
     nameDe: formData.get('nameDe') ?? '',
     nameEn: formData.get('nameEn') ?? '',
     active: formData.get('active') ?? '',
+    outdoor: formData.get('outdoor') ?? '',
   })
   if (!parsed.success) return { error: 'saveFailed' }
   const before = await db.workCategory.findUnique({ where: { id } })

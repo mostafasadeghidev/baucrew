@@ -813,6 +813,8 @@
     "categoriesTitle": "Work categories",
     "categoryColor": "Label colour",
     "categoryColorAuto": "automatic",
+    "categoryOutdoor": "Outdoor work",
+    "categoryOutdoorHint": "Jobs with this trade get a rain warning on the schedule and the overview.",
     "categoryColorHint": "Every trade wears a label in its colour on the project board. A click on one of the ten dots sets it; for a new trade “A” takes the colour the fewest trades wear.",
     "nameDe": "Name (DE)",
     "nameEn": "Name (EN)",

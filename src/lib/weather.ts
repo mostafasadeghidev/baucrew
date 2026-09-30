@@ -112,5 +112,11 @@ export async function getRainWarnings(pairs: WeatherPair[]): Promise<RainWarning
   return warnings.sort((a, b) => a.date.localeCompare(b.date))
 }
 
-/** Work categories whose jobs are weather-sensitive (outdoor work). */
-export const OUTDOOR_CATEGORIES = ['Außenfassade', 'WDVS', 'Gerüstbau']
+/**
+ * Whether a job is weather-sensitive: one of its trades is ticked as outdoor
+ * work in Settings (Gewerke). The tick, not the trade's name — a renamed
+ * trade keeps its warnings.
+ */
+export function isOutdoorJob(project: { workCategories: Array<{ workCategory: { outdoor: boolean } }> }): boolean {
+  return project.workCategories.some((wc) => wc.workCategory.outdoor)
+}
