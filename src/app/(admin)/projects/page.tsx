@@ -236,6 +236,14 @@ export default async function ProjectsPage({
   const watched = new Set(
     kanban ? (await db.cardWatch.findMany({ where: { userId: user.id }, select: { projectId: true } })).map((w) => w.projectId) : []
   )
+  // And the ones with news the reader has not seen wear its red bell, with how many.
+  const unreadOn = new Map(
+    kanban
+      ? (
+          await db.notification.groupBy({ by: ['projectId'], where: { userId: user.id, readAt: null, projectId: { not: null } }, _count: { _all: true } })
+        ).map((n) => [n.projectId, n._count._all])
+      : []
+  )
   // Which board: the address, else the one this browser opened last, else the first.
   const board = pickBoard(boards, boardParam, (await cookies()).get(BOARD_COOKIE)?.value)
   const boardStatuses = (board?.columns ?? []).map((c) => c.status as ProjectStatus)
@@ -466,6 +474,7 @@ export default async function ProjectsPage({
           hasDescription: Boolean(p.description?.trim()),
           done: p.doneAt !== null,
           watching: watched.has(p.id),
+          unread: unreadOn.get(p.id) ?? 0,
           // The lines under the marks, in the order the client's Trello cards
           // show them; the order value only for whoever may see money.
           fields: cardFieldLines({
@@ -845,7 +854,7 @@ export default async function ProjectsPage({
      * negative margins so its ground reaches the edges, the way Trello's does.
      */
     const bar = onGround
-      ? 'bg-black/25 text-white backdrop-blur-sm [&_input]:bg-white/90 [&_input]:text-foreground'
+      ? 'bg-black/25 text-white backdrop-blur-sm'
       : 'border-b border-border bg-surface'
     return (
       <div

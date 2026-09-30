@@ -53,7 +53,9 @@ export function LiveSearchInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="min-w-52 flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+      // Its own colours, never the bar's: on the board's coloured ground the
+      // bar's text is white, and white on this box was nothing to read.
+      className="min-w-52 flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
     />
   )
 }

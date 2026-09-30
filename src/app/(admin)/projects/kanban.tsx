@@ -52,6 +52,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
   AlignLeft,
+  Bell,
   CalendarDays,
   ChevronsLeftRight,
   CircleCheck,
@@ -146,6 +147,8 @@ export type KanbanCard = {
   done: boolean
   /** The reader follows the card — Trello's eye among its marks. */
   watching: boolean
+  /** What happened on the card that the reader has not seen yet — Trello's red bell. */
+  unread: number
 }
 
 const DATE_TONE = {
@@ -1167,7 +1170,7 @@ export function ProjectsKanban({
               {/* Each column carries its own scroll. One column holding a couple
                   of hundred finished projects would otherwise make every column
                   that tall, and the whole page with them. */}
-              <div data-board-cards className="min-h-2 flex-1 space-y-2 overflow-y-auto px-2 py-1">
+              <div data-board-cards className="list-scroll min-h-2 flex-1 space-y-2 overflow-y-auto px-2 py-1">
                 {column.cards.length === 0 && !dragging && (
                   <p className="px-1 py-4 text-center text-[11px] text-muted">{labels.empty}</p>
                 )}
@@ -1348,19 +1351,22 @@ export function ProjectsKanban({
                       </Link>
                     )}
                     </div>
-                    {/* What the card carries, as small marks: a description, the
-                        dates coloured when they press, the checklist, what is
-                        open, what is attached and said; and who is on it. */}
+                    {/* What the card carries, as small marks in Trello's order:
+                        news for the reader in red, the eye, the dates coloured
+                        when they press, the description, what is said and
+                        attached, the checklist — then what is open on the
+                        site; and who is on it. */}
                     <div className="mt-1.5 flex items-end justify-between gap-2">
-                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
-                        {card.watching && (
-                          <span title={t('cardWatched')} className={mark('')}>
-                            <Eye className="h-3 w-3 shrink-0" aria-hidden />
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                        {card.unread > 0 && (
+                          <span title={t('cardUnread', { count: card.unread })} className={mark('', 'bg-danger text-white dark:bg-danger')}>
+                            <Bell className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            {card.unread}
                           </span>
                         )}
-                        {card.hasDescription && (
-                          <span title={t('cardDescription')} className={mark('')}>
-                            <AlignLeft className="h-3 w-3 shrink-0" aria-hidden />
+                        {card.watching && (
+                          <span title={t('cardWatched')} className={mark('')}>
+                            <Eye className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           </span>
                         )}
                         {card.dates && (
@@ -1368,7 +1374,7 @@ export function ProjectsKanban({
                             title={card.done ? t('cardDoneState') : card.dates.tone === 'late' ? t('cardLate') : card.dates.tone === 'soon' ? t('cardSoon') : t('cardDates')}
                             className={mark('', card.done ? DATE_TONE.done : card.dates.tone ? DATE_TONE[card.dates.tone] : '')}
                           >
-                            <CalendarDays className="h-3 w-3 shrink-0" aria-hidden />
+                            <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
                             {card.dates.text}
                           </span>
                         )}
@@ -1377,8 +1383,25 @@ export function ProjectsKanban({
                             title={card.done ? t('cardDoneState') : card.due.tone === 'late' ? t('cardDueLate') : card.due.tone === 'soon' ? t('cardDueSoon') : t('cardDue')}
                             className={mark('', card.done ? DATE_TONE.done : card.due.tone ? DATE_TONE[card.due.tone] : '')}
                           >
-                            <Clock className="h-3 w-3 shrink-0" aria-hidden />
+                            <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
                             {card.due.text}
+                          </span>
+                        )}
+                        {card.hasDescription && (
+                          <span title={t('cardDescription')} className={mark('')}>
+                            <AlignLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          </span>
+                        )}
+                        {card.comments > 0 && (
+                          <span title={t('cardComments', { count: card.comments })} className={mark('')}>
+                            <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            {card.comments}
+                          </span>
+                        )}
+                        {card.files > 0 && (
+                          <span title={t('cardFiles', { count: card.files })} className={mark('')}>
+                            <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            {card.files}
                           </span>
                         )}
                         {card.checklist && (
@@ -1393,32 +1416,20 @@ export function ProjectsKanban({
                                   : ''
                             )}
                           >
-                            <ListChecks className="h-3 w-3 shrink-0" aria-hidden />
+                            <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
                             {card.checklist.done}/{card.checklist.total}
                           </span>
                         )}
                         {card.tasks > 0 && (
                           <span title={t('cardTasks', { count: card.tasks })} className={mark('')}>
-                            <CircleCheck className="h-3 w-3 shrink-0" aria-hidden />
+                            <CircleCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
                             {card.tasks}
                           </span>
                         )}
                         {card.defects > 0 && (
                           <span title={t('cardDefects', { count: card.defects })} className={mark('', 'bg-danger/10 text-danger')}>
-                            <TriangleAlert className="h-3 w-3 shrink-0" aria-hidden />
+                            <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
                             {card.defects}
-                          </span>
-                        )}
-                        {card.files > 0 && (
-                          <span title={t('cardFiles', { count: card.files })} className={mark('')}>
-                            <Paperclip className="h-3 w-3 shrink-0" aria-hidden />
-                            {card.files}
-                          </span>
-                        )}
-                        {card.comments > 0 && (
-                          <span title={t('cardComments', { count: card.comments })} className={mark('')}>
-                            <MessageSquare className="h-3 w-3 shrink-0" aria-hidden />
-                            {card.comments}
                           </span>
                         )}
                       </div>
@@ -1444,20 +1455,21 @@ export function ProjectsKanban({
                       )}
                     </div>
                     {/* The field lines, the way the client's Trello cards carry them:
-                        "Kundenname: …", three of them on a coloured ground. */}
+                        "Kundenname: …" in one grey, a line each, cut at the card's
+                        edge — and three of them, name and value together, on a
+                        coloured ground. */}
                     {details && card.fields.length > 0 && (
-                      <dl className="mt-1.5 space-y-0.5 text-[11px] leading-4">
+                      <dl className="mt-2 space-y-1 text-xs leading-5 text-[#44546f] dark:text-[#9fadbc]">
                         {card.fields.map((field) => {
                           const tone = CARD_FIELD_TONE[field.key]
                           return (
-                            <div key={field.key} className="flex min-w-0 items-baseline gap-1">
-                              <dt className="shrink-0 text-muted">{t(`cardField_${field.key}`)}:</dt>
-                              <dd
-                                title={field.text}
-                                className={`min-w-0 truncate ${tone ? `rounded-sm px-1 font-medium tabular-nums ${FIELD_CHIP[tone]}` : 'text-foreground'}`}
-                              >
-                                {field.text}
-                              </dd>
+                            <div
+                              key={field.key}
+                              title={field.text}
+                              className={`flex min-w-0 max-w-full ${tone ? `w-fit rounded px-1.5 tabular-nums ${FIELD_CHIP[tone]}` : ''}`}
+                            >
+                              <dt className="shrink-0">{t(`cardField_${field.key}`)}:</dt>
+                              <dd className="ml-1 min-w-0 truncate">{field.text}</dd>
                             </div>
                           )
                         })}

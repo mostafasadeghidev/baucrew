@@ -90,6 +90,21 @@
 }
 
 
+/* A board list's own scroll: a thin bar, out of sight until the pointer is
+   over the list, then there to be dragged. Its room is kept either way, so
+   the cards do not shift sideways when it shows. Where the scrollbar floats
+   over the page (macOS, phones, tablets) the system's own takes over. */
+.list-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.list-scroll:hover {
+  scrollbar-color: rgb(0 0 0 / 0.3) transparent;
+}
+.dark .list-scroll:hover {
+  scrollbar-color: rgb(255 255 255 / 0.3) transparent;
+}
+
 /* Date/time inputs: same frame as the other controls, picker icon tinted like
    a shadcn trigger (the native picker is kept — it is the better tool on the
    site tablets and phones). */

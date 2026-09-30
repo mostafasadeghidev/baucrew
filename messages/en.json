@@ -581,6 +581,7 @@
     "watching": "Watching",
     "watchHint": "Watch this card: comments, moves and due dates appear in your notifications.",
     "watchingHint": "You are watching this card — click to stop.",
+    "cardUnread": "{count, plural, one {# new notification} other {# new notifications}} on this card",
     "cardWatched": "You are watching this card.",
     "nComment": "commented: {text}",
     "nMoved": "moved the card to “{list}”",
