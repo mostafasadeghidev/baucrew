@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   DRAG_THRESHOLD,
   LONG_PRESS_MS,
   LONG_PRESS_SLOP,
   carry,
   drop as dropGhost,
+  holdTouchDrag,
   lift,
   zoneAtPoint,
 } from "@/lib/card-lift";
@@ -120,6 +121,9 @@ export function MonthBoard({
     el: HTMLElement;
   } | null>(null);
   const suppressClick = useRef(false);
+
+  // A finger carrying a chip is not scrolling the page (src/lib/card-lift.ts).
+  useEffect(() => holdTouchDrag(() => grab.current?.active === true), []);
 
   function cellAtPoint(x: number, y: number): string | null {
     return zoneAtPoint(x, y, "[data-day-column]", "dayColumn");

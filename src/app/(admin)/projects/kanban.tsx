@@ -77,7 +77,7 @@ import { Menu, MenuLabel, MenuSeparator, menuItemClass } from '@/components/ui/m
 import { Combobox } from '@/components/combobox'
 import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
-import { DRAG_THRESHOLD, LONG_PRESS_MS, LONG_PRESS_SLOP, carry, drop as dropGhost, lift } from '@/lib/card-lift'
+import { DRAG_THRESHOLD, LONG_PRESS_MS, LONG_PRESS_SLOP, carry, drop as dropGhost, holdTouchDrag, lift } from '@/lib/card-lift'
 import { isVerticalWheel, wheelPixels } from '@/lib/wheel-axis'
 import { useCardDetails, useCollapsedColumns, useLabelsOpen } from './board-prefs'
 import { dragHasFiles, uploadProjectFiles } from './[id]/upload-files'
@@ -955,6 +955,10 @@ export function ProjectsKanban({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // A finger carrying a card or a list is not scrolling the page: without this
+  // a phone picked the card up and dropped it back on the first move.
+  useEffect(() => holdTouchDrag(() => grab.current?.kind === 'card' || grab.current?.kind === 'column'), [])
+
   // The wheel keeps to one axis at a time. A trackpad reports a few pixels of
   // sideways movement on almost every downward swipe, and a strip that can
   // scroll sideways takes them: reading down the board slid it left and right
@@ -1242,7 +1246,7 @@ export function ProjectsKanban({
                     // alone meant the board could only be moved by the narrow
                     // strips between the columns.
                     style={{ touchAction: 'pan-x pan-y' }}
-                    className={`group relative cursor-pointer overflow-hidden [contain-intrinsic-size:auto_140px] [content-visibility:auto] ${CARD} ring-accent/70 transition-shadow hover:ring-2 ${
+                    className={`group relative cursor-pointer overflow-hidden [-webkit-touch-callout:none] [contain-intrinsic-size:auto_140px] [content-visibility:auto] ${CARD} ring-accent/70 transition-shadow hover:ring-2 ${
                       fileOver === card.id ? 'ring-2 ring-accent' : ''
                     } ${sending === card.id ? 'opacity-60' : ''} ${selected === card.id ? 'ring-2 ring-accent' : ''}`}
                   >

@@ -5,6 +5,7 @@ import {
   LONG_PRESS_MS,
   LONG_PRESS_SLOP,
   carryTransform,
+  holdTouchDrag,
 } from '@/lib/card-lift'
 
 describe('carryTransform', () => {
@@ -36,5 +37,41 @@ describe('the numbers the gesture is made of', () => {
   it('tips what is carried, but only just', () => {
     expect(CARRY_TILT).toBeGreaterThan(0)
     expect(CARRY_TILT).toBeLessThan(5)
+  })
+})
+
+describe('a finger carrying something', () => {
+  const move = () => new Event('touchmove', { cancelable: true })
+
+  it('does not scroll the page while something is in hand', () => {
+    const page = new EventTarget()
+    let carrying = false
+    holdTouchDrag(() => carrying, page)
+
+    const before = move()
+    page.dispatchEvent(before)
+    expect(before.defaultPrevented).toBe(false)
+
+    carrying = true
+    const during = move()
+    page.dispatchEvent(during)
+    expect(during.defaultPrevented).toBe(true)
+  })
+
+  it('keeps the long press from opening its menu over a thing in hand', () => {
+    const page = new EventTarget()
+    holdTouchDrag(() => true, page)
+    const menu = new Event('contextmenu', { cancelable: true })
+    page.dispatchEvent(menu)
+    expect(menu.defaultPrevented).toBe(true)
+  })
+
+  it('leaves the page alone once taken off', () => {
+    const page = new EventTarget()
+    const release = holdTouchDrag(() => true, page)
+    release()
+    const after = move()
+    page.dispatchEvent(after)
+    expect(after.defaultPrevented).toBe(false)
   })
 })

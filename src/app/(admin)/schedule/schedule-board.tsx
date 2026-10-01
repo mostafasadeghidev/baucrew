@@ -7,6 +7,7 @@ import {
   LONG_PRESS_SLOP,
   carry,
   drop as dropGhost,
+  holdTouchDrag,
   lift,
   zoneAtPoint,
 } from '@/lib/card-lift'
@@ -157,6 +158,9 @@ export function ScheduleBoard({
     ghost: HTMLElement | null
     el: HTMLElement
   } | null>(null)
+
+  // A finger carrying an assignment is not scrolling the page (src/lib/card-lift.ts).
+  useEffect(() => holdTouchDrag(() => grab.current?.active === true), [])
 
   function columnAtPoint(x: number, y: number): string | null {
     return zoneAtPoint(x, y, '[data-day-column]', 'dayColumn')
