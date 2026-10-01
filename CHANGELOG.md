@@ -3,6 +3,32 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.48.0] — 2026-10-01
+
+### Added
+- **Trello's red bell on the cards.** A card with news the reader has not
+  seen yet — a comment, a move, a file, dates — wears a red bell with how
+  many, in front of its other marks. Opening the card reads them: the bell on
+  the card goes out, and their lines in the corner bell are no longer new.
+
+### Changed
+- **The card front follows the client's Trello cards more closely.** The
+  field lines are one grey, a size up, a line each; the three coloured ones
+  (order value, site visit, the day the card came in) wear their ground under
+  the name and the value together, as Trello draws them. The small marks
+  stand in Trello's order — the eye, the dates, the description, comments,
+  attachments, the checklist — followed by the site's open tasks and
+  defects.
+- **A list's own scrollbar** is thin and out of sight until the pointer is
+  over the list; then it is there to be dragged. Its room is kept, so the
+  cards do not shift when it shows. The board's bar along the bottom is
+  unchanged.
+
+### Fixed
+- **The search box above the board** could not be read: on a board with a
+  coloured ground, in the dark theme, both the typed words and the hint were
+  near-white on a white box. It carries its own colours now.
+
 ## [1.47.0] — 2026-09-30
 
 ### Added
