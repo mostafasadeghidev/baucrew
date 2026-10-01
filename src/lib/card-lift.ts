@@ -80,6 +80,35 @@ export function drop(ghost: HTMLElement | null, el?: HTMLElement | null) {
   if (el) el.style.opacity = ''
 }
 
+/**
+ * Keeps a finger's drag a drag. A thing is picked up by a finger resting on
+ * it, and it is marked `touch-action: pan-x pan-y` so that a finger which does
+ * not rest still scrolls the board. But once the thing is in hand the browser
+ * cannot tell the finger's next move from a scroll either: it starts one,
+ * cancels the pointer, and the thing falls back where it was — picked up on a
+ * phone, and never carried anywhere. A touchmove listener that is not passive
+ * turns that scroll down while `carrying()` says something is in hand; it is
+ * there from the start, since Safari takes no notice of one added while the
+ * finger is already down. The long press's own menu (a link's preview) is
+ * turned down the same way.
+ *
+ * Returns the function that takes the listeners off again.
+ */
+export function holdTouchDrag(carrying: () => boolean, target: EventTarget = window): () => void {
+  const onTouchMove = (e: Event) => {
+    if (e.cancelable && carrying()) e.preventDefault()
+  }
+  const onMenu = (e: Event) => {
+    if (carrying()) e.preventDefault()
+  }
+  target.addEventListener('touchmove', onTouchMove, { passive: false })
+  target.addEventListener('contextmenu', onMenu)
+  return () => {
+    target.removeEventListener('touchmove', onTouchMove)
+    target.removeEventListener('contextmenu', onMenu)
+  }
+}
+
 /** The element of `selector` under a point, and the id it carries. */
 export function zoneAtPoint(x: number, y: number, selector: string, dataKey: string): string | null {
   const zone = document.elementFromPoint(x, y)?.closest<HTMLElement>(selector)

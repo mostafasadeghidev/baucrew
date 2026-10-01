@@ -7,6 +7,7 @@ import {
   LONG_PRESS_SLOP,
   carry,
   drop as dropGhost,
+  holdTouchDrag,
   lift,
   zoneAtPoint,
 } from '@/lib/card-lift'
@@ -51,6 +52,9 @@ export function WidgetGrid({ items, editing }: { items: GridItem[]; editing: boo
     ghost: HTMLElement | null
     el: HTMLElement
   } | null>(null)
+
+  // A finger carrying a card is not scrolling the page (src/lib/card-lift.ts).
+  useEffect(() => holdTouchDrag(() => grab.current?.active === true), [])
 
   const byId = new Map(items.map((i) => [i.id, i]))
   const sorted = order.map((id) => byId.get(id)).filter((i): i is GridItem => i !== undefined)
