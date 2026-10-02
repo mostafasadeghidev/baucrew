@@ -3,6 +3,18 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.49.0] — 2026-10-02
+
+### Added
+- **The browser tab wears the company's own icon.** Settings →
+  Firmenauftritt has a *Symbol im Browser-Tab* under the logo: a square
+  image (PNG, ICO or SVG, max. 256 KB) for the tab and for a phone's home
+  screen. A logo is usually wide and only a smudge at tab size, so the icon
+  is uploaded on its own. Until one is uploaded the tab shows the first
+  letter of the company's name on the company colour, and follows a new
+  name or colour by itself; *Symbol entfernen* goes back to it. Until now
+  the tab showed the framework's default icon and nothing could change it.
+
 ## [1.48.1] — 2026-10-01
 
 ### Fixed
