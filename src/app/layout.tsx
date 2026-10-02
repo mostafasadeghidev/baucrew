@@ -13,9 +13,12 @@ const geistSans = Geist({
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBranding()
+  // The company's own icon in the tab and on a phone's home screen (src/app/brand-icon).
+  const icon = `/brand-icon?v=${branding.iconVersion}`
   return {
     title: branding.companyName,
     description: 'Einsatz- und Projektverwaltung',
+    icons: { icon, apple: icon },
     // See the note on <html translate="no"> below.
     other: { google: 'notranslate' },
   }

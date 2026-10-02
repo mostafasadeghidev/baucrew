@@ -20,6 +20,7 @@ import { getRainThreshold } from "@/lib/weather";
 import { getPrepTabConfig } from "@/lib/prep-tab-db";
 import { ALL_PROJECT_STATUSES } from "@/lib/prep-tab";
 import { LogoUploader } from "./logo-uploader";
+import { FaviconUploader } from "./favicon-uploader";
 import { BackupRestore } from "./backup-restore";
 import { SavedForm } from "@/components/saved-form";
 import { ParamTabs } from "@/components/param-tabs";
@@ -339,9 +340,18 @@ export default async function SettingsPage({
                 </SavedForm>
               </div>
 
-              <div className="space-y-1.5">
-                <p className="text-sm font-medium">{t("logoTitle")}</p>
-                <LogoUploader hasLogo={branding.hasLogo} />
+              <div className="space-y-6">
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium">{t("logoTitle")}</p>
+                  <LogoUploader hasLogo={branding.hasLogo} />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium">{t("faviconTitle")}</p>
+                  <FaviconUploader
+                    hasFavicon={branding.hasFavicon}
+                    version={branding.iconVersion}
+                  />
+                </div>
               </div>
             </div>
           </Card>

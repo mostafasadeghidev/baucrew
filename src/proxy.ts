@@ -9,6 +9,7 @@ export default function proxy(request: NextRequest) {
   const isPublic =
     pathname === '/login' ||
     pathname === '/logo' ||
+    pathname === '/brand-icon' ||
     pathname.startsWith('/api/inbound/') ||
     pathname.startsWith('/api/v1/') ||
     pathname === '/api/mcp'

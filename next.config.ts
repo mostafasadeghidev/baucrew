@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
     // of 1 MB rejects it before the importer ever sees it.
     serverActions: { bodySizeLimit: '512mb' },
   },
+  // A browser that asks for /favicon.ico on its own (a PDF in a tab, an old
+  // bookmark) gets the company's icon too, not a 404 (src/app/brand-icon).
+  async rewrites() {
+    return [{ source: '/favicon.ico', destination: '/brand-icon' }]
+  },
 }
 
 export default withNextIntl(nextConfig)

@@ -17,6 +17,7 @@ import type { SaveState } from '@/components/saved-form'
 import { deleteUserBlockReason } from '@/lib/user-guards'
 import { PREP_TAB_KEY, prepTabConfigFromForm, serializePrepTabConfig } from '@/lib/prep-tab'
 import { normalizeAccent } from "@/lib/branding";
+import { FAVICON_MAX_BYTES, faviconType } from "@/lib/brand-icon";
 import { labelColorKey, nextLabelColor } from '@/lib/board-cards'
 import {
   optionListFromForm,
@@ -240,6 +241,38 @@ export async function resetLogo(): Promise<void> {
     entity: 'AppSetting',
     entityId: 'logo',
   })
+  revalidatePath('/', 'layout')
+}
+
+// ── Tab icon ─────────────────────────────────────────────────
+
+export type FaviconState = { error?: 'faviconTooLarge' | 'faviconInvalidType' | 'saveFailed'; savedAt?: number }
+
+/**
+ * The browser tab's icon (src/lib/brand-icon.ts). The file is taken for what
+ * its first bytes say it is, not for its name: a PNG, an .ico or an SVG.
+ */
+export async function uploadFavicon(_prev: FaviconState, formData: FormData): Promise<FaviconState> {
+  const admin = await requireAdmin()
+  const file = formData.get('favicon')
+  if (!(file instanceof File) || file.size === 0) return { error: 'saveFailed' }
+  if (file.size > FAVICON_MAX_BYTES) return { error: 'faviconTooLarge' }
+  const bytes = Buffer.from(await file.arrayBuffer())
+  const type = faviconType(bytes)
+  if (!type) return { error: 'faviconInvalidType' }
+
+  const value = `data:${type};base64,${bytes.toString('base64')}`
+  await db.appSetting.upsert({ where: { key: 'favicon' }, update: { value }, create: { key: 'favicon', value } })
+  await audit({ userId: admin.id, action: 'settings.favicon', entity: 'AppSetting', entityId: 'favicon' })
+  revalidatePath('/', 'layout')
+  return { savedAt: Date.now() }
+}
+
+/** Back to the generated icon: the company's first letter on its colour. */
+export async function resetFavicon(): Promise<void> {
+  const admin = await requireAdmin()
+  await db.appSetting.deleteMany({ where: { key: 'favicon' } })
+  await audit({ userId: admin.id, action: 'settings.favicon.reset', entity: 'AppSetting', entityId: 'favicon' })
   revalidatePath('/', 'layout')
 }
 

@@ -3,18 +3,6 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
-## [1.48.1] — 2026-10-01
-
-### Fixed
-- **A finger can carry a card again on a phone.** A card on the projects
-  board was picked up by the long press and fell back where it was on the
-  first move: the browser took the finger's move for a scroll of the page
-  and cancelled the drag. While something is in hand the page no longer
-  scrolls, and the long press no longer opens a link's menu over it; a
-  finger that does not rest on a card still scrolls the board as before.
-  The same held for the lists' heads, the week and month schedule and
-  arranging the overview's cards, which carry the same way.
-
 ## [1.48.0] — 2026-10-01
 
 ### Added
