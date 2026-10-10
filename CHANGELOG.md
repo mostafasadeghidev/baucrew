@@ -3,6 +3,167 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.51.0] — 2026-10-10
+
+The fixes from the review of the integrated main, and the office's job number
+on the card. Production goes from 1.49.0 to this one: the deploy applies the
+migrations `20261002090509_project_link_external_list_id`,
+`20261006130000_device_external_data` and
+`20261010120000_trello_notes_office_only`.
+
+### Added
+- **The office's job number on the card.** The number in brackets behind a
+  Trello card's title — the office's own job number — stands under the card's
+  name on the board and under the title on the project page, small and grey;
+  pointing at it shows a copy mark, a click copies it. The board search finds
+  a card by its digits. (#33)
+- A temporary `/checklist` page, typed in by hand, with what is done and open
+  across the sessions working on BauCrew; deleted when the software is
+  finished. (#35)
+
+### Fixed
+- **Files are served safely.** `/api/files` shows only pictures, PDFs and
+  plain text inline; every other type is a download with `nosniff` and a
+  sandboxing policy, so an HTML or SVG attachment fetched from Trello can no
+  longer run on the app's origin. A crew account gets a project's files only
+  when it works on that project. The Trello fetcher keeps only file types the
+  project accepts. (#29)
+- **Live search keeps what is typed** — a search landing mid-word no longer
+  snaps the box back (regression of 1.49.0). The import wizard skips archived
+  lists by default again. (#29)
+- **Board and card:** *Karte verschieben* carries a Trello list's mirror rule;
+  a card opened without a board in the address takes the board last looked
+  at; `addColumn` validates a mirror column's status; site managers no longer
+  see the count of office-only comments or their feed lines; the schedule
+  dialog's backdrop sits above the sticky head. (#29)
+- **Trello import holds up:** project numbers come from the shared generator
+  with its retry on a clash; a refused card link is logged, not swallowed;
+  the file fetch has a 30 s timeout, reads at most 25 MB, skips refused links
+  for six hours and removes a file whose database row failed; rules sent by
+  the browser are checked against real board columns. Migration
+  `20261010120000_trello_notes_office_only` turns the comments the 1.49.0
+  importer wrote as team notes into office-only notes. (#32)
+- **Wattro:** an invalid date renders as "—" instead of taking the Devices
+  page down; the device page gates on the system stamp like the server; a key
+  that may read machines but not the employee and project lists gets its own
+  message. (#31)
+- **Text from Trello:** an escaped mark (`\*\*Kunde:\*\*`) shows the sign
+  itself, not the backslash. The SUB pill reads its word from the messages.
+  Card links on the board and in the list no longer prefetch every card's
+  page. (#34)
+- Wattro sync logs an error's kind, not the row with names and coordinates;
+  the rollback in `docs/CHANGE-reporting-cleanup.md` names files; the audit
+  document left the repository. (#29)
+
+## [1.50.0] — 2026-10-10
+
+### Added
+- **The Trello import brings everything a card carries.** Settings → Import
+  aus Trello now takes over, besides title, description, list and due day:
+  the archived cards (as archived projects), the card's place in its list,
+  its start day, the members as the project's team, the labels as trades,
+  the checklists with their ticks, the comments as office-only notes at
+  Trello's own time, attached web addresses as links, and the attached files
+  — first as links to Trello, then, with a read-only Trello key on the
+  server (`TRELLO_API_KEY`, `TRELLO_TOKEN`), fetched into the project's
+  files by *Dateien abholen*; the card's cover becomes the project's. The
+  board itself can come along as a board of the same name with one column
+  per Trello list, and a board that holds no customer jobs can be filed
+  under one customer. The import can be run again at any time: a card is
+  found by its Trello id, comments by their time, checklists by their name,
+  files by their address, so nothing doubles; fields of a project that
+  already exists are only filled where they are still empty. Checkboxes
+  choose fields, checklists, comments and checklist templates per import.
+  Details in `docs/CHANGE-trello-full-import.md`.
+- **Board columns that mirror Trello lists.** A column can be bound to one
+  Trello list (`docs/CHANGE-trello-list-columns.md`): a card stands in the
+  column of the list its Trello card is in, a move between mirror columns
+  moves the card's list, and a column of a mirrored board is its own title.
+  The import fills these columns; migration
+  `20261002090509_project_link_external_list_id`.
+- **The card opens at an address of its own.** A card on the board opens
+  as a sheet over the board at `/projects/card/<id>`, so a link to a card
+  can be sent and the browser's Back closes it; old `?card=` links still
+  work. A click beside the card closes it, and asks first when text in the
+  card is not saved yet. Details in `docs/CHANGE-card-route.md`.
+- **The Devices page shows the company's Wattro machines — and where each
+  one is.** For a company whose tools live in Wattro, the device list is
+  read from Wattro every hour by itself, and by hand with *Mit Wattro
+  abgleichen* — read-only, nothing is ever written to Wattro. Machines are
+  matched by Wattro id, then by inventory number, never by name. The page
+  answers "where is it?": tabs *Im Lager*, *Bei Mitarbeitern* and *Auf
+  Baustellen* with their counts; a list with the holder or site, since
+  when, and when and how a machine was last scanned; a board with one list
+  per place (stores, each employee, each site); and a map with a numbered
+  pin per spot where machines were last seen. A Wattro machine's own page
+  shows everything Wattro knows about it — brand, model, serial number,
+  home store, tags, inspection and reservation dates, its last position on
+  a map; the purchase price only for users who may see prices. Such a
+  machine is edited, retired and handed out in Wattro, not here: the app
+  refuses those changes, and a project's needed devices say *laut Wattro:
+  …* instead of offering a hand-out. Hidden until the server has
+  `WATTRO_API_KEY` and `WATTRO_BASE_URL`; `WATTRO_SYNC_INTERVAL_MINUTES`
+  changes the hourly interval (`0` = off). Migration
+  `20261006130000_device_external_data`. Details in
+  `docs/CHANGE-wattro-devices.md`.
+- **Search above the board**, opened from the magnifier, and **Alle
+  Projekte**: every board's scope, including all projects, has both a board
+  and a list.
+
+### Changed
+- **CRM is now Auswertungen** (EN: *Reporting*) with four tabs — Vergleich,
+  Planumsatz, Auslastung, Datenlücken. The page only reads what the
+  projects add up to; the working lists live on the project boards. The
+  comparison's tooltips and year bars follow the chosen period, the running
+  total is no longer compared against an empty year, Auslastung counts only
+  scheduled days and lists idle vehicles, Datenlücken is a tile per kind of
+  gap with a table under it and knows a new kind, *Baustelle ohne Ort*. Old
+  addresses redirect. Details in `docs/CHANGE-reporting-cleanup.md`.
+- **One toolbar for board and list.** The boards stand as pills with their
+  colour as a swatch, then *Alle Projekte*, the board/list icons, search,
+  filter, year, the new-project button and the menu — the same in both
+  views, so no control has to be hunted for after a switch. Completion and
+  activity filters travel in both directions; the list of a board shows the
+  board's own statuses; a board loads only its own cards. The admin's "+"
+  and the edit arrow on the open board stay in the bar. Details in
+  `docs/CHANGE-projects-board-first.md`.
+- **The admin area follows the Untitled UI shell.** A quiet grey canvas
+  with two white panels on it — the sidebar and the page — with the same
+  margin, border and rounded corners; nothing lying on the page casts a
+  shadow any more, only what floats (menus, popovers, dialogs). Every page
+  has one head row: its name, its tabs as quiet pills, its actions. The
+  board has no coloured or photo ground any more; a board's colour is the
+  swatch in its tab; lists are grey wells, cards white with a hairline.
+  Buttons and selects have fixed heights; the font is Inter. Details in
+  `docs/CHANGE-ui-overhaul.md`.
+- **Cards on the board** show their field lines the way the client's Trello
+  cards carry them, and the completion tick slides the title aside on hover
+  instead of reflowing it.
+
+### Removed
+- The *Heute*, *Aufträge & Baustellen* and *Pipeline* tabs of the former CRM
+  and the year matrix layout of Planumsatz; their loaders stay in the code
+  for a later place.
+
+### Fixed
+- The Trello import no longer writes a field option's id into the
+  description where the card's *Art der Arbeit* was a choice, and splits a
+  site address into street, postcode and town in every shape the boards use;
+  a typed amount with a thousands dot is read as one.
+- The open board's edit arrow carried the same key as its tab.
+
+### Infrastructure
+- `docker-compose.yml` passes `TRELLO_API_KEY`, `TRELLO_TOKEN`,
+  `WATTRO_API_KEY`, `WATTRO_BASE_URL`, `WATTRO_SYNC_INTERVAL_MINUTES` and
+  `INBOUND_API_KEY` through to the app container (empty means not configured); `DEPLOYMENT.md` lists them.
+- The Wattro client never falls back to its development host in
+  production: without `WATTRO_BASE_URL` the sync counts as not configured.
+- `.dockerignore` keeps `storage/`, `local/`, docs and tests out of the
+  build context; the migration CLI in the image is pinned to the client's
+  Prisma minor; the dev database binds to localhost only.
+- `npm run db:migrate` (`prisma migrate dev`) must never run against a
+  database with data — `npm run db:deploy` applies migrations there.
+
 ## [1.49.0] — 2026-10-02
 
 ### Added

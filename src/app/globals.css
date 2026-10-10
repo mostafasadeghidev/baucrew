@@ -4,39 +4,45 @@
 
 /* Semantic color tokens. Components use ONLY these (via the @theme mapping
    below) so light/dark stay consistent everywhere. */
+/* The palette is Untitled UI's gray scale: a quiet canvas the panels stand
+   on, white panels, one hairline border for dividing and a stronger one for
+   the edges of controls. The page is flat — surfaces are told apart by their
+   border, never by a shadow. Only what floats above the page (menus,
+   popovers, dialogs) casts one; see the shadow scale in @theme below. */
 :root {
-  --background: #f4f4f5;
+  --background: #f5f5f5;
   --surface: #ffffff;
-  --surface-hover: #f4f4f5;
-  --border: #e4e4e7;
-  --foreground: #18181b;
-  --muted: #71717a;
+  --surface-hover: #f5f5f5;
+  --border: #e9eaeb;
+  --border-strong: #d5d7da;
+  --foreground: #181d27;
+  --muted: #535862;
   --accent: #1d4ed8;
   --accent-hover: #1e40af;
   --accent-foreground: #ffffff;
-  --danger: #dc2626;
-  /* Sidebar + subtle surfaces (segmented tabs, menus). The rail is a panel on
-     the page now, so it is the same white as every card: at #fbfbfc against a
-     #f4f4f5 page there was nothing to see it against. */
+  --danger: #d92d20;
+  /* The rail is a panel like every other: the same white. */
   --sidebar: #ffffff;
-  --subtle: #f1f1f3;
+  /* Tracks, columns and wells inside a white panel. */
+  --subtle: #f5f5f5;
   --ring: #1d4ed8;
   color-scheme: light;
 }
 
 .dark {
-  --background: #101012;
-  --surface: #1b1b1f;
-  --surface-hover: #26262b;
-  --border: #2e2e33;
-  --foreground: #ececee;
-  --muted: #9d9da6;
+  --background: #0c0e12;
+  --surface: #13161b;
+  --surface-hover: #1f232a;
+  --border: #22262f;
+  --border-strong: #373a41;
+  --foreground: #f7f7f7;
+  --muted: #94979c;
   --accent: #3b82f6;
   --accent-hover: #60a5fa;
   --accent-foreground: #ffffff;
-  --danger: #f87171;
-  --sidebar: #161619;
-  --subtle: #232328;
+  --danger: #f97066;
+  --sidebar: #13161b;
+  --subtle: #1a1d23;
   --ring: #3b82f6;
   color-scheme: dark;
 }
@@ -46,6 +52,7 @@
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
@@ -55,7 +62,17 @@
   --color-sidebar: var(--sidebar);
   --color-subtle: var(--subtle);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Untitled UI's elevation scale, for what floats: menus, popovers, dialogs,
+   toasts. Nothing that lies on the page wears one. `shadow-sm` is gone from
+   the app on purpose — a card is framed by its border. */
+@theme {
+  --shadow-md: 0 4px 6px -1px rgb(10 13 18 / 0.1), 0 2px 4px -2px rgb(10 13 18 / 0.06);
+  --shadow-lg: 0 12px 16px -4px rgb(10 13 18 / 0.08), 0 4px 6px -2px rgb(10 13 18 / 0.03), 0 2px 2px -1px rgb(10 13 18 / 0.04);
+  --shadow-xl: 0 20px 24px -4px rgb(10 13 18 / 0.08), 0 8px 8px -4px rgb(10 13 18 / 0.03), 0 3px 3px -1.5px rgb(10 13 18 / 0.04);
+  --shadow-2xl: 0 24px 48px -12px rgb(10 13 18 / 0.18), 0 4px 4px -2px rgb(10 13 18 / 0.04);
 }
 
 @layer base {
@@ -69,18 +86,6 @@
      floats over the page (macOS, phones, tablets) this changes nothing. */
   html {
     overflow-y: scroll;
-  }
-
-  /* How tall the frosted strip under a page's bar is: the gap between the bar
-     and the first sheet, which the container the bar sits in decides. Measured
-     on every admin page — 16px under space-y-4 and gap-4, 24px under space-y-6
-     and gap-6. See StickyHead. */
-  .page-head {
-    --page-head-gap: 1rem;
-  }
-  .space-y-6 > .page-head,
-  .gap-6 > .page-head {
-    --page-head-gap: 1.5rem;
   }
 
   body {

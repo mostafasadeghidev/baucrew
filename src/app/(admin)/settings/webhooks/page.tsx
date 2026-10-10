@@ -114,7 +114,7 @@ export default async function WebhooksPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                <tr className="border-b border-border text-left text-xs text-muted">
                   <th className={th}>{t('webhookColTime')}</th>
                   <th className={th}>{t('webhookColEndpoint')}</th>
                   <th className={th}>{t('webhookColEvent')}</th>

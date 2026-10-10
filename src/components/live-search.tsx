@@ -1,10 +1,11 @@
 'use client'
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { Select } from './ui/select'
 
-function useParamUpdater() {
+/** Writes one query parameter (and what it clears or carries) without a history entry. */
+export function useParamUpdater() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -32,30 +33,78 @@ function useParamUpdater() {
 export function LiveSearchInput({
   placeholder,
   param = 'q',
+  className,
+  autoFocus,
 }: {
   placeholder: string
   param?: string
+  autoFocus?: boolean
+  className?: string
 }) {
   const searchParams = useSearchParams()
   const update = useParamUpdater()
-  const [value, setValue] = useState(searchParams.get(param) ?? '')
+  const inAddress = searchParams.get(param) ?? ''
+  // What is typed lives here, not in the address: a search that lands while
+  // the next letters are being typed must not snap the box back to it.
+  const [value, setValue] = useState(inAddress)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The searches this box sent and has not seen land yet. An address that
+  // carries one of them is this box's own doing; any other is somebody else's
+  // — a cleared filter, a link, the back button — and the box follows it.
+  const sent = useRef<string[]>([])
+
+  useEffect(() => {
+    const own = sent.current.indexOf(inAddress)
+    if (own >= 0) {
+      sent.current.splice(0, own + 1)
+      return
+    }
+    sent.current = []
+    setValue(inAddress)
+  }, [inAddress])
+
+  useEffect(() => {
+    const cancel = () => {
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = null
+    }
+    // A delayed search must not replace a view the user has just chosen.
+    const onNavigate = (event: MouseEvent) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+      if (event.target instanceof Element && event.target.closest('a[href]')) cancel()
+    }
+    document.addEventListener('click', onNavigate, true)
+    window.addEventListener('popstate', cancel)
+    return () => {
+      cancel()
+      document.removeEventListener('click', onNavigate, true)
+      window.removeEventListener('popstate', cancel)
+    }
+  }, [])
 
   function onChange(next: string) {
     setValue(next)
     if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => update(param, next.trim()), 300)
+    timer.current = setTimeout(() => {
+      timer.current = null
+      const query = next.trim()
+      sent.current.push(query)
+      update(param, query)
+    }, 300)
   }
 
   return (
     <input
       type="search"
+      autoFocus={autoFocus}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      aria-label={placeholder}
       // Its own colours, never the bar's: on the board's coloured ground the
-      // bar's text is white, and white on this box was nothing to read.
-      className="min-w-52 flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+      // bar's text is white, and white on this box was nothing to read. A
+      // caller passing its own className has to bring these two along.
+      className={className ?? 'min-w-52 flex-1 rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'}
     />
   )
 }

@@ -127,7 +127,7 @@ export default async function EmployeeDetailPage({
           skillSuggestions={skills.map((s) => s.name)}
         />
 
-        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+        <section className="overflow-hidden rounded-xl border border-border bg-surface">
           <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">
             {t('upcomingTitle')}
           </h2>
@@ -178,7 +178,7 @@ export default async function EmployeeDetailPage({
         isSelf={employee.user?.id === viewer.id}
       />
 
-      <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-border bg-surface">
         <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">{t('projectsTitle')}</h2>
         {employee.projectMemberships.length === 0 ? (
           <p className="px-5 py-6 text-sm text-muted">{t('noProjects')}</p>

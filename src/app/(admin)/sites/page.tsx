@@ -145,7 +145,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
     const c = row.counts
     const href = `/projects/${row.id}`
     return (
-      <li className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+      <li className="rounded-lg border border-border bg-surface p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-2">

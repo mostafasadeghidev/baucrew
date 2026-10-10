@@ -6,7 +6,7 @@ import { btn } from '@/components/ui/button'
 import { createWebhook, type WebhookFormState } from './actions'
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 /** A new endpoint: a name, the address n8n gave for its webhook, and the events it wants — all of them to begin with. */
 export function WebhookForm({ events }: { events: Array<{ value: string; label: string }> }) {

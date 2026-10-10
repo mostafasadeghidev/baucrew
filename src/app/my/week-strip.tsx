@@ -31,7 +31,7 @@ export function WeekStrip({
   awayLabel: string
 }) {
   return (
-    <section className="rounded-xl border border-border bg-surface p-2 shadow-sm">
+    <section className="rounded-xl border border-border bg-surface p-2">
       <div className="flex items-center justify-between px-1 pb-1.5">
         <Link
           href={`/my?date=${iso(prevWeek)}`}
@@ -40,7 +40,7 @@ export function WeekStrip({
         >
           ←
         </Link>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">{weekLabel}</p>
+        <p className="text-xs font-medium text-muted">{weekLabel}</p>
         <Link
           href={`/my?date=${iso(nextWeek)}`}
           aria-label="→"

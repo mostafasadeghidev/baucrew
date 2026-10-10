@@ -102,6 +102,7 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
                     setRenaming(null)
                     if (value.trim() && value !== row.filename) run(() => renameProjectFile(row.id, value))
                   }}
+                  data-saves-on-blur
                   className="block w-full rounded-md border border-accent bg-background px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               ) : (

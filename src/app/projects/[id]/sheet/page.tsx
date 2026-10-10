@@ -203,7 +203,7 @@ export default async function ProjectSheetPage({
       )}
 
       {/* A4 sheet — always black on white */}
-      <div className="rounded-lg border border-border bg-white p-8 text-sm text-black shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none">
+      <div className="rounded-lg border border-border bg-white p-8 text-sm text-black print:rounded-none print:border-0 print:p-0 print:shadow-none">
         {/* Header exactly like the original Arbeitsauftrag: company logo,
             "Auftrag vom" and "Fahrzeug" top right */}
         <div className="mb-4 border-b-2 border-black pb-3">

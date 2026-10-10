@@ -18,7 +18,7 @@ export function ListMenu({ links }: { links: Array<{ href: string; label: string
       side="bottom"
       align="end"
       label={t('moreMenu')}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted shadow-sm transition-colors hover:bg-surface-hover hover:text-foreground"
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
       trigger={<MoreHorizontal className="h-4 w-4" aria-hidden />}
     >
       <MenuLabel>{t('moreMenu')}</MenuLabel>

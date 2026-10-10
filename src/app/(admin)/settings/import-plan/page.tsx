@@ -36,7 +36,7 @@ export default async function ImportPlanPage() {
       <PageHint>{t('hint')}</PageHint>
 
       {years.length > 0 && (
-        <section className="max-w-3xl overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+        <section className="max-w-3xl overflow-hidden rounded-lg border border-border bg-surface">
           <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">
             {t('storedTitle')}
           </h2>

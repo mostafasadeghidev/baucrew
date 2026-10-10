@@ -67,6 +67,8 @@ import { ProjectDevicesEditor } from './project-devices'
 import { getProjectDevices } from '../../devices/actions'
 import { orderValue } from '@/lib/reports'
 import { PhoneLink } from '@/components/phone-link'
+import { JobNumber } from '@/components/job-number'
+import { jobNumberOf } from '@/lib/job-number'
 import { historyLines } from '@/lib/card-history'
 
 /**
@@ -503,7 +505,7 @@ export async function ProjectDetail({
         {row(
           t('dueDate'),
           <span
-            className={`rounded px-1 tabular-nums ${due === 'late' ? 'bg-danger/10 text-danger' : due === 'soon' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : ''}`}
+            className={`-mx-1 rounded px-1 tabular-nums ${due === 'late' ? 'bg-danger/10 text-danger' : due === 'soon' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' : ''}`}
             title={due === 'late' ? t('cardDueLate') : due === 'soon' ? t('cardDueSoon') : undefined}
           >
             {formatDate(project.dueDate, locale)}
@@ -809,7 +811,7 @@ export async function ProjectDetail({
         </div>
 
         {/* Site checklists — ticked off on site, saved with who and when */}
-        <section id="checklists" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">
+        <section id="checklists" className="scroll-mt-24 rounded-xl border border-border bg-surface">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tChecklists('title')}</h2>
             <p className="mt-0.5 text-xs text-muted">{tChecklists('hint')}</p>
@@ -867,7 +869,7 @@ export async function ProjectDetail({
         </div>
 
         {/* Schedule (read-only here) */}
-        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+        <section className="overflow-hidden rounded-xl border border-border bg-surface">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('scheduleTitle')}</h2>
             <PlanEntryButton
@@ -900,14 +902,14 @@ export async function ProjectDetail({
             </ul>
           )}
         </section>
-        <details className="group rounded-xl border border-border bg-surface shadow-sm">
+        <details className="group rounded-xl border border-border bg-surface">
           <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
             <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-90" aria-hidden />
             {t('sheetMoreData')}
           </summary>
           <div className="grid grid-cols-1 gap-6 border-t border-border p-5">
         {/* `#material`: the CRM's missing-material lists link straight here. */}
-        <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">
+        <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
           </div>
@@ -915,11 +917,11 @@ export async function ProjectDetail({
         </section>
 
         {/* Machines this site needs — same shape as the tools/materials list */}
-        <section className="rounded-xl border border-border bg-surface shadow-sm">
+        <section className="rounded-xl border border-border bg-surface">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
             {isOffice(user) && (
-              <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+              <Link href="/devices" className={`${btn.outlineXs} px-2 text-muted`}>
                 {tDevices('openDevices')} <span aria-hidden>→</span>
               </Link>
             )}
@@ -932,7 +934,7 @@ export async function ProjectDetail({
           />
           {project.devices.length > 0 && (
             <div className="border-t border-border px-5 py-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+              <h3 className="text-xs font-semibold text-muted">
                 {tDevices('onProject')}
               </h3>
               <ul className="mt-2 space-y-1 text-sm">
@@ -1016,7 +1018,7 @@ export async function ProjectDetail({
         {showPrice && <ProjectInvoices projectId={project.id} rows={invoiceRows} amountField={!hidePrices} />}
 
         {/* `#material`: the CRM's missing-material lists link straight here. */}
-        <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">
+        <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
           </div>
@@ -1024,11 +1026,11 @@ export async function ProjectDetail({
         </section>
 
         {/* Machines this site needs — same shape as the tools/materials list */}
-        <section className="rounded-xl border border-border bg-surface shadow-sm">
+        <section className="rounded-xl border border-border bg-surface">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
             {isOffice(user) && (
-              <Link href="/devices" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+              <Link href="/devices" className={`${btn.outlineXs} px-2 text-muted`}>
                 {tDevices('openDevices')} <span aria-hidden>→</span>
               </Link>
             )}
@@ -1041,7 +1043,7 @@ export async function ProjectDetail({
           />
           {project.devices.length > 0 && (
             <div className="border-t border-border px-5 py-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+              <h3 className="text-xs font-semibold text-muted">
                 {tDevices('onProject')}
               </h3>
               <ul className="mt-2 space-y-1 text-sm">
@@ -1084,7 +1086,7 @@ export async function ProjectDetail({
         />
 
         {/* Site checklists — ticked off on site, saved with who and when */}
-        <section id="checklists" className="scroll-mt-24 rounded-xl border border-border bg-surface shadow-sm">
+        <section id="checklists" className="scroll-mt-24 rounded-xl border border-border bg-surface">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{tChecklists('title')}</h2>
             <p className="mt-0.5 text-xs text-muted">{tChecklists('hint')}</p>
@@ -1161,7 +1163,7 @@ export async function ProjectDetail({
         </div>
 
         {/* Schedule (read-only here) */}
-        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+        <section className="overflow-hidden rounded-xl border border-border bg-surface">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('scheduleTitle')}</h2>
             <PlanEntryButton
@@ -1222,7 +1224,7 @@ export async function ProjectDetail({
         column
       />
       {/* What happened to the card, under the talk about it — Trello's activity. */}
-      <details className="group mt-3 shrink-0 rounded-xl border border-border bg-surface shadow-sm">
+      <details className="group mt-3 shrink-0 rounded-xl border border-border bg-surface">
         <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm font-semibold [&::-webkit-details-marker]:hidden">
           <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-90" aria-hidden />
           {t('sheetHistory')}
@@ -1257,7 +1259,7 @@ export async function ProjectDetail({
       ? new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(project.planMonth)
       : null
   const tone = dateTone(project.status, project.plannedStart, project.plannedEnd, todayUtc())
-  const metaHead = 'text-[11px] font-semibold uppercase tracking-wide text-muted'
+  const metaHead = 'text-[11px] font-semibold text-muted'
   const round = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-subtle text-muted transition-colors hover:bg-surface-hover hover:text-foreground'
   const meta = sheet ? (
     <div className="flex flex-wrap gap-x-8 gap-y-3 px-1">
@@ -1371,6 +1373,7 @@ export async function ProjectDetail({
     user.role === 'ADMIN' ? (
       <MergeButton projectId={project.id} projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))} />
     ) : null
+  const jobNumber = jobNumberOf(project)
   const customerLine = (
     <>
       {isOffice(user) ? (
@@ -1485,7 +1488,12 @@ export async function ProjectDetail({
             >
               <div className="flex items-start gap-3 pt-5">
                 <DoneTick projectId={project.id} done={project.doneAt !== null} large className="mt-1.5" />
-                <EditableTitle projectId={project.id} name={project.name} number={project.number} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex">
+                    <EditableTitle projectId={project.id} name={project.name} number={project.number} />
+                  </div>
+                  {jobNumber && <JobNumber value={jobNumber} className="text-sm" />}
+                </div>
                 {editing}
               </div>
               <p className="mt-1 text-sm text-muted">{customerLine}</p>

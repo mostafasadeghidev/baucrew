@@ -58,12 +58,12 @@ import {
   CircleCheck,
   Clock,
   Eye,
-  ListChecks,
-  MessageSquare,
+  MessageSquareText,
   MoreHorizontal,
   Paperclip,
   Pencil,
   Plus,
+  SquareCheckBig,
   TriangleAlert,
   Undo2,
   X,
@@ -79,11 +79,13 @@ import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
 import { DRAG_THRESHOLD, LONG_PRESS_MS, LONG_PRESS_SLOP, carry, drop as dropGhost, holdTouchDrag, lift } from '@/lib/card-lift'
 import { isVerticalWheel, wheelPixels } from '@/lib/wheel-axis'
+import { cardHref } from '@/lib/card-url'
 import { useCardDetails, useCollapsedColumns, useLabelsOpen } from './board-prefs'
 import { dragHasFiles, uploadProjectFiles } from './[id]/upload-files'
 import { CARD } from './board-card'
 import { CardTemplates, type BoardTemplate } from './card-templates'
 import { DoneTick } from './done-tick'
+import { JobNumber } from '@/components/job-number'
 import { ShortcutsDialog, useBoardKeys } from './board-keys'
 import {
   addColumn,
@@ -106,6 +108,8 @@ export type KanbanCard = {
   id: string
   number: string
   name: string
+  /** The office's job number from the Trello title, when the card had one. */
+  jobNumber: string | null
   customer: string
   /** The customer's number in the office's books, when it has one. */
   customerNumber: string | null
@@ -152,7 +156,7 @@ export type KanbanCard = {
 }
 
 const DATE_TONE = {
-  late: 'bg-danger/10 text-danger',
+  late: 'bg-[#ffd5d2] text-[#ae2e24] dark:bg-[#5d1f1a] dark:text-[#ffd5d2]',
   soon: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
   /** A card ticked done: its days are kept, not pressing — Trello's green. */
   done: 'bg-emerald-600 text-white dark:bg-emerald-600',
@@ -174,8 +178,8 @@ export type KanbanColumn = {
   cards: KanbanCard[]
 }
 
-/** A list the way Trello draws one: a rounded grey slab floating on the ground. */
-const LIST = 'rounded-xl bg-[#f1f2f4] shadow-sm dark:bg-[#101204]'
+/** A list is a well in the page's white panel: a tint, no border, no shadow. */
+const LIST = 'rounded-xl bg-subtle'
 const HEAD_BUTTON = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-black/10 hover:text-foreground dark:hover:bg-white/10'
 
 /**
@@ -220,7 +224,6 @@ export function ProjectsKanban({
   templates,
   manageTemplates,
   canJoin,
-  onGround,
   confirmFor,
   addable,
   canEditBoard,
@@ -238,8 +241,6 @@ export function ProjectsKanban({
   manageTemplates: boolean
   /** Whether the reader has a person behind the account — Space puts them on a card. */
   canJoin: boolean
-  /** True when the board stands on a coloured ground: what is written straight on it turns light. */
-  onGround: boolean
   /** The statuses that ask before they are set, e.g. COMPLETED and CANCELLED. */
   confirmFor: string[]
   /** The lists this board does not have yet, for "+ Weitere Liste": a status, or a rule's list. */
@@ -273,15 +274,15 @@ export function ProjectsKanban({
   const [details] = useCardDetails()
   const [collapsed, toggleCollapsed] = useCollapsedColumns(boardId)
 
-  /** The card's sheet over this very board: the address as it stands, plus the card. */
-  const openHref = (id: string) => {
-    const params = new URLSearchParams(searchParams)
-    params.delete('template')
-    params.set('card', id)
-    return `${pathname}?${params.toString()}`
-  }
+  /**
+   * The card's sheet over this very board: the card's own address, the board
+   * context (board, search, year, filters) riding along, so a save knows its
+   * way back. It is intercepted over the board, so the card streams in while
+   * the board stays as it is.
+   */
+  const openHref = (id: string) => cardHref(new URLSearchParams(searchParams), id)
   /** The card's sheet with one of its small windows open at once — the pencil's labels, members, cover, dates. */
-  const popHref = (id: string, pop: 'labels' | 'members' | 'cover' | 'dates') => `${openHref(id)}&pop=${pop}`
+  const popHref = (id: string, pop: 'labels' | 'members' | 'cover' | 'dates') => cardHref(new URLSearchParams(searchParams), id, pop)
   /** A line at the foot of the window for a moment — "Link kopiert". */
   const [notice, setNotice] = useState<string | null>(null)
   useEffect(() => {
@@ -1023,12 +1024,12 @@ export function ProjectsKanban({
     created: t('kanbanSortCreated'),
   }
   /** Small marks under a card's name, the way a Trello card carries them. */
-  const mark = (title: string, className = '') => `inline-flex items-center gap-1 rounded-sm px-1 tabular-nums ${className}`
+  const mark = (title: string, className = '') => `inline-flex items-center gap-1 rounded-[3px] tabular-nums ${className ? `px-1 py-0.5 ${className}` : ''}`
 
   return (
     <div className="flex h-full flex-col gap-2">
       {error && (
-        <p className="shrink-0 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+        <p className="mx-4 shrink-0 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger md:ml-6 md:mr-8">
           {error}
         </p>
       )}
@@ -1042,7 +1043,14 @@ export function ProjectsKanban({
         // `select-none` on the whole board, not only while something is being
         // dragged: the browser starts selecting on the press, before anyone
         // knows the press was a drag, and by then half the board is blue.
-        className={`flex min-h-0 flex-1 select-none items-start gap-3 overflow-x-auto pb-2 ${
+        //
+        // The strip runs out to the panel's own edges and carries the gutter
+        // as padding of its own: a gutter left to the frame around it becomes
+        // a line inside the panel where the lists are cut off as they scroll
+        // past. The right-hand gutter is the spacer at the end rather than
+        // padding: padding at the end of a scrolling row is kept by some
+        // browsers and dropped by others.
+        className={`flex min-h-0 flex-1 select-none items-start gap-3 overflow-x-auto pb-2 pl-4 md:pl-6 ${
           panning || dragging || movingColumn ? 'cursor-grabbing' : ''
         }`}
       >
@@ -1056,7 +1064,7 @@ export function ProjectsKanban({
                 data-board-column={column.id}
                 onClick={() => toggleCollapsed(column.id)}
                 title={t('kanbanExpand')}
-                className={`flex max-h-full w-10 shrink-0 flex-col items-center gap-2 py-2 ${LIST} hover:bg-[#e6e8ec] dark:hover:bg-[#1b1e21]`}
+                className={`flex max-h-full w-10 shrink-0 flex-col items-center gap-2 py-2 ${LIST} hover:bg-border`}
               >
                 <span className={HEAD_BUTTON} aria-hidden>
                   <ChevronsLeftRight className="h-3.5 w-3.5" />
@@ -1110,11 +1118,11 @@ export function ProjectsKanban({
                 ) : (
                   <h3
                     onClick={canEditBoard ? () => setRenamingList({ status: column.id, value: column.label }) : undefined}
-                    title={column.rule ? `${t(`rule_${column.rule}` as 'rule_paused', { year: new Date().getFullYear() + 1 })} · ${t('kanbanRuleList')}` : canEditBoard ? t('kanbanRenameList') : undefined}
+                    title={column.rule ? `${/^trello:/.test(column.rule) ? column.label : t(`rule_${column.rule}` as 'rule_paused', { year: new Date().getFullYear() + 1 })} · ${t('kanbanRuleList')}` : canEditBoard ? t('kanbanRenameList') : undefined}
                     className={`min-w-0 flex-1 truncate rounded-md px-2 py-1 text-sm font-semibold ${canEditBoard ? 'cursor-text' : ''}`}
                   >
                     {column.label}
-                    {column.rule && <span className="ml-1.5 align-middle text-[10px] font-medium uppercase tracking-wide text-muted">{t('kanbanRuleMark')}</span>}
+                    {column.rule && <span className="ml-1.5 align-middle text-[10px] font-medium text-muted">{t('kanbanRuleMark')}</span>}
                   </h3>
                 )}
                 <span className="shrink-0 text-xs tabular-nums text-muted">{column.cards.length}</span>
@@ -1269,7 +1277,7 @@ export function ProjectsKanban({
                         side="bottom"
                         align="end"
                         label={t('cardQuickEdit')}
-                        className="flex h-6 w-6 items-center justify-center rounded-md bg-white/90 text-muted shadow-sm transition-colors hover:text-foreground dark:bg-[#22272b]/90"
+                        className="flex h-6 w-6 items-center justify-center rounded-md bg-surface/90 text-muted transition-colors hover:text-foreground"
                         trigger={<Pencil className="h-3 w-3" aria-hidden />}
                       >
                         <button type="button" role="menuitem" className={menuItemClass} onClick={() => router.push(openHref(card.id), { scroll: false })}>
@@ -1304,7 +1312,7 @@ export function ProjectsKanban({
                           {t('cardArchive')}
                         </button>
                         <MenuSeparator />
-                        <div className="px-2 pb-0.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted">{t('cardMoveTo')}</div>
+                        <div className="px-2 pb-0.5 pt-1 text-[11px] font-medium text-muted">{t('cardMoveTo')}</div>
                         {board
                           .filter((target) => target.id !== column.id)
                           .map((target) => (
@@ -1318,10 +1326,10 @@ export function ProjectsKanban({
                     {/* Labels first, the way a Trello card wears them: urgent,
                         SUB and the trades, each in its own colour — named, and
                         folded to bars by a click on any of them. */}
-                    <CardLabels card={card} trades={!details} urgentText={t('priorityHigh')} toggleTitle={t('labelsToggle')} />
-                    <div className="flex items-start gap-1.5">
-                    {/* Trello's tick: there while the pointer is over the card, and for good once it is done. */}
-                    <span className={`mt-0.5 ${card.done ? 'flex' : 'hidden group-hover:flex [@media(hover:none)]:flex'}`}>
+                    <CardLabels card={card} trades={!details} urgentText={t('priorityHigh')} subText={t('subLabel')} toggleTitle={t('labelsToggle')} />
+                    <div className="relative flex items-start">
+                    {/* Translate into the existing edit-button gutter: wrapping and card height stay fixed. */}
+                    <span className={`absolute left-0 top-0.5 flex h-4 w-4 transition-opacity duration-150 motion-reduce:transition-none ${card.done ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100'}`}>
                       <DoneTick projectId={card.id} done={card.done} />
                     </span>
                     {renaming?.id === card.id ? (
@@ -1342,35 +1350,37 @@ export function ProjectsKanban({
                           }
                         }}
                         onBlur={() => setRenaming(null)}
-                        className="block w-full select-text rounded border border-accent bg-background px-1.5 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        className="ml-5 block w-[calc(100%-1.25rem)] select-text rounded border border-accent bg-background px-1.5 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                       />
                     ) : (
                       <Link
                         href={openHref(card.id)}
                         scroll={false}
+                        prefetch={false}
                         draggable={false}
-                        className="block min-w-0 flex-1 break-words pr-5 text-sm leading-snug text-foreground hover:text-accent"
+                        className={`block min-w-0 flex-1 break-words mr-5 pr-5 text-sm leading-snug text-foreground transition-transform duration-150 ease-out motion-reduce:transition-none hover:text-accent ${card.done ? 'translate-x-5' : 'group-hover:translate-x-5 group-focus-within:translate-x-5 [@media(hover:none)]:translate-x-5'}`}
                       >
                         {card.name}
                       </Link>
                     )}
                     </div>
+                    {card.jobNumber && renaming?.id !== card.id && <JobNumber value={card.jobNumber} className="mt-0.5" />}
                     {/* What the card carries, as small marks in Trello's order:
                         news for the reader in red, the eye, the dates coloured
                         when they press, the description, what is said and
                         attached, the checklist — then what is open on the
                         site; and who is on it. */}
                     <div className="mt-1.5 flex items-end justify-between gap-2">
-                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted">
                         {card.unread > 0 && (
                           <span title={t('cardUnread', { count: card.unread })} className={mark('', 'bg-danger text-white dark:bg-danger')}>
-                            <Bell className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <Bell className="h-4 w-4 shrink-0" aria-hidden />
                             {card.unread}
                           </span>
                         )}
                         {card.watching && (
                           <span title={t('cardWatched')} className={mark('')}>
-                            <Eye className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <Eye className="h-4 w-4 shrink-0" aria-hidden />
                           </span>
                         )}
                         {card.dates && (
@@ -1378,7 +1388,7 @@ export function ProjectsKanban({
                             title={card.done ? t('cardDoneState') : card.dates.tone === 'late' ? t('cardLate') : card.dates.tone === 'soon' ? t('cardSoon') : t('cardDates')}
                             className={mark('', card.done ? DATE_TONE.done : card.dates.tone ? DATE_TONE[card.dates.tone] : '')}
                           >
-                            <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
                             {card.dates.text}
                           </span>
                         )}
@@ -1387,24 +1397,24 @@ export function ProjectsKanban({
                             title={card.done ? t('cardDoneState') : card.due.tone === 'late' ? t('cardDueLate') : card.due.tone === 'soon' ? t('cardDueSoon') : t('cardDue')}
                             className={mark('', card.done ? DATE_TONE.done : card.due.tone ? DATE_TONE[card.due.tone] : '')}
                           >
-                            <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <Clock className="h-4 w-4 shrink-0" aria-hidden />
                             {card.due.text}
                           </span>
                         )}
                         {card.hasDescription && (
                           <span title={t('cardDescription')} className={mark('')}>
-                            <AlignLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <AlignLeft className="h-4 w-4 shrink-0" aria-hidden />
                           </span>
                         )}
                         {card.comments > 0 && (
                           <span title={t('cardComments', { count: card.comments })} className={mark('')}>
-                            <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <MessageSquareText className="h-4 w-4 shrink-0" aria-hidden />
                             {card.comments}
                           </span>
                         )}
                         {card.files > 0 && (
                           <span title={t('cardFiles', { count: card.files })} className={mark('')}>
-                            <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <Paperclip className="h-4 w-4 shrink-0" aria-hidden />
                             {card.files}
                           </span>
                         )}
@@ -1420,19 +1430,19 @@ export function ProjectsKanban({
                                   : ''
                             )}
                           >
-                            <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <SquareCheckBig className="h-4 w-4 shrink-0" aria-hidden />
                             {card.checklist.done}/{card.checklist.total}
                           </span>
                         )}
                         {card.tasks > 0 && (
                           <span title={t('cardTasks', { count: card.tasks })} className={mark('')}>
-                            <CircleCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <CircleCheck className="h-4 w-4 shrink-0" aria-hidden />
                             {card.tasks}
                           </span>
                         )}
                         {card.defects > 0 && (
                           <span title={t('cardDefects', { count: card.defects })} className={mark('', 'bg-danger/10 text-danger')}>
-                            <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />
                             {card.defects}
                           </span>
                         )}
@@ -1444,14 +1454,14 @@ export function ProjectsKanban({
                               key={person.name}
                               title={person.manager ? `${t('cardManager')}: ${person.name}` : person.name}
                               className={`flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-semibold text-white ring-2 ${
-                                person.manager ? 'ring-accent' : 'ring-white dark:ring-[#22272b]'
+                                person.manager ? 'ring-accent' : 'ring-surface'
                               } ${PERSON_SWATCH[person.swatch]}`}
                             >
                               {person.initials}
                             </span>
                           ))}
                           {card.more > 0 && (
-                            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-subtle px-1 text-[9px] font-medium text-muted ring-2 ring-white dark:ring-[#22272b]">
+                            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-subtle px-1 text-[9px] font-medium text-muted ring-2 ring-surface">
                               +{card.more}
                             </span>
                           )}
@@ -1463,23 +1473,22 @@ export function ProjectsKanban({
                         edge — and three of them, name and value together, on a
                         coloured ground. */}
                     {details && card.fields.length > 0 && (
-                      <dl className="mt-2 space-y-1 text-xs leading-5 text-[#44546f] dark:text-[#9fadbc]">
+                      <dl className="mt-2 space-y-1.5 text-xs leading-4 text-muted">
                         {card.fields.map((field) => {
                           const tone = CARD_FIELD_TONE[field.key]
+                          const label = t(`cardField_${field.key}`)
                           return (
-                            <div
-                              key={field.key}
-                              title={field.text}
-                              className={`flex min-w-0 max-w-full ${tone ? `w-fit rounded px-1.5 tabular-nums ${FIELD_CHIP[tone]}` : ''}`}
-                            >
-                              <dt className="shrink-0">{t(`cardField_${field.key}`)}:</dt>
-                              <dd className="ml-1 min-w-0 truncate">{field.text}</dd>
+                            <div key={field.key} title={`${label}: ${field.text}`} className="flex min-w-0">
+                              <div className={`min-w-0 truncate ${tone ? `rounded-[3px] px-1.5 py-0.5 tabular-nums ${FIELD_CHIP[tone]}` : ''}`}>
+                                <dt className="inline">{label}: </dt>
+                                <dd className="inline">{field.text}</dd>
+                              </div>
                             </div>
                           )
                         })}
                       </dl>
                     )}
-                    {details && <p className="mt-1 truncate text-[11px] tabular-nums text-muted">{card.number}</p>}
+                    {details && <p className="mt-1.5 truncate text-xs tabular-nums text-muted">{card.number}</p>}
                     </div>
                   </div>
                   )
@@ -1580,9 +1589,7 @@ export function ProjectsKanban({
               side="bottom"
               align="start"
               label={t('kanbanAddList')}
-              className={`flex w-full items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                onGround ? 'bg-white/25 text-white hover:bg-white/35' : 'bg-subtle text-foreground hover:bg-surface-hover'
-              }`}
+              className="flex w-full items-center gap-1.5 rounded-xl border border-dashed border-border-strong px-3 py-2.5 text-sm font-semibold text-muted transition-colors hover:bg-subtle hover:text-foreground"
               trigger={
                 <>
                   <Plus className="h-4 w-4 shrink-0" aria-hidden />
@@ -1605,13 +1612,15 @@ export function ProjectsKanban({
             </Menu>
           </div>
         )}
+        {/* The right-hand gutter: the row's gap in front of a spacer of nothing. */}
+        <div aria-hidden className="w-1 shrink-0 md:w-5" />
       </div>
 
       {undo && (
         // A drag is a gesture, and gestures slip. Rather than ask before every
         // move — six of the nine are ordinary steps — the board says what it
         // just did and offers to put it back.
-        <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+        <div className="mx-4 flex shrink-0 flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm md:ml-6 md:mr-8">
           <span className="tabular-nums text-muted">{undo.card.number}</span>
           <span className="truncate font-medium">{undo.card.name}</span>
           <span className="text-muted">→ {labelOf(undo.to)}</span>
@@ -1782,12 +1791,15 @@ function CardLabels({
   card,
   trades,
   urgentText,
+  subText,
   toggleTitle,
 }: {
   card: KanbanCard
   /** False while the field lines are shown: the trades stand in their own line then. */
   trades: boolean
   urgentText: string
+  /** The SUB pill's word — "SUB" in both languages, but a key like every other label. */
+  subText: string
   toggleTitle: string
 }) {
   const [open, toggle] = useLabelsOpen()
@@ -1797,7 +1809,7 @@ function CardLabels({
     <div className="mb-1.5 flex flex-wrap gap-1 pr-6">
       {[
         ...(card.urgent ? [{ text: urgentText, ...URGENT_LABEL }] : []),
-        ...(card.sub ? [{ text: 'SUB', ...SUB_LABEL }] : []),
+        ...(card.sub ? [{ text: subText, ...SUB_LABEL }] : []),
         ...labels.map((label) => ({ text: label.text, bar: LABEL_BAR[label.swatch], pill: LABEL_PILL[label.swatch] })),
       ].map((label) => (
         <button

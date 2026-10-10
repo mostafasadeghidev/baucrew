@@ -1,104 +1,85 @@
 // Parser for Trello's standard board export ("Menu → Print, export and share →
 // Export as JSON"). Only the fields we import are read; everything else in the
-// (large) file is ignored.
+// (large) file is ignored. The cards' custom fields are read by
+// src/lib/trello-fields.ts.
 
 import { cardFields, powerUpFields, type TrelloCardFields } from './trello-fields'
 
 export type TrelloList = { id: string; name: string; closed: boolean }
-export type TrelloAttachment = { name: string; url: string }
-export type TrelloChecklistItem = { name: string; complete: boolean }
-export type TrelloChecklist = { name: string; items: TrelloChecklistItem[] }
-/** A comment on a card: when, by whom (as Trello names them), and what. */
-export type TrelloComment = { date: string; author: string; text: string }
+export type TrelloAttachment = {
+  name: string
+  url: string
+  /** Trello's id of the attachment — what a card names its cover by. */
+  id: string
+  /** A file kept by Trello (true) or a web address somebody attached (false). */
+  isUpload: boolean
+  mimeType: string | null
+  bytes: number | null
+  date: string | null
+}
 export type TrelloCard = {
   id: string
   name: string
   desc: string
   idList: string
   closed: boolean
+  /** When the card was archived, where Trello says so. */
+  dateClosed: string | null
   due: string | null
+  start: string | null
   /** Trello's tick: the card marked complete. */
   dueComplete: boolean
   labels: string[]
+  /** Ids of the board members on the card. */
+  members: string[]
+  /** Its place in its list, top to bottom. */
+  pos: number
   /** Permalink of the card, kept as the project's source link. */
   shortUrl: string
   attachments: TrelloAttachment[]
-  /** The card's checklists, in their order on the card, each item with its tick. */
-  checklists: TrelloChecklist[]
-  /** The card's comments, oldest first — as far as the export holds them. */
-  comments: TrelloComment[]
-  /** What the card's custom-fields power-up says: customer, address, order value … (src/lib/trello-fields.ts). */
+  /** The attachment shown as the card's cover picture, when it has one. */
+  coverAttachmentId: string | null
+  /** What the card's custom-fields power-up says: customer, address, order value … (src/lib/trello-fields.ts). Empty where a card says nothing. */
   fields: TrelloCardFields
 }
+export type TrelloMember = { id: string; name: string }
+export type TrelloChecklist = {
+  idCard: string
+  name: string
+  pos: number
+  items: Array<{ text: string; done: boolean; pos: number; due: string | null; idMember: string | null }>
+}
+export type TrelloComment = { id: string; idCard: string; text: string; date: string; author: string; idMember: string | null }
 export type TrelloBoard = {
+  id: string
   name: string
   lists: TrelloList[]
   cards: TrelloCard[]
+  members: TrelloMember[]
+  checklists: TrelloChecklist[]
+  /**
+   * What was said on the cards. Trello's own export holds the last 1000
+   * actions of a board only, so on an old board the early comments are not in
+   * the file unless it was put together from the API (docs/CHANGE-trello-full-import.md).
+   */
+  comments: TrelloComment[]
 }
 
+type Raw = Record<string, unknown>
+const isRaw = (v: unknown): v is Raw => typeof v === 'object' && v !== null
+const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+const strOrNull = (v: unknown) => str(v) || null
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
-const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null
-
-/**
- * The board's checklists by the card they hang on. Trello keeps them in one
- * list on the board, each with its card's id and a position; the items carry
- * their own position and a state of "complete" or "incomplete".
- */
-function checklistsByCard(raw: unknown): Map<string, TrelloChecklist[]> {
-  const byCard = new Map<string, Array<TrelloChecklist & { pos: number }>>()
-  if (!Array.isArray(raw)) return new Map()
-  for (const entry of raw) {
-    if (!record(entry)) continue
-    const cardId = String(entry.idCard ?? '')
-    const name = String(entry.name ?? '').trim()
-    if (!cardId || !name) continue
-    const items = (Array.isArray(entry.checkItems) ? entry.checkItems : [])
-      .filter(record)
-      .map((item) => ({ name: String(item.name ?? '').trim(), complete: item.state === 'complete', pos: num(item.pos) }))
-      .filter((item) => item.name)
-      .sort((a, b) => a.pos - b.pos)
-      .map(({ name: itemName, complete }) => ({ name: itemName, complete }))
-    const list = byCard.get(cardId) ?? []
-    list.push({ name, items, pos: num(entry.pos) })
-    byCard.set(cardId, list)
-  }
-  return new Map(
-    [...byCard].map(([cardId, lists]) => [cardId, lists.sort((a, b) => a.pos - b.pos).map(({ name, items }) => ({ name, items }))])
-  )
-}
-
-/**
- * The comments by card, out of the board's actions — Trello writes a comment
- * as an action of type "commentCard". An export holds the newest thousand or
- * so actions; older comments are simply not in the file.
- */
-function commentsByCard(raw: unknown): Map<string, TrelloComment[]> {
-  const byCard = new Map<string, TrelloComment[]>()
-  if (!Array.isArray(raw)) return byCard
-  for (const action of raw) {
-    if (!record(action) || action.type !== 'commentCard' || !record(action.data)) continue
-    const card = record(action.data.card) ? action.data.card : null
-    const cardId = card ? String(card.id ?? '') : ''
-    const text = String(action.data.text ?? '').trim()
-    const date = typeof action.date === 'string' && !Number.isNaN(Date.parse(action.date)) ? action.date : ''
-    if (!cardId || !text || !date) continue
-    const creator = record(action.memberCreator) ? action.memberCreator : null
-    const author = creator ? String(creator.fullName ?? creator.username ?? '').trim() : ''
-    const list = byCard.get(cardId) ?? []
-    list.push({ date, author, text })
-    byCard.set(cardId, list)
-  }
-  for (const list of byCard.values()) list.sort((a, b) => a.date.localeCompare(b.date))
-  return byCard
-}
 
 export function parseTrelloExport(json: unknown): TrelloBoard | null {
-  if (!record(json)) return null
+  if (!isRaw(json)) return null
   const raw = json
   if (!Array.isArray(raw.lists) || !Array.isArray(raw.cards)) return null
 
   const lists: TrelloList[] = raw.lists
-    .filter(record)
+    .filter(isRaw)
+    // Left to right, the way the board shows them.
+    .sort((a, b) => num(a.pos) - num(b.pos))
     .map((l) => ({
       id: String(l.id ?? ''),
       name: String(l.name ?? '').trim(),
@@ -106,40 +87,95 @@ export function parseTrelloExport(json: unknown): TrelloBoard | null {
     }))
     .filter((l) => l.id && l.name)
 
-  const checklists = checklistsByCard(raw.checklists)
-  const comments = commentsByCard(raw.actions)
   const definitions = powerUpFields(raw.pluginData)
-
   const cards: TrelloCard[] = raw.cards
-    .filter(record)
-    .map((c) => {
-      const id = String(c.id ?? '')
-      return {
-        id,
-        name: String(c.name ?? '').trim(),
-        desc: String(c.desc ?? '').trim(),
-        idList: String(c.idList ?? ''),
-        closed: Boolean(c.closed),
-        due: typeof c.due === 'string' ? c.due : null,
-        dueComplete: c.dueComplete === true,
-        shortUrl: typeof c.shortUrl === 'string' ? c.shortUrl : '',
-        labels: Array.isArray(c.labels)
-          ? c.labels.map((lb) => (record(lb) ? String(lb.name ?? '') : '')).filter(Boolean)
-          : [],
-        attachments: Array.isArray(c.attachments)
-          ? c.attachments
-              .filter(record)
-              .map((a) => ({ name: String(a.name ?? '').trim(), url: String(a.url ?? '').trim() }))
-              .filter((a) => a.url)
-          : [],
-        checklists: checklists.get(id) ?? [],
-        comments: comments.get(id) ?? [],
-        fields: cardFields(definitions, c.pluginData),
-      }
-    })
+    .filter(isRaw)
+    .map((c) => ({
+      id: String(c.id ?? ''),
+      name: String(c.name ?? '').trim(),
+      desc: String(c.desc ?? '').trim(),
+      idList: String(c.idList ?? ''),
+      closed: Boolean(c.closed),
+      dateClosed: strOrNull(c.dateClosed),
+      due: typeof c.due === 'string' ? c.due : null,
+      start: typeof c.start === 'string' ? c.start : null,
+      dueComplete: c.dueComplete === true,
+      shortUrl: typeof c.shortUrl === 'string' ? c.shortUrl : '',
+      labels: Array.isArray(c.labels)
+        ? c.labels
+            .map((lb) =>
+              typeof lb === 'object' && lb !== null ? String((lb as { name?: unknown }).name ?? '') : ''
+            )
+            .filter(Boolean)
+        : [],
+      members: Array.isArray(c.idMembers) ? c.idMembers.filter((m): m is string => typeof m === 'string') : [],
+      pos: num(c.pos),
+      attachments: Array.isArray(c.attachments)
+        ? c.attachments
+            .filter(isRaw)
+            .map((a) => ({
+              name: String(a.name ?? '').trim(),
+              url: String(a.url ?? '').trim(),
+              id: str(a.id),
+              isUpload: a.isUpload === true,
+              mimeType: strOrNull(a.mimeType),
+              bytes: typeof a.bytes === 'number' ? a.bytes : null,
+              date: strOrNull(a.date),
+            }))
+            .filter((a) => a.url)
+        : [],
+      coverAttachmentId: strOrNull(c.idAttachmentCover) ?? (isRaw(c.cover) ? strOrNull(c.cover.idAttachment) : null),
+      fields: cardFields(definitions, c.pluginData),
+    }))
     .filter((c) => c.id && c.name)
 
-  return { name: String(raw.name ?? 'Trello').trim(), lists, cards }
+  const members: TrelloMember[] = (Array.isArray(raw.members) ? raw.members : [])
+    .filter(isRaw)
+    .map((m) => ({ id: str(m.id), name: str(m.fullName) || str(m.username) }))
+    .filter((m) => m.id && m.name)
+
+  const checklists: TrelloChecklist[] = (Array.isArray(raw.checklists) ? raw.checklists : [])
+    .filter(isRaw)
+    .map((cl) => ({
+      idCard: str(cl.idCard),
+      name: str(cl.name) || 'Checkliste',
+      pos: num(cl.pos),
+      items: (Array.isArray(cl.checkItems) ? cl.checkItems : [])
+        .filter(isRaw)
+        .map((i) => ({ text: str(i.name), done: i.state === 'complete', pos: num(i.pos), due: strOrNull(i.due), idMember: strOrNull(i.idMember) }))
+        .filter((i) => i.text)
+        .sort((a, b) => a.pos - b.pos),
+    }))
+    .filter((cl) => cl.idCard && cl.items.length > 0)
+    .sort((a, b) => a.pos - b.pos)
+
+  const comments: TrelloComment[] = (Array.isArray(raw.actions) ? raw.actions : [])
+    .filter(isRaw)
+    .filter((a) => a.type === 'commentCard' && isRaw(a.data))
+    .map((a) => {
+      const data = a.data as Raw
+      const creator = isRaw(a.memberCreator) ? a.memberCreator : {}
+      return {
+        id: str(a.id),
+        idCard: isRaw(data.card) ? str(data.card.id) : str(data.idCard),
+        text: str(data.text),
+        // A moment Trello wrote; anything that is not one is no comment to keep.
+        date: typeof a.date === 'string' && !Number.isNaN(Date.parse(a.date)) ? a.date : '',
+        author: str(creator.fullName) || str(creator.username),
+        idMember: strOrNull(a.idMemberCreator),
+      }
+    })
+    .filter((c) => c.id && c.idCard && c.text && c.date)
+    // Oldest first, the order they were said in.
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  return { id: str(raw.id), name: String(raw.name ?? 'Trello').trim(), lists, cards, members, checklists, comments }
+}
+
+/** A Trello download address: the card and the attachment it names. Null for any other address. */
+export function trelloDownload(url: string): { cardId: string; attachmentId: string } | null {
+  const match = url.match(/^https:\/\/trello\.com\/1\/cards\/([0-9a-f]{24})\/attachments\/([0-9a-f]{24})\/download\//)
+  return match ? { cardId: match[1], attachmentId: match[2] } : null
 }
 
 /**
@@ -311,31 +347,20 @@ export function suggestStatus(listName: string): string {
 }
 
 /**
- * A Trello comment as it is written onto the project: the text, and under it
- * who said it and when in Trello — the note has no account of its own here.
- */
-export function trelloCommentBody(comment: TrelloComment, formatDay: (date: Date) => string): string {
-  const who = comment.author || 'Trello'
-  return `${comment.text}\n\n— ${who} (Trello, ${formatDay(new Date(comment.date))})`
-}
-
-/**
  * The checklists of a board as templates: one per name (case does not
  * matter), holding every item that name ever had, in the order the items
  * first appeared — the way a standard checklist that lives on many cards
  * becomes one template to reuse.
  */
-export function checklistTemplatesOf(cards: Array<Pick<TrelloCard, 'checklists'>>): Array<{ name: string; items: string[] }> {
+export function checklistTemplatesOf(checklists: Array<Pick<TrelloChecklist, 'name' | 'items'>>): Array<{ name: string; items: string[] }> {
   const byName = new Map<string, { name: string; items: string[] }>()
-  for (const card of cards) {
-    for (const list of card.checklists) {
-      const key = list.name.toLowerCase()
-      const template = byName.get(key) ?? { name: list.name, items: [] }
-      for (const item of list.items) {
-        if (!template.items.some((known) => known.toLowerCase() === item.name.toLowerCase())) template.items.push(item.name)
-      }
-      byName.set(key, template)
+  for (const list of checklists) {
+    const key = list.name.toLowerCase()
+    const template = byName.get(key) ?? { name: list.name, items: [] }
+    for (const item of list.items) {
+      if (!template.items.some((known) => known.toLowerCase() === item.text.toLowerCase())) template.items.push(item.text)
     }
+    byName.set(key, template)
   }
   return [...byName.values()].filter((t) => t.items.length > 0)
 }

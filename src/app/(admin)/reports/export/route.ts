@@ -4,11 +4,11 @@ import { getCurrentUser } from '@/lib/auth'
 import { canViewFinancials } from '@/lib/authz'
 import {
   STALE_OFFER_DAYS,
+  getCrewUsage,
   getCustomerReport,
   getOpenOffers,
   getProjectEfficiency,
   getYearRevenueOrHistory,
-  getYearUsage,
 } from '@/lib/reports'
 import { getBranding } from '@/lib/branding'
 import { parsePeriod } from '@/lib/reports-calc'
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   const range = parsePeriod(request.nextUrl.searchParams.get('period'))
   const [revenue, usage, efficiency, customers, openOffers] = await Promise.all([
     getYearRevenueOrHistory(year),
-    getYearUsage(year, range),
+    getCrewUsage(year, range),
     getProjectEfficiency(year, range),
     getCustomerReport(year, range),
     getOpenOffers(),
@@ -103,23 +103,38 @@ export async function GET(request: NextRequest) {
 
   // ── Sheet 2: Auslastung ──────────────────────────────────
   const usageSheet = workbook.addWorksheet(`Auslastung ${year}`)
+  // The tab's own figures (`crewUsage`): one day per weekday however many
+  // sites, never on a day away, against the weekdays the schedule is written for.
   usageSheet.columns = [
     { header: 'Mitarbeiter', key: 'e', width: 30 },
-    { header: 'Einsatztage', key: 'ed', width: 14 },
+    { header: 'Tage verplant', key: 'eb', width: 14 },
+    { header: 'Tage verfügbar', key: 'ea', width: 14 },
+    { header: 'Auslastung', key: 'ep', width: 12 },
     { header: '', key: 'gap', width: 4 },
     { header: 'Fahrzeug', key: 'v', width: 24 },
-    { header: 'Einsatztage', key: 'vd', width: 14 },
+    { header: 'Tage verplant', key: 'vb', width: 14 },
+    { header: 'Tage verfügbar', key: 'va', width: 14 },
+    { header: 'Auslastung', key: 'vp', width: 12 },
   ]
   usageSheet.getRow(1).font = bold
-  const maxRows = Math.max(usage.employees.length, usage.vehicles.length)
+  const share = (pct: number | null | undefined) => (pct == null ? '' : pct / 100)
+  const maxRows = Math.max(usage.people.length, usage.vehicles.length)
   for (let i = 0; i < maxRows; i++) {
-    usageSheet.addRow([
-      usage.employees[i]?.name ?? '',
-      usage.employees[i]?.days ?? '',
+    const person = usage.people[i]
+    const vehicle = usage.vehicles[i]
+    const row = usageSheet.addRow([
+      person?.name ?? '',
+      person?.booked ?? '',
+      person?.available ?? '',
+      share(person?.pct),
       '',
-      usage.vehicles[i]?.name ?? '',
-      usage.vehicles[i]?.days ?? '',
+      vehicle?.name ?? '',
+      vehicle?.booked ?? '',
+      vehicle?.available ?? '',
+      share(vehicle?.pct),
     ])
+    row.getCell(4).numFmt = '0%'
+    row.getCell(9).numFmt = '0%'
   }
 
   // ── Sheet 3: Plan vs. Ist ────────────────────────────────

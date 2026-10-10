@@ -30,6 +30,10 @@ export type Block =
 type Rule = { re: RegExp; make: (m: RegExpExecArray) => Inline }
 
 const RULES: Rule[] = [
+  // A backslash before a mark takes the mark away: Trello writes "\*\*Kunde:\*\*"
+  // when the office typed the stars themselves, and the card must show the
+  // stars, not the backslashes.
+  { re: /\\([\\`*_~\[\]()#>+\-.!])/, make: (m) => ({ t: 'text', text: m[1] }) },
   { re: /`([^`\n]+)`/, make: (m) => ({ t: 'code', text: m[1] }) },
   { re: /\*\*(?=\S)([\s\S]*?\S)\*\*/, make: (m) => ({ t: 'b', children: parseInline(m[1]) }) },
   { re: /__(?=\S)([\s\S]*?\S)__/, make: (m) => ({ t: 'b', children: parseInline(m[1]) }) },
@@ -42,6 +46,10 @@ const RULES: Rule[] = [
 
 /** The marks inside one run of words. */
 export function parseInline(text: string): Inline[] {
+  return joinText(readInline(text))
+}
+
+function readInline(text: string): Inline[] {
   let best: { rule: Rule; m: RegExpExecArray } | null = null
   for (const rule of RULES) {
     const m = rule.re.exec(text)
@@ -52,8 +60,19 @@ export function parseInline(text: string): Inline[] {
   return [
     ...(before ? [{ t: 'text' as const, text: before }] : []),
     best.rule.make(best.m),
-    ...parseInline(text.slice(best.m.index + best.m[0].length)),
+    ...readInline(text.slice(best.m.index + best.m[0].length)),
   ]
+}
+
+/** Two runs of plain words side by side (an escaped mark leaves them) become one. */
+function joinText(inlines: Inline[]): Inline[] {
+  const out: Inline[] = []
+  for (const inline of inlines) {
+    const last = out[out.length - 1]
+    if (inline.t === 'text' && last?.t === 'text') last.text += inline.text
+    else out.push(inline)
+  }
+  return out
 }
 
 /**

@@ -17,7 +17,7 @@ export type EmployeeFormValues = {
 }
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 export function EmployeeForm({
   action,
@@ -47,7 +47,7 @@ export function EmployeeForm({
         cancelHref={cancelHref}
         pending={pending}
       />
-      <div className="max-w-3xl rounded-xl border border-border bg-surface p-5 shadow-sm">
+      <div className="max-w-3xl rounded-xl border border-border bg-surface p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="firstName" className="block text-sm font-medium">

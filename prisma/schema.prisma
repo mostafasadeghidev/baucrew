@@ -389,6 +389,10 @@ model ProjectLink {
   system     String
   externalId String
   url        String?
+  /// Where the record stands in the source system — the Trello list a card
+  /// is in, say. What a rule column of the board reads to mirror the other
+  /// side's lists without statuses of their own (src/lib/board-rules.ts).
+  externalListId String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -489,6 +493,11 @@ model Device {
   externalSystem  String?
   externalId      String?
   source          String   @default("manual")
+  /// What the outside system knows beyond the four fields it owns — for
+  /// Wattro: where the machine is now, brand, model, last scan, position,
+  /// tags (shape and reader: src/lib/wattro/details.ts). Written by the sync
+  /// only, never edited here.
+  externalData    Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

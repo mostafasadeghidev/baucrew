@@ -37,7 +37,7 @@ export async function WidgetFrame({
       <input type="hidden" name="op" value={op} />
       <button
         type="submit"
-        className={`${btn.outlineSm} h-7 gap-1 px-2 py-0 text-xs`}
+        className={`${btn.outlineXs} gap-1 px-2`}
         title={label}
         aria-label={label}
         disabled={disabled}

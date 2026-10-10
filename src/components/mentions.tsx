@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { mentionsFor } from '@/lib/mentions-db'
 import { notificationsFor } from '@/lib/notifications-db'
 import { notificationLine } from '@/lib/notifications'
+import { cardPath } from '@/lib/card-url'
 import { todayUtc } from '@/lib/dates'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { MentionsBell, type MentionRow } from './mentions-bell'
@@ -33,7 +34,9 @@ export async function Mentions({
     ...mentions.items.map((item) => ({
       id: `m-${item.id}`,
       // The card opens over the projects, the way Trello opens it from a notification.
-      href: area === 'admin' ? `/projects?card=${item.projectId}` : null,
+      // From the board itself the card route is intercepted into the sheet; anywhere
+      // else it shows the project's full page.
+      href: area === 'admin' ? cardPath(item.projectId) : null,
       project: `${item.number} · ${item.name}`,
       author: item.author ?? t('commentNoAuthor'),
       snippet: item.body.length > 140 ? `${item.body.slice(0, 140)}…` : item.body,
@@ -43,7 +46,7 @@ export async function Mentions({
     })),
     ...news.items.map((item) => ({
       id: `n-${item.id}`,
-      href: item.project ? `/projects?card=${item.project.id}` : null,
+      href: item.project ? cardPath(item.project.id) : null,
       project: item.project ? `${item.project.number} · ${item.project.name}` : '',
       author: item.actor ?? t('notificationReminder'),
       snippet: notificationLine(

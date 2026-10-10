@@ -25,7 +25,7 @@ export function SheetTitle({ title, compact, children }: { title: ReactNode; com
       <div
         aria-hidden={!stuck}
         className={`sticky top-0 z-20 -mx-6 flex items-center gap-3 bg-surface px-6 transition-[opacity,padding] duration-150 ${
-          stuck ? 'border-b border-border py-2 opacity-100 shadow-sm' : 'pointer-events-none h-0 overflow-hidden py-0 opacity-0'
+          stuck ? 'border-b border-border py-2 opacity-100' : 'pointer-events-none h-0 overflow-hidden py-0 opacity-0'
         }`}
       >
         <p className="min-w-0 flex-1 truncate text-base font-semibold">{title}</p>

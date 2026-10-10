@@ -26,7 +26,7 @@ export type TemplateFormValues = {
 const FORM_ID = 'template-form'
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 export function TemplateForm({
   action,
@@ -69,7 +69,7 @@ export function TemplateForm({
   return (
     <div className="max-w-2xl space-y-6">
       <form id={FORM_ID} action={formAction} className="space-y-6">
-      <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+      <div className="rounded-lg border border-border bg-surface p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="name" className="block text-sm font-medium">
@@ -116,7 +116,7 @@ export function TemplateForm({
       </form>
 
       {/* Optional defaults — copied into a new project created from this template */}
-      <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+      <div className="rounded-lg border border-border bg-surface p-5">
         <h2 className="text-sm font-semibold">{tProjects('assignmentSection')}</h2>
         <p className="mt-0.5 text-xs text-muted">{t('assignmentHint')}</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -184,7 +184,7 @@ export function TemplateForm({
       </div>
 
 
-      <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+      <div className="rounded-lg border border-border bg-surface p-5">
         <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
         <p className="mt-0.5 text-xs text-muted">{tDevices('needTemplateHint')}</p>
         <div className="mt-3">

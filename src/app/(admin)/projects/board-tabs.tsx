@@ -1,125 +1,130 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
-import { Settings2 } from 'lucide-react'
-import { TabLink, TabsList } from '@/components/ui/tabs'
-import { rememberBoard } from './actions'
+import { useSearchParams } from 'next/navigation'
+import { Check, ChevronDown } from 'lucide-react'
+import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
+import { boardViewHref } from '@/lib/projects-view'
+import { ProjectNavLink } from './project-nav-link'
+import { projectControl } from './toolbar-styles'
 import { EditBoardButton, NewBoardButton, type ManagedBoard } from './board-admin'
 
+export type BoardTab = ManagedBoard & {
+  /** The board's own colour or photo, as CSS for a `background` — or none. */
+  swatch: string | null
+}
+
+/** Making and changing boards from the bar — the ready-made boards on offer; null for those who may not. */
+export type ManageBoards = { presets: Array<{ key: string; name: string; background: string }> }
+
 /**
- * The boards, one tab each, the way Trello lines them up. Which board is open
- * lives in the address like the search and the year do, and is remembered for
- * this browser so the page comes back to it. For an administrator a "+"
- * after the tabs makes a board and the arrow on the open tab changes it, the
- * way Trello makes and changes boards where they stand.
+ * The board's colour, worn by its tab instead of by the whole page. A board
+ * used to paint the window behind its lists in its colour or its photo; every
+ * other surface of the app then sat on it like a sticker. The colour still
+ * tells the boards apart — here, where the choice between them is made.
  */
-export function BoardTabs({
-  boards,
-  current,
-  ariaLabel,
-  manage,
-  manageBoards = null,
-  onGround = false,
-}: {
-  boards: Array<ManagedBoard>
+function Swatch({ css }: { css: string | null }) {
+  return (
+    <span
+      aria-hidden
+      className={`h-2.5 w-2.5 shrink-0 rounded-full ${css ? '' : 'border border-border-strong'}`}
+      style={css ? { background: css } : undefined}
+    />
+  )
+}
+
+/**
+ * The boards, and after them "all projects". Scope and presentation are
+ * separate: each scope supports either view.
+ *
+ * On a wide screen every board's name stands as a tab, so switching is one
+ * click and the office always sees which boards there are; the row scrolls
+ * sideways if there are more than fit. On a narrow screen the same choices
+ * fold into a menu under the current board's name.
+ *
+ * For an administrator a "+" after the boards makes one and the arrow on the
+ * open tab changes it — its title, colour or photo, place, or away with it —
+ * the way Trello makes and changes boards where they stand.
+ */
+export function BoardTabs({ boards, current, ariaLabel, allLabel, manageBoards = null }: {
+  boards: BoardTab[]
   current: string
   ariaLabel: string
-  /** The link to Einstellungen → Boards; null for those who may not go there. */
-  manage: { href: string; label: string } | null
-  /** Making and changing boards from the bar — the ready-made boards on offer; null for those who may not. */
-  manageBoards?: { presets: Array<{ key: string; name: string; background: string }> } | null
-  /** On a coloured ground the tabs are written in light on it, the way Trello's bar is. */
-  onGround?: boolean
+  allLabel: string
+  manageBoards?: ManageBoards | null
 }) {
-  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const index = boards.findIndex((board) => board.id === current)
+  const currentBoard = index >= 0 ? boards[index] : undefined
+  const caption = currentBoard?.name ?? allLabel
+  const href = (id: string) => boardViewHref(searchParams.toString(), id)
+  const remember = (id: string) => (id === 'all' ? undefined : id)
 
-  const hrefFor = (id: string | null) => {
-    const params = new URLSearchParams(searchParams)
-    if (id) params.set('board', id)
-    else params.delete('board')
-    // What only the list understands would turn the board back into the list.
-    params.delete('page')
-    params.delete('status')
-    const qs = params.toString()
-    return qs ? `${pathname}?${qs}` : pathname
-  }
-  const index = boards.findIndex((b) => b.id === current)
-  const open = index >= 0 ? boards[index] : null
-  const edit = (ground: boolean) =>
-    manageBoards && open ? (
-      <EditBoardButton key={open.id} board={open} index={index} count={boards.length} onGround={ground} leaveHref={hrefFor(null)} />
+  // The arrow on the open board, and the "+" for a new one: the administrator's.
+  const edit =
+    manageBoards && currentBoard ? (
+      <EditBoardButton key={`edit-${currentBoard.id}`} board={currentBoard} index={index} count={boards.length} leaveHref={href('all')} />
     ) : null
-  const add = manageBoards ? (
-    <NewBoardButton boards={boards} presets={manageBoards.presets} onGround={onGround} openHref={(id) => hrefFor(id)} />
-  ) : null
+  const add = manageBoards ? <NewBoardButton boards={boards} presets={manageBoards.presets} openHref={href} /> : null
 
-  if (onGround) {
-    return (
-      <div className="flex min-w-0 items-center gap-1">
-        <nav aria-label={ariaLabel} role="tablist" className="flex min-w-0 items-center gap-1 overflow-x-auto">
-          {boards.map((board) =>
-            board.id === current ? (
-              // The open tab carries the arrow that changes its board, inside the same light pill.
-              <span key={board.id} className="flex shrink-0 items-center rounded-md bg-white/90 text-neutral-900 shadow-sm">
-                <Link
-                  href={hrefFor(board.id)}
-                  replace
-                  role="tab"
-                  aria-selected
-                  onClick={() => void rememberBoard(board.id)}
-                  className="whitespace-nowrap px-3 py-1.5 text-sm font-semibold"
-                >
-                  {board.name}
-                </Link>
-                {edit(true)}
-              </span>
-            ) : (
-              <Link
-                key={board.id}
-                href={hrefFor(board.id)}
-                replace
-                role="tab"
-                aria-selected={false}
-                onClick={() => void rememberBoard(board.id)}
-                className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/25"
-              >
-                {board.name}
-              </Link>
-            )
-          )}
-        </nav>
-        {add}
-      </div>
-    )
-  }
+  const entry = (id: string, name: string, swatch?: string | null) => (
+    <ProjectNavLink key={id} role="menuitemradio" href={href(id)} active={id === current} rememberBoard={remember(id)} className={menuItemClass}>
+      <Check aria-hidden className={`h-4 w-4 shrink-0 text-accent ${id === current ? '' : 'invisible'}`} />
+      {swatch !== undefined && <Swatch css={swatch} />}
+      <span className="max-w-64 truncate">{name}</span>
+    </ProjectNavLink>
+  )
+  const tab = (id: string, name: string, swatch?: string | null) => (
+    <ProjectNavLink
+      key={id}
+      href={href(id)}
+      active={id === current}
+      rememberBoard={remember(id)}
+      title={name}
+      className={`${projectControl.boardTab} ${id === current ? projectControl.boardTabOn : projectControl.boardTabOff}`}
+    >
+      {swatch !== undefined && <Swatch css={swatch} />}
+      <span className="truncate">{name}</span>
+    </ProjectNavLink>
+  )
 
   return (
-    <div className="flex min-w-0 items-center gap-1">
-      <TabsList ariaLabel={ariaLabel}>
-        {boards.map((board) => (
-          <TabLink
-            key={board.id}
-            href={hrefFor(board.id)}
-            active={board.id === current}
-            label={board.name}
-            onClick={() => void rememberBoard(board.id)}
-          />
-        ))}
-      </TabsList>
-      {edit(false)}
-      {add}
-      {manage && (
-        <Link
-          href={manage.href}
-          title={manage.label}
-          aria-label={manage.label}
-          className="shrink-0 rounded-md p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+    <>
+      <nav aria-label={ariaLabel} className="hidden min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] lg:flex [&::-webkit-scrollbar]:hidden">
+        {boards.map((board) =>
+          board.id === current && edit ? (
+            // The open tab carries the arrow that changes its board, inside the same pill.
+            <span key={board.id} className={`flex shrink-0 items-center rounded-md ${projectControl.boardTabOn}`}>
+              {tab(board.id, board.name, board.swatch)}
+              {edit}
+            </span>
+          ) : (
+            tab(board.id, board.name, board.swatch)
+          )
+        )}
+        {add}
+        <span aria-hidden className="mx-1.5 h-4 w-px shrink-0 bg-border" />
+        {tab('all', allLabel)}
+      </nav>
+      <div className="flex min-w-0 items-center gap-1 lg:hidden">
+        <Menu
+          side="bottom"
+          label={`${ariaLabel}: ${caption}`}
+          className={`${projectControl.button} min-w-0 max-w-[calc(100vw-14rem)] justify-between`}
+          trigger={
+            <>
+              {currentBoard && <Swatch css={currentBoard.swatch} />}
+              <span className="truncate">{caption}</span>
+              <ChevronDown aria-hidden className="h-4 w-4 shrink-0 text-muted" />
+            </>
+          }
         >
-          <Settings2 className="h-4 w-4" aria-hidden />
-        </Link>
-      )}
-    </div>
+          {boards.map((board) => entry(board.id, board.name, board.swatch))}
+          <MenuSeparator />
+          {entry('all', allLabel)}
+        </Menu>
+        {edit}
+        {add}
+      </div>
+    </>
   )
 }

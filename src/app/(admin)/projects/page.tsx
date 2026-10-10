@@ -5,11 +5,12 @@ import { redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireStaff, canViewFinancials, isOffice } from '@/lib/authz'
+import { OFFICE_COMMENT } from '@/lib/comments'
 import { projectScope } from '@/lib/project-scope'
 import { STATUS_STYLES } from '@/components/status-badge'
 import { nextStatus } from '@/lib/status-flow'
 import { ListStatus } from './list-status'
-import { PagePanel, pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PagePanel } from '@/components/ui/page-panel'
 import { LiveSearchInput } from '@/components/live-search'
 import { StatusTabs } from '@/components/status-tabs'
 import { getPrepTabConfig } from '@/lib/prep-tab-db'
@@ -21,30 +22,33 @@ import { PAGE_SIZE, parsePage } from '@/lib/pagination'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { pricesHidden } from '@/lib/price-visibility'
 import { ProjectStatus } from '@/generated/prisma/enums'
-import { btn } from '@/components/ui/button'
 import { X } from 'lucide-react'
 import { narrowedStatuses, opensBoard, projectsViewHref } from '@/lib/projects-view'
+import { cardHref } from '@/lib/card-url'
 import { ALL_YEARS, belongsToYears, parseProjectYears, projectYearOptions } from '@/lib/project-years'
 import { todayUtc } from '@/lib/dates'
 import { ProjectsKanban, type KanbanColumn } from './kanban'
 import { BoardMenu } from './board-menu'
-import { ListMenu } from './list-menu'
+import { ProjectsToolbar } from './projects-toolbar'
+import { ProjectSearch } from './project-search'
+import { boardProjectsWhere } from '@/lib/board-query'
 import { ArchiveButton } from './archive-button'
 import { DeleteButton } from '@/components/delete-button'
 import { deleteArchivedProject } from './actions'
 import { orderCards } from '@/lib/board-order'
-import { COLUMN_RULES, columnFor, columnRuleKey, RULE_STATUS } from '@/lib/board-rules'
+import { COLUMN_RULES, columnFor, RULE_STATUS, trelloRuleId } from '@/lib/board-rules'
 import { StatusBadge } from '@/components/status-badge'
 import { ProjectYearPicker } from './year-picker'
 import { BoardTabs } from './board-tabs'
 import { sitesPreset } from '@/lib/board-presets'
 import { BoardFilter } from './board-filter'
 import { CardSheet, SheetClose } from './card-sheet'
-import type { CardMovePlaces } from './card-move'
+import { assembleMovePlaces, moveColumnFor, moveFacts, type CardMovePlaces } from '@/lib/card-move-places'
 import { ProjectDetail } from './[id]/project-detail'
 import { TemplateSheet } from './template-sheet'
 import type { BoardTemplate } from './card-templates'
 import { LiveRefresh } from '@/components/live-refresh'
+import { jobNumberOf } from '@/lib/job-number'
 import { Check } from 'lucide-react'
 import { activitySince, addressLine, cardFieldLines, dateTone, dueFilterRange, dueTone, initials, labelSwatch, parseBoardFilter, swatchOf } from '@/lib/board-cards'
 import { orderValue } from '@/lib/reports'
@@ -88,6 +92,9 @@ export default async function ProjectsPage({
   const yearParam = Array.isArray(yearValue) ? yearValue.join(',') : yearValue
   const page = parsePage(pageParam)
   const kanban = opensBoard({ view, status, page: pageParam })
+  // Older list/status links were company-wide. Only an explicit board narrows
+  // them; the shared view switch always supplies that board.
+  const allProjects = boardParam === 'all' || (!kanban && !boardParam)
   // A list reached by a status link (the dashboard's "in progress", say) is a
   // list only while that status is in the address. Its own "Alle Status" tab
   // takes the status away, which would turn it into the board under the
@@ -130,17 +137,14 @@ export default async function ProjectsPage({
   /** Trello's board activity: how many lines it shows, and this address with it open (more of it) or closed. */
   const feedSize = feed ? Math.min(500, Math.max(50, Number(feed) || 50)) : 0
   /** A card opened over the board from the activity, the panel staying open beside it. */
-  const openCardHref = (id: string) => {
-    const params = new URLSearchParams(here)
-    params.set('card', id)
-    return `/projects?${params.toString()}`
-  }
+  const openCardHref = (id: string) => cardHref(here, id)
   const feedHref = (size: number | null) => {
     const params = new URLSearchParams(here)
     params.delete('card')
     params.delete('archived')
     params.delete('aq')
     if (size) params.set('feed', String(size))
+    else params.delete('feed')
     return `/projects?${params.toString()}`
   }
 
@@ -169,10 +173,12 @@ export default async function ProjectsPage({
     ...(filter.labels.includes('none') ? [{ workCategories: { none: {} } }] : []),
     ...(tradeIds.length > 0 ? [{ workCategories: { some: { workCategoryId: { in: tradeIds } } } }] : []),
   ]
+  // An office-only comment is nothing to a site manager — not even its count.
+  const readableNotes: Prisma.NoteWhereInput = isOffice(user) ? {} : { visibility: 'TEAM' }
   // Something happened on it: the project changed, somebody wrote, a file came.
   const since = filter.activity ? activitySince(filter.activity, new Date()) : null
   const activeWhere: Prisma.ProjectWhereInput | null = since
-    ? { OR: [{ updatedAt: { gte: since } }, { notes: { some: { createdAt: { gte: since } } } }, { documents: { some: { createdAt: { gte: since } } } }] }
+    ? { OR: [{ updatedAt: { gte: since } }, { notes: { some: { ...readableNotes, createdAt: { gte: since } } } }, { documents: { some: { createdAt: { gte: since } } } }] }
     : null
   const filterWhere: Prisma.ProjectWhereInput = {
     AND: [
@@ -232,21 +238,14 @@ export default async function ProjectsPage({
         })
       : Promise.resolve([]),
   ])
-  // The cards the reader follows wear Trello's eye.
-  const watched = new Set(
-    kanban ? (await db.cardWatch.findMany({ where: { userId: user.id }, select: { projectId: true } })).map((w) => w.projectId) : []
-  )
-  // And the ones with news the reader has not seen wear its red bell, with how many.
-  const unreadOn = new Map(
-    kanban
-      ? (
-          await db.notification.groupBy({ by: ['projectId'], where: { userId: user.id, readAt: null, projectId: { not: null } }, _count: { _all: true } })
-        ).map((n) => [n.projectId, n._count._all])
-      : []
-  )
+
   // Which board: the address, else the one this browser opened last, else the first.
-  const board = pickBoard(boards, boardParam, (await cookies()).get(BOARD_COOKIE)?.value)
-  const boardStatuses = (board?.columns ?? []).map((c) => c.status as ProjectStatus)
+  const board = allProjects ? null : pickBoard(boards, boardParam, (await cookies()).get(BOARD_COOKIE)?.value)
+  const scopeColumns = allProjects
+    ? STATUSES.map((status) => ({ id: `all-${status}`, status, title: null, rule: null }))
+    : board?.columns ?? []
+  const boardStatuses = [...new Set(scopeColumns.map((c) => c.status as ProjectStatus))]
+  const boardWhere = allProjects ? {} : boardProjectsWhere(board?.columns ?? [], currentYear)
   const changedYears = new Map<string, number[]>()
   for (const change of statusChanges) {
     const years = changedYears.get(change.entityId) ?? []
@@ -280,28 +279,36 @@ export default async function ProjectsPage({
             { city: { contains: query, mode: 'insensitive' as const } },
             { street: { contains: query, mode: 'insensitive' as const } },
             { customer: { name: { contains: query, mode: 'insensitive' as const } } },
+            // The office's job number from the Trello title (src/lib/job-number.ts): digits only,
+            // so a word never matches a Trello card id.
+            ...(/^\d+$/.test(query) ? [{ externalSystem: 'trello', externalId: { startsWith: query } }] : []),
           ],
         }
       : {}),
   }
   // Everything but the status tab: the search, the year and the filter. The
   // filter's own OR must not overwrite the search's — two wheres, both.
-  // A site manager's list is the projects they are named on; the office's is every one.
+  // Access, board membership, and filters apply identically in both views.
   const scope = projectScope(user) ?? {}
-  const whereWithoutStatus: Prisma.ProjectWhereInput = { AND: [{ ...searchWhere, ...yearWhere }, filterWhere, scope, { archivedAt: null }] }
+  const whereWithoutStatus: Prisma.ProjectWhereInput = { AND: [{ ...searchWhere, ...yearWhere }, filterWhere, scope, boardWhere, { archivedAt: null }] }
   const where: Prisma.ProjectWhereInput = { AND: [statusWhere, whereWithoutStatus] }
   /**
    * A status tab that came along from the list leaves only its own columns on
    * the board — "In Ausführung" there is "In Ausführung" here. A board with no
-   * column for it is shown whole (src/lib/projects-view.ts).
+   * column for it keeps its column headings but shows no matching cards.
+   * The visible status chip lets the reader clear the incompatible filter.
    */
   const wantedStatuses = statusFilter ? [statusFilter] : prepFilter ? (prepTab.statuses as string[]) : null
-  const narrowed = kanban ? narrowedStatuses(boardStatuses, wantedStatuses) : null
+  const narrowed = narrowedStatuses(boardStatuses, wantedStatuses)
   const shownStatuses = (narrowed ?? boardStatuses) as ProjectStatus[]
 
-  // Tab counts respect the search and the filter but not the status tab itself.
-  const [projects, total, statusCounts, draftCount, prepCount, searchInAllYears] = await Promise.all([
-    db.project.findMany({
+  // Everything this view needs that the first batch could not carry — the
+  // list's page, the counts, the cards the reader follows and the board's own
+  // cards — in one round trip. What only the list reads (its tab counts, the
+  // preparation count) the board skips; what both read (the drafts behind the
+  // menu, the other years' hits while searching) both ask for.
+  const [projects, total, statusCounts, draftCount, prepCount, searchInAllYears, watchedRows, unreadRows, boardProjects] = await Promise.all([
+    !kanban ? db.project.findMany({
       where,
       include: {
         customer: { select: { name: true } },
@@ -311,11 +318,11 @@ export default async function ProjectsPage({
       orderBy: { number: 'desc' },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-    }),
-    db.project.count({ where }),
-    db.project.groupBy({ by: ['status'], where: whereWithoutStatus, _count: { _all: true } }),
+    }) : Promise.resolve([]),
+    !kanban ? db.project.count({ where }) : Promise.resolve(0),
+    !kanban ? db.project.groupBy({ by: ['status'], where: whereWithoutStatus, _count: { _all: true } }) : Promise.resolve([]),
     db.projectDraft.count({ where: { status: 'open' } }),
-    prepTab.enabled ? db.project.count({ where: { AND: [whereWithoutStatus, prepWhere] } }) : Promise.resolve(0),
+    prepTab.enabled && !kanban ? db.project.count({ where: { AND: [whereWithoutStatus, prepWhere] } }) : Promise.resolve(0),
     // A search for an old job number must not simply come back empty because
     // the page stands on this year: the other years' hits are counted and
     // offered — with the same filter the view draws, so the link never
@@ -323,60 +330,63 @@ export default async function ProjectsPage({
     // configured columns on the board).
     query && years !== ALL_YEARS
       ? db.project.count({
-          where: kanban
-            ? { AND: [searchWhere, filterWhere, scope, narrowed ? statusWhere : {}], status: { in: shownStatuses } }
-            : { AND: [statusWhere, searchWhere, filterWhere, scope] },
+          where: { AND: [searchWhere, filterWhere, scope, boardWhere, statusWhere, { archivedAt: null }] },
         })
       : Promise.resolve(0),
+    // The cards the reader follows wear Trello's eye.
+    kanban ? db.cardWatch.findMany({ where: { userId: user.id }, select: { projectId: true } }) : Promise.resolve([]),
+    // And the ones with news the reader has not seen wear its red bell, with how many.
+    kanban
+      ? db.notification.groupBy({ by: ['projectId'], where: { userId: user.id, readAt: null, projectId: { not: null } }, _count: { _all: true } })
+      : Promise.resolve([]),
+    // Only the selected board's cards. The paginated table query above is skipped in this view.
+    kanban
+      ? db.project.findMany({
+          where,
+          select: {
+            id: true,
+            number: true,
+            name: true,
+            street: true,
+            postalCode: true,
+            city: true,
+            status: true,
+            price: true,
+            addOns: { select: { amount: true } },
+            priority: true,
+            isSub: true,
+            plannedStart: true,
+            plannedEnd: true,
+            planMonth: true,
+            dueDate: true,
+            inspectionDate: true,
+            executionWish: true,
+            sourceCreatedAt: true,
+            externalSystem: true,
+            externalId: true,
+            createdAt: true,
+            boardPosition: true,
+            coverDocumentId: true,
+            description: true,
+            pausedAt: true,
+            doneAt: true,
+            invoices: { where: { part: 1 }, select: { id: true } },
+            links: { where: { system: 'trello' }, select: { externalListId: true } },
+            customer: { select: { name: true, number: true } },
+            manager: { select: { id: true, firstName: true, lastName: true } },
+            team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
+            workCategories: { select: { workCategory: { select: { id: true, nameDe: true, nameEn: true, color: true } } } },
+            checklists: { select: { items: { select: { ok: true } } } },
+            _count: { select: { documents: true, cardLinks: true, notes: { where: readableNotes }, defects: { where: { resolvedAt: null } }, tasks: { where: { doneAt: null } } } },
+          },
+          orderBy: { number: 'desc' },
+        })
+      : Promise.resolve([]),
   ])
+  // The cards the reader follows wear Trello's eye.
+  const watched = new Set(watchedRows.map((w) => w.projectId))
+  const unreadOn = new Map(unreadRows.map((n) => [n.projectId, n._count._all]))
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count._all]))
-  /**
-   * The board reads the same search and filter as the list. A status tab is
-   * read only when it was brought along from the list — then the board is
-   * those columns and no others. Every card of every column is sent — the same rows the board already had to read to count them
-   * — and the column shows the first fifty, with the rest a click away. Paging
-   * this from the server would mean a round trip to see cards the page is
-   * already holding.
-   */
-  const boardProjects = kanban
-    ? await db.project.findMany({
-        where: narrowed ? where : whereWithoutStatus,
-        select: {
-          id: true,
-          number: true,
-          name: true,
-          street: true,
-          postalCode: true,
-          city: true,
-          status: true,
-          price: true,
-          addOns: { select: { amount: true } },
-          priority: true,
-          isSub: true,
-          plannedStart: true,
-          plannedEnd: true,
-          planMonth: true,
-          dueDate: true,
-          inspectionDate: true,
-          executionWish: true,
-          sourceCreatedAt: true,
-          createdAt: true,
-          boardPosition: true,
-          coverDocumentId: true,
-          description: true,
-          pausedAt: true,
-          doneAt: true,
-          invoices: { where: { part: 1 }, select: { id: true } },
-          customer: { select: { name: true, number: true } },
-          manager: { select: { id: true, firstName: true, lastName: true } },
-          team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
-          workCategories: { select: { workCategory: { select: { id: true, nameDe: true, nameEn: true, color: true } } } },
-          checklists: { select: { items: { select: { ok: true } } } },
-          _count: { select: { documents: true, cardLinks: true, notes: true, defects: { where: { resolvedAt: null } }, tasks: { where: { doneAt: null } } } },
-        },
-        orderBy: { number: 'desc' },
-      })
-    : []
   const dayMonth = new Intl.DateTimeFormat(intl, { day: '2-digit', month: '2-digit', timeZone: 'UTC' })
   // A job with no day fixed yet shows the month it is placed in — "Okt. 2026".
   const monthShort = new Intl.DateTimeFormat(intl, { month: 'short', year: 'numeric', timeZone: 'UTC' })
@@ -386,17 +396,18 @@ export default async function ProjectsPage({
   // Which statuses get a column, and what each is called, is the board's own
   // (Einstellungen → Boards); a project stands on every board with a column
   // for its status.
-  const boardColumns = (board?.columns ?? []).filter((column) => shownStatuses.includes(column.status as ProjectStatus))
+  const boardColumns = scopeColumns.filter((column) => shownStatuses.includes(column.status as ProjectStatus))
   const columnKeys = boardColumns.map((c) => ({ key: c.id, status: c.status, rule: c.rule }))
   /** A rule's name on a list: "Pause", "Nächstes Jahr (2027)" … */
-  const ruleLabel = (rule: string) => t(`rule_${rule}` as 'rule_paused', { year: currentYear + 1 })
+  const ruleLabel = (rule: string) =>
+    trelloRuleId(rule) !== null ? t('rule_trello') : t(`rule_${rule}` as 'rule_paused', { year: currentYear + 1 })
   // Where each card stands: the rule column that picks it, else the plain one of its status.
   const columnOf = new Map<string, string>()
   for (const p of boardProjects) {
     const target = columnFor(
       columnKeys,
       p.status,
-      { pausedAt: p.pausedAt, plannedStart: p.plannedStart, planMonth: p.planMonth, priority: p.priority, invoice1: p.invoices.length > 0 },
+      { pausedAt: p.pausedAt, plannedStart: p.plannedStart, planMonth: p.planMonth, priority: p.priority, invoice1: p.invoices.length > 0, trelloListId: p.links.find((l) => l.externalListId)?.externalListId ?? null },
       currentYear
     )
     if (target) columnOf.set(p.id, target.key)
@@ -407,7 +418,9 @@ export default async function ProjectsPage({
     const own = orderCards(boardProjects.filter((p) => columnOf.get(p.id) === column.id).map((p) => ({ ...p, position: p.boardPosition })))
     // The order's worth: the price and what was added to it since.
     const sum = own.reduce((total, p) => total + (orderValue(p.price, p.addOns) ?? 0), 0)
-    const rule = columnRuleKey(column.rule)
+    // The raw rule — a mirror rule's list is named by its own title and hands
+    // the raw rule to a drop, so the card's Trello list follows the drag.
+    const rule = column.rule
     return {
       id: column.id,
       status: value,
@@ -432,6 +445,7 @@ export default async function ProjectsPage({
           id: p.id,
           number: p.number,
           name: p.name,
+          jobNumber: jobNumberOf(p),
           customer: p.customer.name,
           customerNumber: p.customer.number,
           address: addressLine(p.street, p.postalCode, p.city),
@@ -528,7 +542,7 @@ export default async function ProjectsPage({
   // What "+ Weitere Liste" offers: the statuses the board has no plain list
   // for, and the rule lists it does not have yet — each named with its status.
   const has = (status: string, rule: string | null) =>
-    (board?.columns ?? []).some((c) => c.status === status && (columnRuleKey(c.rule) ?? null) === rule)
+    (board?.columns ?? []).some((c) => c.status === status && (c.rule ?? null) === rule)
   const addable = [
     ...STATUSES.filter((s) => !has(s, null)).map((s) => ({ value: s, rule: null as string | null, label: tStatus(s) })),
     ...COLUMN_RULES.filter((rule) => !has(RULE_STATUS[rule], rule)).map((rule) => ({
@@ -540,7 +554,7 @@ export default async function ProjectsPage({
   // The archive: what was put away, newest first, for the panel beside the board.
   const archiveQuery = (aq ?? '').trim()
   const archivedProjects =
-    kanban && archived === '1'
+    archived === '1'
       ? await db.project.findMany({
           where: {
             AND: [
@@ -569,13 +583,17 @@ export default async function ProjectsPage({
    * reaches only those who may see money).
    */
   const feedLines = await (async () => {
-    if (!kanban || !feedSize) return null
+    if (!feedSize) return null
     const visible = projectScope(user) ? (await db.project.findMany({ where: scope, select: { id: true } })).map((p) => p.id) : null
     const rows = await db.auditLog.findMany({
       where: {
         entity: 'Project',
         ...(visible ? { entityId: { in: visible } } : {}),
-        ...(canViewFinancials(user) ? {} : { NOT: { action: { startsWith: 'project.invoice' } } }),
+        AND: [
+          ...(canViewFinancials(user) ? [] : [{ NOT: { action: { startsWith: 'project.invoice' } } }]),
+          // Nor an office-only comment: not even that one was written, changed or taken back.
+          ...(isOffice(user) ? [] : [{ NOT: { action: { startsWith: 'project.comment' }, field: OFFICE_COMMENT } }]),
+        ],
       },
       orderBy: { createdAt: 'desc' },
       take: feedSize + 1,
@@ -632,27 +650,7 @@ export default async function ProjectsPage({
       currentYear={currentYear}
     />
   )
-  /**
-   * The search box, with the other years' hits hanging under it. The hint sits
-   * in the padding below the row rather than in it: appearing while somebody
-   * types, it must not push the picker and the switch aside or onto a new line.
-   */
-  const search = (
-    // Never narrower than its own box: a wrapper that shrank below the input
-    // let the input run out over the filter button beside it on a phone. In a
-    // wrapping row the box now takes a line of its own instead.
-    <div className="relative flex min-w-52 max-w-md flex-1">
-      <LiveSearchInput placeholder={t('searchPlaceholder')} />
-      {otherYearHits > 0 && (
-        <Link
-          href={allYearsHref}
-          className="absolute left-1 top-full max-w-full truncate text-[11px] leading-[14px] text-accent hover:underline"
-        >
-          {t('otherYearsHits', { count: otherYearHits })} →
-        </Link>
-      )}
-    </div>
-  )
+  const search = <ProjectSearch />
 
   const boardFilter = (
     <BoardFilter
@@ -663,11 +661,11 @@ export default async function ProjectsPage({
     />
   )
   /** The status tab the board was narrowed to, with the way out of it. */
-  const statusChip = narrowed && (
+  const statusChip = wantedStatuses && (
     <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/40 bg-accent/10 py-0.5 pl-2.5 pr-1 text-xs font-medium text-accent">
       {t('boardStatusOnly', { status: statusFilter ? tStatus(statusFilter) : prepTab.label || t('tabPreparation') })}
       <Link
-        href={projectsViewHref('board', { q: query, year: yearParam, board: boardParam, member, label, urgent, due, done, activity })}
+        href={projectsViewHref(kanban ? 'board' : 'list', { q: query, year: yearParam, board: allProjects ? 'all' : board?.id, member, label, urgent, due, done, activity })}
         aria-label={t('boardStatusClear')}
         title={t('boardStatusClear')}
         className="rounded-full p-0.5 hover:bg-accent/20"
@@ -677,106 +675,41 @@ export default async function ProjectsPage({
     </span>
   )
 
-  /** Which year, and list or board: the same projects, two ways of drawing
-   *  them. In the list it stands in the page's bar, top right — where the
-   *  board's own bar has it too, so it is in one place in both views. */
-  const viewSwitch = (
-    <div className="flex shrink-0 items-center gap-2">
-    {yearPicker}
-    <div className="flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
-      {[
-        { value: 'list', label: t('viewList') },
-        { value: '', label: t('viewBoard') },
-      ].map((option) =>
-        (option.value === '') === kanban ? (
-          <span
-            key={option.value || 'board'}
-            aria-current="page"
-            className="whitespace-nowrap rounded-md bg-surface px-3 py-1.5 text-foreground shadow-sm"
-          >
-            {option.label}
-          </span>
-        ) : (
-          <Link
-            key={option.value || 'board'}
-            href={projectsViewHref(option.value ? 'list' : 'board', {
-              q: query,
-              year: yearParam,
-              board: boardParam,
-              // A tab the board could not show is not carried back and forth.
-              status: kanban ? (narrowed ? status : undefined) : wantedStatuses ? status : undefined,
-              member,
-              label,
-              urgent,
-              due,
-              done,
-              activity,
-            })}
-            className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
-          >
-            {option.label}
-          </Link>
-        )
-      )}
-    </div>
-    </div>
-  )
-
   /**
-   * Where the open card can be moved to, the way Trello's "Karte verschieben"
-   * offers it: every board, every list on it, and — for the place in a list —
-   * the cards already there, worked out from the cards this page has read.
-   * The card's own list on this board is read afresh when the search or the
-   * filter left the card out of the board.
+   * Move destinations use lightweight membership/position rows independent
+   * of the displayed board, filters, and table page. Fetch only for an open
+   * card so narrowing the main query cannot truncate cross-board positions.
    */
   const movePlaces: CardMovePlaces | null = card
     ? await (async () => {
-        type Row = (typeof boardProjects)[number]
-        const factsOf = (p: Pick<Row, 'pausedAt' | 'plannedStart' | 'planMonth' | 'priority' | 'invoices'>) => ({
-          pausedAt: p.pausedAt,
-          plannedStart: p.plannedStart,
-          planMonth: p.planMonth,
-          priority: p.priority,
-          invoice1: p.invoices.length > 0,
+        const destinationCards = await db.project.findMany({
+          where: { AND: [scope, { archivedAt: null }] },
+          select: { id: true, number: true, status: true, boardPosition: true, pausedAt: true, plannedStart: true, planMonth: true, priority: true, invoices: { where: { part: 1 }, select: { id: true } }, links: { where: { system: 'trello' }, select: { externalListId: true } } },
+          orderBy: { number: 'desc' },
         })
-        const places = boards.map((b) => {
-          const keys = b.columns.map((c) => ({ key: c.id, status: c.status, rule: c.rule }))
-          const byColumn = new Map<string, Row[]>()
-          for (const p of boardProjects) {
-            const key = columnFor(keys, p.status, factsOf(p), currentYear)?.key
-            if (key) byColumn.set(key, [...(byColumn.get(key) ?? []), p])
-          }
-          return {
-            id: b.id,
-            name: b.name,
-            columns: b.columns.map((c) => {
-              const rule = columnRuleKey(c.rule)
-              return {
-                id: c.id,
-                label: columnLabel(c, rule ? ruleLabel(rule) : tStatus(c.status as ProjectStatus)),
-                status: c.status,
-                rule,
-                cardIds: orderCards((byColumn.get(c.id) ?? []).map((p) => ({ ...p, position: p.boardPosition }))).map((p) => p.id),
-              }
-            }),
-          }
-        })
+        // Where the card stands here: read off the board's own cards, or, if the
+        // board's columns have none for it, off the card's own facts.
         let columnId = columnOf.get(card) ?? null
         if (!columnId && board) {
           const facts = await db.project.findUnique({
             where: { id: card },
-            select: { status: true, pausedAt: true, plannedStart: true, planMonth: true, priority: true, invoices: { where: { part: 1 }, select: { id: true } } },
+            select: { status: true, pausedAt: true, plannedStart: true, planMonth: true, priority: true, invoices: { where: { part: 1 }, select: { id: true } }, links: { where: { system: 'trello' }, select: { externalListId: true } } },
           })
           if (facts)
-            columnId =
-              columnFor(
-                board.columns.map((c) => ({ key: c.id, status: c.status, rule: c.rule })),
-                facts.status,
-                factsOf(facts),
-                currentYear
-              )?.key ?? null
+            columnId = moveColumnFor(
+              board.columns.map((c) => ({ key: c.id, status: c.status, rule: c.rule })),
+              moveFacts({ status: facts.status, pausedAt: facts.pausedAt, plannedStart: facts.plannedStart, planMonth: facts.planMonth, priority: facts.priority, invoice1: facts.invoices.length > 0, trelloListId: facts.links.find((l) => l.externalListId)?.externalListId ?? null }),
+              currentYear
+            )
         }
-        return { boardId: board?.id ?? null, columnId, boards: places }
+        return assembleMovePlaces({
+          boards,
+          rows: destinationCards.map((p) => ({ ...p, invoice1: p.invoices.length > 0, trelloListId: p.links.find((l) => l.externalListId)?.externalListId ?? null })),
+          currentYear,
+          boardId: board?.id ?? null,
+          columnId,
+          labelFor: (status, rule) => (rule ? ruleLabel(rule) : tStatus(status as ProjectStatus)),
+        })
       })()
     : null
 
@@ -831,110 +764,61 @@ export default async function ProjectsPage({
         { href: '/projects/forms', label: tForms('templatesTitle') },
       ]
     : []
-  // A photo stands before the colour, which shows while it loads and if it is gone.
-  const colour = boardBackgroundCss(board?.background)
-  const ground = board?.backgroundImage
-    ? `url(/api/boards/${board.id}/background?v=${encodeURIComponent(board.backgroundImage)}) center / cover no-repeat${colour ? `, ${colour}` : ', #0079bf'}`
-    : colour
-  const onGround = ground !== null
+  /**
+   * A board's colour — or its photo, the colour showing while it loads — is
+   * worn by its tab, not spread behind the lists: the page stays the one white
+   * panel every page is, and the tab still tells the boards apart.
+   */
+  const boardSwatch = (b: { id: string; background: string | null; backgroundImage: string | null }) => {
+    const colour = boardBackgroundCss(b.background)
+    return b.backgroundImage
+      ? `url(/api/boards/${b.id}/background?v=${encodeURIComponent(b.backgroundImage)}) center / cover no-repeat${colour ? `, ${colour}` : ''}`
+      : colour
+  }
 
-  if (kanban) {
-    /*
-     * The board the way Trello draws one: edge to edge on its own ground, a
-     * bar across the top with the boards, the search and the menu, and the
-     * lists under it. It is exactly as tall as the window and nothing on it
-     * scrolls but the inside of a list: a board whose lists grow with their
-     * contents is a board where the busiest list decides how far everybody
-     * scrolls, and where the heads walk off the top of the window. It holds
-     * from the tablet up, which is where the board is actually used; on a
-     * phone it goes back to growing with its contents, because a list with its
-     * own scroll inside a screen that small is two scrolls fighting each other.
-     *
-     * The main area pads the page; the board takes the padding back with
-     * negative margins so its ground reaches the edges, the way Trello's does.
-     */
-    const bar = onGround
-      ? 'bg-black/25 text-white backdrop-blur-sm'
-      : 'border-b border-border bg-surface'
-    return (
-      <div
-        className="relative -mx-4 -mb-4 -mt-2 flex flex-col md:-mx-6 md:-mb-6 md:h-screen"
-        style={ground ? { background: ground } : undefined}
-      >
-        <div className={`flex shrink-0 flex-wrap items-center gap-2 px-3 py-2 ${bar}`}>
+  const toolbar = (
+    <>
+      <ProjectsToolbar
+        boards={
           <BoardTabs
-            boards={boards.map((b) => ({ id: b.id, name: b.name, background: b.background, backgroundImage: b.backgroundImage }))}
-            current={board?.id ?? ''}
+            boards={boards.map((b) => ({ id: b.id, name: b.name, swatch: boardSwatch(b), background: b.background, backgroundImage: b.backgroundImage }))}
+            current={allProjects ? 'all' : board?.id ?? ''}
             ariaLabel={t('boardTabs')}
-            manage={null}
+            allLabel={t('allProjects')}
             // Boards are made and changed in the bar by whoever may do it in the settings.
             manageBoards={
               user.role === 'ADMIN'
                 ? { presets: [sitesPreset(new Date().getUTCFullYear())].map((p) => ({ key: p.key, name: p.name, background: p.background })) }
                 : null
             }
-            onGround={onGround}
           />
+        }
+        search={search}
+        filters={boardFilter}
+        years={yearPicker}
+        boardView={kanban}
+        keep={{ q: query, year: yearParam, board: allProjects ? 'all' : board?.id, status, member, label, urgent, due, done, activity }}
+        labels={{ title: t('title'), board: t('viewBoard'), list: t('viewList'), create: t('newProject'), view: t('projectView') }}
+        canCreate={isOffice(user)}
+        menu={<BoardMenu boardView={kanban} archivedHref={archivedHref(true)} activityHref={feedHref(50)} links={officeLinks} settingsHref={user.role === 'ADMIN' ? '/settings/boards' : null} />}
+      />
+      {(wantedStatuses || otherYearHits > 0) && (
+        <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-2 md:pl-6 md:pr-8">
           {statusChip}
-          <div className="ml-auto flex min-w-0 flex-wrap items-center gap-2">
-            {search}
-            {boardFilter}
-            {yearPicker}
-            <div className="flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
-              <Link
-                href={projectsViewHref('list', { q: query, year: yearParam, board: boardParam, status: narrowed ? status : undefined, member, label, urgent, due, done, activity })}
-                className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted transition-colors hover:text-foreground"
-              >
-                {t('viewList')}
-              </Link>
-              <span aria-current="page" className="whitespace-nowrap rounded-md bg-surface px-3 py-1.5 text-foreground shadow-sm">
-                {t('viewBoard')}
-              </span>
-            </div>
-            {isOffice(user) && (
-              <Link href="/projects/new" className={btn.primarySm}>
-                {t('newProject')}
-              </Link>
-            )}
-            <BoardMenu
-              onGround={onGround}
-              archivedHref={archivedHref(true)}
-              activityHref={feedHref(50)}
-              links={officeLinks}
-              settingsHref={user.role === 'ADMIN' ? '/settings/boards' : null}
-            />
-          </div>
+      {otherYearHits > 0 && (
+        <Link
+          href={allYearsHref}
+          className="max-w-full truncate text-xs text-accent hover:underline"
+        >
+          {t('otherYearsHits', { count: otherYearHits })} →
+        </Link>
+      )}
         </div>
+      )}
+    </>
+  )
 
-        <div className="min-h-0 flex-1 px-3 pb-3 pt-2">
-          <ProjectsKanban
-            // A new board is a new component: what a column was showing
-            // beyond its first fifty belongs to the board it was on.
-            key={board?.id ?? 'none'}
-            boardId={board?.id ?? ''}
-            columns={columns}
-            customers={customerOptions.map((c) => ({ value: c.id, label: c.name }))}
-            templates={boardTemplates}
-            manageTemplates={isOffice(user)}
-            canJoin={user.employee !== null}
-            onGround={onGround}
-            confirmFor={['COMPLETED', 'CANCELLED']}
-            addable={addable}
-            canEditBoard={isOffice(user)}
-            settingsHref={user.role === 'ADMIN' ? '/settings/boards' : null}
-            labels={{
-              confirmTitle: t('kanbanConfirmTitle'),
-              confirmBody: t('kanbanConfirmBody'),
-              confirm: tc('confirm'),
-              cancel: tc('cancel'),
-              empty: t('kanbanEmpty'),
-              saveFailed: tc('saveFailed'),
-            }}
-          />
-        </div>
-
-        {/* The archive, the way Trello's menu opens it: a panel over the right
-            of the board, the cards that were put away, each with the way back. */}
+  const panels = (<>
         {archived === '1' && (
           <aside className="absolute inset-y-0 right-0 z-20 flex w-full max-w-sm flex-col border-l border-border bg-surface shadow-2xl">
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
@@ -1007,7 +891,7 @@ export default async function ProjectsPage({
                         <span className="font-semibold">{line.who}</span> {line.text}
                       </p>
                       <p className="mt-0.5 text-xs text-muted">
-                        <Link href={openCardHref(line.card.id)} scroll={false} className="text-accent hover:underline">
+                        <Link href={openCardHref(line.card.id)} scroll={false} prefetch={false} className="text-accent hover:underline">
                           {line.card.number} {line.card.name}
                         </Link>
                         {' · '}
@@ -1028,6 +912,45 @@ export default async function ProjectsPage({
           </aside>
         )}
 
+  </>)
+
+  if (kanban) {
+    return (
+      // The whole panel, edge to edge: the main area's padding is given back,
+      // and on a desktop the board is exactly as tall as the window, its own
+      // head at the top and the lists scrolling sideways under it.
+      <div className="relative -mx-4 -mb-4 -mt-4 flex flex-col md:-mb-8 md:-ml-6 md:-mr-8 md:-mt-8 md:h-screen">
+        {toolbar}
+
+        <div className="min-h-0 flex-1 pb-4 pt-4 md:pb-6">
+          <ProjectsKanban
+            // Reset local drag/menu state when changing boards.
+            key={board?.id ?? 'none'}
+            boardId={board?.id ?? ''}
+            columns={columns}
+            customers={customerOptions.map((c) => ({ value: c.id, label: c.name }))}
+            templates={boardTemplates}
+            manageTemplates={isOffice(user)}
+            canJoin={user.employee !== null}
+            confirmFor={['COMPLETED', 'CANCELLED']}
+            addable={addable}
+            canEditBoard={isOffice(user) && !allProjects}
+            settingsHref={user.role === 'ADMIN' ? '/settings/boards' : null}
+            labels={{
+              confirmTitle: t('kanbanConfirmTitle'),
+              confirmBody: t('kanbanConfirmBody'),
+              confirm: tc('confirm'),
+              cancel: tc('cancel'),
+              empty: t('kanbanEmpty'),
+              saveFailed: tc('saveFailed'),
+            }}
+          />
+        </div>
+
+        {/* The archive, the way Trello's menu opens it: a panel over the right
+            of the board, the cards that were put away, each with the way back. */}
+        {panels}
+
         {sheet}
         {/* What a colleague moves, adds or writes shows up here too, the way it does in Trello. */}
         <LiveRefresh url="/api/board-version" />
@@ -1036,37 +959,11 @@ export default async function ProjectsPage({
   }
 
   return (
-    <div className="space-y-4">
-      <StickyHead>
-        <div className={pageToolbar}>
-          <h1 className={pageTitle}>{t('title')}</h1>
-          {/* The same right-hand end as the board's bar, in the same order:
-              the year, list or board, the new project, and the office's doors
-              — drafts, templates, checklists, forms — behind the three dots.
-              The switch used to sit a card lower, at the end of the status
-              tabs, and was looked for up here and not found. The row wraps on
-              a phone instead of running off its right edge. */}
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {viewSwitch}
-            {/* Templates and new projects are the office's; a site manager adds a card on the board. */}
-            {isOffice(user) && (
-              <Link href="/projects/new" className={btn.primary}>
-                {t('newProject')}
-              </Link>
-            )}
-            {officeLinks.length > 0 && <ListMenu links={officeLinks} />}
-          </div>
-        </div>
-      </StickyHead>
-
+    <div className="relative -mx-4 -mb-4 -mt-4 flex min-h-full flex-col md:-mb-8 md:-ml-6 md:-mr-8 md:-mt-8">
+      {toolbar}
+      <div className="space-y-3 p-4 md:pb-8 md:pl-6 md:pr-8 md:pt-6">
       <PagePanel>
-        {/*
-          Two choices about the same projects: the status tabs say which are
-          shown; which years, and list or board, is said in the page's bar
-          above, where the board's bar says it too. Under the tabs the search
-          and the filter, the way the board's bar has them.
-        */}
-        <div className="space-y-3 border-b border-border p-4">
+        <div className="border-b border-border px-3 py-2">
           <StatusTabs
             allLabel={t('allStatuses')}
             allCount={allCount}
@@ -1083,33 +980,33 @@ export default async function ProjectsPage({
               // Every status keeps its tab, also at 0: a tab that
               // came and went with the year would move the others
               // along the strip under the cursor.
-              ...STATUSES.map((s) => ({
+              ...(allProjects ? STATUSES : boardStatuses).map((s) => ({
                 value: s,
                 label: tStatus(s),
                 count: countByStatus.get(s) ?? 0,
               })),
             ]}
           />
-          <div className="flex flex-wrap items-center gap-3">
-            {search}
-            {boardFilter}
-          </div>
+
         </div>
 
           <div className="overflow-x-auto">
-            <table className={`w-full table-fixed text-sm ${showPrice ? 'min-w-[1176px]' : 'min-w-[1016px]'}`}>
+            {/* Fits the card beside the sidebar on a 1440-pixel screen; below
+                that the table scrolls sideways rather than squeezing the names. */}
+            <table className={`w-full table-fixed text-sm ${showPrice ? 'min-w-[1264px]' : 'min-w-[1136px]'}`}>
               <colgroup>
                 <col className="w-28" />
-                <col />
-                <col className="w-[16%]" />
-                <col className="w-40" />
-                <col className="w-36" />
-                {/* Wide enough for the status menu and the next step beside it. */}
-                <col className="w-64" />
-                {showPrice && <col className="w-36" />}
+                <col className="w-72" />
+                <col className="w-48" />
+                <col className="w-32" />
+                <col className="w-32" />
+                {/* Wide enough for the status menu and the longest next step
+                    ("In Ausführung" → "Abgeschlossen") on one line. */}
+                <col className="w-72" />
+                {showPrice && <col className="w-32" />}
               </colgroup>
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                <tr className="border-b border-border text-left text-xs text-muted">
                   <th className="px-4 py-3 font-medium">{t('number')}</th>
                   <th className="px-4 py-3 font-medium">{t('name')}</th>
                   <th className="px-4 py-3 font-medium">{t('customer')}</th>
@@ -1143,7 +1040,7 @@ export default async function ProjectsPage({
                         {p.doneAt && (
                           <Check className="mr-1 inline h-3.5 w-3.5 rounded-full bg-emerald-600 p-0.5 align-[-2px] text-white" strokeWidth={3} aria-label={t('cardDoneState')} />
                         )}
-                        <Link href={`/projects/${p.id}`} className="font-medium text-accent hover:underline">
+                        <Link href={openCardHref(p.id)} scroll={false} prefetch={false} className="font-medium text-foreground hover:text-accent hover:underline">
                           {p.name}
                         </Link>
                         {/* Site checklists: how far the crew has ticked through */}
@@ -1200,7 +1097,8 @@ export default async function ProjectsPage({
       </PagePanel>
 
       <Pagination page={page} total={total} />
-
+      </div>
+      {panels}
       {sheet}
       <LiveRefresh url="/api/board-version" />
     </div>

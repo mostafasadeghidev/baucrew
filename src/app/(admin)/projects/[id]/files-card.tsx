@@ -76,7 +76,7 @@ export async function FilesCard({
   }))
 
   return (
-    <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <section className="rounded-xl border border-border bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-3 text-base font-semibold" title={t('hint')}>
           <Paperclip className="h-5 w-5 shrink-0 text-muted" aria-hidden />

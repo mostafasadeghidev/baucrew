@@ -1,18 +1,18 @@
 /**
- * Where an old address of the CRM page belongs now.
+ * Where an old address of the reporting page belongs now.
  *
- * The page had eight tabs and has seven: Heute, Vergleich, Aufträge & Baustellen,
- * Pipeline, Planumsatz, Auslastung and Datenlücken. A bookmark, a link on the dashboard or
- * an address somebody sent
- * must still land on the tab that took over the old one's content — not on an
- * empty page, and not on the wrong year. Returns the new address, or null when
- * the address is already a current one.
+ * The page (once called CRM) had eight tabs, then seven with Heute first, and
+ * has four: Vergleich, Planumsatz, Auslastung and Datenlücken. A bookmark, a
+ * link on the dashboard or an address somebody sent must still land on the tab
+ * that took over the old one's content — not on an empty page, and not on the
+ * wrong year. Returns the new address, or null when the address is already a
+ * current one.
  *
  * Pure, so the mapping is tested without a request.
  */
 
-/** The current tabs, in the order they stand; the empty value is Heute. */
-export const REPORT_TABS = ['', 'compare', 'jobs', 'pipeline', 'revenue', 'utilization', 'quality'] as const
+/** The current tabs, in the order they stand; the empty value is Vergleich. */
+export const REPORT_TABS = ['', 'revenue', 'utilization', 'quality'] as const
 export type ReportTab = (typeof REPORT_TABS)[number]
 
 /** The time frame travels with every redirect. */
@@ -21,17 +21,14 @@ const TIME = ['year', 'period']
 const REVENUE_CHOICES = ['order', 'layout', 'per']
 /** The Vergleich tab's choices: the chart, the years it holds and the quarter card. */
 const COMPARE = ['compare', 'chart', 'qyear', 'qcompare']
+/** The Datenlücken tab's own choice: the one kind of gap the list is narrowed to. */
+const GAP_CHOICES = ['gap']
 
 /**
  * The choices that belong to one tab only. Switching the main tab drops them,
- * so a choice made on one tab never follows the office onto another — and an
- * address without a tab that still carries the comparison's choices can only
- * be an old overview link.
+ * so a choice made on one tab never follows the office onto another.
  */
-/** The Aufträge & Baustellen tab's own choice: the sites as cards or as a kanban. */
-const JOBS_CHOICES = ['sites']
-
-export const TAB_CHOICES = ['view', 'open', ...REVENUE_CHOICES, ...COMPARE, ...JOBS_CHOICES]
+export const TAB_CHOICES = ['view', ...REVENUE_CHOICES, ...COMPARE, ...GAP_CHOICES]
 
 export function resolveReportsUrl(params: Record<string, string | undefined>): string | null {
   const tab = params.tab ?? ''
@@ -48,41 +45,42 @@ export function resolveReportsUrl(params: Record<string, string | undefined>): s
     const query = next.toString()
     return query ? `/reports?${query}` : '/reports'
   }
-  const hadComparison = COMPARE.some((key) => params[key] !== undefined)
+  /** Vergleich is the tab without a name; the chart's choices go along. */
   const toComparison = () => {
-    set('tab', 'compare')
     keep([...TIME, ...COMPARE])
     return address()
   }
 
   switch (tab) {
     case '':
-      // The overview used to be the tab without a name; its comparison links
-      // carried the chart's choices and no view.
-      return hadComparison && params.view === undefined ? toComparison() : null
-    case 'compare':
-    case 'jobs':
-    case 'pipeline':
+      // Heute took `open` for the tile whose sheet stood open, and the overview
+      // before it `view`; neither means anything on Vergleich.
+      return params.open !== undefined || params.view !== undefined ? toComparison() : null
     case 'utilization':
     case 'quality':
       return null
+    case 'compare':
+    case 'overview':
+    case 'cockpit':
+    // Aufträge & Baustellen and the Pipeline were working lists of the
+    // projects; they were taken off, and the projects' boards hold that work.
+    case 'jobs':
+    case 'pipeline':
+    case 'offers':
+      // Vergleich had a name of its own while Heute stood first; the overview
+      // and the cockpit were what Heute replaced; the old offers tab went to
+      // Heute and then the Pipeline.
+      return toComparison()
     case 'revenue':
       // The comparison was a view of Planumsatz, and the running sum one before
       // it; both are the Vergleich tab now. The months' layout stays behind.
       if (params.view === 'compare' || params.view === 'cumulative') return toComparison()
-      if (params.view === undefined) return null
-      // Baustellen and Kunden were views of Planumsatz too; the months are what is left.
+      if (params.view === undefined && params.layout !== 'matrix') return null
+      // Baustellen and Kunden were views of Planumsatz too, and the year
+      // matrix one of its layouts; the months are what is left.
       set('tab', 'revenue')
-      keep([...TIME, ...REVENUE_CHOICES])
-      return address()
-    case 'overview':
-      // Somebody who had set up the comparison chart wants the comparison.
-      if (hadComparison) return toComparison()
-      keep(TIME)
-      return address()
-    case 'offers':
-      keep(TIME)
-      set('open', 'offers')
+      keep([...TIME, ...REVENUE_CHOICES.filter((key) => key !== 'layout' || params.layout !== 'matrix')])
+      if (params.layout === 'matrix') next.delete('per')
       return address()
     case 'projects':
       set('tab', 'utilization')
@@ -92,7 +90,7 @@ export function resolveReportsUrl(params: Record<string, string | undefined>): s
       set('tab', 'revenue')
       keep(TIME)
       return address()
-    // 'cockpit' and anything unknown open Heute.
+    // Anything unknown opens Vergleich.
     default:
       keep(TIME)
       return address()

@@ -10,6 +10,7 @@ const job = (over: Partial<GapProject> & { id: string; status: string }): GapPro
   amount: 10_000,
   plannedStart: d('2026-05-01'),
   planMonth: null,
+  city: 'Musterstadt',
   isSub: false,
   historical: false,
   lines: [{ year: 2026, amount: 10_000, isSub: false }],
@@ -19,6 +20,24 @@ const job = (over: Partial<GapProject> & { id: string; status: string }): GapPro
 const opts = { currentYear: 2026, runningMonth: 8 }
 
 describe('dataGapReport', () => {
+  it('asks for a town only where there are days on site ahead, and counts the job once', () => {
+    const report = dataGapReport(
+      [
+        job({ id: 'offer', status: 'QUOTED', city: null }),
+        job({ id: 'planned', status: 'PLANNED', city: '  ' }),
+        job({ id: 'running', status: 'IN_PROGRESS', city: null, amount: null }),
+        job({ id: 'done', status: 'COMPLETED', city: null }),
+        job({ id: 'old', status: 'IN_PROGRESS', city: null, historical: true }),
+      ],
+      [],
+      opts
+    )
+    expect(report.noTown.map((p) => p.id)).toEqual(['planned', 'running'])
+    // 'running' also lacks a value: still one job in the count.
+    expect(report.count).toBe(2)
+    expect(report.historicalWithGaps).toBe(1)
+  })
+
   it('has nothing to say about a complete job', () => {
     const report = dataGapReport([job({ id: 'ok', status: 'APPROVED' })], [], opts)
     expect(report.count).toBe(0)

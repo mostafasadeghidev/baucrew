@@ -102,7 +102,7 @@ export default async function VehicleDetailPage({
       </StickyHead>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+        <section className="rounded-xl border border-border bg-surface p-5">
           <h2 className="text-sm font-semibold">{t('details')}</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex gap-2">
@@ -122,7 +122,7 @@ export default async function VehicleDetailPage({
           )}
         </section>
 
-        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+        <section className="overflow-hidden rounded-xl border border-border bg-surface">
           <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">
             {t('upcomingTitle')}
           </h2>
@@ -148,7 +148,7 @@ export default async function VehicleDetailPage({
         </section>
       </div>
 
-      <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-border bg-surface">
         <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">{t('projectsTitle')}</h2>
         {vehicle.projects.length === 0 ? (
           <p className="px-5 py-6 text-sm text-muted">{t('noProjects')}</p>

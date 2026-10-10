@@ -392,7 +392,7 @@ export async function getProjectScheduleDefaults(projectId: string): Promise<{
     id: string
     name: string
     inventoryNo: string | null
-    state: 'free' | 'here' | 'busy'
+    state: 'free' | 'here' | 'busy' | 'wattro'
     where: string
   }>
   /** Devices not on the list yet — for the picker. */

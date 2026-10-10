@@ -7,7 +7,6 @@ import { addDays, iso, mondayOf, todayUtc, utcDate } from '@/lib/dates'
 import { getRainWarnings, weatherPlace } from '@/lib/weather'
 import { geocodeCity } from '@/lib/geocode'
 import { btn } from '@/components/ui/button'
-import { PagePanel } from '@/components/ui/page-panel'
 import { ScheduleControls, ScheduleHeader } from '../schedule-header'
 import { SiteMap, type MapSite } from './site-map'
 import { FocusSiteButton } from './focus-site-button'
@@ -257,6 +256,13 @@ export default async function ScheduleMapPage({
     <div className="flex flex-col gap-4 lg:h-[calc(100vh-3rem)]">
       <ScheduleHeader
         title={t('title')}
+        nav={{
+          view: 'map',
+          weekHref: `/schedule?week=${iso(monday)}${weekendQuery}`,
+          monthHref: `/schedule?view=month&week=${iso(monday)}${weekendQuery}`,
+          mapHref: mapHref(),
+          labels: { week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap'), aria: t('title') },
+        }}
         action={
           // The dialog lives with the week board, which has the projects, the
           // crew and the vehicles loaded; the map hands the click over to it.
@@ -266,13 +272,8 @@ export default async function ScheduleMapPage({
         }
       />
 
-      <PagePanel className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
       <ScheduleControls
-        view="map"
-        weekHref={`/schedule?week=${iso(monday)}${weekendQuery}`}
-        monthHref={`/schedule?view=month&week=${iso(monday)}${weekendQuery}`}
-        mapHref={mapHref()}
-        viewLabels={{ week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap') }}
         prevHref={mapHref({ monday: addDays(monday, -7) })}
         nextHref={mapHref({ monday: addDays(monday, 7) })}
         currentHref={mapHref({ monday: mondayOf(todayUtc()) })}
@@ -442,7 +443,7 @@ export default async function ScheduleMapPage({
           })}
         </div>
       </div>
-      </PagePanel>
+      </div>
     </div>
   )
 }

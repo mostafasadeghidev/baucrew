@@ -8,7 +8,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { btn } from '@/components/ui/button'
 
 const inputClass =
-  'block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'block w-full rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 function SkillRow({ name, count }: { name: string; count: number }) {
   const t = useTranslations('employees')
@@ -86,7 +86,7 @@ export function SkillManager({ skills }: { skills: Array<{ name: string; count: 
   const t = useTranslations('employees')
   const [open, setOpen] = useState(false)
   return (
-    <section className="rounded-xl border border-border bg-surface shadow-sm">
+    <section className="rounded-xl border border-border bg-surface">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

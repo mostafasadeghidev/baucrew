@@ -28,7 +28,7 @@ export default async function LoginPage({
           <LanguageSwitcher />
           <ThemeToggle />
         </div>
-        <div className="rounded-lg border border-border bg-surface p-8 shadow-sm">
+        <div className="rounded-lg border border-border bg-surface p-8">
           <BrandMark
             hasLogo={branding.hasLogo}
             name={branding.companyName}

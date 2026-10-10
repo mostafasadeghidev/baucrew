@@ -54,7 +54,7 @@ export default async function DraftsPage() {
       ) : (
         <ul className="space-y-3">
           {drafts.map((draft) => (
-            <li key={draft.id} className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+            <li key={draft.id} className="rounded-lg border border-border bg-surface p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2">

@@ -193,7 +193,7 @@ export function PlanTable({
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-surface shadow-sm">
+      <div className="overflow-x-auto rounded-lg border border-border bg-surface">
         <table className="w-full min-w-[940px] table-fixed text-sm">
           <colgroup>
             <col className="w-44" />
@@ -203,7 +203,7 @@ export function PlanTable({
             <col className="w-32" />
           </colgroup>
           <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+            <tr className="border-b border-border text-left text-xs text-muted">
               <th className="px-3 py-2 font-medium">{t('colMonth')}</th>
               <th className="px-3 py-2 font-medium">{t('colSite')}</th>
               <th className="px-3 py-2 text-right font-medium">{t('colPlan')}</th>

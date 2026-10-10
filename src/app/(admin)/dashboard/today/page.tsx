@@ -9,7 +9,7 @@ import type { VehicleStatus } from '@/generated/prisma/enums'
 import { btn } from '@/components/ui/button'
 import { PageBar, StickyHead } from '@/components/ui/page-panel'
 
-const card = 'overflow-hidden rounded-lg border border-border bg-surface shadow-sm'
+const card = 'overflow-hidden rounded-lg border border-border bg-surface'
 
 /**
  * Dashboard sub page: who is working today (and with which vehicle) — one

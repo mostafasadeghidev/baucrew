@@ -18,6 +18,28 @@ docker compose up -d --build
   starting the server, so schema migrations are applied on every deploy.
 - The app listens on port **3000**.
 
+**Never run `npm run db:migrate` against a database with real data.** It is
+`prisma migrate dev`, a development command: it may create a new migration
+from schema drift and, when the histories do not match, offers to reset the
+database — i.e. drop every table. Production and any copy of real data only
+ever get `npm run db:deploy` (`prisma migrate deploy`), which is what the
+container entrypoint runs.
+
+### Optional variables
+
+`docker-compose.yml` passes these through to the app container when they are
+set in `.env`; empty or absent means "not configured" and the feature stays
+hidden or disabled. None of them is needed for a plain installation.
+
+| Variable | What it enables | Rule |
+| --- | --- | --- |
+| `TRELLO_API_KEY`, `TRELLO_TOKEN` | *Einstellungen → Import aus Trello*: fetching the files attached to imported cards (*Dateien abholen*). A read-only token is enough; nothing is written to Trello. | Set them only for the import window. Afterwards remove both from `.env`, run `docker compose up -d` so the container no longer carries them, and revoke the token in the Trello account. |
+| `WATTRO_API_KEY` | *Geräte → Mit Wattro abgleichen*: reading Wattro's machines into the Devices page (read-only). | Only together with a confirmed **production** `WATTRO_BASE_URL`. In production an unset base URL means "not configured": the sync stays off and a warning is logged once, so a key can never be sent to Wattro's development host by accident. |
+| `WATTRO_BASE_URL` | Wattro's API root, environment and version included (e.g. `https://<host>/api/v1`). | Confirm the host with the key's owner before setting it; check in the container with `docker compose exec -T app sh -c 'echo ${WATTRO_BASE_URL:-UNSET}'`. |
+| `WATTRO_SYNC_INTERVAL_MINUTES` | How often the running server reads Wattro by itself, in minutes. | Optional: empty means every 60 minutes; `0` turns the automatic read off (the button still works); below 15 counts as 15. |
+| `INBOUND_API_KEY` | The automation door `POST /api/inbound/drafts` (drafts into the inbox, never live projects). | Unset = the endpoint answers 503. Generate with `openssl rand -hex 32`. |
+| `FILE_STORAGE_DIR` | Where uploaded files are stored. | Leave unset in Docker — the default `/app/storage` is the `baucrew_files` volume. |
+
 ## HTTPS / reverse proxy
 
 Run a reverse proxy in front of the app. Example with Caddy:
@@ -62,6 +84,7 @@ run on Vercel — same code, no changes:
 3. **Environment variables** (Settings → Environment Variables, all environments):
    - `DATABASE_URL` — the PostgreSQL connection string
    - `SESSION_SECRET` — random, ≥ 32 chars (`openssl rand -hex 32`)
+   - the optional variables from the table above, under the same rules
 4. **Deploy.** The build script runs `prisma generate`, then — only on Vercel —
    `prisma migrate deploy` and the base-data bootstrap (accounts, categories,
    catalog) against `DATABASE_URL`, then `next build`. Every later deploy applies
@@ -70,6 +93,19 @@ run on Vercel — same code, no changes:
 
 Notes: serverless functions have execution-time limits — very large backups or
 Trello imports may need to be split; keep the Docker path for heavy use.
+
+## Wattro (optional)
+
+The Devices page reads the client's Wattro (tool tracking). Set on the server:
+
+- `WATTRO_API_KEY` — the key from Wattro (never in the repository)
+- `WATTRO_BASE_URL` — the client's Wattro API root, e.g.
+  `https://<company>.wattro.io/api/v1`
+
+Restart the container (`docker compose up -d`). Wattro is then read
+**automatically every hour** by the running server itself — nothing else to
+set up (`WATTRO_SYNC_INTERVAL_MINUTES` changes the interval, 0 turns it off) —
+and by hand with "Mit Wattro abgleichen". Every run is in the audit log.
 
 ## Backups
 
@@ -114,7 +150,10 @@ The in-app backup (Einstellungen → Daten & Protokoll) carries the project
 files as well, base64 inside one JSON — right for a small installation or a
 move to another server, too heavy once the files run into hundreds of
 megabytes, and without the board photos. Past that size the two lines above
-are the backup.
+are the backup. Once the files run into gigabytes — a board taken over from
+Trello with its attachments gets there at once — the in-app JSON backup is
+not a backup any more: the export builds the whole JSON in memory and will
+fail or hang. Use `pg_dump` plus the files archive only.
 
 Test the restore path regularly — a backup that has never been restored is not a backup.
 

@@ -9,7 +9,7 @@ import type { SaveState } from '@/components/saved-form'
 import type { OptionEntry } from '@/lib/option-lists'
 
 const inputClass =
-  'block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'block w-full rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 /**
  * Editor for a configurable list (client types, building types, item kinds):

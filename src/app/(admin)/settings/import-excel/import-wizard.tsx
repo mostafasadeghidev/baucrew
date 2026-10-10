@@ -11,7 +11,7 @@ import { IMPORT_FIELDS, type ImportField, type ImportMapping, type ImportProfile
 import { deleteImportProfile, saveImportProfile } from './actions'
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 type Preview = { headers: string[]; rows: Array<Array<string | number>>; totalRows: number }
 type RunResult = { created: number; updated: number; skipped: number }
@@ -84,7 +84,7 @@ export function ImportWizard({ profiles }: { profiles: ImportProfile[] }) {
   return (
     <div className="space-y-4">
       {/* Step 1: the file */}
-      <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+      <section className="rounded-lg border border-border bg-surface p-5">
         <h2 className="text-sm font-semibold">{t('step1')}</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <input
@@ -113,7 +113,7 @@ export function ImportWizard({ profiles }: { profiles: ImportProfile[] }) {
 
       {/* Step 2: mapping + preview */}
       {preview && (
-        <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <section className="rounded-lg border border-border bg-surface p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-sm font-semibold">{t('step2')}</h2>
             {profiles.length > 0 && (
@@ -246,7 +246,7 @@ export function ImportWizard({ profiles }: { profiles: ImportProfile[] }) {
 
       {/* Step 3: result */}
       {result && (
-        <section className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-5 text-sm shadow-sm">
+        <section className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-5 text-sm">
           <p className="font-medium">
             {t('result', { created: result.created, updated: result.updated, skipped: result.skipped })}
           </p>

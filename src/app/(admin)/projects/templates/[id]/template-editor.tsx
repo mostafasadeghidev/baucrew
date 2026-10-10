@@ -88,7 +88,7 @@ export async function TemplateEditor({ id, cancelHref }: { id: string; cancelHre
       itemsSection={
         // Same order as on the create page: the item list sits above the
         // Save / Cancel buttons.
-        <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+        <section className="overflow-hidden rounded-lg border border-border bg-surface">
           <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">{t('itemsTitle')}</h2>
           <TemplateItemsEditor
             templateId={template.id}

@@ -134,7 +134,7 @@ export default async function TodayBoardPage({
             <form action={logout}>
               <button
                 type="submit"
-                className={`${btn.outline} rounded-lg py-2.5 text-base`}
+                className={`${btn.outline} h-11 rounded-lg text-base`}
               >
                 {tAuth('logout')}
               </button>
@@ -167,7 +167,7 @@ export default async function TodayBoardPage({
             return (
               <section
                 key={entry.id}
-                className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+                className="overflow-hidden rounded-xl border border-border bg-surface"
               >
                 <div className="border-b border-border bg-accent/10 px-5 py-4">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">

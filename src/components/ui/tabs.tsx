@@ -4,18 +4,22 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 /**
- * Segmented tab bar in the spirit of shadcn/ui: a subtle track with the active
- * tab as a raised pill. Used by the status tabs (project list) and the param
- * tabs (settings, reports, warehouse).
+ * Tabs as quiet pills, the way Framer, Webflow and Trello draw them: plain
+ * text, and a soft grey pill behind the one you are on. No track, no border,
+ * no line under them — they sit in the page's one-row head beside its name.
+ * Used by the status tabs (project list) and the param tabs (settings,
+ * reports), and by the schedule's views.
  */
+export const pillTab = {
+  base: 'relative flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+  on: 'bg-subtle text-foreground',
+  off: 'text-muted hover:bg-subtle/60 hover:text-foreground',
+} as const
+
 export function TabsList({ children, ariaLabel }: { children: ReactNode; ariaLabel?: string }) {
   return (
-    <div className="max-w-full overflow-x-auto">
-      <nav
-        aria-label={ariaLabel}
-        role="tablist"
-        className="inline-flex w-max items-center gap-1 rounded-lg bg-subtle p-1 text-muted"
-      >
+    <div className="max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <nav aria-label={ariaLabel} role="tablist" className="flex w-max items-center gap-0.5">
         {children}
       </nav>
     </div>
@@ -51,22 +55,10 @@ export function TabLink({
       role="tab"
       aria-selected={active}
       aria-current={active ? 'page' : undefined}
-      className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-        active
-          ? 'bg-surface text-foreground shadow-sm'
-          : 'text-muted hover:text-foreground'
-      }`}
+      className={`${pillTab.base} ${active ? pillTab.on : pillTab.off}`}
     >
       {label}
-      {count != null && (
-        <span
-          className={`rounded-full px-1.5 text-xs tabular-nums ${
-            active ? 'bg-accent/10 text-accent' : 'bg-surface/70 text-muted'
-          }`}
-        >
-          {count}
-        </span>
-      )}
+      {count != null && <span className="text-xs tabular-nums text-muted">{count}</span>}
     </Link>
   )
 }

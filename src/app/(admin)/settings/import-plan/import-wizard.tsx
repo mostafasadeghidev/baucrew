@@ -52,10 +52,10 @@ export function ImportWizard() {
         <input type="hidden" name="_phase" value="import" />
         <p className="text-sm text-muted">{t('previewHint')}</p>
 
-        <div className="overflow-x-auto rounded-lg border border-border bg-surface shadow-sm">
+        <div className="overflow-x-auto rounded-lg border border-border bg-surface">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+              <tr className="border-b border-border text-left text-xs text-muted">
                 <th className="px-3 py-2 font-medium">{t('colYear')}</th>
                 <th className="px-3 py-2 font-medium">{t('colMonths')}</th>
                 <th className="px-3 py-2 text-right font-medium">{t('colOwn')}</th>

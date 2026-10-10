@@ -322,7 +322,7 @@ export default async function DashboardPage({
           <Link
             key={s.label}
             href={s.href}
-            className="rounded-lg border border-border bg-surface p-4 shadow-sm transition-colors hover:border-accent"
+            className="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-accent"
           >
             <p className="text-sm text-muted">{s.label}</p>
             <p className="mt-1 text-3xl font-semibold tabular-nums">{s.value}</p>
@@ -333,7 +333,7 @@ export default async function DashboardPage({
 
     conflicts: (
 <section
-          className={`rounded-lg border p-4 shadow-sm ${
+          className={`rounded-lg border p-4 ${
             conflicts.length > 0 ? 'border-amber-500/40 bg-amber-500/10' : 'border-border bg-surface'
           }`}
         >
@@ -342,7 +342,7 @@ export default async function DashboardPage({
               {conflicts.length > 0 ? '⚠ ' : '✓ '}
               {t('conflictsThisWeek')}
             </h2>
-            <Link href="/schedule" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+            <Link href="/schedule" className={`${btn.outlineXs} px-2 text-muted`}>
               {t('openSchedule')} <span aria-hidden>→</span>
             </Link>
           </div>
@@ -367,7 +367,7 @@ export default async function DashboardPage({
 
     weather: (
 <section
-          className={`rounded-lg border p-4 shadow-sm ${
+          className={`rounded-lg border p-4 ${
             rain.length > 0 ? 'border-sky-500/40 bg-sky-500/10' : 'border-border bg-surface'
           }`}
         >
@@ -393,10 +393,10 @@ export default async function DashboardPage({
     ),
 
     packing: (
-<section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+<section className="overflow-hidden rounded-lg border border-border bg-surface">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">{t('packingToday')}</h2>
-            <Link href="/dashboard/packing" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+            <Link href="/dashboard/packing" className={`${btn.outlineXs} px-2 text-muted`}>
               {t('openPacking')} <span aria-hidden>→</span>
             </Link>
           </div>
@@ -445,7 +445,7 @@ export default async function DashboardPage({
     ),
 
     attention: (
-<section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+<section className="overflow-hidden rounded-lg border border-border bg-surface">
           <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">
             {t('needsAttention')}
           </h2>
@@ -474,7 +474,7 @@ export default async function DashboardPage({
     ),
 
     today: (
-<section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+<section className="overflow-hidden rounded-lg border border-border bg-surface">
         <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
           <h2 className="text-sm font-semibold">{t('todaysSchedule')}</h2>
           <PlanEntryButton date={iso(today)} {...planOptions} />
@@ -522,7 +522,7 @@ export default async function DashboardPage({
     ),
 
     tomorrow: (
-      <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
         <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
           <h2 className="text-sm font-semibold">{t('tomorrowSchedule')}</h2>
           <PlanEntryButton date={iso(tomorrow)} {...planOptions} />
@@ -588,10 +588,10 @@ export default async function DashboardPage({
     ),
 
     week: (
-      <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">{t('weekAtAGlance')}</h2>
-          <Link href="/schedule" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+          <Link href="/schedule" className={`${btn.outlineXs} px-2 text-muted`}>
             {t('openSchedule')} <span aria-hidden>→</span>
           </Link>
         </div>
@@ -620,7 +620,7 @@ export default async function DashboardPage({
     ),
 
     checklists: (
-      <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">{t('checklistProblems')}</h2>
           {checklistProblemCount > 0 && (
@@ -651,11 +651,11 @@ export default async function DashboardPage({
     ),
 
     offers: (
-      <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">{t('openOffersTitle')}</h2>
-          <Link href="/reports?open=offers" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
-            {t('openReports')} <span aria-hidden>→</span>
+          <Link href="/projects?view=list&status=QUOTED" className={`${btn.outlineXs} px-2 text-muted`}>
+            {t('openOffersList')} <span aria-hidden>→</span>
           </Link>
         </div>
         {!offers || offers.offers.length === 0 ? (
@@ -692,10 +692,10 @@ export default async function DashboardPage({
     ),
 
     revenueMonth: (
-      <section className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+      <section className="rounded-lg border border-border bg-surface p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">{t('revenueThisMonth')}</h2>
-          <Link href="/reports?tab=revenue" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+          <Link href="/reports?tab=revenue" className={`${btn.outlineXs} px-2 text-muted`}>
             {t('openReports')} <span aria-hidden>→</span>
           </Link>
         </div>
@@ -711,7 +711,7 @@ export default async function DashboardPage({
     ),
 
     dueThisWeek: (
-      <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
         <h2 className="border-b border-border px-4 py-3 text-sm font-semibold">{t('dueThisWeek')}</h2>
         {dueProjects.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted">{t('nothingDue')}</p>
@@ -739,10 +739,10 @@ export default async function DashboardPage({
     ),
 
     stock: (
-      <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-border bg-surface">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">{t('stockShortTitle')}</h2>
-          <Link href="/warehouse" className={`${btn.outlineSm} px-2 py-0.5 text-xs text-muted`}>
+          <Link href="/warehouse" className={`${btn.outlineXs} px-2 text-muted`}>
             {t('openWarehouseList')} <span aria-hidden>→</span>
           </Link>
         </div>

@@ -12,8 +12,12 @@ import {
 
 describe('parseRevenueLayoutCookie', () => {
   it('reads back what was written', () => {
-    const choice: RevenueLayoutChoice = { layout: 'matrix', grid: '6', lanes: '12', matrix: 'full' }
+    const choice: RevenueLayoutChoice = { layout: 'lanes', grid: '6', lanes: '12' }
     expect(parseRevenueLayoutCookie(revenueLayoutCookieValue(choice))).toEqual(choice)
+  })
+
+  it('opens the grid for a cookie saved while the year matrix was a layout, keeping its zooms', () => {
+    expect(parseRevenueLayoutCookie('matrix.6.12.full')).toEqual({ layout: 'grid', grid: '6', lanes: '12' })
   })
 
   it('opens on the grid of three when nothing was chosen yet', () => {
@@ -23,7 +27,7 @@ describe('parseRevenueLayoutCookie', () => {
   })
 
   it('keeps the fields it can read and replaces only the others', () => {
-    expect(parseRevenueLayoutCookie('lanes.5.12')).toEqual({ layout: 'lanes', grid: '3', lanes: '12', matrix: 'short' })
+    expect(parseRevenueLayoutCookie('lanes.5.12')).toEqual({ layout: 'lanes', grid: '3', lanes: '12' })
     expect(parseRevenueLayoutCookie('board.4')).toEqual({ ...DEFAULT_REVENUE_LAYOUT, grid: '4' })
   })
 
@@ -37,7 +41,7 @@ describe('parseRevenueLayoutCookie', () => {
 })
 
 describe('resolveRevenueLayout', () => {
-  const saved: RevenueLayoutChoice = { layout: 'grid', grid: '4', lanes: '3', matrix: 'color' }
+  const saved: RevenueLayoutChoice = { layout: 'grid', grid: '4', lanes: '3' }
 
   it('draws the saved choice when the address says nothing', () => {
     expect(resolveRevenueLayout(saved)).toEqual(saved)
@@ -45,12 +49,11 @@ describe('resolveRevenueLayout', () => {
 
   it('lets the address switch the layout, which keeps its own saved zoom', () => {
     expect(resolveRevenueLayout(saved, 'lanes')).toEqual({ ...saved, layout: 'lanes' })
-    expect(resolveRevenueLayout(saved, 'matrix')).toEqual({ ...saved, layout: 'matrix' })
+    expect(resolveRevenueLayout(saved, 'matrix')).toEqual(saved)
   })
 
   it('reads the zoom for the layout the page ends up in', () => {
     expect(resolveRevenueLayout(saved, 'lanes', '12')).toEqual({ ...saved, layout: 'lanes', lanes: '12' })
-    expect(resolveRevenueLayout(saved, 'matrix', 'full')).toEqual({ ...saved, layout: 'matrix', matrix: 'full' })
     expect(resolveRevenueLayout(saved, undefined, '2')).toEqual({ ...saved, grid: '2' })
   })
 

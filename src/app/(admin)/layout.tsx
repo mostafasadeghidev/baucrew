@@ -7,6 +7,7 @@ import { PricesHiddenProvider } from '@/components/price-visibility'
 import { getBranding } from '@/lib/branding'
 import { Sidebar } from '@/components/sidebar'
 import { Topbar } from '@/components/topbar'
+import { PanelFrame } from '@/components/panel-frame'
 import { NavHistory } from '@/components/nav-history'
 import { Suspense } from 'react'
 import { syncProjectsInProgress } from '@/lib/project-lifecycle'
@@ -42,6 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           priceSwitch={seesPrices}
         />
         <div className="flex min-w-0 flex-1 flex-col">
+          <PanelFrame />
           <Topbar
             username={user.username}
             role={tRoles(user.role)}
@@ -51,10 +53,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             hasLogo={branding.hasLogo}
             priceSwitch={seesPrices}
           />
-          {/* Less air above than around: the rail's panel starts eight pixels
-              down, and the page's own bar has to start on the same line as it
-              or the two tops look like a mistake. */}
-          <main className="flex-1 p-4 pt-2 md:p-6 md:pt-2 print:p-0">{children}</main>
+          {/* The page's own panel. Its frame is drawn over it (PanelFrame):
+              eight pixels at the top, right and bottom, and the sidebar's own
+              margin on the left. The padding is the panel's 24px inside that. */}
+          <main className="flex-1 bg-surface p-4 md:pb-8 md:pl-6 md:pr-8 md:pt-8 print:p-0">{children}</main>
         </div>
         {/* Who has been named in a comment: the bell in the corner. */}
         <Mentions user={user} area="admin" />

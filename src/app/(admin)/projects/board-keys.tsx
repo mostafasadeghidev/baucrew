@@ -194,7 +194,9 @@ export function useBoardKeys({
           return
         case '/':
           e.preventDefault()
-          document.querySelector<HTMLInputElement>('input[type="search"]')?.focus()
+          const searchTrigger = document.querySelector<HTMLButtonElement>('[data-project-search]')
+          if (searchTrigger) searchTrigger.click()
+          else document.querySelector<HTMLInputElement>('input[type="search"]')?.focus()
           return
         case '?':
           e.preventDefault()

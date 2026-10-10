@@ -20,6 +20,12 @@ describe('parseInline', () => {
     ])
   })
 
+  it('shows an escaped mark as the sign itself, the way Trello writes typed stars', () => {
+    expect(parseInline('\\*\\*Kunde:\\*\\* Muster')).toEqual([{ t: 'text', text: '**Kunde:** Muster' }])
+    expect(parseInline('**Preis \\*netto\\* zzgl. MwSt.**')).toEqual([{ t: 'b', children: [{ t: 'text', text: 'Preis *netto* zzgl. MwSt.' }] }])
+    expect(parseInline('Muster\\_Plan \\[1\\] \\\\ C:\\Users')).toEqual([{ t: 'text', text: 'Muster_Plan [1] \\ C:\\Users' }])
+  })
+
   it('leaves stars and underscores alone that are no marks', () => {
     expect(parseInline('Muster_Plan_2026.pdf')).toEqual([{ t: 'text', text: 'Muster_Plan_2026.pdf' }])
     expect(parseInline('5 * 3 = 15')).toEqual([{ t: 'text', text: '5 * 3 = 15' }])

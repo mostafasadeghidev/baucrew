@@ -160,7 +160,7 @@ export function MonthDetailPanel({
   const group = (title: string, total: string, count: number, lines: MonthDetailLine[]) =>
     lines.length === 0 ? null : (
       <>
-        <p className="flex items-baseline justify-between gap-3 border-y border-border bg-subtle/50 px-4 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted first:border-t-0">
+        <p className="flex items-baseline justify-between gap-3 border-y border-border bg-subtle/50 px-4 py-1 text-[11px] font-semibold text-muted first:border-t-0">
           <span>
             {title} · {count}
           </span>
@@ -171,7 +171,7 @@ export function MonthDetailPanel({
     )
 
   return (
-    <section ref={panel} aria-live="polite" className="scroll-mt-24 overflow-hidden rounded-xl border border-accent/40 bg-surface shadow-sm">
+    <section ref={panel} aria-live="polite" className="scroll-mt-24 overflow-hidden rounded-xl border border-accent/40 bg-surface">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border bg-accent/5 px-4 py-2.5">
         <h2 className="text-sm font-semibold">{monthNames[open.month]}</h2>
         {columns.length > 1 && <span className="text-xs text-muted">{t('monthYearsCompared', { count: columns.length })}</span>}
@@ -207,7 +207,7 @@ export function MonthDetailPanel({
                 <p className="flex items-center gap-1.5 text-xs font-medium text-muted">
                   <span aria-hidden className={`h-2 w-2 rounded-[3px] ${year === baseYear ? 'bg-accent' : TONE_DOT[tone]}`} />
                   <span className="tabular-nums">{year}</span>
-                  {clicked && <span className="rounded-sm bg-accent/10 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-accent">{t('monthClicked')}</span>}
+                  {clicked && <span className="rounded-sm bg-accent/10 px-1.5 text-[10px] font-semibold text-accent">{t('monthClicked')}</span>}
                 </p>
                 <p className="mt-0.5 text-xl font-semibold tabular-nums">{month.total}</p>
                 <p className="text-xs text-muted">

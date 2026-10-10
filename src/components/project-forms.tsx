@@ -146,7 +146,7 @@ export function ProjectForms({
   if (!frame) return <div>{body}</div>
 
   return (
-    <section className="rounded-xl border border-border bg-surface shadow-sm">
+    <section className="rounded-xl border border-border bg-surface">
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold">{t('heading')}</h2>

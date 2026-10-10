@@ -44,7 +44,7 @@ export type DialogState =
   | { mode: 'edit'; entry: BoardEntry }
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 /**
  * Create/edit dialog for a schedule entry. Used by the weekly board and by
@@ -263,7 +263,7 @@ export function EntryDialog({
     : Boolean(date) && isWeekendIso(date)
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg border border-border bg-surface p-5 shadow-xl">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">{isEdit ? t('editEntry') : t('addEntry')}</h2>

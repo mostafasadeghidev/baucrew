@@ -20,7 +20,7 @@ import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Check, ChevronDown } from 'lucide-react'
 import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
-import { btn } from '@/components/ui/button'
+import { projectControl } from './toolbar-styles'
 import { ALL_YEARS, projectYearsParam, toggleProjectYear, type YearSelection } from '@/lib/project-years'
 
 /** Up to this many years are spelled out on the button; more are counted. */
@@ -80,7 +80,7 @@ export function ProjectYearPicker({
       label={`${t('year')}: ${caption}`}
       // Its own text colour: on the board's ground the bar writes in white, and
       // a white caption on this white button was a blank button.
-      className={`${btn.outline} h-10 w-36 shrink-0 text-foreground`}
+      className={`${projectControl.button} w-28`}
       trigger={
         <>
           <span className="min-w-0 flex-1 truncate text-left tabular-nums">{caption}</span>

@@ -6,7 +6,7 @@ export function PrintButton({ label }: { label: string }) {
     <button
       type="button"
       onClick={() => window.print()}
-      className={`${btn.primary} print:hidden`}
+      className={`${btn.outlineSm} print:hidden`}
     >
       {label}
     </button>

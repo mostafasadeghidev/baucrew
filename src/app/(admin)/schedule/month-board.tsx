@@ -23,7 +23,6 @@ import {
 } from "./actions";
 import { EntryDialog, type AbsenceHint, type BoardEntry, type DialogState } from "./entry-dialog";
 import { btn } from "@/components/ui/button";
-import { PagePanel } from "@/components/ui/page-panel";
 import { ScheduleControls, ScheduleHeader } from "./schedule-header";
 
 const MAX_PER_DAY = 5;
@@ -211,6 +210,13 @@ export function MonthBoard({
     <div className="space-y-4">
       <ScheduleHeader
         title={t("title")}
+        nav={{
+          view: "month",
+          weekHref,
+          monthHref: currentHref,
+          mapHref,
+          labels: { week: t("viewWeek"), month: t("viewMonth"), map: t("viewMap"), aria: t("title") },
+        }}
         action={
           <button
             type="button"
@@ -222,13 +228,8 @@ export function MonthBoard({
         }
       />
 
-      <PagePanel className="space-y-3 p-4">
+      <div className="space-y-4">
         <ScheduleControls
-          view="month"
-          weekHref={weekHref}
-          monthHref={currentHref}
-          mapHref={mapHref}
-          viewLabels={{ week: t("viewWeek"), month: t("viewMonth"), map: t("viewMap") }}
           prevHref={prevHref}
           nextHref={nextHref}
           currentHref={currentHref}
@@ -322,7 +323,7 @@ export function MonthBoard({
                               }
                               title={t("addEntry")}
                               aria-label={t("addEntry")}
-                              className="flex h-5 w-5 items-center justify-center rounded border border-border text-[11px] text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-foreground focus:opacity-100 group-hover:opacity-100"
+                              className="flex h-5 w-5 items-center justify-center rounded border border-border-strong text-[11px] text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-foreground focus:opacity-100 group-hover:opacity-100"
                             >
                               +
                             </button>
@@ -405,7 +406,7 @@ export function MonthBoard({
           </tbody>
         </table>
       </div>
-      </PagePanel>
+      </div>
 
       <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
         <span>{t("dragHint")}</span>

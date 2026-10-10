@@ -56,7 +56,7 @@ export const CARD_BUTTON =
   'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface-hover hover:text-foreground'
 
 const FIELD =
-  'block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'block w-full rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 const SECTION = 'mb-1 mt-3 text-[11px] font-semibold text-muted'
 
 /** The previous value, kept while the server has not answered yet. */

@@ -8,3 +8,8 @@ node_modules
 .claude
 src/generated
 docker-compose*.yml
+storage
+local
+docs
+tests
+coverage

@@ -311,7 +311,7 @@ export function ProjectComments({
                   {comment.edited && ` (${t('commentEdited')})`}
                 </span>
                 {comment.office && (
-                  <span className="rounded-sm bg-amber-500/15 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                  <span className="rounded-sm bg-amber-500/15 px-1.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                     {t('commentOfficeTag')}
                   </span>
                 )}
@@ -320,6 +320,7 @@ export function ProjectComments({
                 <div className="mt-1">
                   <textarea
                     autoFocus
+                    data-sheet-draft
                     value={editing.text}
                     maxLength={COMMENT_MAX}
                     rows={3}
@@ -350,7 +351,7 @@ export function ProjectComments({
                 // Trello's comment: its Markdown drawn, its addresses clickable, the people it names marked.
                 <NoteText
                   text={comment.body}
-                  className="mt-1 break-words rounded-lg border border-border bg-surface px-3 py-2 shadow-sm"
+                  className="mt-1 break-words rounded-lg border border-border bg-surface px-3 py-2"
                   decorate={(words, key) =>
                     commentSegments(words, people).map((segment, i) =>
                       segment.mention ? (
@@ -434,6 +435,7 @@ export function ProjectComments({
       <div className="relative">
         <textarea
           ref={area}
+          data-sheet-draft
           value={text}
           onChange={onChange}
           onKeyDown={onKeyDown}
@@ -442,7 +444,7 @@ export function ProjectComments({
           maxLength={COMMENT_MAX}
           placeholder={t('commentPlaceholder')}
           aria-label={t('commentsTitle')}
-          className={`block w-full resize-y rounded-md border border-border bg-background px-3 py-2 ${body} focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring`}
+          className={`block w-full resize-y rounded-lg border border-border-strong bg-surface px-3 py-2 ${body} focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring`}
         />
         {pick && matches.length > 0 && (
           <ul
@@ -546,7 +548,7 @@ export function ProjectComments({
   }
 
   return (
-    <section className={`rounded-xl border border-border bg-surface shadow-sm ${column ? 'flex max-h-[inherit] min-h-0 flex-col' : ''}`}>
+    <section className={`rounded-xl border border-border bg-surface ${column ? 'flex max-h-[inherit] min-h-0 flex-col' : ''}`}>
       <div className="flex shrink-0 flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold">{t('commentsTitle')}</h2>

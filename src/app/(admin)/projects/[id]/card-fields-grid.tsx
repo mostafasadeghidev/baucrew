@@ -65,7 +65,7 @@ export function CardFieldsGrid({ projectId, cells, card }: { projectId: string; 
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <section className="rounded-xl border border-border bg-surface p-5">
       <h2 className="flex items-center gap-3 text-base font-semibold" title={t('cardFieldsHint')}>
         <LayoutList className="h-5 w-5 shrink-0 text-muted" aria-hidden />
         {t('cardFieldsTitle')}
@@ -187,6 +187,7 @@ function InlineField({
           }
         }}
         onBlur={save}
+        data-saves-on-blur
         className={INPUT}
       />
     )
@@ -267,7 +268,7 @@ function AddressField({
     if (how === 'outside' && changed && !pending) store()
     else setOpen(false)
   }
-  const field = 'mt-1 block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  const field = 'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
   return (
     <>

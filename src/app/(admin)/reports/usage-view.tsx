@@ -1,11 +1,13 @@
 /**
- * The CRM's Auslastung tab: is the crew planned, and who and what stands idle.
- * How long the finished jobs took against their plan is in the Excel export.
+ * The Auslastung tab of the reporting page: is the crew planned, and who and
+ * what stands idle. How long the finished jobs took against their plan is in
+ * the Excel export.
  *
  * Every figure follows the year and period in the page bar. The shares count
  * the schedule the way the crew lives it — one booking a weekday at most, never
- * on a day away — and a month nobody has planned yet is named as such instead
- * of pulling every share down to a number that only measures missing entries.
+ * on a day away — and only as far as the schedule is written, so days nobody
+ * has planned yet do not pull every share down to a number that only measures
+ * missing entries (`crewUsage`). The ring adds up the very rows listed under it.
  */
 
 import Link from 'next/link'
@@ -14,28 +16,26 @@ import type { CrewMonth } from '@/lib/order-situation'
 import type { NamedUsage } from '@/lib/reports'
 import type { MonthRange } from '@/lib/reports-calc'
 
-const card = 'rounded-xl border border-border bg-surface shadow-sm'
+const card = 'rounded-xl border border-border bg-surface'
 const up = 'text-emerald-700 dark:text-emerald-400'
 const warn = 'text-amber-700 dark:text-amber-400'
 
 export async function UsageView({
-  year,
   range,
   runningMonth,
   months,
-  covered,
+  spanLabel,
   people,
   vehicles,
   monthNames,
   frameLabel,
 }: {
-  year: number
   range: MonthRange | null
   /** The month (0–11) running today, or −1 in another year. */
   runningMonth: number
   months: CrewMonth[]
-  /** The months of the period that have any booking. */
-  covered: number[]
+  /** The days counted, as words — "27.07.2026 – 30.09.2026"; null when nobody is booked. */
+  spanLabel: string | null
   people: NamedUsage[]
   vehicles: NamedUsage[]
   monthNames: { long: string[]; short: string[] }
@@ -46,19 +46,10 @@ export async function UsageView({
   const inRange = (month: number) => !range || (month >= range.from && month <= range.to)
   const tone = (pct: number | null) => (pct === null ? 'text-muted' : pct < 50 ? warn : pct > 90 ? up : '')
 
-  // The header sums only the months that have bookings, and names them.
-  const counted = covered.filter(inRange)
-  const booked = counted.reduce((sum, m) => sum + months[m].booked, 0)
-  const available = counted.reduce((sum, m) => sum + months[m].available, 0)
+  // The ring is the people listed below, added up: the same days, the same crew.
+  const booked = people.reduce((sum, p) => sum + p.booked, 0)
+  const available = people.reduce((sum, p) => sum + p.available, 0)
   const pct = available > 0 ? Math.round((booked / available) * 100) : null
-  const countedLabel =
-    counted.length === 0
-      ? null
-      : counted.length === 1
-        ? monthNames.long[counted[0]]
-        : counted.every((m, i) => i === 0 || m === counted[i - 1] + 1)
-          ? `${monthNames.short[counted[0]]}–${monthNames.short[counted[counted.length - 1]]}`
-          : counted.map((m) => monthNames.short[m]).join(', ')
 
   /** The share as a ring — the period's booked time against what the crew had. */
   const ring = (value: number) => {
@@ -116,7 +107,7 @@ export async function UsageView({
       <div className={`${card} space-y-3 p-4`}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-sm font-semibold">
-            {countedLabel ? t('usageHeader', { months: `${countedLabel} ${year}` }) : t('usageHeaderNone', { frame: frameLabel })}
+            {spanLabel ? t('usageHeader', { span: spanLabel }) : t('usageHeaderNone', { frame: frameLabel })}
           </h2>
           {pct !== null && (
             <div className="flex items-center gap-3">
@@ -133,7 +124,8 @@ export async function UsageView({
         <div className="overflow-x-auto">
           <ol className="grid h-36 min-w-[40rem] grid-cols-12 gap-1.5 border-b border-border">
             {months.map((m, month) => {
-              const empty = m.booked === 0
+              // A month the schedule is not written for has no share at all.
+              const empty = m.pct === null
               // Nothing planned yet is news for this month and the next; further out the schedule is simply not written.
               const soon = runningMonth >= 0 && (month === runningMonth || month === runningMonth + 1)
               const share = Math.min(100, m.pct ?? 0)

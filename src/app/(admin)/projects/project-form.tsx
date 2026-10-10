@@ -109,7 +109,7 @@ const STATUSES = [
 const todayIso = new Date().toISOString().slice(0, 10)
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 function Section({
   title,
@@ -162,7 +162,7 @@ function Section({
       // A query container: the fields pair off by the card's own width, not the
       // window's — the same card stands full width on a page and half width
       // beside another, or in the narrow column of the card's back.
-      className={`@container scroll-mt-24 rounded-xl border border-border bg-surface p-5 shadow-sm ${
+      className={`@container scroll-mt-24 rounded-xl border border-border bg-surface p-5 ${
         // Every column there is, however many that is at this width.
         wide ? 'col-span-full' : ''
       }`}
@@ -202,7 +202,7 @@ function Section({
             <button type="button" onClick={onCancel} className={btn.outlineXs}>
               {cancelLabel}
             </button>
-            <button type="submit" disabled={pending} className={`${btn.primarySm} px-2.5 py-1 text-xs`}>
+            <button type="submit" disabled={pending} className={`${btn.primarySm} h-7 px-2.5 text-xs`}>
               {saveLabel}
             </button>
           </div>
@@ -702,7 +702,7 @@ export function ProjectForm({
           type="button"
           onClick={() => setUnfolded((u) => !u)}
           aria-expanded={unfolded}
-          className="order-2 col-span-full flex w-full items-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-left text-sm font-semibold shadow-sm transition-colors hover:bg-surface-hover"
+          className="order-2 col-span-full flex w-full items-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-left text-sm font-semibold transition-colors hover:bg-surface-hover"
         >
           <ChevronRight className={`h-4 w-4 shrink-0 text-muted transition-transform ${unfolded ? 'rotate-90' : ''}`} aria-hidden />
           {fold.title}

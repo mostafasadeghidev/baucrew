@@ -66,6 +66,11 @@ merged — fix the branch, the checks run again on their own.
   ```
   The app answers on http://localhost:15700 — sign in with `admin` / `admin1234`.
   `docs/BENUTZERHANDBUCH.md` is the user manual, `docs/API.md` the API.
+- `npm run db:migrate` is `prisma migrate dev`: it may create a migration from
+  schema drift and offers to **reset** a database whose history does not
+  match. Run it only against the dev database above — never against a copy of
+  real data, and never on a server. Those get `npm run db:deploy`
+  (`prisma migrate deploy`), as the container entrypoint does.
 
 ## Releases
 

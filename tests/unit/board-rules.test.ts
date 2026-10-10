@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { columnFor, columnRuleKey, dropPatch, ruleMatches, type RuleFacts } from '@/lib/board-rules'
+import { columnFor, columnRuleKey, dropPatch, ruleMatches, ruleMatchesRaw, trelloRuleId, type RuleFacts } from '@/lib/board-rules'
 
 const facts = (over: Partial<RuleFacts> = {}): RuleFacts => ({ pausedAt: null, plannedStart: null, planMonth: null, priority: null, invoice1: false, ...over })
 const now = new Date(Date.UTC(2026, 8, 24))
@@ -65,5 +65,45 @@ describe('what a drop does beyond the status', () => {
     // A fixed start this year outranks the rough month the list would set: the card would not move.
     expect(dropPatch(null, 'nextYear', facts({ plannedStart: new Date(Date.UTC(2026, 10, 3)) }), now)).toBe('fixedStart')
     expect(dropPatch('invoice1', null, facts({ invoice1: true }), now)).toEqual({})
+  })
+})
+
+describe('the mirror rule of a Trello list', () => {
+  const LIST = '0123456789abcdef01234567'
+
+  it('reads the list id off the rule, and only a real id counts', () => {
+    expect(trelloRuleId(`trello:${LIST}`)).toBe(LIST)
+    expect(trelloRuleId('trello:')).toBeNull()
+    expect(trelloRuleId('trello:kunden')).toBeNull()
+    expect(trelloRuleId('paused')).toBeNull()
+    expect(trelloRuleId(null)).toBeNull()
+  })
+
+  it('picks the cards whose card stands in that list', () => {
+    expect(ruleMatchesRaw(`trello:${LIST}`, facts({ trelloListId: LIST }), 2026)).toBe(true)
+    expect(ruleMatchesRaw(`trello:${LIST}`, facts({ trelloListId: 'other' }), 2026)).toBe(false)
+    expect(ruleMatchesRaw(`trello:${LIST}`, facts(), 2026)).toBe(false)
+    expect(ruleMatchesRaw('paused', facts({ pausedAt: now }), 2026)).toBe(true)
+    expect(ruleMatchesRaw('paused', facts(), 2026)).toBe(false)
+  })
+
+  it('places the card in its list’s column, and the unlisted ones in the plain column', () => {
+    const columns = [
+      { key: 'anfrage', status: 'LEAD', rule: `trello:${LIST}` },
+      { key: 'lead', status: 'LEAD', rule: null },
+      { key: 'angebot', status: 'QUOTED', rule: 'trello:aaaaaaaaaaaaaaaaaaaaaaa1' },
+    ]
+    expect(columnFor(columns, 'LEAD', facts({ trelloListId: LIST }), 2026)?.key).toBe('anfrage')
+    expect(columnFor(columns, 'LEAD', facts({ trelloListId: 'aaaaaaaaaaaaaaaaaaaaaaa1' }), 2026)?.key).toBe('lead')
+    expect(columnFor(columns, 'LEAD', facts(), 2026)?.key).toBe('lead')
+    expect(columnFor(columns, 'QUOTED', facts({ trelloListId: 'aaaaaaaaaaaaaaaaaaaaaaa1' }), 2026)?.key).toBe('angebot')
+  })
+
+  it('follows the drag: into the list keeps it, out of it clears the card’s place', () => {
+    expect(dropPatch(null, `trello:${LIST}`, facts(), now)).toEqual({ trelloListId: LIST })
+    expect(dropPatch(`trello:${LIST}`, null, facts(), now)).toEqual({ trelloListId: null })
+    expect(dropPatch(`trello:${LIST}`, 'trello:aaaaaaaaaaaaaaaaaaaaaaa2', facts(), now)).toEqual({ trelloListId: 'aaaaaaaaaaaaaaaaaaaaaaa2' })
+    expect(dropPatch(`trello:${LIST}`, 'paused', facts(), now)).toEqual({ trelloListId: null, pausedAt: now })
+    expect(dropPatch(null, 'paused', facts(), now)).toEqual({ pausedAt: now })
   })
 })

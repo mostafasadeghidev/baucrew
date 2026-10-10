@@ -283,7 +283,7 @@ export async function RevenueLanes({
             printColumns={`8rem repeat(${months.length}, minmax(0, 1fr))`}
             // As tall as its tiles, so nothing scrolls inside it but the months
             // sideways. Keyboard focus scrolls a tile clear of the lane names.
-            className="scroll-pl-32 scroll-pt-16 rounded-xl border border-border bg-surface shadow-sm"
+            className="scroll-pl-32 scroll-pt-16 rounded-xl border border-border bg-surface"
           >
             {header}
             {lane('own', <span className="font-medium">{t('ownPeople')}</span>)}

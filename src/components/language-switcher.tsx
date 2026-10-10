@@ -27,7 +27,7 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean } = {}
           onClick={() => switchTo(l)}
           className={`rounded px-2 py-1 uppercase transition-colors ${
             l === locale
-              ? 'bg-surface text-foreground shadow-sm'
+              ? 'bg-surface text-foreground ring-1 ring-inset ring-border'
               : 'text-muted hover:text-foreground'
           }`}
         >

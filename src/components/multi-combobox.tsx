@@ -88,7 +88,7 @@ export function MultiCombobox({
     <div className="relative">
       <div
         ref={boxRef}
-        className="relative mt-1 flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-border bg-background py-1 pl-2 pr-8 shadow-sm transition-colors focus-within:border-accent focus-within:ring-1 focus-within:ring-ring"
+        className="relative mt-1 flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-border bg-background py-1 pl-2 pr-8 transition-colors focus-within:border-accent focus-within:ring-1 focus-within:ring-ring"
       >
         {selected.map((o) => (
           <span

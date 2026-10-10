@@ -18,7 +18,7 @@ import { Select } from '@/components/ui/select'
 import { FIELD_LABEL_MAX, FIELD_TYPES, MAX_FIELDS, MAX_SIGNERS, PREFILL_SOURCES, type FieldType, type FormField, type PrefillSource } from '@/lib/forms'
 
 const inputClass =
-  'block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 const FORM_ID = 'form-template-form'
 /** The kinds that carry answers, or a table's columns, one per line. */
@@ -89,7 +89,7 @@ export function FormTemplateForm({
         errorLabel={(code) => (code === 'nameRequired' ? t('templateNameRequired') : code === 'fieldsRequired' ? t('templateFieldsRequired') : tc('saveFailed'))}
       >
         <input type="hidden" name="fields" value={payload} />
-        <div className="space-y-4 rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <div className="space-y-4 rounded-lg border border-border bg-surface p-5">
           <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
             <label className="block text-sm">
               {t('templateName')}
@@ -106,7 +106,7 @@ export function FormTemplateForm({
           </label>
         </div>
 
-        <div className="rounded-lg border border-border bg-surface shadow-sm">
+        <div className="rounded-lg border border-border bg-surface">
           <div className="border-b border-border px-5 py-3">
             <h2 className="text-sm font-semibold">{t('templateFields')}</h2>
             <p className="mt-0.5 text-xs text-muted">{t('templateFieldsHint')}</p>
@@ -188,7 +188,7 @@ export function FormTemplateForm({
           </div>
         </div>
 
-        <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <div className="rounded-lg border border-border bg-surface p-5">
           <label className="block text-sm">
             <span className="font-semibold">{t('templateSigners')}</span>
             <span className="mt-0.5 block text-xs text-muted">{t('templateSignersHint', { max: MAX_SIGNERS })}</span>

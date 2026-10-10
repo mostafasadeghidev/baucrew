@@ -10,17 +10,16 @@ import {
   revenueDensity,
   revenueLayoutCookieValue,
   withDensity,
-  type MatrixDensity,
   type RevenueLayout,
   type RevenueLayoutChoice,
 } from '@/lib/revenue-layout'
 
-// The same track and pill as the list/board switch on the projects page and
-// the tabs beside it: one height, one look for "how is this drawn".
-const track = 'flex shrink-0 items-center gap-1 rounded-lg bg-subtle p-1 text-sm font-medium'
-const segment = 'whitespace-nowrap rounded-md py-1.5'
-const current = `${segment} bg-surface text-foreground shadow-sm`
-const other = `${segment} text-muted transition-colors hover:text-foreground`
+// The same quiet pills as the tabs in the page's head: plain text, a soft
+// grey pill behind the choice in force — one look for "how is this drawn".
+const track = 'flex shrink-0 items-center gap-0.5 text-sm font-medium'
+const segment = 'flex h-8 items-center whitespace-nowrap rounded-md'
+const current = `${segment} bg-subtle text-foreground`
+const other = `${segment} text-muted transition-colors hover:bg-subtle/60 hover:text-foreground`
 
 /** Kept for the next visit, when the page opens with nothing in its address to say otherwise. */
 function remember(choice: RevenueLayoutChoice) {
@@ -28,7 +27,7 @@ function remember(choice: RevenueLayoutChoice) {
 }
 
 /**
- * The revenue tab's months: grid, lanes or year matrix, and each one's zoom.
+ * The revenue tab's months: grid or lanes, and each one's zoom.
  * A choice writes the address — so the view can be linked — and the cookie the
  * page falls back on when the address says nothing.
  */
@@ -40,9 +39,8 @@ export function RevenueLayoutPicker({
   labels: {
     layout: string
     layouts: Record<RevenueLayout, string>
-    /** What the zoom counts in each layout: cards to a row, months on screen, what a cell says. */
+    /** What the zoom counts in each layout: cards to a row, months on screen. */
     zoom: Record<RevenueLayout, string>
-    cells: Record<MatrixDensity, string>
   }
 }) {
   const pathname = usePathname()
@@ -78,7 +76,6 @@ export function RevenueLayoutPicker({
   }
 
   const densities: readonly string[] = REVENUE_DENSITIES[choice.layout]
-  const numbers = choice.layout !== 'matrix'
 
   return (
     <div className="flex flex-wrap items-center gap-3 print:hidden">
@@ -95,9 +92,9 @@ export function RevenueLayoutPicker({
           {densities.map((value) =>
             option(
               withDensity(choice, value),
-              numbers ? value : labels.cells[value as MatrixDensity],
+              value,
               revenueDensity(choice) === value,
-              numbers ? 'min-w-9 px-2 text-center tabular-nums' : 'px-3'
+              'min-w-9 px-2 text-center tabular-nums'
             )
           )}
         </div>

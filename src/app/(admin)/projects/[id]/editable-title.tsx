@@ -76,6 +76,7 @@ export function EditableTitle({ projectId, name, number }: { projectId: string; 
           }
         }}
         onBlur={save}
+        data-saves-on-blur
         className="block min-w-0 flex-1 resize-none overflow-hidden rounded-md border border-accent bg-background px-1.5 py-0.5 text-2xl font-semibold leading-tight focus:outline-none focus:ring-2 focus:ring-ring"
       />
     )

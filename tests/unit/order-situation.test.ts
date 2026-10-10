@@ -3,7 +3,6 @@ import {
   certaintyOf,
   certaintyTotals,
   classTotals,
-  crewLoadByMonth,
   crewUsage,
   monthSituations,
   monthlyAverage,
@@ -102,41 +101,6 @@ describe('classTotals', () => {
 
   it('keeps a correction below zero in its class', () => {
     expect(classTotals({ paid: 0, invoiced: 0, done: -500, ordered: 0, offered: 0, sheet: 0 }).finished).toBe(-500)
-  })
-})
-
-describe('crewLoadByMonth', () => {
-  // September 2026 has 22 weekdays.
-  const bookings = [
-    { employeeId: 'm1', date: d('2026-09-01') },
-    { employeeId: 'm1', date: d('2026-09-01') }, // two sites on one day: one person-day
-    { employeeId: 'm1', date: d('2026-09-02') },
-    { employeeId: 'm1', date: d('2026-09-05') }, // a Saturday: not a day there was to plan
-    { employeeId: 'm2', date: d('2026-09-01') },
-    { employeeId: 'm2', date: d('2025-09-01') }, // another year
-  ]
-
-  it('counts a person on a working day once, against every weekday of the crew', () => {
-    expect(crewLoadByMonth(2026, bookings, [])[8]).toEqual({ booked: 3, available: 44, pct: 7 })
-  })
-
-  it('takes the days somebody is away off both sides, each day once, inside the month only', () => {
-    const away = [
-      { employeeId: 'm2', startDate: d('2026-08-31'), endDate: d('2026-09-04') }, // four weekdays in September
-      { employeeId: 'm2', startDate: d('2026-09-03'), endDate: d('2026-09-04') }, // overlapping: the same two days
-      { employeeId: 'office', startDate: d('2026-09-01'), endDate: d('2026-09-30') }, // not crew
-    ]
-    // m2's day on the schedule falls in the holiday, so it is not counted as planned either.
-    expect(crewLoadByMonth(2026, bookings, away)[8]).toEqual({ booked: 2, available: 40, pct: 5 })
-  })
-
-  it('never goes past everything there was to plan', () => {
-    const everyDay = Array.from({ length: 28 }, (_, i) => ({ employeeId: 'm1', date: new Date(Date.UTC(2026, 1, i + 1)) }))
-    expect(crewLoadByMonth(2026, everyDay, [])[1]).toEqual({ booked: 20, available: 20, pct: 100 })
-  })
-
-  it('has nothing to plan in a year nobody stands on the schedule', () => {
-    expect(crewLoadByMonth(2026, [], [])[0]).toEqual({ booked: 0, available: 0, pct: null })
   })
 })
 
@@ -306,34 +270,84 @@ describe('crewUsage', () => {
     { employeeId: 'm1', date: d('2026-08-04') },
     { employeeId: 'm2', date: d('2026-08-05') }, // during a holiday
     { employeeId: 'm2', date: d('2026-08-06') },
+    { employeeId: 'm1', date: d('2026-08-31') }, // the schedule's last day
   ]
   const absences = [{ employeeId: 'm2', startDate: d('2026-08-05'), endDate: d('2026-08-07') }] // three weekdays
   const vehicles = [
     { vehicleId: 'v1', date: d('2026-08-03') },
     { vehicleId: 'v1', date: d('2026-08-03') },
+    { vehicleId: 'v1', date: d('2026-08-31') },
   ]
+  const year = Array.from({ length: 12 }, (_, i) => i)
 
-  it('counts a person once a weekday, never on a day away, against the weekdays there were', () => {
+  it('counts a person once a weekday, never on a day away, against the weekdays of the written schedule', () => {
     const usage = crewUsage(2026, [7, 8], bookings, absences, vehicles)
-    expect(usage.covered).toEqual([7])
+    // From Monday 3 to Monday 31 August: 21 weekdays.
+    expect(usage.window).toEqual({ start: d('2026-08-03'), end: d('2026-08-31') })
     expect(usage.people).toEqual([
-      { id: 'm1', booked: 2, available: 21, pct: 10 },
+      { id: 'm1', booked: 3, available: 21, pct: 14 },
       { id: 'm2', booked: 0, available: 18, pct: 0 },
     ])
-    expect(usage.vehicles).toEqual([{ id: 'v1', booked: 1, available: 21, pct: 5 }])
+    expect(usage.vehicles).toEqual([{ id: 'v1', booked: 2, available: 21, pct: 10 }])
   })
 
-  it('holds people against the months people are booked in, and vehicles against theirs', () => {
+  it('counts a month the schedule only began in from its first day, not the whole month', () => {
+    // Started on Monday 27 July, written to Wednesday 30 September.
+    const started = [
+      ...['2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30', '2026-07-31'].map((day) => ({ employeeId: 'm1', date: d(day) })),
+      { employeeId: 'm1', date: d('2026-09-30') },
+    ]
+    const usage = crewUsage(2026, year, started, [], [])
+    expect(usage.months[6]).toEqual({ booked: 5, available: 5, pct: 100 })
+    expect(usage.months[5].pct).toBeNull()
+    expect(usage.months[10].pct).toBeNull()
+  })
+
+  it('adds the ring up from the rows, and the period’s month bars to the same figure', () => {
+    // A works every weekday of the first quarter; B is booked once, in December.
+    const q1 = Array.from({ length: 90 }, (_, i) => new Date(Date.UTC(2026, 0, 1 + i)))
+      .filter((day) => day.getUTCMonth() < 3)
+      .map((date) => ({ employeeId: 'a', date }))
+    const withB = [...q1, { employeeId: 'b', date: d('2026-12-01') }]
+    const usage = crewUsage(2026, [0, 1, 2], withB, [], [])
+    expect(usage.people.map((p) => [p.id, p.pct])).toEqual([['a', 100]])
+    const bars = usage.months.slice(0, 3)
+    const rows = usage.people
+    expect(bars.reduce((s, m) => s + m.booked, 0)).toBe(rows.reduce((s, p) => s + p.booked, 0))
+    expect(bars.reduce((s, m) => s + m.available, 0)).toBe(rows.reduce((s, p) => s + p.available, 0))
+    expect(bars.every((m) => m.pct === 100)).toBe(true)
+  })
+
+  it('reads 0 % for a month inside the schedule in which nobody was booked, and for weekend-only bookings', () => {
+    const sparse = [
+      { employeeId: 'm1', date: d('2026-01-05') },
+      { employeeId: 'm1', date: d('2026-03-07') }, // a Saturday
+      { employeeId: 'm1', date: d('2026-04-01') },
+    ]
+    const usage = crewUsage(2026, year, sparse, [], [])
+    expect(usage.months[1]).toEqual({ booked: 0, available: 20, pct: 0 })
+    expect(usage.months[2].pct).toBe(0)
+  })
+
+  it('lists every vehicle of the fleet, an idle one at 0 %', () => {
+    const usage = crewUsage(2026, [7], bookings, absences, vehicles, ['v1', 'v2'])
+    expect(usage.vehicles).toEqual([
+      { id: 'v1', booked: 2, available: 21, pct: 10 },
+      { id: 'v2', booked: 0, available: 21, pct: 0 },
+    ])
+  })
+
+  it('holds vehicles against their own stretch of the schedule, not the crew’s', () => {
     const vanInSeptember = [...vehicles, { vehicleId: 'v1', date: d('2026-09-01') }]
     const usage = crewUsage(2026, [7, 8], bookings, absences, vanInSeptember)
-    expect(usage.covered).toEqual([7])
-    expect(usage.people[0]).toEqual({ id: 'm1', booked: 2, available: 21, pct: 10 })
-    // August's 21 weekdays and September's 22.
-    expect(usage.vehicles).toEqual([{ id: 'v1', booked: 2, available: 43, pct: 5 }])
+    expect(usage.people[0]).toEqual({ id: 'm1', booked: 3, available: 21, pct: 14 })
+    // 3 August to 1 September: 22 weekdays.
+    expect(usage.vehicles).toEqual([{ id: 'v1', booked: 3, available: 22, pct: 14 }])
   })
 
-  it('covers only the months of the period that anyone was booked in', () => {
-    const usage = crewUsage(2026, [8], bookings, absences, vehicles)
-    expect(usage).toEqual({ covered: [], people: [], vehicles: [] })
+  it('has nothing to count in a period outside the written schedule', () => {
+    const usage = crewUsage(2026, [10], bookings, absences, vehicles, ['v1'])
+    expect(usage).toMatchObject({ window: null, people: [], vehicles: [] })
+    expect(crewUsage(2026, year, [], [], []).months.every((m) => m.pct === null)).toBe(true)
   })
 })

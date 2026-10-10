@@ -71,13 +71,44 @@ boards made and changed from the board's bar),
 card's place in its list, the archive, the cover picture, the list menu, the
 board's own bar, the card templates at a list's foot), `docs/CHANGE-plan-month.md` (the month a job stands in is the
 project's own: a placing and a duration, dragged between months; a sheet line
-counts only until a project takes it over). Add a new file there for similar
-changes.
+counts only until a project takes it over), `docs/CHANGE-reporting-cleanup.md`
+(CRM renamed Auswertungen with four tabs; Heute, Aufträge & Baustellen,
+Pipeline and the year matrix removed; comparison and utilization figures
+corrected; Datenlücken redrawn), `docs/CHANGE-wattro-devices.md` (the
+Devices page reads Wattro's machines, read-only and by hand: matched by
+Wattro id, then by inventory number, never by name; everything else Wattro
+knows — where a machine is, last scan, brand — kept in `Device.externalData`
+and shown),
+`docs/CHANGE-ui-overhaul.md` (Untitled UI shell: the page is an inset white
+panel like the sidebar, no shadows on anything lying on the page, tabs in the
+page's head, a board's colour as a swatch in its tab instead of the board's
+ground), `docs/CHANGE-trello-full-import.md` (the Trello import brings fields,
+comments, checklists, members, labels, archived cards, attachments and the
+board itself; files are fetched with a read-only token),
+`docs/CHANGE-projects-board-first.md` (one toolbar for board and list, the
+list scoped to the chosen board's rules, "Alle Projekte" as a board of one
+column per status, the completion tick overlaid on the card),
+`docs/CHANGE-trello-list-columns.md` (a board column may mirror one Trello
+list: rule `trello:<list id>` matched against the project link's
+`externalListId`; migration `project_link_external_list_id`),
+`docs/CHANGE-card-route.md` (a card opened over the board lives at
+`/projects/card/<id>` in a parallel `@modal` slot, streamed over the board
+that stays put; a cold load shows the full project page; old `?card=` links
+still work). Add a new file there for similar changes.
+
+## Shared progress list
+
+`/checklist` (not in the navigation; `src/app/checklist/items.ts`) shows what
+is done and what is open across all sessions, numbered, with the session that
+holds each entry. Temporary; add to it when asked. The `docs/CHANGE-*.md` files
+stay the record for reversible changes.
 
 ## Commands
 
 - Dev DB: `docker compose -f docker-compose.dev.yml up -d`
-- Migrate: `npm run db:migrate` · Seed: `npm run db:seed`
+- Migrate: `npm run db:migrate` (`prisma migrate dev` — development only,
+  never against a database with real data; production and copies of real
+  data get `npm run db:deploy`) · Seed: `npm run db:seed`
 - Tests: `npm test` (unit, Vitest, no DB) · `npm run test:db` (DB-backed, needs
   the dev DB). Pure logic lives in `src/lib/*` without React/Next imports so it
   stays testable; add a test whenever you touch conflicts, reports, authz,

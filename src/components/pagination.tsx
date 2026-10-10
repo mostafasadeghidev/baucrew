@@ -70,7 +70,7 @@ export function Pagination({ page, total, pageSize = PAGE_SIZE }: { page: number
             aria-current={item === page ? 'page' : undefined}
             className={`inline-flex h-9 min-w-9 items-center justify-center rounded-md px-2.5 text-sm font-medium tabular-nums transition-colors ${
               item === page
-                ? 'border border-border bg-surface text-foreground shadow-sm'
+                ? 'border border-border-strong bg-surface text-foreground'
                 : 'text-muted hover:bg-surface-hover hover:text-foreground'
             }`}
           >

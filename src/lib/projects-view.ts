@@ -56,6 +56,15 @@ export function projectsViewHref(target: 'list' | 'board', keep: ProjectsViewKee
   return query ? `/projects?${query}` : '/projects'
 }
 
+/** Changing scope preserves shared filters, but never an old board's open panel. */
+export function boardViewHref(query: string, board: string): string {
+  const params = new URLSearchParams(query)
+  params.set('board', board)
+  params.set('view', params.get('view') === 'list' ? 'list' : 'kanban')
+  for (const key of ['page', 'status', 'card', 'template', 'archived', 'aq', 'feed', 'pop']) params.delete(key)
+  return `/projects?${params.toString()}`
+}
+
 /**
  * The columns a status tab leaves standing on a board: the ones whose status
  * the tab holds, in the board's own order. Null when the tab asks for nothing

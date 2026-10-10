@@ -23,7 +23,7 @@ export type CustomerFormValues = {
 }
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 function Field({
   label,
@@ -83,7 +83,7 @@ export function CustomerForm({
         cancelHref={cancelHref}
         pending={pending}
       />
-      <div className="max-w-3xl rounded-xl border border-border bg-surface p-5 shadow-sm">
+      <div className="max-w-3xl rounded-xl border border-border bg-surface p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t('name')} name="name" defaultValue={initial.name} required />
           <Field label={t('number')} name="number" defaultValue={initial.number} />

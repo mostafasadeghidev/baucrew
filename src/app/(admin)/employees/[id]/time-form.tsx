@@ -6,7 +6,7 @@ import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 /** Manual booking / correction from the office. */
 export function TimeForm({

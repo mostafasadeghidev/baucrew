@@ -11,7 +11,7 @@ import { btn } from '@/components/ui/button'
 export type AddOnRow = { id: string; label: string; amount: number; amountLabel: string; dateLabel: string }
 
 const inputClass =
-  'block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 /**
  * Follow-on offers accepted after the main order. They are added to the order
@@ -60,7 +60,7 @@ export function ProjectAddOns({
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+    <section className="overflow-hidden rounded-xl border border-border bg-surface">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-3">
         <div>
           <h2 className="text-sm font-semibold">{t('addOnsTitle')}</h2>

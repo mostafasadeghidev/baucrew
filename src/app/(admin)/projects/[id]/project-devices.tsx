@@ -15,8 +15,8 @@ export type ProjectDeviceRow = {
   id: string
   name: string
   inventoryNo: string | null
-  /** free = in the store, here = on this site, busy = somewhere else */
-  state: 'free' | 'here' | 'busy'
+  /** free = in the store, here = on this site, busy = somewhere else, wattro = Wattro keeps it (where: Wattro's place) */
+  state: 'free' | 'here' | 'busy' | 'wattro'
   where: string
 }
 
@@ -63,11 +63,12 @@ export function ProjectDevicesEditor({
   }
 
   /** A hand-out or a return, and what went wrong with it — a machine still out elsewhere, say. */
-  function move(run: () => Promise<{ error?: 'busy' | 'saveFailed' }>) {
+  function move(run: () => Promise<{ error?: 'busy' | 'saveFailed' | 'wattro' }>) {
     setError(null)
     startTransition(async () => {
       const res = await run()
-      if (res.error) setError(res.error === 'busy' ? t('alreadyOut') : tc('saveFailed'))
+      // A machine that lives in Wattro is never handed out here; the server refuses, the hint says where to.
+      if (res.error) setError(res.error === 'busy' ? t('alreadyOut') : res.error === 'wattro' ? t('wattroCardHint') : tc('saveFailed'))
       onChanged?.()
     })
   }
@@ -89,7 +90,9 @@ export function ProjectDevicesEditor({
                   className={
                     device.state === 'busy'
                       ? 'text-red-700 dark:text-red-400'
-                      : 'text-emerald-700 dark:text-emerald-400'
+                      : device.state === 'wattro'
+                        ? 'text-muted'
+                        : 'text-emerald-700 dark:text-emerald-400'
                   }
                 >
                   ●
@@ -113,7 +116,9 @@ export function ProjectDevicesEditor({
                     ? t('needHere')
                     : device.state === 'free'
                       ? t('free')
-                      : device.where || t('out')}
+                      : device.state === 'wattro'
+                        ? t('wattroAt', { where: device.where })
+                        : device.where || t('out')}
                 </span>
               </span>
 
@@ -123,7 +128,7 @@ export function ProjectDevicesEditor({
                     type="button"
                     disabled={pending}
                     onClick={() => move(() => handOutDevice(device.id, { projectId }))}
-                    className={`${btn.outlineSm} px-2 py-1 text-xs`}
+                    className={`${btn.outlineXs} px-2`}
                   >
                     {t('handOutNow')}
                   </button>
@@ -133,7 +138,7 @@ export function ProjectDevicesEditor({
                     type="button"
                     disabled={pending}
                     onClick={() => move(() => returnDevice(device.id))}
-                    className={`${btn.outlineSm} px-2 py-1 text-xs`}
+                    className={`${btn.outlineXs} px-2`}
                   >
                     {t('takeBack')}
                   </button>
