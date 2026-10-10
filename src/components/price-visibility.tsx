@@ -49,7 +49,7 @@ export function HidePricesToggle({ label }: { label: string }) {
     >
       <span
         aria-hidden
-        className={`h-3.5 w-3.5 rounded-full shadow-sm transition-transform ${
+        className={`h-3.5 w-3.5 rounded-full transition-transform ${
           shown ? 'translate-x-[1.05rem] bg-white' : 'translate-x-0.5 bg-muted'
         }`}
       />

@@ -85,7 +85,7 @@ export function MasterImportWizard({ initialKind }: { initialKind: MasterKind })
   return (
     <div className="space-y-4">
       {/* Step 1: what, and the file */}
-      <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+      <section className="rounded-lg border border-border bg-surface p-5">
         <h2 className="text-sm font-semibold">{t('step1')}</h2>
         <div role="radiogroup" aria-label={t('step1')} className="mt-3 inline-flex gap-1 rounded-lg bg-subtle p-1 text-sm font-medium">
           {MASTER_KINDS.map((option) => (
@@ -95,7 +95,7 @@ export function MasterImportWizard({ initialKind }: { initialKind: MasterKind })
               role="radio"
               aria-checked={kind === option}
               onClick={() => choose(option)}
-              className={`rounded-md px-3 py-1.5 transition-colors ${kind === option ? 'bg-surface text-foreground shadow-sm' : 'text-muted hover:text-foreground'}`}
+              className={`rounded-md px-3 py-1.5 transition-colors ${kind === option ? 'bg-surface text-foreground ring-1 ring-inset ring-border' : 'text-muted hover:text-foreground'}`}
             >
               {t(`kind_${option}`)}
             </button>
@@ -133,7 +133,7 @@ export function MasterImportWizard({ initialKind }: { initialKind: MasterKind })
 
       {/* Step 2: which column is which */}
       {preview && (
-        <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+        <section className="rounded-lg border border-border bg-surface p-5">
           <h2 className="text-sm font-semibold">{t('step2')}</h2>
           <p className="mt-0.5 text-xs text-muted">{t('step2Hint')}</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -209,7 +209,7 @@ export function MasterImportWizard({ initialKind }: { initialKind: MasterKind })
 
       {/* Step 3: what happened */}
       {result && (
-        <section className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-5 text-sm shadow-sm">
+        <section className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-5 text-sm">
           <p className="font-medium">{t('result', result)}</p>
           <Link href={LIST_OF[kind]} className={`${btn.primarySm} mt-3`}>
             {t(`toList_${kind}`)}

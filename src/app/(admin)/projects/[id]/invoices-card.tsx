@@ -19,7 +19,7 @@ export type InvoiceRow = {
 }
 
 const inputClass =
-  'block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 /**
  * The job's two invoices — half on account, the rest at the end. The invoice
@@ -39,7 +39,7 @@ export function ProjectInvoices({
   const t = useTranslations('projects')
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+    <section className="overflow-hidden rounded-xl border border-border bg-surface">
       <div className="border-b border-border px-5 py-3">
         <h2 className="text-sm font-semibold">{t('invoicesTitle')}</h2>
         <p className="mt-0.5 text-xs text-muted">{t('invoicesHint')}</p>

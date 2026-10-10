@@ -197,7 +197,7 @@ export function CardTemplates({
                       e.currentTarget.form?.requestSubmit()
                     }
                   }}
-                  className="mt-1 block w-full resize-none rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="mt-1 block w-full resize-none rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </label>
               <div>
@@ -348,14 +348,14 @@ function TemplateCard({
                 key={person.name}
                 title={person.name}
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-semibold text-white ring-2 ${
-                  person.manager ? 'ring-accent' : 'ring-white dark:ring-[#22272b]'
+                  person.manager ? 'ring-accent' : 'ring-surface'
                 } ${PERSON_SWATCH[person.swatch]}`}
               >
                 {person.initials}
               </span>
             ))}
             {template.more > 0 && (
-              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-subtle px-1 text-[9px] font-medium text-muted ring-2 ring-white dark:ring-[#22272b]">
+              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-subtle px-1 text-[9px] font-medium text-muted ring-2 ring-surface">
                 +{template.more}
               </span>
             )}

@@ -8,7 +8,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { btn } from '@/components/ui/button'
 
 const inputClass =
-  'block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'block w-full rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 function CategoryRow({ name, count }: { name: string; count: number }) {
   const t = useTranslations('warehouse')
@@ -48,7 +48,7 @@ export function CategoryManager({ categories }: { categories: Array<{ name: stri
   const t = useTranslations('warehouse')
   const [open, setOpen] = useState(false)
   return (
-    <section className="rounded-lg border border-border bg-surface shadow-sm">
+    <section className="rounded-lg border border-border bg-surface">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

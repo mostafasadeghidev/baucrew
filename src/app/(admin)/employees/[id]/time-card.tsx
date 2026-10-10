@@ -36,7 +36,7 @@ export async function TimeCard({
   const total = sumMinutes(entries, now)
 
   return (
-    <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+    <section className="rounded-lg border border-border bg-surface p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold">{t('title')}</h2>
         {entries.length > 0 && (

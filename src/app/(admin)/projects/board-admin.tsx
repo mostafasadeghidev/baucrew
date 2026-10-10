@@ -29,12 +29,12 @@ import {
   uploadBoardImage,
   type BoardImageState,
 } from '../settings/boards/actions'
-import { rememberBoard } from './actions'
+import { rememberBoardHere } from './project-nav-link'
 
 export type ManagedBoard = { id: string; name: string; background: string | null; backgroundImage: string | null }
 
 const FIELD =
-  'block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'block w-full rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 const HEAD = 'mb-1.5 mt-3 block text-[11px] font-semibold text-muted'
 const KEYS = Object.keys(BOARD_BACKGROUNDS) as BoardBackground[]
 /** The heights of the little lists in the preview, one per list the board will have. */
@@ -71,13 +71,11 @@ function Swatches({ value, onPick, noneLabel }: { value: string | null; onPick: 
 export function NewBoardButton({
   boards,
   presets,
-  onGround,
   openHref,
 }: {
   boards: ManagedBoard[]
   /** The ready-made boards on offer — the client's Trello board. */
   presets: Array<{ key: string; name: string; background: string }>
-  onGround: boolean
   /** Where a board is opened, keeping the rest of the address. */
   openHref: (id: string) => string
 }) {
@@ -124,7 +122,7 @@ export function NewBoardButton({
         setError(true)
         return
       }
-      await rememberBoard(result.id)
+      rememberBoardHere(result.id)
       setOpen(false)
       setName('')
       setLists('pick')
@@ -146,9 +144,7 @@ export function NewBoardButton({
         title={t('boardAdd')}
         aria-label={t('boardAdd')}
         aria-expanded={open}
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
-          onGround ? 'text-white hover:bg-white/25' : 'text-muted hover:bg-surface-hover hover:text-foreground'
-        }`}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-subtle/60 hover:text-foreground"
       >
         <Plus className="h-4 w-4" aria-hidden />
       </button>
@@ -164,7 +160,7 @@ export function NewBoardButton({
             <span className="h-9 w-12 rounded border border-dashed border-white/80" />
           ) : (
             PREVIEW.slice(0, bars).map((h, i) => (
-              <span key={i} className="w-8 rounded bg-white/80 shadow-sm" style={{ height: `${h * 3.5}rem` }} />
+              <span key={i} className="w-8 rounded bg-white/80" style={{ height: `${h * 3.5}rem` }} />
             ))
           )}
         </div>
@@ -246,14 +242,12 @@ export function EditBoardButton({
   board,
   index,
   count,
-  onGround,
   leaveHref,
 }: {
   board: ManagedBoard
   /** Where its tab stands among the others, and how many there are. */
   index: number
   count: number
-  onGround: boolean
   /** Where the page goes once this board is gone. */
   leaveHref: string
 }) {
@@ -321,9 +315,7 @@ export function EditBoardButton({
         title={t('boardEdit')}
         aria-label={`${t('boardEdit')}: ${board.name}`}
         aria-expanded={open}
-        className={`-ml-1 mr-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors ${
-          onGround ? 'text-neutral-700 hover:bg-black/10' : 'text-muted hover:bg-surface-hover hover:text-foreground'
-        }`}
+        className="-ml-1 mr-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
       >
         <ChevronDown className="h-3.5 w-3.5" aria-hidden />
       </button>

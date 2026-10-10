@@ -37,7 +37,7 @@ export function UnplacedJobs({
   const shown = q ? jobs.filter((j) => `${j.number} ${j.name} ${j.customer}`.toLowerCase().includes(q)) : jobs
 
   return (
-    <aside className="rounded-xl border border-dashed border-accent/50 bg-surface p-3 shadow-sm print:hidden lg:sticky lg:top-4">
+    <aside className="rounded-xl border border-dashed border-accent/50 bg-surface p-3 print:hidden lg:sticky lg:top-4">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold">
           {labels.title}

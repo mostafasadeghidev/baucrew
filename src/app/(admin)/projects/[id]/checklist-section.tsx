@@ -100,7 +100,7 @@ export function ChecklistSection({
             value={name}
             placeholder={t('namePlaceholder')}
             onChange={(e) => setName(e.target.value)}
-            className="min-w-48 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+            className="min-w-48 flex-1 rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
           />
         )}
         <button type="button" disabled={pending} onClick={add} className={btn.primarySm}>

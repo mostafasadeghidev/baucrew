@@ -19,13 +19,12 @@ import {
   announceProjectDeleted,
   projectBefore,
 } from '@/lib/project-events'
-import { cookies } from 'next/headers'
 import { getTranslations } from 'next-intl/server'
 import { createProject as createProjectRecord, createProjectInput } from '@/lib/api-service'
-import { BOARD_COOKIE, COLUMN_TITLE_MAX } from '@/lib/boards'
+import { COLUMN_TITLE_MAX } from '@/lib/boards'
 import { addBoardColumn, removeBoardColumn, renameBoardColumn, saveColumnOrder } from '@/lib/boards-db'
 import { isColumnSort, orderCards, positionBetween, renumbered, sortedBy, tooClose } from '@/lib/board-order'
-import { columnRuleKey, dropPatch } from '@/lib/board-rules'
+import { columnRuleKey, dropPatch, trelloRuleId } from '@/lib/board-rules'
 import { keptParts, type TemplatePart } from '@/lib/card-templates'
 import { MAX_PLAN_MONTHS, parseMonthInput } from '@/lib/plan-month'
 import { geocodeCity } from '@/lib/geocode'
@@ -577,24 +576,33 @@ export async function moveCard(
 ): Promise<{ error?: string }> {
   const user = await requireStaff()
   if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
+  if (!(status in ProjectStatus)) return { error: 'saveFailed' }
+  // The rules come from the browser; only a list some board really has counts.
+  if (!(await isListRule(rules.to, status)) || !(await isListRule(rules.from))) return { error: 'saveFailed' }
   // What the rule of the target list asks of the card, beyond its status.
   const facts = await db.project.findUnique({
     where: { id },
-    select: { pausedAt: true, plannedStart: true, planMonth: true, priority: true, invoices: { where: { part: 1 }, select: { id: true } } },
+    select: { pausedAt: true, plannedStart: true, planMonth: true, priority: true, invoices: { where: { part: 1 }, select: { id: true } }, links: { where: { system: 'trello' }, select: { id: true } } },
   })
   if (!facts) return { error: 'saveFailed' }
   const patch = dropPatch(
-    columnRuleKey(rules.from),
-    columnRuleKey(rules.to),
-    { pausedAt: facts.pausedAt, plannedStart: facts.plannedStart, planMonth: facts.planMonth, priority: facts.priority, invoice1: facts.invoices.length > 0 },
+    rules.from,
+    rules.to,
+    { pausedAt: facts.pausedAt, plannedStart: facts.plannedStart, planMonth: facts.planMonth, priority: facts.priority, invoice1: facts.invoices.length > 0, trelloListId: null },
     new Date()
   )
   if (patch === 'refused') return { error: 'ruleRefused' }
   if (patch === 'fixedStart') return { error: 'fixedStart' }
   const moved = await changeStatus(user, id, status)
   if (moved.error) return moved
-  if (Object.keys(patch).length > 0) {
-    await db.project.update({ where: { id }, data: patch })
+  // The mirror rule's list stands on the project's Trello link, not on the
+  // project; a project without such a link keeps none.
+  const { trelloListId, ...projectPatch } = patch
+  if (trelloListId !== undefined && facts.links[0]) {
+    await db.projectLink.update({ where: { id: facts.links[0].id }, data: { externalListId: trelloListId } }).catch(() => {})
+  }
+  if (Object.keys(projectPatch).length > 0) {
+    await db.project.update({ where: { id }, data: projectPatch })
     await audit({
       userId: user.id,
       action: 'project.rule',
@@ -837,10 +845,11 @@ export async function renameColumn(columnId: string, title: string): Promise<{ e
 export async function addColumn(boardId: string, status: string, rule: string | null = null): Promise<{ error?: string }> {
   const user = await requireManagement()
   const ruleKey = columnRuleKey(rule)
-  if (rule && !ruleKey) return { error: 'saveFailed' }
-  if (!ruleKey && !(status in ProjectStatus)) return { error: 'saveFailed' }
-  if (!(await addBoardColumn(boardId, status, ruleKey))) return { error: 'saveFailed' }
-  await audit({ userId: user.id, action: 'board.column.add', entity: 'Board', entityId: boardId, newValue: ruleKey ? `${status}:${ruleKey}` : status })
+  const listId = trelloRuleId(rule)
+  if (rule && !ruleKey && listId === null) return { error: 'saveFailed' }
+  if (!ruleKey && listId === null && !(status in ProjectStatus)) return { error: 'saveFailed' }
+  if (!(await addBoardColumn(boardId, status, rule))) return { error: 'saveFailed' }
+  await audit({ userId: user.id, action: 'board.column.add', entity: 'Board', entityId: boardId, newValue: rule ? `${status}:${rule}` : status })
   revalidatePath('/projects')
   revalidatePath('/settings/boards')
   return {}
@@ -872,13 +881,6 @@ export async function setBoardOrder(boardId: string, columnIds: string[]): Promi
   revalidatePath('/projects')
   revalidatePath('/settings/boards')
   return {}
-}
-
-/** Which board this browser opened last, so the projects page comes back to it. */
-export async function rememberBoard(boardId: string): Promise<void> {
-  await requireStaff()
-  const store = await cookies()
-  store.set(BOARD_COOKIE, boardId, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
 }
 
 // ── Project items (tools & materials) ─────────────────────────
@@ -1222,15 +1224,38 @@ async function applyTemplate(projectId: string, templateId: string, keep: Readon
 }
 
 /**
+ * Whether a rule the browser sent is the rule of a list on some board — of
+ * that status, where one is given. A plain list (null) always is. Anything
+ * else is not acted on: a made-up Trello list id would otherwise be written
+ * to the card's link, a made-up rule key read by `dropPatch`.
+ */
+async function isListRule(rule: string | null, status?: string): Promise<boolean> {
+  if (rule === null) return true
+  if (!columnRuleKey(rule) && trelloRuleId(rule) === null) return false
+  const column = await db.boardColumn.findFirst({
+    where: { rule, ...(status && status in ProjectStatus ? { status: status as ProjectStatus } : {}) },
+    select: { id: true },
+  })
+  return column !== null
+}
+
+/**
  * A card made in a rule's list takes what the rule asks of it — on hold, low
  * priority, next year — or it would stand in the plain list of its status
- * beside it. The list the first invoice fills cannot be filled by hand; a
+ * beside it. A mirror rule keeps the card's Trello list on its link, where
+ * there is one. The list the first invoice fills cannot be filled by hand; a
  * card added there stands in the plain list.
  */
 async function applyListRule(projectId: string, rule: string | null) {
+  const listId = trelloRuleId(rule)
+  if (listId !== null) {
+    const link = await db.projectLink.findFirst({ where: { projectId, system: 'trello' }, select: { id: true } })
+    if (link) await db.projectLink.update({ where: { id: link.id }, data: { externalListId: listId } }).catch(() => {})
+    return
+  }
   const key = columnRuleKey(rule)
   if (!key) return
-  const patch = dropPatch(null, key, { pausedAt: null, plannedStart: null, planMonth: null, priority: null, invoice1: false }, new Date())
+  const patch = dropPatch(null, key, { pausedAt: null, plannedStart: null, planMonth: null, priority: null, invoice1: false, trelloListId: null }, new Date())
   if (patch === 'refused' || patch === 'fixedStart' || Object.keys(patch).length === 0) return
   await db.project.update({ where: { id: projectId }, data: patch })
 }
@@ -1294,6 +1319,7 @@ export async function quickAddProject(status: string, formData: FormData, rule: 
   const { name, customer, error } = cardBasics(formData)
   if (error) return { error }
   if (!(status in ProjectStatus)) return { error: 'saveFailed' }
+  if (!(await isListRule(rule, status))) return { error: 'saveFailed' }
   try {
     const input = createProjectInput.parse({ name, status, ...customer })
     const project = await createProjectRecord(user, input, { type: 'user', userId: user.id })
@@ -1323,6 +1349,7 @@ export async function createCardFromTemplate(
   const { name, customer, error } = cardBasics(formData)
   if (error) return { error }
   if (!(place.status in ProjectStatus)) return { error: 'saveFailed' }
+  if (!(await isListRule(place.rule, place.status))) return { error: 'saveFailed' }
   const template = await db.projectTemplate.findFirst({ where: { id: templateId, active: true }, select: { name: true } })
   if (!template) return { error: 'saveFailed' }
   try {

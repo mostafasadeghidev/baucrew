@@ -18,7 +18,7 @@ export type UserFormValues = {
 const ROLES = ['ADMIN', 'MANAGER', 'SITE_MANAGER', 'EMPLOYEE'] as const
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 export function UserForm({
   action,
@@ -57,7 +57,7 @@ export function UserForm({
         pending={pending}
         extra={headExtra}
       />
-      <div className="max-w-2xl rounded-xl border border-border bg-surface p-5 shadow-sm">
+      <div className="max-w-2xl rounded-xl border border-border bg-surface p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="username" className="block text-sm font-medium">

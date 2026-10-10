@@ -20,7 +20,7 @@ import { usePricesHidden } from '@/components/price-visibility'
 import type { MonthRange } from '@/lib/reports-calc'
 import { CLASSES, CLASS_OF, classTotals, type MonthSituation, type PlanClass as Class } from '@/lib/order-situation'
 
-const card = 'rounded-xl border border-border bg-surface shadow-sm'
+const card = 'rounded-xl border border-border bg-surface'
 const up = 'text-emerald-700 dark:text-emerald-400'
 const warn = 'text-amber-700 dark:text-amber-400'
 
@@ -282,7 +282,7 @@ export function OrderSituation({
             ) : (
               openLists.map((list) => (
                 <section key={list.key}>
-                  <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted">{list.title}</h4>
+                  <h4 className="text-[11px] font-medium text-muted">{list.title}</h4>
                   <ul className="mt-1 divide-y divide-border text-[13px]">
                     {list.rows.slice(0, LIST_ROWS).map((row) => (
                       <li key={row.key} className="flex items-center justify-between gap-3 py-1">

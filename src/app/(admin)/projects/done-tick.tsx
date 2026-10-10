@@ -60,7 +60,7 @@ export function DoneTick({
         e.stopPropagation()
         toggle()
       }}
-      className={`flex shrink-0 items-center justify-center rounded-full transition-colors ${box} ${
+      className={`flex shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${box} ${
         on
           ? 'bg-emerald-600 text-white hover:bg-emerald-700'
           : 'border-2 border-foreground/40 text-transparent hover:border-foreground/70 hover:bg-black/5 dark:hover:bg-white/10'

@@ -49,7 +49,7 @@ export default async function TemplatesPage() {
               <col className="w-28" />
             </colgroup>
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+              <tr className="border-b border-border text-left text-xs text-muted">
                 <th className="px-4 py-3 font-medium">{t('name')}</th>
                 <th className="px-4 py-3 font-medium">{t('category')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('itemCount')}</th>

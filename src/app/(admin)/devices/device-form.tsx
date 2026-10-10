@@ -7,7 +7,7 @@ import { DeleteButton } from '@/components/delete-button'
 import { btn } from '@/components/ui/button'
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 const FORM_ID = 'device-form'
 
@@ -41,7 +41,7 @@ export function DeviceForm({
       <SavedForm
         id={FORM_ID}
         action={action}
-        className="space-y-4 rounded-lg border border-border bg-surface p-5 shadow-sm"
+        className="space-y-4 rounded-lg border border-border bg-surface p-5"
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">

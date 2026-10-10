@@ -5,7 +5,6 @@ import {
   cumulativeMonths,
   customerTotals,
   daysDiff,
-  heatLevel,
   lostCustomers,
   monthSiteCount,
   parseCompareYears,
@@ -273,24 +272,6 @@ describe('monthSiteCount', () => {
   })
 })
 
-describe('heatLevel', () => {
-  it('shades the biggest cell darkest, and nothing for nothing', () => {
-    expect(heatLevel(50_000, 50_000, 4)).toBe(3)
-    expect(heatLevel(0, 50_000, 4)).toBe(0)
-    expect(heatLevel(-100, 50_000, 4)).toBe(0)
-  })
-
-  it('lifts a small cell by the square root of its share', () => {
-    // A quarter of the biggest is half-way up the scale, not a quarter of the way.
-    expect(heatLevel(12_500, 50_000, 4)).toBe(2)
-    expect(heatLevel(1_000, 50_000, 4)).toBe(0)
-  })
-
-  it('never goes past the last step', () => {
-    expect(heatLevel(80_000, 50_000, 4)).toBe(3)
-  })
-})
-
 describe('planReached', () => {
   const euros = (v: number) => `${Math.round(v)} €`
   const cents = (v: number) => `${v.toFixed(2)} €`
@@ -330,6 +311,13 @@ describe('cumulativeMonths', () => {
     expect(rows[0].running).toBe(4_000)
     expect(rows[2].running).toBe(15_000)
     expect(rows[2].prevRunning).toBe(1_500)
+  })
+
+  it('keeps the sums in whole cents, so an even month never reads as a loss of −0,00 €', () => {
+    const cents = [0.1, 0.2, 0.3].map((total, month) => ({ month, total }))
+    const rows = cumulativeMonths(cents, cents, null)
+    expect(rows.map((r) => r.running)).toEqual([0.1, 0.3, 0.6])
+    expect(rows.every((r) => Object.is(r.delta, 0))).toBe(true)
   })
 
   it('leaves the comparison empty when the year before is unknown', () => {

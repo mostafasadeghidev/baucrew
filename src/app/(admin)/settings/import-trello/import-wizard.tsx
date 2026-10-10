@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { trelloWizard, type PreviewState } from './actions'
+import { fetchTrelloFilesAction, trelloWizard, type FetchFilesState, type PreviewState } from './actions'
+import { hasFields } from '@/lib/trello-fields'
 import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
 
@@ -19,6 +20,43 @@ const STATUSES = [
   'CANCELLED',
 ] as const
 
+
+/**
+ * The files still lying in Trello, fetched a round at a time until none is
+ * left or Trello gives no more.
+ */
+function TrelloFiles({ pending }: { pending: number }) {
+  const t = useTranslations('importTrello')
+  const [state, setState] = useState<FetchFilesState>({ fetched: 0, failed: 0, pending, configured: true })
+  const [total, setTotal] = useState(0)
+  const [running, start] = useTransition()
+  if (pending === 0) return null
+  const run = () =>
+    start(async () => {
+      let done = 0
+      for (;;) {
+        const round = await fetchTrelloFilesAction()
+        done += round.fetched
+        setState(round)
+        setTotal(done)
+        if (!round.configured || round.fetched === 0 || round.pending === 0) break
+      }
+    })
+  return (
+    <div className="rounded-lg border border-border bg-surface p-4 text-sm">
+      <p className="font-medium">{t('filesPending', { count: state.pending })}</p>
+      <p className="mt-1 text-muted">{t('filesHint')}</p>
+      {!state.configured && <p role="alert" className="mt-2 text-danger">{t('filesNotConfigured')}</p>}
+      {total > 0 && <p className="mt-2">{t('filesFetched', { count: total })}</p>}
+      {state.configured && state.failed > 0 && <p className="mt-2 text-amber-700 dark:text-amber-400">{t('filesFailed', { count: state.failed })}</p>}
+      {state.pending > 0 && (
+        <button type="button" onClick={run} disabled={running} className={`mt-3 ${btn.outline}`}>
+          {running ? t('filesRunning') : t('filesFetch')}
+        </button>
+      )}
+    </div>
+  )
+}
 
 export function ImportWizard() {
   const t = useTranslations('importTrello')
@@ -48,6 +86,8 @@ export function ImportWizard() {
             {effective.checklists > 0 && <li>{t('doneChecklists', { count: effective.checklists })}</li>}
             {effective.comments > 0 && <li>{t('doneComments', { count: effective.comments })}</li>}
             {effective.templates > 0 && <li>{t('doneTemplates', { count: effective.templates })}</li>}
+            {effective.links > 0 && <li>{t('doneLinks', { count: effective.links })}</li>}
+            {effective.columns > 0 && <li>{t('doneColumns', { count: effective.columns })}</li>}
             <li>{t('doneIgnored', { count: effective.ignored })}</li>
           </ul>
           {effective.flagged > 0 && (
@@ -55,7 +95,13 @@ export function ImportWizard() {
               {t('doneFlagged', { count: effective.flagged })}
             </p>
           )}
+          {effective.unknownMembers.length > 0 && (
+            <p className="mt-3 text-sm text-amber-700 dark:text-amber-400">
+              {t('doneUnknownMembers', { names: effective.unknownMembers.join(', ') })}
+            </p>
+          )}
         </div>
+        <TrelloFiles pending={effective.filesPending} />
         <Link
           href="/projects"
           className={btn.primary}
@@ -73,9 +119,9 @@ export function ImportWizard() {
       if (!c.closed) cardsByList.set(c.idList, (cardsByList.get(c.idList) ?? 0) + 1)
     }
     const archived = board.cards.filter((c) => c.closed).length
-    const checklists = board.cards.reduce((n, c) => n + c.checklists.length, 0)
-    const comments = board.cards.reduce((n, c) => n + c.comments.length, 0)
-    const withFields = board.cards.filter((c) => Object.keys(c.fields).length > 0).length
+    const checklists = board.checklists.length
+    const comments = board.comments.length
+    const withFields = board.cards.filter((c) => hasFields(c.fields)).length
 
     return (
       <form action={importAction} className="max-w-3xl space-y-4">
@@ -85,12 +131,20 @@ export function ImportWizard() {
           <p className="text-sm text-muted">
             {t('previewSummary', { lists: board.lists.length, cards: board.cards.length })}
           </p>
+          <p className="text-sm text-muted">
+            {t('previewExtras', {
+              comments,
+              checklists,
+              attachments: board.cards.reduce((sum, c) => sum + c.attachments.length, 0),
+              fields: withFields,
+            })}
+          </p>
         </div>
 
         <div className="overflow-hidden rounded-lg border border-border bg-surface">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+              <tr className="border-b border-border text-left text-xs text-muted">
                 <th className="px-4 py-2 font-medium">{t('trelloList')}</th>
                 <th className="px-4 py-2 text-right font-medium">{t('cards')}</th>
                 <th className="px-4 py-2 font-medium">{t('mapTo')}</th>
@@ -125,8 +179,16 @@ export function ImportWizard() {
         </div>
 
         <label className="flex cursor-pointer items-center gap-2 text-sm">
-          <input type="checkbox" name="includeArchived" className="h-4 w-4 accent-[var(--accent)]" />
+          <input type="checkbox" name="includeArchived" defaultChecked className="h-4 w-4 accent-[var(--accent)]" />
           {t('includeArchived', { count: archived })}
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" name="makeBoard" defaultChecked className="h-4 w-4 accent-[var(--accent)]" />
+          {t('makeBoard', { name: board.name })}
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" name="oneCustomer" className="h-4 w-4 accent-[var(--accent)]" />
+          {t('oneCustomer', { name: board.name })}
         </label>
         {/* What hangs on the cards comes along by default; a second import does not double it. */}
         {withFields > 0 && (

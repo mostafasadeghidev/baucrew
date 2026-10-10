@@ -98,7 +98,7 @@ export function PackingList({ items }: { items: MyItem[] }) {
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 text-xs font-medium uppercase tracking-wide opacity-70">
+                <span className="shrink-0 text-xs font-medium opacity-70">
                   {tStatus(status)}
                 </span>
               </button>

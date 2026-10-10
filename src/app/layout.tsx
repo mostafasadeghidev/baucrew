@@ -1,13 +1,14 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
-import { Geist } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale } from 'next-intl/server'
 import { getBranding, shiftColor } from '@/lib/branding'
 import './globals.css'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+// Untitled UI's typeface.
+const inter = Inter({
+  variable: '--font-inter',
   subsets: ['latin'],
 })
 
@@ -44,7 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
      * `translate="no"` is the standard's word for it, the `notranslate` class
      * and the google meta tag are the ones Chrome's translator listens to.
      */
-    <html lang={locale} translate="no" className={`${geistSans.variable} notranslate h-full`} suppressHydrationWarning>
+    <html lang={locale} translate="no" className={`${inter.variable} notranslate h-full`} suppressHydrationWarning>
       <head>
         <Script id="theme-init" strategy="beforeInteractive">
           {themeInit}

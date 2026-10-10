@@ -16,7 +16,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useRef, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Search, SlidersHorizontal } from 'lucide-react'
-import { btn } from '@/components/ui/button'
+import { projectControl } from './toolbar-styles'
 import { Popover, PopoverHead } from '@/components/ui/popover'
 import { ACTIVITY_FILTERS, boardFilterCount, DUE_FILTERS, type ActivityFilter, type BoardFilter, type DueFilter } from '@/lib/board-cards'
 import { LABEL_BAR, URGENT_LABEL } from '@/components/swatches'
@@ -100,11 +100,11 @@ export function BoardFilter({
         aria-expanded={open}
         aria-label={count > 0 ? `${t('boardFilter')}: ${count}` : t('boardFilter')}
         // Its own text colour, see the year picker: white on the board's white button was nothing.
-        className={`${btn.outlineSm} shrink-0 gap-1.5 text-xs text-foreground print:hidden`}
+        title={t('boardFilter')}
+        className={`${projectControl.icon} relative print:hidden ${count ? '!text-accent !bg-accent/10' : ''}`}
       >
-        <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-        {t('boardFilter')}
-        {count > 0 && <span className="rounded-full bg-accent/10 px-1.5 text-xs tabular-nums text-accent">{count}</span>}
+        <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+        {count > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-accent px-1 text-[10px] tabular-nums text-accent-foreground">{count}</span>}
       </button>
       <Popover open={open} onClose={close} anchor={anchor} label={t('boardFilter')} width={320}>
         <PopoverHead title={t('boardFilter')} close={close} closeLabel={tc('close')} />
@@ -117,7 +117,7 @@ export function BoardFilter({
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('boardFilterSearch')}
             aria-label={t('boardFilterSearch')}
-            className="block w-full rounded-md border border-border bg-background py-1.5 pl-8 pr-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+            className="block w-full rounded-lg border border-border-strong bg-surface py-1.5 pl-8 pr-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
         <div className="mt-3">

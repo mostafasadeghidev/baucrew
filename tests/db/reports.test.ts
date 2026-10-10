@@ -360,9 +360,9 @@ describe('what the data-quality report asks for', () => {
   })
 
   it('asks for a town where there are days to warn about, not for an offer', async () => {
-    const { getToday } = await import('@/lib/reports')
-    const { jobs } = await getToday(new Date())
-    const noCity = new Set(jobs.filter((j) => j.noCity).map((j) => j.number))
+    const { getDataGaps } = await import('@/lib/reports')
+    const { noTown } = await getDataGaps(new Date())
+    const noCity = new Set(noTown.map((p) => p.number))
     expect(noCity.has(`${year}-9306`)).toBe(true)
     expect(noCity.has(`${year}-9305`)).toBe(false)
   })

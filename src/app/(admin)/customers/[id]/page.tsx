@@ -80,7 +80,7 @@ export default async function CustomerDetailPage({
       </StickyHead>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+        <section className="rounded-xl border border-border bg-surface p-5">
           <h2 className="text-sm font-semibold">{t('contactData')}</h2>
           <dl className="mt-3 space-y-2 text-sm">
             {rows.map(([label, value]) => (
@@ -98,7 +98,7 @@ export default async function CustomerDetailPage({
           )}
         </section>
 
-        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+        <section className="overflow-hidden rounded-xl border border-border bg-surface">
           <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">
             {t('projectsTitle')}
           </h2>

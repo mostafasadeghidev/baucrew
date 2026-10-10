@@ -11,7 +11,7 @@ import { btn } from '@/components/ui/button'
 
 const ROLES = ['EMPLOYEE', 'SITE_MANAGER', 'MANAGER', 'ADMIN'] as const
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 export type AccountInfo = {
   id: string
@@ -53,7 +53,7 @@ export function AccountSection({
   // ── No account yet ────────────────────────────────────────
   if (!account) {
     return (
-      <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+      <section className="rounded-lg border border-border bg-surface p-5">
         <h2 className="text-sm font-semibold">{t('accountTitle')}</h2>
         {!isAdmin ? (
           <p className="mt-2 text-sm text-muted">{t('accountNone')}</p>
@@ -125,7 +125,7 @@ export function AccountSection({
 
   // ── Existing account ──────────────────────────────────────
   return (
-    <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+    <section className="rounded-lg border border-border bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">{t('accountTitle')}</h2>
         <div className="flex flex-wrap items-center gap-1.5">

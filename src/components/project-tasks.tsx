@@ -63,7 +63,7 @@ export function ProjectTasks({
   const text = large ? 'text-base' : 'text-sm'
   const small = large ? 'text-sm' : 'text-xs'
   const pad = frame ? 'px-5' : 'px-0'
-  const input = `mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 ${text} focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent`
+  const input = `mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 ${text} focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent`
 
   const say = (code: string | undefined) =>
     setError(code === 'titleRequired' ? t('titleRequired') : code === 'notAllowed' ? t('notAllowed') : tc('saveFailed'))
@@ -268,7 +268,7 @@ export function ProjectTasks({
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface shadow-sm">
+    <section className="rounded-xl border border-border bg-surface">
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold">{t('heading')}</h2>

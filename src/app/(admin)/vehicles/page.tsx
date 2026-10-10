@@ -56,7 +56,7 @@ export default async function VehiclesPage({
               <col className="w-48" />
             </colgroup>
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+              <tr className="border-b border-border text-left text-xs text-muted">
                 <th className="px-4 py-3 font-medium">{t('name')}</th>
                 <th className="px-4 py-3 font-medium">{t('licensePlate')}</th>
                 <th className="px-4 py-3 font-medium">{t('type')}</th>

@@ -33,7 +33,7 @@ export async function AbsencesCard({
   const todayIso = new Date().toISOString().slice(0, 10)
 
   return (
-    <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+    <section className="rounded-lg border border-border bg-surface p-5">
       <h2 className="text-sm font-semibold">{t('title')}</h2>
 
       {absences.length === 0 ? (

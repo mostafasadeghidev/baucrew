@@ -11,6 +11,7 @@ import {
   setChecklistItemPlan,
 } from '@/app/(admin)/projects/[id]/checklist-actions'
 import { convertChecklistItemToCard } from '@/app/(admin)/projects/actions'
+import { cardHref, isCardPath } from '@/lib/card-url'
 import { btn } from './ui/button'
 import { Menu, MenuSeparator, menuItemClass } from './ui/menu'
 import { Popover, PopoverHead } from './ui/popover'
@@ -114,7 +115,8 @@ export function Checklist({
       router.refresh()
     })
 
-  /** Trello's "In Karte umwandeln": the new card opens where this one was open. */
+  /** Trello's "In Karte umwandeln": the new card opens where this one was open —
+      over the board as a sheet, from a project's full page as the full page. */
   const toCard = (itemId: string) =>
     startTransition(async () => {
       setError(null)
@@ -124,14 +126,13 @@ export function Checklist({
         return
       }
       const url = new URL(window.location.href)
-      if (url.searchParams.has('card')) {
-        url.searchParams.set('card', res.id)
-        router.push(`${url.pathname}${url.search}`, { scroll: false })
+      if (isCardPath(url.pathname)) {
+        router.push(cardHref(new URLSearchParams(url.searchParams), res.id), { scroll: false })
       } else router.push(`/projects/${res.id}`)
     })
 
   return (
-    <div className={compact ? '' : 'rounded-lg border border-border bg-surface shadow-sm'}>
+    <div className={compact ? '' : 'rounded-lg border border-border bg-surface'}>
       <div className={`flex flex-wrap items-baseline justify-between gap-2 ${compact ? 'pb-2' : 'border-b border-border px-4 py-3'}`}>
         {checklist.name && <p className="text-sm font-semibold">{checklist.name}</p>}
         <p className="text-xs text-muted">
@@ -272,7 +273,7 @@ export function Checklist({
                         saveNote(item.id)
                       }
                     }}
-                    className="min-w-48 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="min-w-48 flex-1 rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                   <button type="button" onClick={() => saveNote(item.id)} className={btn.primarySm}>
                     {tc('save')}
@@ -301,7 +302,7 @@ export function Checklist({
                 startTransition(async () => void (await addChecklistItem(checklist.id, value)))
               }
             }}
-            className="min-w-48 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+            className="min-w-48 flex-1 rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
           />
           <button
             type="button"
@@ -358,7 +359,7 @@ function AssignButton({ item, people, onPick }: { item: ChecklistItemRow; people
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('assignSearch')}
           aria-label={t('assignSearch')}
-          className="block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+          className="block w-full rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
         />
         <ul className="-mx-1 mt-2 max-h-64 overflow-y-auto px-1">
           {item.assignee && (
@@ -430,7 +431,7 @@ function DueButton({ item, onPick }: { item: ChecklistItemRow; onPick: (day: str
           autoFocus
           value={day}
           onChange={(e) => setDay(e.target.value)}
-          className="block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+          className="block w-full rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
         />
         <button
           type="button"

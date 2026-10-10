@@ -19,15 +19,9 @@ import { Select } from '@/components/ui/select'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { btn } from '@/components/ui/button'
 import { moveCard } from './actions'
+import type { CardMovePlaces, MoveColumn } from '@/lib/card-move-places'
 
-export type MoveColumn = { id: string; label: string; status: string; rule: string | null; cardIds: string[] }
-export type MoveBoard = { id: string; name: string; columns: MoveColumn[] }
-export type CardMovePlaces = {
-  /** The board the card was opened on, and the list it stands in there; null when that board has none for it. */
-  boardId: string | null
-  columnId: string | null
-  boards: MoveBoard[]
-}
+export type { CardMovePlaces, MoveBoard, MoveColumn } from '@/lib/card-move-places'
 
 /** The moves that end a project, asked about first — the same two the board asks about. */
 const ASK_FOR = ['COMPLETED', 'CANCELLED']
@@ -172,7 +166,7 @@ export function CardMove({
                 <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wide text-muted">{t('cardMoveBoard')}</label>
+            <label className="block text-[11px] font-semibold text-muted">{t('cardMoveBoard')}</label>
             <Select
               compact
               className="mt-1 w-full"
@@ -192,7 +186,7 @@ export function CardMove({
             </Select>
             <div className="mt-2 grid grid-cols-[1fr_5rem] gap-2">
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wide text-muted">{t('cardMoveList')}</label>
+                <label className="block text-[11px] font-semibold text-muted">{t('cardMoveList')}</label>
                 <Select
                   compact
                   className="mt-1 w-full"
@@ -212,7 +206,7 @@ export function CardMove({
                 </Select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wide text-muted">{t('cardMovePosition')}</label>
+                <label className="block text-[11px] font-semibold text-muted">{t('cardMovePosition')}</label>
                 <Select compact className="mt-1 w-full" value={String(position)} onChange={(e) => setPosition(Number(e.target.value))}>
                   {Array.from({ length: others.length + 1 }, (_, i) => (
                     <option key={i} value={String(i + 1)}>

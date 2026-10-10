@@ -7,7 +7,7 @@ import { StockWarning } from '@/components/stock-warning'
 import { btn } from '@/components/ui/button'
 import { PageBar, StickyHead } from '@/components/ui/page-panel'
 
-const card = 'overflow-hidden rounded-lg border border-border bg-surface shadow-sm'
+const card = 'overflow-hidden rounded-lg border border-border bg-surface'
 const STATUS_STYLE: Record<string, string> = {
   COLLECTED: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
   MISSING: 'bg-red-500/15 text-red-700 dark:text-red-400',

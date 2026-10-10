@@ -305,8 +305,8 @@ export type SiteMonthRow = {
 }
 
 /**
- * Every site of the shown months against those months: the rows of the year
- * matrix, and the span the lanes print on each tile ("month 2 of 3").
+ * Every site of the shown months against those months: the span the lanes
+ * print on each tile ("month 2 of 3").
  *
  * Sites fold as in `topSites`. `order` is the months as the tab shows them —
  * the period and the chosen direction already applied — and a month outside it
@@ -352,16 +352,6 @@ export function siteMonthRows(months: SiteMonth[], order: number[]): SiteMonthRo
 }
 
 /**
- * How strongly a cell of the matrix is shaded, from 0 to `steps` − 1. By the
- * square root of its share of the biggest cell, so a small month still reads
- * as more than nothing beside a big one.
- */
-export function heatLevel(value: number, max: number, steps: number): number {
-  if (value <= 0 || max <= 0) return 0
-  return Math.min(steps - 1, Math.floor(Math.sqrt(Math.min(value / max, 1)) * steps))
-}
-
-/**
  * Actual against plan, as the difference is written. The plan counts as
  * reached when the actual is at least the plan — or when the shortfall is too
  * small to show in the figures it is written in: "−0 €" on a card of whole
@@ -400,20 +390,23 @@ export function cumulativeMonths(
   range: MonthRange | null
 ): CumulativeRow[] {
   const inRange = (m: number) => !range || (m >= range.from && m <= range.to)
+  // Sums of cents, rounded to cents: added up as floats they drift, and a
+  // difference of −0.0000001 would print as a red "−0,00 €".
+  const cents = (v: number) => Math.round(v * 100) / 100
   let running = 0
   let prevRunning = 0
   const rows: CumulativeRow[] = []
   for (const m of months) {
     if (!inRange(m.month)) continue
-    running += m.total
+    running = cents(running + m.total)
     const before = previous?.find((p) => p.month === m.month)
-    if (previous) prevRunning += before?.total ?? 0
+    if (previous) prevRunning = cents(prevRunning + (before?.total ?? 0))
     rows.push({
       month: m.month,
       total: m.total,
       running,
       prevRunning: previous ? prevRunning : null,
-      delta: previous ? running - prevRunning : null,
+      delta: previous ? cents(running - prevRunning) : null,
     })
   }
   return rows

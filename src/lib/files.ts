@@ -98,5 +98,26 @@ export function resolveUploadType(name: string, browserType: string): string {
   return mimeFromName(name) ?? given
 }
 
+/**
+ * The type a file fetched from elsewhere (a Trello attachment, say) is stored
+ * under. The other side's header is believed only for a type the project
+ * takes; otherwise the name decides, and a file of no known type is kept as
+ * plain bytes — never as something a browser would run.
+ */
+export function fetchedFileType(name: string, headerType: string | null | undefined): string {
+  const given = (headerType ?? '').split(';')[0].trim().toLowerCase()
+  if (ALLOWED_MIME_TYPES.includes(given)) return given
+  return mimeFromName(name) ?? 'application/octet-stream'
+}
+
+/**
+ * Whether a stored file may be shown straight in the browser. Only what a
+ * browser draws without running anything: pictures, PDFs, plain text. Every
+ * other type is handed over as a download, whatever its name says.
+ */
+export function servesInline(mimeType: string): boolean {
+  return previewKind(mimeType) !== null || mimeType.trim().toLowerCase() === 'image/heic'
+}
+
 /** What the file picker offers: the types, and the endings the machine may not know a type for. */
 export const ACCEPT_UPLOADS = [...ALLOWED_MIME_TYPES, '.msg', '.eml'].join(',')

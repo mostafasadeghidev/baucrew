@@ -83,9 +83,9 @@ export function FilledFormEditor({
 
   const locked = signatures.length > 0
   const input =
-    'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2.5 text-base focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:bg-subtle disabled:text-foreground disabled:opacity-100'
+    'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-base focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:bg-subtle disabled:text-foreground disabled:opacity-100'
   const cell =
-    'block w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:bg-subtle disabled:text-foreground disabled:opacity-100'
+    'block w-full rounded-lg border border-border-strong bg-surface px-2 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:bg-subtle disabled:text-foreground disabled:opacity-100'
 
   const set = (id: string, value: FormValue) => {
     setValues((v) => ({ ...v, [id]: value }))
@@ -322,7 +322,7 @@ export function FilledFormEditor({
                     onClick={() => set(f.id, ids.filter((x) => x !== docId))}
                     aria-label={t('photoRemove')}
                     title={t('photoRemove')}
-                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-muted shadow hover:text-danger"
+                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-muted hover:text-danger"
                   >
                     <X className="h-3.5 w-3.5" aria-hidden />
                   </button>
@@ -441,7 +441,7 @@ export function FilledFormEditor({
       )}
       {locked && <p className="text-sm text-muted">{office ? t('lockedHintOffice') : t('lockedHint')}</p>}
 
-      <div className="space-y-4 rounded-xl border border-border bg-surface p-5 shadow-sm">{fields.map(field)}</div>
+      <div className="space-y-4 rounded-xl border border-border bg-surface p-5">{fields.map(field)}</div>
 
       {!locked && (
         <div className="flex flex-wrap items-center gap-3">
@@ -455,7 +455,7 @@ export function FilledFormEditor({
 
       {/* The signatures: one box for everybody the form names */}
       {signers.length > 0 && (
-        <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+        <section className="rounded-xl border border-border bg-surface p-5">
           <h2 className="text-base font-semibold">{t('signatures')}</h2>
           <p className="mt-0.5 text-sm text-muted">{t('signaturesHint')}</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">

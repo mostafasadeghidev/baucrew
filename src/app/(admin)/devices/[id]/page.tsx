@@ -3,8 +3,11 @@ import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { PlayCircle } from 'lucide-react'
 import { db } from '@/lib/db'
-import { requireManagement } from '@/lib/authz'
+import { canViewFinancials, requireManagement } from '@/lib/authz'
 import { daysOut, deviceState } from '@/lib/devices'
+import { readWattroDetails } from '@/lib/wattro/details'
+import { WATTRO_SYSTEM } from '@/lib/wattro/assets'
+import { WattroDevice } from '../wattro-device'
 import { DeviceForm } from '../device-form'
 import { HandoutPanel } from '../handout-panel'
 import { deleteDevice, updateDevice } from '../actions'
@@ -15,7 +18,7 @@ export default async function DeviceDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await requireManagement()
+  const user = await requireManagement()
   const { id } = await params
   const [t, locale] = await Promise.all([getTranslations('devices'), getLocale()])
   const intl = locale === 'en' ? 'en-GB' : 'de-DE'
@@ -53,6 +56,33 @@ export default async function DeviceDetailPage({
     }),
   ])
   if (!device) notFound()
+
+  // A machine Wattro keeps shows what Wattro says and nothing else: its
+  // fields are edited, and the machine handed out, in Wattro. Whose it is
+  // is read the way the server reads it when a form arrives — off the
+  // system stamp, not off whether the details could be read — or a row
+  // whose details are still missing would show the form, and a form whose
+  // edits the server drops.
+  if (device.externalSystem === WATTRO_SYSTEM) {
+    const wattro = readWattroDetails(device.externalData)
+    return (
+      <div className="space-y-4">
+        <StickyHead>
+          <PageBar back={{ href: '/devices', label: t('title') }} title={device.name} />
+        </StickyHead>
+        {wattro ? (
+          <WattroDevice
+            details={wattro}
+            owned={{ inventoryNo: device.inventoryNo, storageLocation: device.storageLocation, active: device.active }}
+            locale={locale}
+            showPrice={canViewFinancials(user)}
+          />
+        ) : (
+          <p className="rounded-lg border border-border bg-subtle px-4 py-3 text-sm text-muted">{t('wattroNoDetails')}</p>
+        )}
+      </div>
+    )
+  }
 
   const state = deviceState(device.assignments)
   const open = device.assignments.find((a) => a.returnedAt === null)
@@ -103,7 +133,7 @@ export default async function DeviceDetailPage({
         />
 
         <div className="space-y-4">
-          <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+          <section className="rounded-lg border border-border bg-surface p-5">
             <h2 className="text-sm font-semibold">{t('whereNow')}</h2>
             <p className="mt-2 text-sm">
               {state.status === 'free' ? (
@@ -147,7 +177,7 @@ export default async function DeviceDetailPage({
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+          <section className="overflow-hidden rounded-lg border border-border bg-surface">
             <h2 className="border-b border-border px-5 py-3 text-sm font-semibold">{t('history')}</h2>
             {device.assignments.length === 0 ? (
               <p className="px-5 py-6 text-sm text-muted">{t('noHistory')}</p>

@@ -163,7 +163,7 @@ export default async function AuditLogPage({
               <col />
             </colgroup>
             <thead>
-              <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
+              <tr className="border-b border-border text-left text-[11px] text-muted">
                 <th className="px-3 py-2 font-medium">{t('time')}</th>
                 <th className="px-3 py-2 font-medium">{t('user')}</th>
                 <th className="px-3 py-2 font-medium">{t('action')}</th>

@@ -1,6 +1,6 @@
 import { db } from './db'
 import { cleanColumnOrder, type BoardColumnDef } from './boards'
-import { columnRuleKey, RULE_STATUS, type ColumnRule } from './board-rules'
+import { RULE_STATUS, type ColumnRule, trelloRuleId } from './board-rules'
 import type { BoardPreset } from './board-presets'
 
 export type BoardRow = {
@@ -70,18 +70,18 @@ export async function renameBoardColumn(columnId: string, title: string | null):
 }
 
 /**
- * A column added at the right end of a board: a status's plain list, or a
- * rule's list (whose status the rule decides). False when the board already
- * has that very list, or is not there.
+ * A column added at the right end of a board: a status's plain list, a rule's
+ * list (whose status the rule decides), or a Trello list's mirror under the
+ * status given. False when the board already has that very list, or is not there.
  */
-export async function addBoardColumn(boardId: string, status: string, rule: ColumnRule | null): Promise<boolean> {
+export async function addBoardColumn(boardId: string, status: string, rule: string | null): Promise<boolean> {
   const board = await db.board.findUnique({
     where: { id: boardId },
     select: { columns: { select: { status: true, rule: true, sortOrder: true } } },
   })
   if (!board) return false
-  const own = rule ? RULE_STATUS[rule] : status
-  if (board.columns.some((c) => c.status === own && (columnRuleKey(c.rule) ?? null) === rule)) return false
+  const own = rule && trelloRuleId(rule) === null ? RULE_STATUS[rule as ColumnRule] : status
+  if (board.columns.some((c) => c.status === own && c.rule === rule)) return false
   const last = Math.max(-1, ...board.columns.map((c) => c.sortOrder))
   await db.boardColumn.create({ data: { boardId, status: own as never, rule, sortOrder: last + 1 } })
   return true
@@ -105,8 +105,8 @@ export async function removeBoardColumn(columnId: string): Promise<string | null
  */
 export async function saveBoardColumns(boardId: string, columns: BoardColumnDef[]): Promise<void> {
   const existing = await db.boardColumn.findMany({ where: { boardId }, select: { id: true, status: true, rule: true, sortOrder: true } })
-  const plain = existing.filter((c) => !columnRuleKey(c.rule))
-  const ruled = existing.filter((c) => columnRuleKey(c.rule)).sort((a, b) => a.sortOrder - b.sortOrder)
+  const plain = existing.filter((c) => c.rule === null)
+  const ruled = existing.filter((c) => c.rule !== null).sort((a, b) => a.sortOrder - b.sortOrder)
   const gone = plain.filter((c) => !columns.some((w) => w.status === c.status)).map((c) => c.id)
   await db.$transaction([
     ...(gone.length > 0 ? [db.boardColumn.deleteMany({ where: { id: { in: gone } } })] : []),

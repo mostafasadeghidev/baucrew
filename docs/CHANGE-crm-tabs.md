@@ -1,5 +1,8 @@
 # CHANGE: CRM page — eight tabs become six
 
+> Later changed by `docs/CHANGE-reporting-cleanup.md`: the page is called
+> Auswertungen, Heute is gone and Vergleich is the default tab.
+
 ## What changed
 
 The CRM page (`/reports`) had eight tabs — Übersicht, Cockpit, Umsatz,

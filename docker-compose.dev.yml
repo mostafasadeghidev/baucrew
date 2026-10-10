@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: baucrew_dev
       POSTGRES_DB: baucrew
     ports:
-      - "15532:5432"
+      - "127.0.0.1:15532:5432"
     volumes:
       - baucrew_pgdata_dev:/var/lib/postgresql/data
     healthcheck:

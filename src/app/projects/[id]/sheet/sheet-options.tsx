@@ -61,8 +61,8 @@ export function SheetOptionsBar({
     ))
 
   return (
-    <fieldset disabled={pending} className="rounded-lg border border-border bg-surface p-3 text-sm shadow-sm print:hidden">
-      <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">{labels.heading}</legend>
+    <fieldset disabled={pending} className="rounded-lg border border-border bg-surface p-3 text-sm print:hidden">
+      <legend className="px-1 text-xs font-semibold text-muted">{labels.heading}</legend>
       <p className="text-xs text-muted">{labels.types}</p>
       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1.5">
         {categories.map((category) => (

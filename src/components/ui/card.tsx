@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 /**
- * Card in the spirit of shadcn/ui: title, optional description, content.
+ * Card after Untitled UI — framed by its border, never a shadow: title, optional description, content.
  * Used for the settings sections so every block reads as its own panel.
  */
 export function Card({
@@ -19,7 +19,7 @@ export function Card({
   className?: string
 }) {
   return (
-    <section className={`rounded-xl border border-border bg-surface shadow-sm ${className}`}>
+    <section className={`rounded-xl border border-border bg-surface ${className}`}>
       {(title || description || action) && (
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div className="min-w-0">

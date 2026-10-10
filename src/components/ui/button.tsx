@@ -1,7 +1,9 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 /**
- * Button styles in the spirit of shadcn/ui — shared class strings so every
+ * Button styles after Untitled UI — flat: a fill for the one thing to do, a
+ * stronger hairline for everything else, no shadow on either. Shared class
+ * strings — shared class strings so every
  * button in the app has the same height, radius, ring and disabled state.
  * Used both as `<Button>` and as `className={btn.primary}` on links/forms.
  */
@@ -15,7 +17,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
  * spring back is as smooth as the way down.
  */
 const base =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,border-color,transform] duration-100 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60 disabled:active:scale-100'
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold transition-[color,background-color,border-color,transform] duration-100 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60 disabled:active:scale-100'
 
 /**
  * The primary buttons carry a border too, the colour of nothing. Every other
@@ -24,16 +26,16 @@ const base =
  * to "Vorlagen", "Speichern" next to "Abbrechen", in every page's bar.
  */
 export const btn = {
-  primary: `${base} border border-transparent bg-accent px-4 py-2 text-accent-foreground shadow-sm hover:bg-accent-hover`,
-  primarySm: `${base} border border-transparent bg-accent px-3 py-1.5 text-accent-foreground shadow-sm hover:bg-accent-hover`,
-  outline: `${base} border border-border bg-surface px-4 py-2 shadow-sm hover:bg-surface-hover`,
-  outlineSm: `${base} border border-border bg-surface px-3 py-1.5 shadow-sm hover:bg-surface-hover`,
+  primary: `${base} border border-transparent bg-accent h-9 px-3.5 text-accent-foreground hover:bg-accent-hover`,
+  primarySm: `${base} border border-transparent bg-accent h-8 px-3 text-accent-foreground hover:bg-accent-hover`,
+  outline: `${base} border border-border-strong bg-surface h-9 px-3.5 hover:bg-surface-hover`,
+  outlineSm: `${base} border border-border-strong bg-surface h-8 px-3 hover:bg-surface-hover`,
   /** Smaller again: rows of controls that sit above content, not in it. */
-  outlineXs: `${base} border border-border bg-surface px-2.5 py-1 text-xs shadow-sm hover:bg-surface-hover`,
-  ghost: `${base} px-3 py-1.5 text-muted hover:bg-surface-hover hover:text-foreground`,
-  danger: `${base} border border-danger/40 px-4 py-2 text-danger shadow-sm hover:bg-danger/10`,
-  dangerSm: `${base} border border-danger/40 px-3 py-1.5 text-danger shadow-sm hover:bg-danger/10`,
-  icon: `${base} h-9 w-9 border border-border bg-surface text-muted shadow-sm hover:bg-surface-hover hover:text-foreground`,
+  outlineXs: `${base} border border-border-strong bg-surface h-7 px-2.5 text-xs hover:bg-surface-hover`,
+  ghost: `${base} h-8 px-3 text-muted hover:bg-surface-hover hover:text-foreground`,
+  danger: `${base} border border-danger/40 h-9 px-3.5 text-danger hover:bg-danger/10`,
+  dangerSm: `${base} border border-danger/40 h-8 px-3 text-danger hover:bg-danger/10`,
+  icon: `${base} h-8 w-8 border border-border-strong bg-surface text-muted hover:bg-surface-hover hover:text-foreground`,
 } as const
 
 export type ButtonVariant = keyof typeof btn

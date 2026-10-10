@@ -7,7 +7,7 @@ import { btn } from '@/components/ui/button'
 import { addMyTime } from './actions'
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-base focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-base focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 /**
  * "I forgot to press start": the worker adds a booking for that day by hand.

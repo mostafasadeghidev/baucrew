@@ -2,20 +2,15 @@ import type { ReactNode } from 'react'
 import { BackLink } from '../back-link'
 
 /**
- * The sheet a page's body sits on.
+ * A block of content inside the page's panel: a table, a list, a chart.
  *
- * The rail became a panel standing on the page; the body was still lying flat
- * on it, so the window read as one framed thing and one unframed thing. This
- * gives the body the same frame: the same border, the same corners, the same
- * quiet shadow.
- *
- * The page's own title row stays outside it. That row is where you act on the
- * page — new project, import, print — and those buttons belong to the page,
- * not to the sheet of content under them; putting them inside the frame makes
- * the frame look like it starts in the wrong place.
+ * The page itself is the white panel now (see PanelFrame), so a block is
+ * framed by a hairline and rounded corners and nothing else — no shadow, no
+ * second colour. One frame deep: a block inside a block is a divider, not
+ * another box.
  *
  * `divide` rather than padding between sections: a table wants to run to the
- * edges of the sheet, so the sheet carries no padding of its own and each
+ * edges of the block, so the block carries no padding of its own and each
  * section brings its own.
  *
  * It disappears in print — a printed page is already a sheet.
@@ -29,7 +24,7 @@ export function PagePanel({
 }) {
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-border bg-surface shadow-sm print:rounded-none print:border-0 print:shadow-none ${className}`}
+      className={`overflow-hidden rounded-xl border border-border bg-surface print:rounded-none print:border-0 ${className}`}
     >
       {children}
     </div>
@@ -37,23 +32,24 @@ export function PagePanel({
 }
 
 /**
- * The bar a page wears above its sheet: the page's name on the left, the
- * things you can do to it on the right, on a sheet of its own.
+ * The one row at the top of the panel: the page's name, its tabs, and what
+ * can be done to it on the right — all on one line, the way Framer, Webflow
+ * and Trello keep their bars.
  *
- * The name used to be there only for screen readers and for phones — on a
- * desktop the sidebar was the only thing saying which page you were on, and
- * the buttons floated on the page background with nothing to belong to. Now
- * they belong to the bar, and the bar sits beside the sheet under it the way
- * two cards sit beside each other.
- *
- * In print the frame goes and the name stays: a printed sheet has no chrome,
- * but it does need to say what it is.
+ * Not a box of its own: it is the head of the panel, set off from the content
+ * by the rule `StickyHead` draws under it. Fifty-six pixels high on every
+ * page, whatever it holds; only a screen too narrow for it wraps it.
  */
 export const pageToolbar =
-  'flex min-h-16 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm print:min-h-0 print:rounded-none print:border-0 print:px-0 print:shadow-none'
+  'flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2.5 print:min-h-0 print:py-0'
+
+/** The hairline between a page's name and its tabs in that row. */
+export function HeadDivider() {
+  return <span aria-hidden className="h-5 w-px shrink-0 bg-border print:hidden" />
+}
 
 /** The page's name inside that bar. */
-export const pageTitle = 'text-lg font-semibold tracking-tight'
+export const pageTitle = 'text-base font-semibold tracking-tight text-foreground'
 
 /**
  * A page's bar, drawn the same way on every page: sixty-four pixels, the
@@ -78,6 +74,7 @@ export function PageBar({
   back,
   title,
   meta,
+  tabs,
   actions,
   className = '',
 }: {
@@ -86,6 +83,8 @@ export function PageBar({
   title: ReactNode
   /** Short, beside the title: a status pill, "KW 37". Never a sentence. */
   meta?: ReactNode
+  /** The page's tabs, in the same row after its name. */
+  tabs?: ReactNode
   /** What can be done to the page, on the right. */
   actions?: ReactNode
   className?: string
@@ -96,12 +95,21 @@ export function PageBar({
           they wrap onto a line of their own instead of squeezing it to nothing.
           On that line they shrink to the bar and wrap among themselves — a bar
           that could not shrink ran off a phone's screen with the last buttons. */}
-      <div className="flex min-w-[10rem] flex-1 items-center gap-3">
+      {/* With tabs the group asks for its whole width (flex-auto, not
+          flex-1's zero basis), so a head too narrow for name, tabs and actions
+          wraps the actions under them instead of squeezing the tabs away. */}
+      <div className={`flex min-w-[10rem] items-center gap-3 ${tabs ? 'flex-auto' : 'flex-1'}`}>
         {back && <BackLink href={back.href} label={back.label} inline />}
-        <h1 className={`min-w-0 truncate ${pageTitle}`}>{title}</h1>
+        <h1 className={`truncate ${tabs ? 'shrink-0' : 'min-w-0'} ${pageTitle}`}>{title}</h1>
         {meta}
+        {tabs && (
+          <>
+            <HeadDivider />
+            <div className="min-w-0 print:hidden">{tabs}</div>
+          </>
+        )}
       </div>
-      {actions && <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="ml-auto flex min-w-0 max-w-full flex-wrap items-center gap-2">{actions}</div>}
     </div>
   )
 }
@@ -115,38 +123,20 @@ export function PageHint({ children, className = '' }: { children: ReactNode; cl
 }
 
 /**
- * Keeps a page's bar — and, where a page has one, the row of tabs under it —
- * at the top of the window while the rest of the page scrolls past.
+ * The head of the page's panel — its bar, and where a page has them the tabs
+ * under it — kept at the top while the rest of the page scrolls past.
  *
- * The eight pixels of air above the bar belong to this box, not to the page:
- * painted here they travel with the bar and hide whatever slides behind it, so
- * nothing shows through the gap between the window's edge and the card. The
- * negative margin gives those eight pixels back to the layout, so the bar
- * stands exactly where it stood before — it does not jump when it catches.
+ * It runs the full width of the panel, edge to edge (the negative margins
+ * give back the panel's padding), with one rule under it. That rule is the
+ * only line between the page's navigation and its content: no box around the
+ * bar, no second box around the tabs.
  *
- * `top-14` below md because the phone's own bar is 56 pixels of sticky header
- * above this one; from md up that bar is gone and this one goes to the top.
+ * Its resting place is exactly where it sticks — the top of the panel, eight
+ * pixels under the window's edge on a desktop (the frame), under the phone's
+ * 56-pixel bar below md — so it never jumps when it catches.
  *
  * `print:static` because a sticky box on paper is a box printed in the wrong
  * place, or on every page.
- *
- * Under the bar hangs a strip of frosted glass exactly as tall as the gap
- * between the bar and the page's first sheet. At rest there is nothing behind
- * it but the page's own ground, so it cannot be seen. Once the page scrolls,
- * whatever passes under the bar is blurred for the height of that gap, so the
- * content reads as going *under* the bar rather than running into it — the two
- * used to meet edge to edge and look like one thing. The gap is 16px on most
- * pages and 24px on the detail pages and forms; the strip takes its height from
- * `--page-head-gap`, which globals.css sets from the container the bar sits in.
- *
- * The frost fades out downwards rather than stopping. A strip that ended in a
- * line drew a second hard edge a gap's height below the bar, and a strong blur
- * over so thin a band smeared every link and status pill into a coloured blob.
- * A lighter blur that dies away towards the content reads as the content
- * sinking under the bar, not as a band laid across it. It holds at full
- * strength for the first third of the gap before it starts to fade: faded
- * from the very top at 8px it was soft enough to miss, and 10px is still well
- * short of the 12px that smeared.
  */
 export function StickyHead({
   children,
@@ -158,7 +148,7 @@ export function StickyHead({
 }) {
   return (
     <div
-      className={`page-head sticky top-14 z-20 -mt-2 space-y-4 bg-background pt-2 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-[var(--page-head-gap)] after:bg-background/40 after:backdrop-blur-[10px] after:[mask-image:linear-gradient(to_bottom,black_30%,transparent)] after:[-webkit-mask-image:linear-gradient(to_bottom,black_30%,transparent)] md:top-0 print:static print:bg-transparent print:after:hidden ${className}`}
+      className={`page-head sticky top-14 z-20 -mx-4 -mt-4 border-b border-border bg-surface px-4 md:top-2 md:-ml-6 md:-mr-8 md:-mt-6 md:pl-6 md:pr-8 print:static print:mx-0 print:mt-0 print:border-0 print:px-0 ${className}`}
     >
       {children}
     </div>

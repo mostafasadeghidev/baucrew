@@ -1,7 +1,8 @@
 /**
  * The fields a Trello card carries through a custom-fields power-up — customer
  * name, site address, order value, type of work, the customer's wish, the day
- * of the site visit, customer number — read out of the board's JSON export.
+ * of the site visit, customer number, the day the office wrote on the card —
+ * read out of the board's JSON export.
  *
  * The power-up keeps its data in Trello's `pluginData`: the board holds the
  * field definitions (`CFG`), each card its values (`FD`), both as JSON
@@ -31,9 +32,11 @@ export type TrelloCardFields = {
   executionWish?: string
   /** "yyyy-mm-dd" */
   inspectionDate?: string
+  /** "yyyy-mm-dd": the day the office wrote on the card as its creation — ISO only; free text is left to the card's own id. */
+  createdDate?: string
 }
 
-type Key = 'customerName' | 'customerNumber' | 'siteAddress' | 'orderValue' | 'workTypes' | 'executionWish' | 'inspectionDate'
+type Key = 'customerName' | 'customerNumber' | 'siteAddress' | 'orderValue' | 'workTypes' | 'executionWish' | 'inspectionDate' | 'createdDate'
 
 /** The field names the office's boards use, folded (lower case, letters only, umlauts undone). */
 const NAMES: Record<string, Key> = {
@@ -51,6 +54,7 @@ const NAMES: Record<string, Key> = {
   ausfuhrungswunsch: 'executionWish',
   terminbesichtigung: 'inspectionDate',
   besichtigung: 'inspectionDate',
+  erstellungsdatum: 'createdDate',
 }
 
 /** "Ausführungswunsch " → "ausfuhrungswunsch" */
@@ -167,9 +171,11 @@ export function cardFields(definitions: { pluginId: string; fields: PowerUpField
       const n = typeof raw === 'number' ? raw : typeof typed === 'number' ? typed : NaN
       // Past what the order value can hold it is no amount but a typing slip; the import goes on without it.
       if (Number.isFinite(n) && n >= 0 && n <= 999_999_999) out.orderValue = Math.round(n * 100) / 100
-    } else if (key === 'inspectionDate') {
+    } else if (key === 'inspectionDate' || key === 'createdDate') {
+      // A date field gives an ISO moment; typed text like "13.09.2026" could be
+      // read month-first, so it is not read at all.
       const d = day(raw)
-      if (d) out.inspectionDate = d
+      if (d) out[key] = d
     } else if (key === 'workTypes') {
       const words = Array.isArray(raw)
         ? raw.map((id) => field.options.find((o) => o.id === id)?.text ?? '').filter(Boolean)

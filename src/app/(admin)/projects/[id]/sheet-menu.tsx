@@ -18,6 +18,7 @@ import { createTemplateFromProject } from '../templates/actions'
 import { reopenProject } from '../../schedule/actions'
 import { PROJECT_EDIT_ALL_EVENT } from '../project-form'
 import { ROUND_BUTTON } from '../card-sheet'
+import { cardPath } from '@/lib/card-url'
 
 export function SheetMenu({
   projectId,
@@ -50,12 +51,15 @@ export function SheetMenu({
   const [failed, setFailed] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  /** This board's address with another card, or a template, open over it. */
+  /** This board's address with another card, or a template, open over it. The
+      new card takes the card route (which the board intercepts into a sheet);
+      the template sheet is always the board page's own, over the board. */
   const over = (key: 'card' | 'template', id: string) => {
     const url = new URL(window.location.href)
+    url.pathname = key === 'card' ? cardPath(id) : '/projects'
     url.searchParams.delete('card')
     url.searchParams.delete('template')
-    url.searchParams.set(key, id)
+    if (key === 'template') url.searchParams.set('template', id)
     return `${url.pathname}${url.search}`
   }
   const run = (task: () => Promise<{ id?: string; error?: string }>, key: 'card' | 'template') =>

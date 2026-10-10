@@ -125,7 +125,7 @@ export function Combobox({
             else if (query && !options.some((o) => o.label === query)) setQuery('')
           }, 150)
         }}
-        className="mt-1 block w-full rounded-md border border-border bg-background py-2 pl-3 pr-9 text-sm shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
+        className="mt-1 block w-full rounded-lg border border-border-strong bg-surface py-2 pl-3 pr-9 text-sm transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
       />
       {clearable && (selected || query) ? (
         <button

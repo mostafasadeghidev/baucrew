@@ -11,15 +11,16 @@ import { useTranslations } from 'next-intl'
 import { Activity, Archive, Check, MoreHorizontal, Settings2 } from 'lucide-react'
 import { Menu, MenuLabel, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { useCardDetails } from './board-prefs'
+import { projectControl } from './toolbar-styles'
 
 export function BoardMenu({
-  onGround,
+  boardView,
   archivedHref,
   activityHref,
   links,
   settingsHref,
 }: {
-  onGround: boolean
+  boardView: boolean
   archivedHref: string
   /** Trello's "Aktivität": what happened on the board's cards, newest first. */
   activityHref: string
@@ -33,16 +34,14 @@ export function BoardMenu({
       side="bottom"
       align="end"
       label={t('boardMenu')}
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
-        onGround ? 'text-white hover:bg-white/25' : 'text-muted hover:bg-surface-hover hover:text-foreground'
-      }`}
+      className={projectControl.icon}
       trigger={<MoreHorizontal className="h-4 w-4" aria-hidden />}
     >
       <MenuLabel>{t('boardMenu')}</MenuLabel>
-      <button type="button" role="menuitemcheckbox" aria-checked={details} className={menuItemClass} onClick={toggleDetails}>
+      {boardView && <button type="button" role="menuitemcheckbox" aria-checked={details} className={menuItemClass} onClick={toggleDetails}>
         <Check aria-hidden className={`h-3.5 w-3.5 shrink-0 text-accent ${details ? '' : 'invisible'}`} />
         {t('boardDetails')}
-      </button>
+      </button>}
       <Link href={activityHref} role="menuitem" className={menuItemClass}>
         <Activity aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted" />
         {t('boardActivity')}

@@ -8,6 +8,9 @@ import { canSeeProject } from '@/lib/project-scope'
 import { audit } from '@/lib/audit'
 import type { SaveState } from '@/components/saved-form'
 import { deviceState } from '@/lib/devices'
+import { WATTRO_SYSTEM } from '@/lib/wattro/assets'
+import { readWattroDetails, whereName } from '@/lib/wattro/details'
+import { getTranslations } from 'next-intl/server'
 
 function text(formData: FormData, field: string, max = 200): string | null {
   const value = String(formData.get(field) ?? '').trim().slice(0, max)
@@ -43,20 +46,33 @@ export async function createDevice(formData: FormData): Promise<SaveState> {
 
 export async function updateDevice(id: string, formData: FormData): Promise<SaveState> {
   const user = await requireManagement()
-  const name = text(formData, 'name')
+  const current = await db.device.findUnique({ where: { id }, select: { name: true, externalSystem: true } })
+  if (!current) return { error: 'saveFailed' }
+
+  // Only what this app alone knows. For a machine Wattro keeps, the four
+  // fields Wattro owns are not taken from the form, whatever it sends: the
+  // next sync would overwrite them, and an edit that silently comes undone is
+  // worse than none.
+  const own = {
+    category: text(formData, 'category', 60),
+    videoUrl: text(formData, 'videoUrl', 500),
+    notes: text(formData, 'notes', 1000),
+  }
+  const wattro = current.externalSystem === WATTRO_SYSTEM
+  const name = wattro ? current.name : text(formData, 'name')
   if (!name) return { error: 'saveFailed' }
 
   await db.device.update({
     where: { id },
-    data: {
-      name,
-      inventoryNo: text(formData, 'inventoryNo', 60),
-      category: text(formData, 'category', 60),
-      storageLocation: text(formData, 'storageLocation', 120),
-      videoUrl: text(formData, 'videoUrl', 500),
-      notes: text(formData, 'notes', 1000),
-      active: formData.get('active') === 'on',
-    },
+    data: wattro
+      ? own
+      : {
+          ...own,
+          name,
+          inventoryNo: text(formData, 'inventoryNo', 60),
+          storageLocation: text(formData, 'storageLocation', 120),
+          active: formData.get('active') === 'on',
+        },
   })
   await audit({
     userId: user.id,
@@ -76,8 +92,11 @@ export async function deleteDevice(
   _formData: FormData
 ): Promise<{ error?: string }> {
   const user = await requireManagement()
-  const device = await db.device.findUnique({ where: { id }, select: { name: true } })
+  const device = await db.device.findUnique({ where: { id }, select: { name: true, externalSystem: true } })
   if (!device) return { error: 'saveFailed' }
+  // A machine Wattro keeps is retired in Wattro: deleted here, the next sync
+  // brings it straight back — without its category, notes and hand-out history.
+  if (device.externalSystem === WATTRO_SYSTEM) return { error: 'saveFailed' }
   await db.device.delete({ where: { id } })
   await audit({
     userId: user.id,
@@ -90,7 +109,7 @@ export async function deleteDevice(
   redirect('/devices')
 }
 
-export type HandoutResult = { error?: 'busy' | 'saveFailed'; savedAt?: number }
+export type HandoutResult = { error?: 'busy' | 'saveFailed' | 'wattro'; savedAt?: number }
 
 /**
  * Hands a device to a site or a person. A device that is still out cannot be
@@ -101,6 +120,12 @@ export async function handOutDevice(
   input: { projectId?: string; employeeId?: string; note?: string }
 ): Promise<HandoutResult> {
   const user = await requireManagement()
+  // A machine Wattro keeps is handed out in Wattro, by the crew's scan. A
+  // hand-out written here would be a second record Wattro never hears of —
+  // and one the device's page no longer shows.
+  const device = await db.device.findUnique({ where: { id: deviceId }, select: { externalSystem: true } })
+  if (!device) return { error: 'saveFailed' }
+  if (device.externalSystem === WATTRO_SYSTEM) return { error: 'wattro' }
   const open = await db.deviceAssignment.findFirst({
     where: { deviceId, returnedAt: null },
     select: { id: true },
@@ -202,7 +227,7 @@ export async function removeProjectDevice(projectId: string, deviceId: string): 
 
 /** The machines a project needs, each with where it is right now. */
 export async function getProjectDevices(projectId: string): Promise<{
-  rows: Array<{ id: string; name: string; inventoryNo: string | null; state: 'free' | 'here' | 'busy'; where: string }>
+  rows: Array<{ id: string; name: string; inventoryNo: string | null; state: 'free' | 'here' | 'busy' | 'wattro'; where: string }>
   options: Array<{ value: string; label: string }>
 }> {
   const user = await requireStaff()
@@ -216,6 +241,7 @@ export async function getProjectDevices(projectId: string): Promise<{
             id: true,
             name: true,
             inventoryNo: true,
+            externalData: true,
             assignments: {
               where: { returnedAt: null },
               select: {
@@ -236,8 +262,27 @@ export async function getProjectDevices(projectId: string): Promise<{
   ])
 
   const taken = new Set(needs.map((n) => n.deviceId))
+  const t = await getTranslations('devices')
+  const unknown = {
+    unknownEmployee: (id: number) => t('unknownEmployee', { id }),
+    unknownProject: (id: number) => t('unknownProject', { id }),
+    unknownStore: (id: number) => t('unknownStore', { id }),
+  }
   return {
     rows: needs.map((need) => {
+      // Wattro knows where its machines are, and its sites are not this
+      // app's projects (no link between them yet): say where Wattro has it,
+      // offer no hand-out.
+      const wattro = readWattroDetails(need.device.externalData)
+      if (wattro) {
+        return {
+          id: need.device.id,
+          name: need.device.name,
+          inventoryNo: need.device.inventoryNo,
+          state: 'wattro' as const,
+          where: wattro.where ? whereName(wattro.where, unknown) : t('free'),
+        }
+      }
       const state = deviceState(need.device.assignments)
       const here = state.status === 'onSite' && state.projectId === projectId
       return {

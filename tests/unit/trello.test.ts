@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { checklistTemplatesOf, extractJobNumber, parseTrelloExport, splitCardTitle, suggestStatus, trelloCommentBody } from '@/lib/trello'
+import { compressToUTF16 } from 'lz-string'
+import { checklistTemplatesOf, extractJobNumber, parseTrelloExport, splitCardTitle, suggestStatus, trelloDownload } from '@/lib/trello'
 
 describe('parseTrelloExport', () => {
   it('rejects non-Trello JSON', () => {
@@ -41,7 +42,7 @@ describe('parseTrelloExport', () => {
       labels: ['Fassade'],
       dueComplete: true,
     })
-    expect(board!.cards[0].attachments).toEqual([
+    expect(board!.cards[0].attachments).toMatchObject([
       { name: 'Angebot.pdf', url: 'https://trello.com/1/cards/C1/attachments/a/download' },
     ])
   })
@@ -257,6 +258,124 @@ describe('suggestStatus', () => {
   })
 })
 
+describe('parseTrelloExport — everything a card carries', () => {
+  const pack = (key: string, value: unknown) => JSON.stringify({ [key]: compressToUTF16(JSON.stringify(value)) })
+  const board = parseTrelloExport({
+    id: 'B1',
+    name: 'Beispiel-Board',
+    pluginData: [
+      {
+        value: pack('CFG', {
+          fields: [
+            { id: 'f-name', name: 'Kundenname', type: 'T' },
+            { id: 'f-value', name: 'Auftragswert', type: 'N' },
+            { id: 'f-addr', name: 'Baustellenadresse', type: 'T' },
+            { id: 'f-seen', name: 'Termin Besichtigung', type: 'D' },
+            { id: 'f-made', name: 'Erstellungsdatum ', type: 'D' },
+            { id: 'f-other', name: 'Etwas anderes', type: 'T' },
+          ],
+        }),
+      },
+    ],
+    lists: [
+      { id: 'L2', name: 'Zweite', pos: 200 },
+      { id: 'L1', name: 'Erste', pos: 100 },
+    ],
+    members: [{ id: 'M1', fullName: 'Erika Muster', username: 'erika' }],
+    cards: [
+      {
+        id: 'C1',
+        name: 'Muster Fassade (4100001)',
+        idList: 'L1',
+        closed: true,
+        dateClosed: '2026-03-01T10:00:00.000Z',
+        pos: 512,
+        idMembers: ['M1'],
+        idAttachmentCover: 'A1',
+        attachments: [
+          { id: 'A1', name: 'Foto.jpg', url: 'https://trello.com/1/cards/C1/attachments/A1/download/Foto.jpg', isUpload: true, mimeType: 'image/jpeg', bytes: 10, date: '2026-02-01T08:00:00.000Z' },
+          { id: 'A2', name: 'Angebot', url: 'https://example.com/angebot', isUpload: false },
+        ],
+        pluginData: [
+          {
+            value: pack('FD', {
+              __version: 1,
+              'f-name': 'Max Muster',
+              'f-value': 12500.5,
+              'f-addr': 'Musterstraße 12, 91000 Musterstadt',
+              'f-seen': '2026-02-10T08:00:00.000Z',
+              'f-made': '2026-01-15T00:00:00.000Z',
+              'f-other': 'bleibt weg',
+              'f-unknown': 'von einem anderen Board',
+            }),
+          },
+        ],
+      },
+      { id: 'C2', name: 'Beispiel ohne Felder', idList: 'L2', pluginData: [{ value: '{"FD":"kaputt"}' }] },
+    ],
+    checklists: [
+      {
+        idCard: 'C1',
+        name: 'Vor Beginn',
+        pos: 1,
+        checkItems: [
+          { name: 'Zweitens', state: 'incomplete', pos: 2 },
+          { name: 'Erstens', state: 'complete', pos: 1 },
+        ],
+      },
+      { idCard: 'C1', name: 'Leer', pos: 2, checkItems: [] },
+    ],
+    actions: [
+      { id: 'X2', type: 'commentCard', date: '2026-02-03T09:00:00.000Z', idMemberCreator: 'M1', memberCreator: { fullName: 'Erika Muster' }, data: { text: 'Zweiter', card: { id: 'C1' } } },
+      { id: 'X0', type: 'updateCard', date: '2026-02-02T09:00:00.000Z', data: { card: { id: 'C1' } } },
+      { id: 'X1', type: 'commentCard', date: '2026-02-02T09:00:00.000Z', idMemberCreator: 'M1', memberCreator: { fullName: 'Erika Muster' }, data: { text: 'Erster', card: { id: 'C1' } } },
+    ],
+  })!
+
+  it('puts the lists in the order of the board', () => {
+    expect(board.lists.map((l) => l.id)).toEqual(['L1', 'L2'])
+  })
+
+  it('reads the Amazing Fields by their names (src/lib/trello-fields.ts), and leaves out what it does not know', () => {
+    expect(board.cards[0].fields).toEqual({
+      customerName: 'Max Muster',
+      siteAddress: { text: 'Musterstraße 12, 91000 Musterstadt', street: 'Musterstraße 12', postalCode: '91000', city: 'Musterstadt' },
+      orderValue: 12500.5,
+      inspectionDate: '2026-02-10',
+      createdDate: '2026-01-15',
+    })
+  })
+
+  it('takes a card without readable fields as a card without fields', () => {
+    expect(board.cards[1].fields).toEqual({})
+  })
+
+  it('keeps the archive, the place, the people and the cover', () => {
+    expect(board.cards[0]).toMatchObject({ closed: true, dateClosed: '2026-03-01T10:00:00.000Z', pos: 512, members: ['M1'], coverAttachmentId: 'A1' })
+    expect(board.cards[0].attachments.map((a) => a.isUpload)).toEqual([true, false])
+    expect(board.members).toEqual([{ id: 'M1', name: 'Erika Muster' }])
+  })
+
+  it('reads checklists with their items in order, and drops an empty one', () => {
+    expect(board.checklists).toHaveLength(1)
+    expect(board.checklists[0].items.map((i) => [i.text, i.done])).toEqual([['Erstens', true], ['Zweitens', false]])
+  })
+
+  it('reads the comments, oldest first, and nothing else from the actions', () => {
+    expect(board.comments.map((c) => c.text)).toEqual(['Erster', 'Zweiter'])
+    expect(board.comments[0]).toMatchObject({ idCard: 'C1', author: 'Erika Muster', idMember: 'M1' })
+  })
+})
+
+describe('trelloDownload', () => {
+  it('names the card and the attachment of a Trello file address only', () => {
+    const card = 'a'.repeat(24)
+    const file = 'b'.repeat(24)
+    expect(trelloDownload(`https://trello.com/1/cards/${card}/attachments/${file}/download/Foto.jpg`)).toEqual({ cardId: card, attachmentId: file })
+    expect(trelloDownload('https://example.com/1/cards/x/attachments/y/download/z')).toBeNull()
+  })
+})
+
 describe('checklists and comments in the export', () => {
   const board = parseTrelloExport({
     name: 'Muster',
@@ -283,48 +402,44 @@ describe('checklists and comments in the export', () => {
       'junk',
     ],
     actions: [
-      { type: 'commentCard', date: '2026-03-02T10:00:00.000Z', data: { card: { id: 'C1' }, text: 'Später' }, memberCreator: { fullName: 'Max Muster' } },
-      { type: 'commentCard', date: '2026-03-01T10:00:00.000Z', data: { card: { id: 'C1' }, text: 'Kunde angerufen' }, memberCreator: { username: 'mm' } },
-      { type: 'updateCard', date: '2026-03-01T10:00:00.000Z', data: { card: { id: 'C1' }, text: 'nicht' } },
-      { type: 'commentCard', date: 'no date', data: { card: { id: 'C1' }, text: 'ohne Datum' } },
-      { type: 'commentCard', date: '2026-03-01T10:00:00.000Z', data: { card: { id: 'C1' }, text: '   ' } },
+      { id: 'X1', type: 'commentCard', date: '2026-03-02T10:00:00.000Z', data: { card: { id: 'C1' }, text: 'Später' }, memberCreator: { fullName: 'Max Muster' } },
+      { id: 'X2', type: 'commentCard', date: '2026-03-01T10:00:00.000Z', data: { card: { id: 'C1' }, text: 'Kunde angerufen' }, memberCreator: { username: 'mm' } },
+      { id: 'X3', type: 'updateCard', date: '2026-03-01T10:00:00.000Z', data: { card: { id: 'C1' }, text: 'nicht' } },
+      { id: 'X4', type: 'commentCard', date: 'no date', data: { card: { id: 'C1' }, text: 'ohne Datum' } },
+      { id: 'X5', type: 'commentCard', date: '2026-03-01T10:00:00.000Z', data: { card: { id: 'C1' }, text: '   ' } },
     ],
   })!
+  const ofCard = (id: string) => board.checklists.filter((cl) => cl.idCard === id)
 
-  it('hangs the checklists on their cards in order, items in order, ticks kept, empty items dropped', () => {
-    expect(board.cards[0].checklists).toEqual([
-      { name: 'Baustart', items: [{ name: 'Material', complete: false }, { name: 'Gerüst', complete: true }] },
-      { name: 'Abnahme', items: [{ name: 'Fotos', complete: false }] },
+  it('keeps the checklists by their cards in order, items in order, ticks kept, empty items and lists dropped', () => {
+    expect(ofCard('C1').map((cl) => [cl.name, cl.items.map((i) => [i.text, i.done])])).toEqual([
+      ['Baustart', [['Material', false], ['Gerüst', true]]],
+      ['Abnahme', [['Fotos', false]]],
     ])
-    expect(board.cards[1].checklists).toHaveLength(1)
+    expect(ofCard('C2')).toHaveLength(1)
+    expect(ofCard('nobody')).toEqual([])
   })
 
   it('reads the comments only, oldest first, with the author Trello names', () => {
-    expect(board.cards[0].comments).toEqual([
+    expect(board.comments.filter((c) => c.idCard === 'C1').map(({ date, author, text }) => ({ date, author, text }))).toEqual([
       { date: '2026-03-01T10:00:00.000Z', author: 'mm', text: 'Kunde angerufen' },
       { date: '2026-03-02T10:00:00.000Z', author: 'Max Muster', text: 'Später' },
     ])
-    expect(board.cards[1].comments).toEqual([])
-  })
-
-  it('writes a comment with who said it and when under the text', () => {
-    expect(trelloCommentBody({ date: '2026-03-02T10:00:00.000Z', author: 'Max Muster', text: 'Später' }, () => '02.03.2026')).toBe(
-      'Später\n\n— Max Muster (Trello, 02.03.2026)'
-    )
-    expect(trelloCommentBody({ date: '2026-03-02T10:00:00.000Z', author: '', text: 'x' }, () => 'd')).toContain('— Trello (Trello, d)')
+    expect(board.comments.filter((c) => c.idCard === 'C2')).toEqual([])
   })
 
   it('makes one template per checklist name with every item that name ever had', () => {
-    expect(checklistTemplatesOf(board.cards)).toEqual([
+    expect(checklistTemplatesOf(board.checklists)).toEqual([
       { name: 'Baustart', items: ['Material', 'Gerüst', 'Schlüssel'] },
       { name: 'Abnahme', items: ['Fotos'] },
     ])
-    expect(checklistTemplatesOf([{ checklists: [{ name: 'Leer', items: [] }] }])).toEqual([])
+    expect(checklistTemplatesOf([{ name: 'Leer', items: [] }])).toEqual([])
   })
 
   it('reads a board without checklists or actions as before', () => {
     const plain = parseTrelloExport({ lists: [{ id: 'L1', name: 'A' }], cards: [{ id: 'C1', name: 'X', idList: 'L1' }] })!
-    expect(plain.cards[0].checklists).toEqual([])
-    expect(plain.cards[0].comments).toEqual([])
+    expect(plain.checklists).toEqual([])
+    expect(plain.comments).toEqual([])
+    expect(plain.cards[0].fields).toEqual({})
   })
 })

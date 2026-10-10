@@ -43,7 +43,7 @@ export default async function ChecklistsPage() {
               <col className="w-24" />
             </colgroup>
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+              <tr className="border-b border-border text-left text-xs text-muted">
                 <th className="px-4 py-3 font-medium">{t('templateName')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('templateItems')}</th>
                 <th className="px-4 py-3 text-right font-medium">{t('usedInTemplates')}</th>

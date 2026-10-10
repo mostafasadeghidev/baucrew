@@ -47,7 +47,7 @@ export function MergeButton({ projectId, projects }: { projectId: string; projec
         {t('merge')}
       </button>
       {open && (
-        <div className="basis-full rounded-lg border border-border bg-surface p-4 shadow-sm">
+        <div className="basis-full rounded-lg border border-border bg-surface p-4">
           <p className="text-sm text-muted">{t('mergeHint')}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <div className="min-w-[320px] flex-1">

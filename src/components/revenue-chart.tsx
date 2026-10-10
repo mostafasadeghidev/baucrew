@@ -22,8 +22,11 @@
  * a year that is only booked to September has no revenue afterwards, it does
  * not earn zero.
  *
- * When a year plan has been imported, the planned figure crosses the month as
- * a dashed marker.
+ * When a year plan has been imported, its figure for the month is a target
+ * mark across the month: a short solid rule in the text colour, ringed in the
+ * card's own colour so it stays readable where it crosses a bar. Ink because
+ * every year's bars are a colour and ink is none of them; solid because the
+ * grid lines are the dashed ones.
  *
  * Inside a month the bars run newest to oldest with the year on screen among
  * them in its place: pick 2027 beside 2026 and it stands to the left of it,
@@ -183,12 +186,17 @@ function topBar(x: number, y: number, w: number, h: number, r = 4): string {
   return `M${x} ${y + h}V${y + rr}A${rr} ${rr} 0 0 1 ${x + rr} ${y}H${x + w - rr}A${rr} ${rr} 0 0 1 ${x + w} ${y + rr}V${y + h}Z`
 }
 
+/** The year plan's target mark — literal, so Tailwind finds them. */
+const TARGET_STROKE = 'stroke-foreground'
+const TARGET_BG = 'bg-foreground'
+
 type TipEntry = {
   label: string
   value: string
   /** One class for a plain square, two for a square split own/SUB. */
   swatch: string | [string, string] | null
-  dashed?: boolean
+  /** The year plan's target mark instead of a square. */
+  target?: boolean
   /**
    * Percent the year on screen stands above or below this one in this month —
    * the same reading the KPI card gives for the whole period. Null where there
@@ -393,7 +401,7 @@ export function RevenueChart({
     if (m.own > 0 && m.sub > 0)
       entries.push({ label: legend.total, value: money(m.own + m.sub), swatch: null })
     if (m.plan != null && m.plan > 0 && legend.plan)
-      entries.push({ label: legend.plan, value: money(m.plan), swatch: null, dashed: true })
+      entries.push({ label: legend.plan, value: money(m.plan), swatch: null, target: true })
     if (entries.length === 0) entries.push({ label: legend.total, value: money(0), swatch: null })
     return entries
   }
@@ -405,7 +413,7 @@ export function RevenueChart({
       { label: String(year), value: money(m.own + m.sub), swatch: 'bg-accent' },
     ]
     if (m.plan != null && m.plan > 0 && legend.plan)
-      entries.push({ label: legend.plan, value: money(m.plan), swatch: null, dashed: true })
+      entries.push({ label: legend.plan, value: money(m.plan), swatch: null, target: true })
     return entries
   }
 
@@ -629,7 +637,7 @@ export function RevenueChart({
         )}
         {hasPlan && legend.plan && (
           <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-0 w-3 border-t-2 border-dashed border-foreground/60" />{' '}
+            <span className={`inline-block h-[3px] w-3 rounded-full ${TARGET_BG}`} />{' '}
             {legend.plan}
           </span>
         )}
@@ -722,16 +730,26 @@ export function RevenueChart({
                 )
               })}
               {m.plan != null && m.plan > 0 && (
-                <line
-                  x1={x0 - gap}
-                  x2={x0 + groupW + gap}
-                  y1={y(m.plan)}
-                  y2={y(m.plan)}
-                  className="stroke-foreground/60"
-                  strokeWidth={2}
-                  strokeDasharray="5 3"
-                  strokeLinecap="round"
-                />
+                <g>
+                  <line
+                    x1={x0 - gap}
+                    x2={x0 + groupW + gap}
+                    y1={y(m.plan)}
+                    y2={y(m.plan)}
+                    className="stroke-surface"
+                    strokeWidth={6}
+                    strokeLinecap="round"
+                  />
+                  <line
+                    x1={x0 - gap}
+                    x2={x0 + groupW + gap}
+                    y1={y(m.plan)}
+                    y2={y(m.plan)}
+                    className={TARGET_STROKE}
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                  />
+                </g>
               )}
               <text
                 x={padL + slot * i + slot / 2}
@@ -849,11 +867,8 @@ export function RevenueChart({
                 {gi > 0 && <div aria-hidden className="my-1 border-t border-dashed border-border" />}
                 {group.entries.map((e) => (
                   <div key={e.label} className="flex items-center gap-2 whitespace-nowrap">
-                    {e.dashed ? (
-                      <span
-                        aria-hidden
-                        className="inline-block h-0 w-2 shrink-0 border-t-2 border-dashed border-foreground/60"
-                      />
+                    {e.target ? (
+                      <span aria-hidden className={`inline-block h-[3px] w-2 shrink-0 rounded-full ${TARGET_BG}`} />
                     ) : (
                       <Swatch swatch={e.swatch} />
                     )}

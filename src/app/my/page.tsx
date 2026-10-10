@@ -237,8 +237,8 @@ export default async function MyAreaPage({
 
       {/* What was given to me, on whatever project — before the day's jobs, so it is not missed. */}
       {myTasks.length > 0 && (
-        <section className="rounded-xl border border-accent/40 bg-surface p-4 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-muted">{tTasks('mine', { count: myTasks.length })}</p>
+        <section className="rounded-xl border border-accent/40 bg-surface p-4">
+          <p className="text-xs text-muted">{tTasks('mine', { count: myTasks.length })}</p>
           <div className="mt-1">
             <ProjectTasks tasks={taskRows(myTasks, reader, today, (d) => formatDate(d, locale))} office={false} frame={false} large compact />
           </div>
@@ -277,7 +277,7 @@ export default async function MyAreaPage({
           <article
             id={`p-${p.id}`}
             key={entry.id}
-            className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+            className="overflow-hidden rounded-xl border border-border bg-surface"
           >
             {/* Headline: time first — that is what the crew looks for */}
             <div className="border-b border-border px-4 py-3">
@@ -407,7 +407,7 @@ export default async function MyAreaPage({
               </div>
               {p.description && (
                 <div className="border-t border-border pt-2.5">
-                  <dt className="text-xs uppercase tracking-wide text-muted">{t('description')}</dt>
+                  <dt className="text-xs text-muted">{t('description')}</dt>
                   <dd className="mt-0.5 whitespace-pre-wrap">{p.description}</dd>
                 </div>
               )}
@@ -416,7 +416,7 @@ export default async function MyAreaPage({
             {/* Packing list */}
             <div className="border-t border-border px-4 py-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-wide text-muted">{t('items')}</p>
+                <p className="text-xs text-muted">{t('items')}</p>
                 {p.items.length > 0 && (
                   <p
                     className={`text-xs font-medium ${
@@ -447,7 +447,7 @@ export default async function MyAreaPage({
             {/* Photos of the site — taken here, seen by the office at once. A
                 defect's photos stand with the defect below. */}
             <div className="border-t border-border px-4 py-3">
-              <p className="text-xs uppercase tracking-wide text-muted">{tFiles('sitePhotos')}</p>
+              <p className="text-xs text-muted">{tFiles('sitePhotos')}</p>
               <div className="mt-2">
                 <SitePhotos
                   projectId={p.id}
@@ -461,7 +461,7 @@ export default async function MyAreaPage({
 
             {/* Tasks on the job: tick them off, add what the customer asked for */}
             <div className="border-t border-border px-4 py-3">
-              <p className="text-xs uppercase tracking-wide text-muted">{tTasks('heading')}</p>
+              <p className="text-xs text-muted">{tTasks('heading')}</p>
               <div className="mt-1">
                 <ProjectTasks
                   projectId={p.id}
@@ -475,7 +475,7 @@ export default async function MyAreaPage({
 
             {/* Defects: report one with a photo, tick it off when it is put right */}
             <div className="border-t border-border px-4 py-3">
-              <p className="text-xs uppercase tracking-wide text-muted">{tDefects('heading')}</p>
+              <p className="text-xs text-muted">{tDefects('heading')}</p>
               <div className="mt-1">
                 <ProjectDefects
                   projectId={p.id}
@@ -489,7 +489,7 @@ export default async function MyAreaPage({
 
             {/* Forms: an acceptance protocol is filled in and signed where the customer is */}
             <div className="border-t border-border px-4 py-3">
-              <p className="text-xs uppercase tracking-wide text-muted">{tForms('heading')}</p>
+              <p className="text-xs text-muted">{tForms('heading')}</p>
               <div className="mt-1">
                 <ProjectForms
                   projectId={p.id}
@@ -515,7 +515,7 @@ export default async function MyAreaPage({
             {/* Documents the office shared with the crew (never with prices) */}
             {p.documents.some((doc) => previewKind(doc.mimeType) !== 'image') && (
               <div className="border-t border-border px-4 py-3">
-                <p className="text-xs uppercase tracking-wide text-muted">{tFiles('title')}</p>
+                <p className="text-xs text-muted">{tFiles('title')}</p>
                 <ul className="mt-2 space-y-1.5">
                   {p.documents.filter((doc) => previewKind(doc.mimeType) !== 'image').map((doc) => (
                     <li key={doc.id}>
@@ -535,7 +535,7 @@ export default async function MyAreaPage({
 
             {/* The team talking on the project — answer from the site */}
             <div className="border-t border-border px-4 py-3">
-              <p className="text-xs uppercase tracking-wide text-muted">{tProjects('commentsTitle')}</p>
+              <p className="text-xs text-muted">{tProjects('commentsTitle')}</p>
               <div className="mt-2">
                 <ProjectComments
                   projectId={p.id}
@@ -563,7 +563,7 @@ export default async function MyAreaPage({
             {/* Site checklists — tick them off right here */}
             {p.checklists.length > 0 && (
               <div className="border-t border-border px-4 py-3">
-                <p className="text-xs uppercase tracking-wide text-muted">{tChecklists('title')}</p>
+                <p className="text-xs text-muted">{tChecklists('title')}</p>
                 <div className="mt-2 space-y-4">
                   {p.checklists.map((c) => (
                     <Checklist
@@ -594,8 +594,8 @@ export default async function MyAreaPage({
 
       {/* Next job */}
       {employeeId && (
-        <section className="rounded-xl border border-border bg-surface p-4 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-muted">{t('nextJob')}</p>
+        <section className="rounded-xl border border-border bg-surface p-4">
+          <p className="text-xs text-muted">{t('nextJob')}</p>
           {next ? (
             <Link href={`/my?date=${iso(next.date)}`} className="mt-1 flex flex-wrap items-baseline gap-x-2 hover:underline">
               <span className="font-semibold">{fmtShort.format(next.date)}</span>
@@ -611,8 +611,8 @@ export default async function MyAreaPage({
 
       {/* Own vacation and sick days — read here, entered by the office */}
       {employeeId && (
-        <section className="rounded-xl border border-border bg-surface p-4 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-muted">{t('absencesTitle')}</p>
+        <section className="rounded-xl border border-border bg-surface p-4">
+          <p className="text-xs text-muted">{t('absencesTitle')}</p>
           {myAbsences.length === 0 ? (
             <p className="mt-1 text-sm text-muted">{t('noAbsences')}</p>
           ) : (

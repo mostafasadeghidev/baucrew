@@ -44,7 +44,7 @@ export async function ProjectTimeSummary({
   const perHour = showPrice && orderValue != null && total >= 30 ? orderValue / (total / 60) : null
 
   return (
-    <section className="rounded-xl border border-border bg-surface shadow-sm">
+    <section className="rounded-xl border border-border bg-surface">
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
         <h2 className="text-sm font-semibold">{t('projectTitle')}</h2>
         {entries.length > 0 && (
@@ -65,7 +65,7 @@ export async function ProjectTimeSummary({
       ) : (
         <div className="grid gap-5 p-5 sm:grid-cols-2">
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+            <h3 className="text-xs font-semibold text-muted">
               {t('perEmployee')}
             </h3>
             <ul className="mt-2 space-y-1 text-sm">
@@ -79,7 +79,7 @@ export async function ProjectTimeSummary({
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+            <h3 className="text-xs font-semibold text-muted">
               {t('lastBookings')}
             </h3>
             <ul className="mt-2 space-y-1 text-sm">

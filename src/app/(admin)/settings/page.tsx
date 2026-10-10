@@ -24,7 +24,7 @@ import { FaviconUploader } from "./favicon-uploader";
 import { BackupRestore } from "./backup-restore";
 import { SavedForm } from "@/components/saved-form";
 import { ParamTabs } from "@/components/param-tabs";
-import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
+import { PageBar, StickyHead } from '@/components/ui/page-panel'
 import { Card } from "@/components/ui/card";
 import { btn } from "@/components/ui/button";
 import { OptionListManager } from "./option-list-manager";
@@ -36,7 +36,7 @@ import { LABEL_COLORS, swatchOf } from "@/lib/board-cards";
 import { LABEL_BAR } from "@/components/swatches";
 
 const inputClass =
-  "block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
+  "block w-full rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
 
 export default async function SettingsPage({
   searchParams,
@@ -111,26 +111,23 @@ export default async function SettingsPage({
   )
 
   return (
-    // Four in a row rather than eight: the bar, the tabs and the first card
-    // are one header, and a gap as wide as the one between two sections read
-    // as if the tabs belonged to nothing.
-    <div className="space-y-4">
+    // The name and the tabs are one row: the page's head.
+    <div className="space-y-6">
       <StickyHead>
-        <div className={pageToolbar}>
-          <h1 className={pageTitle}>{tNav("settings")}</h1>
-        </div>
-
-        <div className="rounded-xl border border-border bg-surface px-4 py-2 shadow-sm">
-          <ParamTabs
-            ariaLabel={tNav("settings")}
-            tabs={[
-              { value: "", label: t("tabGeneral") },
-              { value: "accounts", label: t("tabAccounts") },
-              { value: "categories", label: t("tabCategories") },
-              { value: "data", label: t("tabData") },
-            ]}
-          />
-        </div>
+        <PageBar
+          title={tNav("settings")}
+          tabs={
+            <ParamTabs
+              ariaLabel={tNav("settings")}
+              tabs={[
+                { value: "", label: t("tabGeneral") },
+                { value: "accounts", label: t("tabAccounts") },
+                { value: "categories", label: t("tabCategories") },
+                { value: "data", label: t("tabData") },
+              ]}
+            />
+          }
+        />
       </StickyHead>
 
       {tab === "accounts" && (
@@ -150,7 +147,7 @@ export default async function SettingsPage({
                 {t("newUser")}
               </Link>
             </div>
-            <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-border bg-surface">
               <table className="w-full min-w-[832px] table-fixed text-sm">
                 <colgroup>
                   <col />
@@ -160,7 +157,7 @@ export default async function SettingsPage({
                   <col className="w-28" />
                 </colgroup>
                 <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                  <tr className="border-b border-border text-left text-xs text-muted">
                     <th className="px-4 py-3 font-medium">{t("username")}</th>
                     <th className="px-4 py-3 font-medium">{t("role")}</th>
                     <th className="px-4 py-3 font-medium">
@@ -212,7 +209,7 @@ export default async function SettingsPage({
               <h2 className="text-sm font-semibold">{t("privilegedTitle")}</h2>
               <p className="mt-0.5 text-xs text-muted">{t("privilegedHint")}</p>
             </div>
-            <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-border bg-surface">
               <table className="w-full min-w-[940px] table-fixed text-sm">
                 <colgroup>
                   <col />
@@ -223,7 +220,7 @@ export default async function SettingsPage({
                   <col className="w-36" />
                 </colgroup>
                 <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                  <tr className="border-b border-border text-left text-xs text-muted">
                     <th className="px-4 py-3 font-medium">{t("username")}</th>
                     <th className="px-4 py-3 font-medium">
                       {t("linkedEmployeeCol")}

@@ -93,7 +93,7 @@ function NavLinks({
             // the two groups apart, which is what the name was doing.
             <div className="mx-2 mb-1.5 border-t border-border first:hidden" aria-hidden />
           ) : (
-            <p className="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted/80">
+            <p className="px-2.5 pb-1.5 pt-2 text-xs font-semibold text-muted">
               {t(group.labelKey)}
             </p>
           )}
@@ -108,12 +108,12 @@ function NavLinks({
                   aria-current={active ? 'page' : undefined}
                   aria-label={collapsed ? t(item.key) : undefined}
                   title={undefined}
-                  className={`flex items-center rounded-md text-sm transition-colors ${
+                  className={`flex items-center rounded-lg text-sm font-medium transition-colors ${
                     collapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-2.5 py-2 md:py-1.5'
                   } ${
                     active
-                      ? 'bg-surface-hover font-medium text-foreground'
-                      : 'text-muted hover:bg-surface-hover/70 hover:text-foreground'
+                      ? 'bg-subtle font-semibold text-foreground'
+                      : 'text-muted hover:bg-subtle hover:text-foreground'
                   }`}
                 >
                   <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-accent' : ''}`} aria-hidden />
@@ -268,7 +268,8 @@ export function Sidebar({
      * The rail is a panel standing on the page, not a column welded to the
      * left edge of the window: eight pixels of air all round, a border the
      * whole way round instead of one down its right-hand side, and the same
-     * rounded corners and quiet shadow every card on the page wears.
+     * rounded corners the page's own panel has (see PanelFrame). No shadow:
+     * the border is the edge.
      *
      * The column is sixteen pixels wider than the panel inside it — w-20 for
      * w-16, w-64 for w-60 — so those eight pixels a side come out of the page
@@ -291,7 +292,7 @@ export function Sidebar({
         collapsed ? 'w-20' : 'w-64'
       }`}
     >
-      <div className="sticky top-2 m-2 flex h-[calc(100vh-1rem)] flex-col overflow-hidden rounded-xl border border-border bg-sidebar shadow-sm">
+      <div className="sticky top-2 m-2 flex h-[calc(100vh-1rem)] flex-col overflow-hidden rounded-xl border border-border bg-sidebar">
         <div
           className={`flex shrink-0 items-center gap-2 border-b border-border py-2.5 ${
             collapsed ? 'justify-center px-1.5' : 'px-3'

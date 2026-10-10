@@ -6,25 +6,15 @@ import { sumMinutes } from './time-entries'
 import { planTotals, type PlanEntry } from './year-plan-excel'
 import { isHistorical, projectHistoryDate } from './history'
 import {
-  crewLoadByMonth,
   crewUsage,
   openMoneyOf,
   type CrewMonth,
   type OpenMoney,
   type UsageLoad,
+  type UsageWindow,
 } from './order-situation'
-import {
-  crewDays,
-  overdueOf,
-  siteGroupOf,
-  sitesToday,
-  type CrewDay,
-  type Overdue,
-  type SiteCrew,
-  type SiteGroup,
-} from './cockpit'
+import { crewDays, type CrewDay } from './cockpit'
 import { dataGapReport, type GapReport } from './data-gaps'
-import { PIPELINE_STAGES, pipelineColumns, yearFunnel, type PipelineColumn, type YearFunnel } from './pipeline'
 import { getHistoryCutoff } from './history-db'
 import { MAX_PLAN_MONTHS, monthSpan, spreadAmount } from './plan-month'
 
@@ -383,59 +373,9 @@ export function orderValue(
   return base + extra
 }
 
-export type UsageRow = { id: string; name: string; days: number }
-
-/** UTC [start, end) for a whole year or for a month range (0-11, inclusive) inside it. */
 export function periodRange(year: number, range?: MonthRange | null): { start: Date; end: Date } {
   if (!range) return { start: new Date(Date.UTC(year, 0, 1)), end: new Date(Date.UTC(year + 1, 0, 1)) }
   return { start: new Date(Date.UTC(year, range.from, 1)), end: new Date(Date.UTC(year, range.to + 1, 1)) }
-}
-
-/** Scheduled days per employee and per vehicle within a year (or one month of it). */
-export async function getYearUsage(
-  year: number,
-  range?: MonthRange | null
-): Promise<{
-  employees: UsageRow[]
-  vehicles: UsageRow[]
-}> {
-  const { start, end } = periodRange(year, range)
-
-  const entries = await db.scheduleEntry.findMany({
-    where: { date: { gte: start, lt: end }, cancelledAt: null },
-    select: {
-      vehicles: { select: { vehicle: { select: { id: true, name: true } } } },
-      employees: {
-        select: { employee: { select: { id: true, firstName: true, lastName: true } } },
-      },
-    },
-  })
-
-  const employees = new Map<string, UsageRow>()
-  const vehicles = new Map<string, UsageRow>()
-  for (const entry of entries) {
-    for (const ee of entry.employees) {
-      const name = `${ee.employee.firstName} ${ee.employee.lastName}`.trim()
-      const row = employees.get(ee.employee.id) ?? { id: ee.employee.id, name, days: 0 }
-      row.days += 1
-      employees.set(ee.employee.id, row)
-    }
-    for (const ev of entry.vehicles) {
-      const row = vehicles.get(ev.vehicle.id) ?? {
-        id: ev.vehicle.id,
-        name: ev.vehicle.name,
-        days: 0,
-      }
-      row.days += 1
-      vehicles.set(ev.vehicle.id, row)
-    }
-  }
-
-  const byDays = (a: UsageRow, b: UsageRow) => b.days - a.days || a.name.localeCompare(b.name)
-  return {
-    employees: [...employees.values()].sort(byDays),
-    vehicles: [...vehicles.values()].sort(byDays),
-  }
 }
 
 /** One offer that is out and still waiting for the customer's confirmation. */
@@ -487,211 +427,6 @@ export async function getOpenOffers(): Promise<{ offers: OpenOffer[]; total: num
     offers,
     total: offers.reduce((sum, o) => sum + (o.price ?? 0), 0),
     staleCount: offers.filter((o) => o.ageDays >= STALE_OFFER_DAYS).length,
-  }
-}
-
-// ── Pipeline: what is on its way to becoming a job ──
-
-/**
- * The three pipeline columns as of today, and the running year's funnel.
- * How long a project has sat in its column is read off the audit log — the
- * last status change that put it there — and, where none is written, off the
- * day the project was created.
- */
-export async function getPipeline(today: Date, year: number): Promise<{ columns: PipelineColumn[]; funnel: YearFunnel }> {
-  const [open, arrived] = await Promise.all([
-    db.project.findMany({
-      where: { status: { in: [...PIPELINE_STAGES] }, archivedAt: null },
-      select: {
-        id: true,
-        number: true,
-        name: true,
-        status: true,
-        price: true,
-        plannedStart: true,
-        createdAt: true,
-        customer: { select: { name: true } },
-        addOns: { select: { amount: true } },
-      },
-    }),
-    // The year a project came in is the year in its number: an import writes
-    // its own day into createdAt, the number keeps the true one.
-    db.project.findMany({
-      where: { number: { startsWith: `${year}-` } },
-      select: { status: true, price: true, addOns: { select: { amount: true } } },
-    }),
-  ])
-  const changes = open.length
-    ? await db.auditLog.findMany({
-        where: { entity: 'Project', entityId: { in: open.map((p) => p.id) }, action: { in: ['project.status', 'project.status.auto'] } },
-        select: { entityId: true, newValue: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
-      })
-    : []
-  // The newest change per project that led to where it stands now.
-  const since = new Map<string, Date>()
-  for (const c of changes) {
-    const project = open.find((p) => p.id === c.entityId)
-    if (project && c.newValue === project.status && !since.has(c.entityId)) since.set(c.entityId, c.createdAt)
-  }
-  const columns = pipelineColumns(
-    open.map((p) => ({
-      id: p.id,
-      number: p.number,
-      name: p.name,
-      customer: p.customer.name,
-      status: p.status,
-      price: orderValue(p.price, p.addOns),
-      plannedStart: p.plannedStart,
-      since: since.get(p.id) ?? p.createdAt,
-    })),
-    today
-  )
-  const funnel = yearFunnel(arrived.map((p) => ({ status: p.status, price: orderValue(p.price, p.addOns) })))
-  return { columns, funnel }
-}
-
-// ── Heute: the company today, out of what is already entered ──
-
-/** One job as the Heute tab reads it. */
-export type TodayJob = {
-  id: string
-  number: string
-  name: string
-  customer: string
-  status: string
-  /** Price plus Nachträge; null when neither is entered. */
-  amount: number | null
-  plannedStart: Date | null
-  plannedEnd: Date | null
-  /** Finished before the history cutoff in Settings: the office's history, not today's work. */
-  historical: boolean
-  overdue: Overdue | null
-  group: SiteGroup | null
-  /** The next day the job is on the schedule, from today on. */
-  nextVisit: Date | null
-  /** Catalog items the site still needs and the warehouse has not given out. */
-  missingItems: number
-  checklistOpen: number
-  checklistProblems: number
-  /**
-   * Planned or running work with no town typed in, so the weather warning
-   * cannot look. An accepted offer gets its town when it is scheduled.
-   */
-  noCity: boolean
-  /** Days since the job was entered (on the board it was imported from, if any) — how long an enquiry or offer has waited. */
-  ageDays: number
-}
-
-/** A catalog item missing on ordered jobs, with the jobs it is missing on. */
-export type MissingMaterial = { id: string; name: string; jobs: Array<{ id: string; number: string; name: string }> }
-
-export type Today = {
-  jobs: TodayJob[]
-  material: MissingMaterial[]
-  stockShort: StockShortage[]
-  /** Who is on which site today. */
-  schedule: {
-    /** One row per site on today's schedule, the most people first — see `sitesToday`. */
-    today: SiteCrew[]
-    /** Different people on a site today, the ones away left out. */
-    people: number
-  }
-}
-
-/**
- * The Heute tab's data. One pass over every job answers most of it — the
- * stages, what is late, what is running, what starts soon, what material is
- * missing — by the rules in `src/lib/cockpit.ts`, where they are tested.
- */
-export async function getToday(today: Date): Promise<Today> {
-  const day = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
-  const [projects, cutoff, entries, stockShort, awayToday] = await Promise.all([
-    db.project.findMany({
-      select: {
-        id: true,
-        number: true,
-        name: true,
-        status: true,
-        price: true,
-        city: true,
-        plannedStart: true,
-        plannedEnd: true,
-        actualStart: true,
-        actualEnd: true,
-        sourceCreatedAt: true,
-        createdAt: true,
-        customer: { select: { name: true } },
-        addOns: { select: { amount: true } },
-        items: { where: { status: 'MISSING' }, select: { catalogItem: { select: { id: true, name: true } } } },
-        checklists: { select: { items: { select: { ok: true, checkedAt: true } } } },
-        scheduleEntries: {
-          where: { date: { gte: day }, cancelledAt: null },
-          select: { date: true },
-          orderBy: { date: 'asc' },
-          take: 1,
-        },
-      },
-      orderBy: { number: 'desc' },
-    }),
-    getHistoryCutoff(),
-    db.scheduleEntry.findMany({
-      where: { date: day, cancelledAt: null },
-      select: {
-        projectId: true,
-        startTime: true,
-        project: { select: { number: true, name: true } },
-        employees: { select: { employeeId: true, employee: { select: { firstName: true, lastName: true } } } },
-      },
-      orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
-    }),
-    getStockShortages(),
-    db.absence.findMany({ where: { startDate: { lte: day }, endDate: { gte: day } }, select: { employeeId: true } }),
-  ])
-
-  const jobs: TodayJob[] = projects.map((p) => {
-    const points = p.checklists.flatMap((c) => c.items)
-    const dates = { status: p.status as string, plannedStart: p.plannedStart, plannedEnd: p.plannedEnd }
-    return {
-      id: p.id,
-      number: p.number,
-      name: p.name,
-      customer: p.customer.name,
-      status: p.status,
-      amount: orderValue(p.price, p.addOns),
-      plannedStart: p.plannedStart,
-      plannedEnd: p.plannedEnd,
-      historical: isHistorical(p, cutoff),
-      overdue: overdueOf(dates, day),
-      group: siteGroupOf(dates, day),
-      nextVisit: p.scheduleEntries[0]?.date ?? null,
-      missingItems: p.items.length,
-      checklistOpen: points.filter((i) => i.checkedAt === null).length,
-      checklistProblems: points.filter((i) => i.ok === false).length,
-      noCity: (p.status === 'PLANNED' || p.status === 'IN_PROGRESS') && !p.city?.trim(),
-      // An imported card keeps the day it was made on the board, not the day of the import.
-      ageDays: Math.max(0, Math.floor((day.getTime() - (p.sourceCreatedAt ?? p.createdAt).getTime()) / 86_400_000)),
-    }
-  })
-
-  // Missing material only matters where the work is still ahead.
-  const material = new Map<string, MissingMaterial>()
-  for (const p of projects) {
-    if (p.status !== 'APPROVED' && p.status !== 'PLANNED' && p.status !== 'IN_PROGRESS') continue
-    for (const item of p.items) {
-      const row = material.get(item.catalogItem.id) ?? { id: item.catalogItem.id, name: item.catalogItem.name, jobs: [] }
-      row.jobs.push({ id: p.id, number: p.number, name: p.name })
-      material.set(item.catalogItem.id, row)
-    }
-  }
-
-  const crew = sitesToday(entries, new Set(awayToday.map((a) => a.employeeId)))
-
-  return {
-    jobs,
-    material: [...material.values()].sort((a, b) => a.name.localeCompare(b.name)),
-    stockShort,
-    schedule: { today: crew.sites, people: crew.people },
   }
 }
 
@@ -992,6 +727,7 @@ export async function getDataGaps(today: Date): Promise<GapReport> {
         plannedStart: true,
         plannedEnd: true,
         planMonth: true,
+        city: true,
         actualStart: true,
         actualEnd: true,
         sourceCreatedAt: true,
@@ -1020,6 +756,7 @@ export async function getDataGaps(today: Date): Promise<GapReport> {
       amount: orderValue(p.price, p.addOns),
       plannedStart: p.plannedStart,
       planMonth: p.planMonth,
+      city: p.city,
       isSub: p.isSub,
       historical: isHistorical(p, cutoff),
       lines: p.planEntries.map((l) => ({ year: l.year, amount: Number(l.amount), isSub: l.isSub })),
@@ -1035,13 +772,13 @@ export type NamedUsage = UsageLoad & { name: string }
 
 /**
  * The Auslastung tab's data: the crew's planned share month by month, and each
- * person and vehicle over the chosen period. The rules are `crewLoadByMonth`
- * and `crewUsage` in `src/lib/order-situation.ts`.
+ * person and vehicle over the chosen period. The rules are `crewUsage` in
+ * `src/lib/order-situation.ts`.
  */
 export async function getCrewUsage(
   year: number,
   range: MonthRange | null
-): Promise<{ covered: number[]; months: CrewMonth[]; people: NamedUsage[]; vehicles: NamedUsage[] }> {
+): Promise<{ window: UsageWindow | null; months: CrewMonth[]; people: NamedUsage[]; vehicles: NamedUsage[] }> {
   const start = new Date(Date.UTC(year, 0, 1))
   const end = new Date(Date.UTC(year + 1, 0, 1))
   const onSchedule = { scheduleEntry: { date: { gte: start, lt: end }, cancelledAt: null } }
@@ -1059,7 +796,7 @@ export async function getCrewUsage(
       select: { employeeId: true, startDate: true, endDate: true },
     }),
     db.employee.findMany({ select: { id: true, firstName: true, lastName: true } }),
-    db.vehicle.findMany({ select: { id: true, name: true } }),
+    db.vehicle.findMany({ select: { id: true, name: true, active: true } }),
   ])
 
   const months = range
@@ -1071,14 +808,16 @@ export async function getCrewUsage(
     months,
     people,
     absences,
-    vehicleBookings.map((b) => ({ vehicleId: b.vehicleId, date: b.scheduleEntry.date }))
+    vehicleBookings.map((b) => ({ vehicleId: b.vehicleId, date: b.scheduleEntry.date })),
+    // Every vehicle still in use has a row, an idle one too.
+    vehicles.filter((v) => v.active).map((v) => v.id)
   )
   const personName = new Map(employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`.trim()]))
   const vehicleName = new Map(vehicles.map((v) => [v.id, v.name]))
   const byName = (a: NamedUsage, b: NamedUsage) => (b.pct ?? -1) - (a.pct ?? -1) || a.name.localeCompare(b.name)
   return {
-    covered: usage.covered,
-    months: crewLoadByMonth(year, people, absences),
+    window: usage.window,
+    months: usage.months,
     people: usage.people.map((u) => ({ ...u, name: personName.get(u.id) ?? '' })).sort(byName),
     vehicles: usage.vehicles.map((u) => ({ ...u, name: vehicleName.get(u.id) ?? '' })).sort(byName),
   }

@@ -25,7 +25,6 @@ import { EntryDialog, type AbsenceHint, type DialogState, type BoardEntry } from
 import { Menu, MenuLabel } from '@/components/ui/menu'
 import { btn } from '@/components/ui/button'
 import { ScheduleControls, ScheduleHeader, scheduleStatusBox } from './schedule-header'
-import { PagePanel } from '@/components/ui/page-panel'
 export type { BoardEntry } from './entry-dialog'
 
 
@@ -253,6 +252,13 @@ export function ScheduleBoard({
     <div className="space-y-4">
       <ScheduleHeader
         title={t('title')}
+        nav={{
+          view: 'week',
+          weekHref: currentWeekHref,
+          monthHref,
+          mapHref,
+          labels: { week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap'), aria: t('title') },
+        }}
         action={
           <button
             type="button"
@@ -264,13 +270,8 @@ export function ScheduleBoard({
         }
       />
 
-      <PagePanel className="space-y-3 p-4">
+      <div className="space-y-4">
         <ScheduleControls
-          view="week"
-          weekHref={currentWeekHref}
-          monthHref={monthHref}
-          mapHref={mapHref}
-          viewLabels={{ week: t('viewWeek'), month: t('viewMonth'), map: t('viewMap') }}
           prevHref={prevWeekHref}
           nextHref={nextWeekHref}
           currentHref={currentWeekHref}
@@ -371,7 +372,7 @@ export function ScheduleBoard({
               <div
                 key={date}
                 data-day-column={date}
-                className={`flex min-h-64 flex-col rounded-lg border shadow-sm transition-colors ${
+                className={`flex min-h-64 flex-col rounded-lg border transition-colors ${
                   isWeekend ? 'border-dashed bg-surface/60' : 'bg-surface'
                 } ${dropTarget === date ? 'border-accent ring-1 ring-accent' : 'border-border'}`}
               >
@@ -422,7 +423,7 @@ export function ScheduleBoard({
                         if (e.key === 'Enter') setDialog({ mode: 'edit', entry })
                       }}
                       style={{ touchAction: 'pan-x pan-y' }}
-                      className={`cursor-grab rounded-md border p-2 text-left text-xs shadow-sm transition-colors hover:border-accent active:cursor-grabbing ${
+                      className={`cursor-grab rounded-md border p-2 text-left text-xs transition-colors hover:border-accent active:cursor-grabbing ${
                         ['COMPLETED', 'INVOICED', 'PAID'].includes(entry.projectStatus ?? '')
                           ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
                           : entry.hasConflict
@@ -487,7 +488,7 @@ export function ScheduleBoard({
             <span>{t('dragCopyHint')}</span>
           </span>
         </p>
-      </PagePanel>
+      </div>
 
       {dialog.mode !== 'closed' && (
         <EntryDialog

@@ -17,8 +17,8 @@ export function Select({
     <div className={`relative inline-flex items-center ${className}`}>
       <select
         {...props}
-        className={`w-full appearance-none rounded-md border border-border bg-surface text-foreground shadow-sm transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 ${
-          compact ? 'py-1 pl-2.5 pr-7 text-xs' : 'py-2 pl-3 pr-9 text-sm'
+        className={`w-full appearance-none rounded-lg border border-border-strong bg-surface text-foreground transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 ${
+          compact ? 'h-8 pl-2.5 pr-7 text-[13px]' : 'h-9 pl-3 pr-9 text-sm'
         }`}
       />
       <ChevronDown

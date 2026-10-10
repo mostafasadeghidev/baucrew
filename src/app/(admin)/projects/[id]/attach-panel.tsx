@@ -18,7 +18,7 @@ import { useUploadMessage } from './file-upload'
 import { addCardLink } from './file-actions'
 
 const FIELD =
-  'mt-1 block w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring'
 
 export function AttachPanel({ projectId, close, back = null }: { projectId: string; close: () => void; back?: (() => void) | null }) {
   const t = useTranslations('files')

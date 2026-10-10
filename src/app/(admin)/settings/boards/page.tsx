@@ -6,7 +6,7 @@ import { requireAdmin } from '@/lib/authz'
 import { getBoards } from '@/lib/boards-db'
 import { ALL_PROJECT_STATUSES, type ProjectStatusKey } from '@/lib/prep-tab'
 import { BOARD_BACKGROUNDS, BOARD_NAME_MAX, COLUMN_TITLE_MAX } from '@/lib/boards'
-import { columnRuleKey } from '@/lib/board-rules'
+import { trelloRuleId } from '@/lib/board-rules'
 import { STATUS_STYLES } from '@/components/status-badge'
 import { Card } from '@/components/ui/card'
 import { DeleteButton } from '@/components/delete-button'
@@ -17,7 +17,7 @@ import { createBoard, createPresetBoard, deleteBoard, moveBoard, updateBoard } f
 import { sitesPreset } from '@/lib/board-presets'
 
 const inputClass =
-  'block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 /**
  * Einstellungen → Boards: the boards of the projects page, each with its
@@ -38,7 +38,7 @@ export default async function BoardsPage() {
   ])
   /** A rule list as the board names it: its own title, else the rule's name. */
   const ruleRows = (columns: Array<{ id: string; status: string; title: string | null; rule: string | null }>) => {
-    const ruled = columns.filter((c) => columnRuleKey(c.rule))
+    const ruled = columns.filter((c) => c.rule !== null)
     if (ruled.length === 0) return null
     return (
       <div className="text-sm">
@@ -46,7 +46,7 @@ export default async function BoardsPage() {
         <ul className="mt-1 flex flex-wrap gap-1.5">
           {ruled.map((c) => (
             <li key={c.id} className="rounded-full border border-border px-2.5 py-0.5 text-xs">
-              {c.title ?? tProjects(`rule_${c.rule}` as 'rule_paused', { year: new Date().getUTCFullYear() + 1 })}
+              {c.title ?? (trelloRuleId(c.rule) ? tProjects('rule_trello') : tProjects(`rule_${c.rule}` as 'rule_paused', { year: new Date().getUTCFullYear() + 1 }))}
               <span className="ml-1 text-muted">· {tStatus(c.status as ProjectStatusKey)}</span>
             </li>
           ))}
@@ -64,7 +64,7 @@ export default async function BoardsPage() {
     prefix: string
   ) => {
     // The plain lists only: a rule list is the board's own business.
-    const has = new Map(columns.filter((c) => !columnRuleKey(c.rule)).map((c) => [c.status, c]))
+    const has = new Map(columns.filter((c) => c.rule == null).map((c) => [c.status, c]))
     const rows: ProjectStatusKey[] = [
       ...columns.map((c) => c.status as ProjectStatusKey),
       ...ALL_PROJECT_STATUSES.filter((s) => !has.has(s)),

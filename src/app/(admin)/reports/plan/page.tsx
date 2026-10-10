@@ -238,18 +238,18 @@ export default async function PlanMatchPage({
       <PageHint>{t('hint')}</PageHint>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-muted">{t('kpiPlanned')}</p>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <p className="text-xs text-muted">{t('kpiPlanned')}</p>
           <p className="mt-1 text-lg font-semibold tabular-nums">{money(plannedTotal)}</p>
           <p className="text-xs text-muted">{t('kpiJobs', { count: rows.length, lines: lines.length })}</p>
         </div>
-        <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-muted">{t('kpiLinked')}</p>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <p className="text-xs text-muted">{t('kpiLinked')}</p>
           <p className="mt-1 text-lg font-semibold tabular-nums">{rows.length - openRows.length}</p>
           <p className="text-xs text-muted">{t('kpiOfJobs', { count: rows.length })}</p>
         </div>
-        <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-muted">{t('kpiOpen')}</p>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <p className="text-xs text-muted">{t('kpiOpen')}</p>
           <p className="mt-1 text-lg font-semibold tabular-nums text-amber-700 dark:text-amber-400">
             {money(openTotal)}
           </p>

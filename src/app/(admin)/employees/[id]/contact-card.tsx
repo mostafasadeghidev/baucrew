@@ -9,7 +9,7 @@ import { TagsPicker } from '@/components/tags-picker'
 import type { ContactFormState } from '../actions'
 
 const inputClass =
-  'mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
+  'mt-1 block w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
 /**
  * The contact card on an employee's page, edited where it stands.
@@ -44,7 +44,7 @@ export function ContactCard({
   const failed = editing && state.failedAt !== undefined && state.failedAt > (openedAt ?? 0)
 
   return (
-    <form action={formAction} className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <form action={formAction} className="rounded-xl border border-border bg-surface p-5">
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-sm font-semibold">{t('contactData')}</h2>
         {editing ? (
@@ -52,7 +52,7 @@ export function ContactCard({
             <button type="button" onClick={() => setOpenedAt(null)} className={btn.outlineXs}>
               {tc('cancel')}
             </button>
-            <button type="submit" disabled={pending} className={`${btn.primarySm} px-2.5 py-1 text-xs`}>
+            <button type="submit" disabled={pending} className={`${btn.primarySm} h-7 px-2.5 text-xs`}>
               {tc('save')}
             </button>
           </div>

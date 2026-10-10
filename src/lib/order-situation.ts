@@ -113,65 +113,6 @@ export function classTotals(totals: Record<Certainty, number>): Record<PlanClass
   return out
 }
 
-export type CrewMonth = {
-  /** Person-days on the schedule: one person on one working day, however many sites. */
-  booked: number
-  /** Weekdays of the month for every member of the crew, less the ones they are away. */
-  available: number
-  pct: number | null
-}
-
-/**
- * How much of the crew's time each month is planned. The crew is everybody who
- * stands on the schedule at all that year: the office staff who never do would
- * otherwise count as a crew with nothing to do.
- *
- * What there is to plan is every weekday of the month for each of them, less
- * the days they are away — each day once, however many absences overlap on it.
- * What is planned counts on those same days only: a Saturday on site, or a day
- * on the schedule during a holiday, would otherwise push the share past what
- * there is. Public holidays are not taken off, as the utilisation tab does not
- * take them off either.
- */
-export function crewLoadByMonth(
-  year: number,
-  bookings: Array<{ employeeId: string; date: Date }>,
-  absences: Array<{ employeeId: string; startDate: Date; endDate: Date }>
-): CrewMonth[] {
-  const inYear = bookings.filter((b) => b.date.getUTCFullYear() === year)
-  const crew = new Set(inYear.map((b) => b.employeeId))
-  const weekday = (day: Date) => day.getUTCDay() !== 0 && day.getUTCDay() !== 6
-  const dayKey = (employeeId: string, day: Date) => `${employeeId}|${day.toISOString().slice(0, 10)}`
-
-  const away = Array.from({ length: 12 }, () => new Set<string>())
-  for (const a of absences) {
-    if (!crew.has(a.employeeId)) continue
-    const last = Math.min(a.endDate.getTime(), Date.UTC(year, 11, 31))
-    for (let t = Math.max(a.startDate.getTime(), Date.UTC(year, 0, 1)); t <= last; t += 86_400_000) {
-      const day = new Date(t)
-      if (weekday(day)) away[day.getUTCMonth()].add(dayKey(a.employeeId, day))
-    }
-  }
-
-  const booked = Array.from({ length: 12 }, () => new Set<string>())
-  for (const b of inYear) {
-    const key = dayKey(b.employeeId, b.date)
-    const month = b.date.getUTCMonth()
-    if (weekday(b.date) && !away[month].has(key)) booked[month].add(key)
-  }
-
-  return booked.map((days, month) => {
-    const weekdays =
-      businessDaysBetween(new Date(Date.UTC(year, month, 1)), new Date(Date.UTC(year, month + 1, 0))) ?? 0
-    const available = Math.max(0, crew.size * weekdays - away[month].size)
-    return {
-      booked: days.size,
-      available,
-      pct: available > 0 ? Math.round((days.size / available) * 100) : null,
-    }
-  })
-}
-
 /**
  * The twelve months before the running one — this year's so far and the rest
  * of last year's. Months before the first one with any turnover are left out:
@@ -371,85 +312,168 @@ export type UsageLoad = {
   id: string
   /** Distinct weekdays on the schedule, outside the days away. */
   booked: number
-  /** Weekdays of the covered months, less the days away. */
+  /** Weekdays of the window, less the days away. */
   available: number
   pct: number | null
 }
 
+export type CrewMonth = {
+  /** Person-days on the schedule: one person on one working day, however many sites. */
+  booked: number
+  /** The window's weekdays in the month for everybody booked in it, less the days they are away. */
+  available: number
+  /** Null for a month the schedule is not written for — before its first day or after its last. */
+  pct: number | null
+}
+
+/** The first and the last day counted, both inclusive, as UTC midnights. */
+export type UsageWindow = { start: Date; end: Date }
+
+const DAY_MS = 86_400_000
+const isWeekday = (date: Date) => date.getUTCDay() !== 0 && date.getUTCDay() !== 6
+const isoDay = (date: Date) => date.toISOString().slice(0, 10)
+const weekdaysIn = (w: UsageWindow | null) => (w ? (businessDaysBetween(w.start, w.end) ?? 0) : 0)
+
+/** Two stretches of days laid over each other; null when they do not meet. */
+function overlap(a: UsageWindow | null, b: UsageWindow): UsageWindow | null {
+  if (!a) return null
+  const start = Math.max(a.start.getTime(), b.start.getTime())
+  const end = Math.min(a.end.getTime(), b.end.getTime())
+  return start > end ? null : { start: new Date(start), end: new Date(end) }
+}
+
+/** From the first to the last of the dates; null without any. */
+function spanOf(dates: Date[]): UsageWindow | null {
+  if (dates.length === 0) return null
+  const times = dates.map((d) => d.getTime())
+  return { start: new Date(Math.min(...times)), end: new Date(Math.max(...times)) }
+}
+
 /**
- * How booked each person and each vehicle is over a period, by the same rule as
- * the crew figure on the revenue tab: one booking a weekday at most, however
- * many sites that day, never on a day away, against the weekdays there were.
+ * How booked the crew, each person and each vehicle is over a period — one
+ * rule for the ring, the month bars and the rows, so the three always add up.
  *
- * Only months that have any booking at all are covered — for people the
- * months people are booked in, for vehicles the months vehicles are. The schedule is filled
- * a few weeks ahead and was started mid-year, and a month nobody has planned
- * yet says nothing about the crew — counted, it would pull every share down to
- * a figure that measures missing entries, not idle people. The covered months
- * are returned, so the page can name them.
+ * One booking a weekday at most, however many sites that day, never on a day
+ * away, against the weekdays there were. Public holidays are not taken off.
+ *
+ * Only the stretch the schedule is written for counts: from the first to the
+ * last day anybody is booked in the year. The schedule is filled a few weeks
+ * ahead and may have been started mid-year; a day before it began or after
+ * the last entry says nothing about the crew, and counted it would pull every
+ * share down to a figure that measures missing entries, not idle people. Inside
+ * that stretch an empty weekday counts — that is a day nobody was planned.
+ * People and vehicles each have their own stretch: a van booked into October
+ * says nothing about whether the crew is.
+ *
+ * The crew is everybody booked in the period — office staff who never are
+ * would otherwise count as a crew with nothing to do. The months of the period
+ * are held against that same crew, so their bars add up to the ring and the
+ * rows exactly, and a month in which nobody was booked reads 0 %, not "not
+ * planned". A month outside the period, drawn only for the context, is held
+ * against the year's crew. Every vehicle in `fleet` gets a row, also one that
+ * stood the whole period: an idle van is what the list is for.
  */
 export function crewUsage(
   year: number,
   months: number[],
   bookings: Array<{ employeeId: string; date: Date }>,
   absences: Array<{ employeeId: string; startDate: Date; endDate: Date }>,
-  vehicleBookings: Array<{ vehicleId: string; date: Date }>
-): { covered: number[]; people: UsageLoad[]; vehicles: UsageLoad[] } {
-  const inPeriod = (date: Date) => date.getUTCFullYear() === year && months.includes(date.getUTCMonth())
-  const weekday = (date: Date) => date.getUTCDay() !== 0 && date.getUTCDay() !== 6
-  const iso = (date: Date) => date.toISOString().slice(0, 10)
+  vehicleBookings: Array<{ vehicleId: string; date: Date }>,
+  fleet: string[] = []
+): { window: UsageWindow | null; months: CrewMonth[]; people: UsageLoad[]; vehicles: UsageLoad[] } {
+  const first = Math.min(...months)
+  const last = Math.max(...months)
+  const period: UsageWindow = { start: new Date(Date.UTC(year, first, 1)), end: new Date(Date.UTC(year, last + 1, 0)) }
+  const monthOf = (month: number): UsageWindow => ({
+    start: new Date(Date.UTC(year, month, 1)),
+    end: new Date(Date.UTC(year, month + 1, 0)),
+  })
+  const inYear = <T extends { date: Date }>(rows: T[]) => rows.filter((b) => b.date.getUTCFullYear() === year)
+  const within = (date: Date, w: UsageWindow | null) =>
+    w !== null && date.getTime() >= w.start.getTime() && date.getTime() <= w.end.getTime()
 
-  const monthsOf = (rows: Array<{ date: Date }>) =>
-    [...new Set(rows.filter((b) => inPeriod(b.date)).map((b) => b.date.getUTCMonth()))].sort((a, b) => a - b)
-  const weekdaysOf = (months: number[]) =>
-    months.reduce(
-      (sum, month) =>
-        sum + (businessDaysBetween(new Date(Date.UTC(year, month, 1)), new Date(Date.UTC(year, month + 1, 0))) ?? 0),
-      0
-    )
-  // People and vehicles are each held against the months they have bookings
-  // in: a month with only a van on the schedule says nothing about the crew.
-  const covered = monthsOf(bookings)
-  const coveredDays = weekdaysOf(covered)
-  const vehicleDaysAvailable = weekdaysOf(monthsOf(vehicleBookings))
+  const people = inYear(bookings)
+  const crewSpan = spanOf(people.map((b) => b.date))
+  const window = overlap(crewSpan, period)
+  const fleetSpan = spanOf(inYear(vehicleBookings).map((b) => b.date))
+  const vehicleWindow = overlap(fleetSpan, period)
 
+  // The weekdays each person is away inside the year's stretch, each day once.
   const away = new Map<string, Set<string>>()
   for (const a of absences) {
-    for (let t = a.startDate.getTime(); t <= a.endDate.getTime(); t += 86_400_000) {
+    if (!crewSpan) break
+    const from = Math.max(a.startDate.getTime(), crewSpan.start.getTime())
+    const to = Math.min(a.endDate.getTime(), crewSpan.end.getTime())
+    for (let t = from; t <= to; t += DAY_MS) {
       const day = new Date(t)
-      if (!weekday(day) || !inPeriod(day) || !covered.includes(day.getUTCMonth())) continue
+      if (!isWeekday(day)) continue
       const days = away.get(a.employeeId) ?? new Set<string>()
-      days.add(iso(day))
+      days.add(isoDay(day))
       away.set(a.employeeId, days)
     }
   }
+  const awayIn = (employeeId: string, w: UsageWindow | null) =>
+    w ? [...(away.get(employeeId) ?? [])].filter((day) => within(new Date(`${day}T00:00:00Z`), w)).length : 0
+  const counts = (employeeId: string, date: Date) => isWeekday(date) && !away.get(employeeId)?.has(isoDay(date))
 
-  const load = (id: string, days: Set<string>, off: Set<string>, weekdays: number): UsageLoad => {
-    const available = Math.max(0, weekdays - off.size)
-    return { id, booked: days.size, available, pct: available > 0 ? Math.round((days.size / available) * 100) : null }
-  }
+  const load = (id: string, booked: number, available: number): UsageLoad => ({
+    id,
+    booked,
+    available,
+    pct: available > 0 ? Math.round((booked / available) * 100) : null,
+  })
   const byPct = (a: UsageLoad, b: UsageLoad) => (b.pct ?? -1) - (a.pct ?? -1) || b.booked - a.booked
 
   // Everybody on the schedule in the period gets a row — also somebody whose
-  // only bookings fell on their days away, who then reads 0 %.
+  // only bookings fell on a weekend or on their days away, who then reads 0 %.
   const personDays = new Map<string, Set<string>>()
-  for (const b of bookings) {
-    if (!inPeriod(b.date)) continue
+  for (const b of people) {
+    if (!within(b.date, window)) continue
     const days = personDays.get(b.employeeId) ?? new Set<string>()
     personDays.set(b.employeeId, days)
-    if (weekday(b.date) && !away.get(b.employeeId)?.has(iso(b.date))) days.add(iso(b.date))
+    if (counts(b.employeeId, b.date)) days.add(isoDay(b.date))
   }
-  const vehicleDays = new Map<string, Set<string>>()
-  for (const b of vehicleBookings) {
-    if (!inPeriod(b.date) || !weekday(b.date)) continue
+  const windowDays = weekdaysIn(window)
+  const personRows = [...personDays].map(([id, days]) =>
+    load(id, days.size, Math.max(0, windowDays - awayIn(id, window)))
+  )
+
+  const vehicleDays = new Map<string, Set<string>>(vehicleWindow ? fleet.map((id) => [id, new Set<string>()]) : [])
+  for (const b of inYear(vehicleBookings)) {
+    if (!within(b.date, vehicleWindow)) continue
     const days = vehicleDays.get(b.vehicleId) ?? new Set<string>()
-    days.add(iso(b.date))
     vehicleDays.set(b.vehicleId, days)
+    if (isWeekday(b.date)) days.add(isoDay(b.date))
   }
+  const vehicleWeekdays = weekdaysIn(vehicleWindow)
+  const vehicleRows = [...vehicleDays].map(([id, days]) => load(id, days.size, vehicleWeekdays))
+
+  // Each month of the year inside the year's stretch: the period's months on
+  // the period's crew, the others on the year's.
+  const periodCrew = [...personDays.keys()]
+  const yearCrew = [...new Set(people.map((b) => b.employeeId))]
+  const monthRows = Array.from({ length: 12 }, (_, month): CrewMonth => {
+    const w = overlap(crewSpan, monthOf(month))
+    if (!w) return { booked: 0, available: 0, pct: null }
+    const crew = month >= first && month <= last ? periodCrew : yearCrew
+    const weekdays = weekdaysIn(w)
+    let available = 0
+    let total = 0
+    for (const id of crew) {
+      available += Math.max(0, weekdays - awayIn(id, w))
+      total += new Set(
+        people
+          .filter((b) => b.employeeId === id && b.date.getUTCMonth() === month && counts(id, b.date))
+          .map((b) => isoDay(b.date))
+      ).size
+    }
+    return { booked: total, available, pct: available > 0 ? Math.round((total / available) * 100) : null }
+  })
 
   return {
-    covered,
-    people: [...personDays].map(([id, days]) => load(id, days, away.get(id) ?? new Set(), coveredDays)).sort(byPct),
-    vehicles: [...vehicleDays].map(([id, days]) => load(id, days, new Set(), vehicleDaysAvailable)).sort(byPct),
+    window,
+    months: monthRows,
+    people: personRows.sort(byPct),
+    vehicles: vehicleRows.sort(byPct),
   }
 }
