@@ -65,7 +65,7 @@ async function readCapped(response: Response): Promise<Buffer | 'size'> {
   return total === 0 ? 'size' : Buffer.concat(chunks)
 }
 
-export async function fetchTrelloFiles(userId: string): Promise<{ fetched: number; failed: number; pending: number; configured: boolean }> {
+export async function fetchTrelloFiles(userId: string | null): Promise<{ fetched: number; failed: number; pending: number; configured: boolean }> {
   const auth = credentials()
   if (!auth) return { fetched: 0, failed: 0, pending: await pendingTrelloFiles(), configured: false }
   const headers = { Authorization: `OAuth oauth_consumer_key="${auth.key}", oauth_token="${auth.token}"` }

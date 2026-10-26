@@ -12,7 +12,9 @@ import { planChecklistChanges } from '@/lib/project-checklists'
 import { actualDatesForStatus } from '@/lib/project-lifecycle'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import type { Prisma } from '@/generated/prisma/client'
-import { nextProjectNumber } from '@/lib/project-numbers'
+import { isUniqueClash, nextProjectNumber } from '@/lib/project-numbers'
+import { normalizeJobNumber } from '@/lib/job-number'
+import { pushProjectInBackground } from '@/lib/wattro/project-push'
 import {
   announceProjectChanges,
   announceProjectCreated,
@@ -46,7 +48,7 @@ async function writePositions(rows: Array<{ id: string; position: number }>) {
 }
 
 export type ProjectFormState = {
-  error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'saveFailed'
+  error?: 'nameRequired' | 'customerRequired' | 'dateOrder' | 'invalidPrice' | 'jobNumberTaken' | 'saveFailed'
 }
 
 const coord = z
@@ -78,6 +80,8 @@ const optionalDate = z
 const projectSchema = z
   .object({
     name: z.string().trim().min(1).max(300),
+    // The client's own project number: optional, unique when given (src/lib/job-number.ts).
+    jobNumber: z.string().transform((v) => normalizeJobNumber(v)),
     customerId: z.string().min(1),
     status: z.enum(ProjectStatus),
     isSub: z.string().transform((v) => v === 'on'),
@@ -142,6 +146,7 @@ function parsePrice(raw: string): { ok: true; value: number | null } | { ok: fal
 function parseProjectForm(formData: FormData) {
   return projectSchema.safeParse({
     name: formData.get('name') ?? '',
+    jobNumber: formData.get('jobNumber') ?? '',
     customerId: formData.get('customerId') ?? '',
     status: formData.get('status') ?? 'LEAD',
     isSub: formData.get('isSub') ?? '',
@@ -241,6 +246,10 @@ export async function createProject(
   if (!price.ok) return { error: 'invalidPrice' }
 
   const d = parsed.data
+  // The client's number is his own: one that is taken is refused, never changed.
+  if (d.jobNumber && (await db.project.findUnique({ where: { jobNumber: d.jobNumber }, select: { id: true } }))) {
+    return { error: 'jobNumberTaken' }
+  }
   let project = null
   // Retry once if the sequential number collides with a concurrent create.
   for (let attempt = 0; attempt < 2 && !project; attempt++) {
@@ -248,6 +257,7 @@ export async function createProject(
       project = await db.project.create({
         data: {
           number: await nextProjectNumber(),
+          jobNumber: d.jobNumber,
           name: d.name,
           customerId: d.customerId,
           status: d.status,
@@ -282,8 +292,11 @@ export async function createProject(
         },
       })
     } catch (e: unknown) {
-      const isUniqueConflict =
-        typeof e === 'object' && e !== null && 'code' in e && (e as { code?: string }).code === 'P2002'
+      const isUniqueConflict = isUniqueClash(e)
+      // The same clash on the client's number is not a reason to retry.
+      if (isUniqueConflict && d.jobNumber && (await db.project.findUnique({ where: { jobNumber: d.jobNumber }, select: { id: true } }))) {
+        return { error: 'jobNumberTaken' }
+      }
       if (!isUniqueConflict || attempt === 1) throw e
     }
   }
@@ -400,16 +413,24 @@ export async function updateProject(
     priceValue = price.value
   }
   const status = saving.has('basic') ? d.status : before.status
+  // Changed from the basic card; emptied it means "no number". Taken ones are refused.
+  const jobNumber = saving.has('basic') ? d.jobNumber : before.jobNumber
+  if (jobNumber && jobNumber !== before.jobNumber) {
+    const other = await db.project.findUnique({ where: { jobNumber }, select: { id: true } })
+    if (other && other.id !== id) return { error: 'jobNumberTaken' }
+  }
   // Status moved forward by hand and the actual dates were left empty → derive them.
   const actualStart = saving.has('planning') ? d.actualStart : before.actualStart
   const actualEnd = saving.has('planning') ? d.actualEnd : before.actualEnd
   const derived = before.status !== status ? await actualDatesForStatus(id, status, { actualStart, actualEnd }) : {}
 
-  await db.project.update({
+  try {
+    await db.project.update({
     where: { id },
     data: {
       ...(saving.has('basic')
         ? {
+            jobNumber,
             name: d.name,
             customerId: d.customerId,
             status: d.status,
@@ -476,6 +497,11 @@ export async function updateProject(
         : {}),
     },
   })
+  } catch (e) {
+    // Somebody took the number between the look and the save.
+    if (isUniqueClash(e)) return { error: 'jobNumberTaken' }
+    throw e
+  }
 
   if (saving.has('assignment')) await syncProjectChecklists(id, d.checklistIds)
 
@@ -497,6 +523,11 @@ export async function updateProject(
     entityId: id,
     newValue: `${before.number} ${saving.has('basic') ? d.name : before.name}`,
   })
+  if (jobNumber !== before.jobNumber) {
+    await audit({ userId: user.id, action: 'project.jobNumber', entity: 'Project', entityId: id, field: 'jobNumber', oldValue: before.jobNumber, newValue: jobNumber })
+    // Wattro knows the project by this number: it is renamed there, not made twice.
+    pushProjectInBackground(id, 'updated')
+  }
   await announceProjectChanges(snapshot, { type: 'user', userId: user.id })
   // Whoever the form put on the card hears of it, as from the members window.
   if (saving.has('assignment')) {

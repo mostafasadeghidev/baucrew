@@ -279,9 +279,8 @@ export default async function ProjectsPage({
             { city: { contains: query, mode: 'insensitive' as const } },
             { street: { contains: query, mode: 'insensitive' as const } },
             { customer: { name: { contains: query, mode: 'insensitive' as const } } },
-            // The office's job number from the Trello title (src/lib/job-number.ts): digits only,
-            // so a word never matches a Trello card id.
-            ...(/^\d+$/.test(query) ? [{ externalSystem: 'trello', externalId: { startsWith: query } }] : []),
+            // The client's own project number (src/lib/job-number.ts).
+            { jobNumber: { contains: query, mode: 'insensitive' as const } },
           ],
         }
       : {}),
@@ -362,8 +361,7 @@ export default async function ProjectsPage({
             inspectionDate: true,
             executionWish: true,
             sourceCreatedAt: true,
-            externalSystem: true,
-            externalId: true,
+            jobNumber: true,
             createdAt: true,
             boardPosition: true,
             coverDocumentId: true,
@@ -446,8 +444,10 @@ export default async function ProjectsPage({
           number: p.number,
           name: p.name,
           jobNumber: jobNumberOf(p),
-          customer: p.customer.name,
-          customerNumber: p.customer.number,
+          // The customer can be gone for the blink the Trello sync moves a project to its
+          // proper customer and drops the guessed one: the page draws on, blank there.
+          customer: p.customer?.name ?? '',
+          customerNumber: p.customer?.number ?? null,
           address: addressLine(p.street, p.postalCode, p.city),
           dates:
             dates.length > 0
@@ -492,14 +492,16 @@ export default async function ProjectsPage({
           // The lines under the marks, in the order the client's Trello cards
           // show them; the order value only for whoever may see money.
           fields: cardFieldLines({
-            customer: p.customer.name,
+            // The customer can be gone for the blink the Trello sync moves a project to its
+          // proper customer and drops the guessed one: the page draws on, blank there.
+          customer: p.customer?.name ?? '',
             address: addressLine(p.street, p.postalCode, p.city),
             value: showPrice && value != null ? formatCurrency(value, locale, { hidden: hidePrices }) : null,
             workType: trades.join(', '),
             wish: p.executionWish,
             inspection: p.inspectionDate ? formatDate(p.inspectionDate, locale) : null,
             created: formatDate(p.sourceCreatedAt ?? p.createdAt, locale),
-            customerNumber: p.customer.number,
+            customerNumber: p.customer?.number ?? null,
           }),
         }
       }),

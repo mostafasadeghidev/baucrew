@@ -4,6 +4,7 @@ import { orderValue } from './reports'
 import { emitEvent } from './webhooks'
 import { projectChanges, statusSinceOf, type ProjectSnapshot } from './webhook-events'
 import { INVOICE_KIND, type InvoicePart } from './invoices'
+import { pushProjectInBackground } from './wattro/project-push'
 
 /**
  * A project's life told to automations: made, moved to another status,
@@ -24,6 +25,7 @@ export type EventActor =
 const eventSelect = {
   id: true,
   number: true,
+  jobNumber: true,
   name: true,
   status: true,
   isSub: true,
@@ -101,6 +103,8 @@ function projectBody(row: EventRow, statusSince: Date) {
   return {
     id: row.id,
     number: row.number,
+    /** The client's own project number, where the project has one. */
+    jobNumber: row.jobNumber,
     name: row.name,
     status: row.status,
     statusSince: statusSince.toISOString(),
@@ -157,6 +161,7 @@ export async function announceProjectCreated(id: string, actor: EventActor): Pro
     if (!row) return
     const since = statusSinceOf(await lastStatusChange(id), row.sourceCreatedAt, row.createdAt)
     await emitEvent('project.created', { project: projectBody(row, since), actor })
+    pushProjectInBackground(id, 'created')
   } catch (e) {
     console.error('project event failed', e)
   }
@@ -180,6 +185,7 @@ export async function announceProjectChanges(before: ProjectBefore, actor: Event
     const project = projectBody(row, since)
     if (status) await emitEvent('project.status_changed', { project, from: status.from, to: status.to, actor })
     if (Object.keys(fields).length > 0) await emitEvent('project.updated', { project, changes: fields, actor })
+    pushProjectInBackground(row.id, status ? 'status' : 'updated')
   } catch (e) {
     console.error('project event failed', e)
   }
@@ -191,6 +197,7 @@ export async function announceStatusChange(id: string, from: string, actor: Even
     const row = await loadRow(id)
     if (!row || row.status === from) return
     await emitEvent('project.status_changed', { project: projectBody(row, new Date()), from, to: row.status, actor })
+    pushProjectInBackground(id, 'status')
   } catch (e) {
     console.error('project event failed', e)
   }

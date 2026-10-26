@@ -749,6 +749,7 @@ export async function ProjectDetail({
         categories={allCategories.map((c) => ({ value: c.id, label: categoryLabel(c) }))}
         initial={{
           name: project.name,
+          jobNumber: project.jobNumber ?? '',
           customerId: project.customerId,
           status: project.status,
           isSub: project.isSub,
@@ -1537,6 +1538,7 @@ export async function ProjectDetail({
             <>
               <span className="mr-2 text-muted">{project.number}</span>
               {project.name}
+              {jobNumber && <JobNumber value={jobNumber} className="ml-3 align-middle text-sm" />}
             </>
           }
           meta={statusMenu}

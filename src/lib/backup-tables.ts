@@ -65,6 +65,7 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   { key: 'appSettings', model: 'AppSetting' },
   { key: 'apiKeys', model: 'ApiKey' },
   { key: 'webhookEndpoints', model: 'WebhookEndpoint' },
+  { key: 'trelloSyncBoards', model: 'TrelloSyncBoard' },
   { key: 'auditLogs', model: 'AuditLog' },
 ]
 

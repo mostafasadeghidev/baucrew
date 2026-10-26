@@ -81,7 +81,6 @@ export function ImportWizard() {
             <li>{t('doneCreated', { count: effective.created })}</li>
             {effective.updated > 0 && <li>{t('doneUpdated', { count: effective.updated })}</li>}
             <li>{t('doneCustomers', { count: effective.customersCreated })}</li>
-            {effective.skipped > 0 && <li>{t('doneSkipped', { count: effective.skipped })}</li>}
             {effective.fields > 0 && <li>{t('doneFields', { count: effective.fields })}</li>}
             {effective.checklists > 0 && <li>{t('doneChecklists', { count: effective.checklists })}</li>}
             {effective.comments > 0 && <li>{t('doneComments', { count: effective.comments })}</li>}

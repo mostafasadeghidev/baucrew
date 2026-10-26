@@ -240,7 +240,8 @@ next sync of the first stage simply leaves it out.
 - **Project page and schedule dialog** ("Benötigte Geräte"): a Wattro
   device shows "laut Wattro: <place>" instead of a hand-out button
   (`getProjectDevices` → state `wattro`; `project-devices.tsx`).
-- **Board** (`?view=board`, the board/list switch in the head, drawn like
+- **Board** (the view the page opens in since 1.52.0; `?view=board` still
+  works, the list is `?view=list`; the board/list switch in the head, drawn like
   the projects board — `devices/devices-board.tsx`): one grey list per place
   — stores first, then every person, then every site (site numbers sorted as
   numbers), each card a machine with its inventory number, brand and "seit
