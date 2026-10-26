@@ -16,6 +16,7 @@ services:
       WATTRO_API_KEY: ${WATTRO_API_KEY:-}
       WATTRO_BASE_URL: ${WATTRO_BASE_URL:-}
       WATTRO_SYNC_INTERVAL_MINUTES: ${WATTRO_SYNC_INTERVAL_MINUTES:-}
+      WATTRO_PROJECT_PUSH: ${WATTRO_PROJECT_PUSH:-}
       INBOUND_API_KEY: ${INBOUND_API_KEY:-}
     volumes:
       - baucrew_files:/app/storage

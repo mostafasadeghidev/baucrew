@@ -56,6 +56,8 @@ export type CustomerAddress = {
 
 export type ProjectFormValues = {
   name: string
+  /** The client's own project number; empty when there is none. */
+  jobNumber: string
   customerId: string
   status: string
   isSub: boolean
@@ -711,6 +713,7 @@ export function ProjectForm({
       <div className={fold ? `order-3 col-span-full grid grid-cols-1 items-start gap-6 @3xl:grid-cols-2 ${unfolded ? '' : 'hidden'}` : 'contents'}>
       <Section title={t('basicData')} {...card('basic')}>
         <TextField label={t('name')} name="name" defaultValue={initial.name} required />
+        <TextField label={t('jobNumberLabel')} name="jobNumber" defaultValue={initial.jobNumber} maxLength={50} placeholder={t('jobNumberPlaceholder')} />
         <div>
           <label className="block text-sm font-medium">
             {t('customer')} <span className="text-danger">*</span>

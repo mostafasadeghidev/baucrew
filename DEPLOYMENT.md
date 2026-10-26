@@ -33,7 +33,8 @@ hidden or disabled. None of them is needed for a plain installation.
 
 | Variable | What it enables | Rule |
 | --- | --- | --- |
-| `TRELLO_API_KEY`, `TRELLO_TOKEN` | *Einstellungen → Import aus Trello*: fetching the files attached to imported cards (*Dateien abholen*). A read-only token is enough; nothing is written to Trello. | Set them only for the import window. Afterwards remove both from `.env`, run `docker compose up -d` so the container no longer carries them, and revoke the token in the Trello account. |
+| `TRELLO_API_KEY`, `TRELLO_TOKEN` | *Einstellungen → Trello*: the server reads the account's boards and brings every board switched on there into the projects by itself, files included (`docs/TRELLO-RESYNC.md`). Also the file fetch of *Einstellungen → Import aus Trello*. A read-only token is enough; nothing is written to Trello. | Keep them set for as long as the office works in Trello. On the day Trello is frozen: switch every board off, remove both from `.env`, `docker compose up -d`, delete the Trello app so the token is revoked. |
+| `TRELLO_SYNC_INTERVAL_MINUTES` | How often the server runs the Trello sync by itself, in minutes. | Optional: empty means every 60 minutes; `0` turns the automatic run off (the button still works); below 15 counts as 15. |
 | `WATTRO_API_KEY` | *Geräte → Mit Wattro abgleichen*: reading Wattro's machines into the Devices page (read-only). | Only together with a confirmed **production** `WATTRO_BASE_URL`. In production an unset base URL means "not configured": the sync stays off and a warning is logged once, so a key can never be sent to Wattro's development host by accident. |
 | `WATTRO_BASE_URL` | Wattro's API root, environment and version included (e.g. `https://<host>/api/v1`). | Confirm the host with the key's owner before setting it; check in the container with `docker compose exec -T app sh -c 'echo ${WATTRO_BASE_URL:-UNSET}'`. |
 | `WATTRO_SYNC_INTERVAL_MINUTES` | How often the running server reads Wattro by itself, in minutes. | Optional: empty means every 60 minutes; `0` turns the automatic read off (the button still works); below 15 counts as 15. |
@@ -106,6 +107,16 @@ Restart the container (`docker compose up -d`). Wattro is then read
 **automatically every hour** by the running server itself — nothing else to
 set up (`WATTRO_SYNC_INTERVAL_MINUTES` changes the interval, 0 turns it off) —
 and by hand with "Mit Wattro abgleichen". Every run is in the audit log.
+
+**Projects to Wattro (off by default).** With `WATTRO_PROJECT_PUSH=1` the app
+also *writes* projects to Wattro: a new project that is approved, planned or
+running is created there under its project number (the client's Projektnummer when it
+has one), and name, address, contact
+and phone are kept up to date; a completed, cancelled or archived project is
+marked finished. Prices, offers and internal notes never go. Only projects
+created after the switch is turned on are caught up by the server; the jobs
+that exist already are not sent by themselves. Every send is in the audit log
+(`project.wattroPush`, `project.wattroPushFailed`).
 
 ## Backups
 

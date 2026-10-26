@@ -48,7 +48,7 @@ export default async function SettingsPage({
   const tab = ["accounts", "categories", "data"].includes(tabParam ?? "")
     ? (tabParam as string)
     : "";
-  const [t, tNav, tRoles, tc, tImport, tImportPlan, tImportExcel, tStatus, tProjects, tImportMaster] =
+  const [t, tNav, tRoles, tc, tImport, tImportPlan, tImportExcel, tStatus, tProjects, tImportMaster, tTrello] =
     await Promise.all([
       getTranslations("settings"),
       getTranslations("nav"),
@@ -60,6 +60,7 @@ export default async function SettingsPage({
       getTranslations("status"),
       getTranslations("projects"),
       getTranslations("importMaster"),
+      getTranslations("trelloSync"),
     ]);
 
   const [users, categories, branding] = await Promise.all([
@@ -462,11 +463,16 @@ export default async function SettingsPage({
             </Link>
           </Card>
 
-          {/* Import */}
-          <Card title={tImport("title")}>
-            <Link href="/settings/import-trello" className={btn.outline}>
-              {tImport("settingsLink")}
-            </Link>
+          {/* Trello: the automatic sync, and the one-off file import */}
+          <Card title={tTrello("title")} description={tTrello("settingsLink")}>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/settings/trello" className={btn.outline}>
+                {tTrello("title")}
+              </Link>
+              <Link href="/settings/import-trello" className={btn.outline}>
+                {tImport("settingsLink")}
+              </Link>
+            </div>
           </Card>
 
           {/* Spreadsheet of projects */}

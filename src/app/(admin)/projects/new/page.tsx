@@ -145,6 +145,7 @@ export default async function NewProjectPage({
         }))}
         initial={{
           name: draft?.name ?? template?.name ?? '',
+          jobNumber: '',
           customerId: draftCustomer?.id ?? '',
           status: 'LEAD',
           isSub: false,

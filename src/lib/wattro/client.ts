@@ -288,6 +288,125 @@ export const fetchAssetPage = async ({
   return { items, invalid, count: parsed.data.count }
 }
 
+// ── Writing projects ─────────────────────────────────────────────────────
+// The one place this app writes to Wattro. It is off until WATTRO_PROJECT_PUSH
+// is set to 1, and it touches projects only — never machines, hand-outs or
+// people. Writes are not retried: a POST repeated after a timeout could book
+// a project twice. The caller looks a project up by its number first, so a
+// repeat after an uncertain failure finds what is already there.
+
+/** Writing projects to Wattro is a separate switch from reading: off unless asked for. */
+export function isProjectPushEnabled(): boolean {
+  return process.env.WATTRO_PROJECT_PUSH === '1' && isWattroConfigured()
+}
+
+const projectRecordSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  human_id: z.string().nullish().catch(null),
+  contact: z.string().nullish().catch(null),
+  address: z.string().nullish().catch(null),
+  phone: z.string().nullish().catch(null),
+  finished: z.boolean().nullish().catch(null),
+})
+
+/** A project as Wattro holds it. */
+export type WattroProjectRecord = {
+  id: number
+  name: string
+  humanId: string | null
+  contact: string | null
+  address: string | null
+  phone: string | null
+  finished: boolean
+}
+
+function toProjectRecord(body: unknown): WattroProjectRecord {
+  const parsed = projectRecordSchema.safeParse(body)
+  if (!parsed.success) throw new WattroApiError('response', 'Wattro answered a project in an unexpected shape')
+  const p = parsed.data
+  return {
+    id: p.id,
+    name: p.name,
+    humanId: p.human_id ?? null,
+    contact: p.contact ?? null,
+    address: p.address ?? null,
+    phone: p.phone ?? null,
+    finished: p.finished ?? false,
+  }
+}
+
+/** One authenticated write. Not retried; the answer's status says what happened. */
+async function sendJson(method: 'POST' | 'PATCH', path: string, payload: unknown): Promise<unknown> {
+  const config = wattroConfig()
+  if (!config.apiKey) throw new WattroApiError('auth', 'Wattro API key is not configured')
+  let res: Response
+  try {
+    res = await fetch(`${config.baseUrl}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      cache: 'no-store',
+    })
+  } catch (e) {
+    throw new WattroApiError('network', `Wattro request failed: ${e instanceof Error ? e.message : 'unknown error'}`)
+  }
+  if (res.ok) {
+    try {
+      return await res.json()
+    } catch {
+      throw new WattroApiError('response', 'Wattro answered something that is not JSON', res.status)
+    }
+  }
+  if (res.status === 401 || res.status === 403) {
+    console.warn('wattro: the API key was rejected for a write', { status: res.status })
+    throw new WattroApiError('auth', 'Wattro rejected the API key', res.status)
+  }
+  if (res.status === 429) throw new WattroApiError('rateLimit', 'Wattro is rate-limiting requests', res.status)
+  throw new WattroApiError('upstream', `Wattro responded with ${res.status}`, res.status)
+}
+
+/** A project by its number (Wattro's `human_id`); null when Wattro has none under it. */
+export async function fetchProjectByHumanId(humanId: string): Promise<WattroProjectRecord | null> {
+  try {
+    return toProjectRecord(await getJson(`/project/by_human_id/${encodeURIComponent(humanId)}`))
+  } catch (e) {
+    if (e instanceof WattroApiError && e.status === 404) return null
+    throw e
+  }
+}
+
+/**
+ * A project by Wattro's own id — for the one whose number changed here, which
+ * is no longer found under the old one. Wattro has no lookup by id, so the
+ * (short) project list is read and searched.
+ */
+export async function fetchProjectById(id: number): Promise<WattroProjectRecord | null> {
+  const rows = await getList('/project/', projectRecordSchema)
+  const row = rows.find((r) => r.id === id)
+  return row ? toProjectRecord(row) : null
+}
+
+export async function createWattroProject(body: {
+  name: string
+  human_id: string
+  contact: string | null
+  address: string | null
+  phone: string | null
+  finished: boolean
+}): Promise<WattroProjectRecord> {
+  return toProjectRecord(await sendJson('POST', '/project/', body))
+}
+
+export async function patchWattroProject(humanId: string, patch: Record<string, unknown>): Promise<WattroProjectRecord> {
+  return toProjectRecord(await sendJson('PATCH', `/project/by_human_id/${encodeURIComponent(humanId)}`, patch))
+}
+
 // Wattro's employee and project lists come whole, as plain arrays. Only what
 // names a machine's place is read — no phone numbers, e-mails or NFC ids.
 const listSchema = z.array(z.unknown())

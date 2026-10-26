@@ -367,3 +367,88 @@ describe('fetchEmployees / fetchProjects', () => {
     await expect(fetchProjects()).rejects.toMatchObject({ kind: 'auth' })
   })
 })
+
+describe('writing projects', () => {
+  const body = {
+    name: 'Muster Fassade',
+    human_id: '2026-0804',
+    contact: null,
+    address: 'Beispielweg 3, 12345 Musterstadt',
+    phone: null,
+    finished: false,
+  }
+  const record = { id: 77, name: 'Muster Fassade', human_id: '2026-0804', address: body.address, finished: false }
+
+  it('is off unless WATTRO_PROJECT_PUSH is 1 and a key is set', async () => {
+    const { isProjectPushEnabled } = await import('@/lib/wattro/client')
+    expect(isProjectPushEnabled()).toBe(false)
+    process.env.WATTRO_PROJECT_PUSH = '1'
+    expect(isProjectPushEnabled()).toBe(true)
+    delete process.env.WATTRO_API_KEY
+    expect(isProjectPushEnabled()).toBe(false)
+    delete process.env.WATTRO_PROJECT_PUSH
+  })
+
+  it('creates a project with a POST and bearer auth, and reads the answer', async () => {
+    const { createWattroProject } = await import('@/lib/wattro/client')
+    fetchMock.mockResolvedValueOnce(jsonResponse(record, { status: 201 }))
+
+    const created = await createWattroProject(body)
+
+    expect(created).toMatchObject({ id: 77, humanId: '2026-0804', finished: false })
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toBe(`${WATTRO_DEFAULT_BASE_URL}/project/`)
+    expect(init.method).toBe('POST')
+    expect(init.headers.Authorization).toBe(`Bearer ${TEST_KEY}`)
+    expect(JSON.parse(init.body)).toEqual(body)
+  })
+
+  it('patches by the number, url-encoded', async () => {
+    const { patchWattroProject } = await import('@/lib/wattro/client')
+    fetchMock.mockResolvedValueOnce(jsonResponse(record))
+
+    await patchWattroProject('2026/0804', { finished: true })
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toBe(`${WATTRO_DEFAULT_BASE_URL}/project/by_human_id/2026%2F0804`)
+    expect(init.method).toBe('PATCH')
+    expect(JSON.parse(init.body)).toEqual({ finished: true })
+  })
+
+  it('never retries a write', async () => {
+    const { createWattroProject } = await import('@/lib/wattro/client')
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'boom' }, { status: 503 }))
+
+    await expect(createWattroProject(body)).rejects.toMatchObject({ kind: 'upstream', status: 503 })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports a refused key without retrying', async () => {
+    const { createWattroProject } = await import('@/lib/wattro/client')
+    fetchMock.mockResolvedValue(jsonResponse({ detail: 'Unauthorized' }, { status: 401 }))
+
+    await expect(createWattroProject(body)).rejects.toMatchObject({ kind: 'auth' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('answers null for a number Wattro does not know', async () => {
+    const { fetchProjectByHumanId } = await import('@/lib/wattro/client')
+    fetchMock.mockResolvedValueOnce(jsonResponse({ detail: 'Not Found' }, { status: 404 }))
+
+    expect(await fetchProjectByHumanId('2026-0804')).toBeNull()
+  })
+
+  it('reads a project it finds', async () => {
+    const { fetchProjectByHumanId } = await import('@/lib/wattro/client')
+    fetchMock.mockResolvedValueOnce(jsonResponse(record))
+
+    expect(await fetchProjectByHumanId('2026-0804')).toMatchObject({ id: 77, name: 'Muster Fassade' })
+  })
+
+  it('refuses a project answer in a shape it does not know', async () => {
+    const { createWattroProject } = await import('@/lib/wattro/client')
+    fetchMock.mockResolvedValueOnce(jsonResponse({ unexpected: true }, { status: 201 }))
+
+    await expect(createWattroProject(body)).rejects.toMatchObject({ kind: 'response' })
+  })
+})

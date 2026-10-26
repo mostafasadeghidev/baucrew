@@ -97,6 +97,7 @@ export default async function EditProjectPage({
         }))}
         initial={{
           name: project.name,
+          jobNumber: project.jobNumber ?? '',
           customerId: project.customerId,
           status: project.status,
           isSub: project.isSub,

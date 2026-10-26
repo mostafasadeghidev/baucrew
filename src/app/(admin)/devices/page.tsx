@@ -45,7 +45,8 @@ export default async function DevicesPage({
   ])
   const query = q?.trim() ?? ''
   const tab = parseWhereFilter(whereParam)
-  const mode: DevicesView = view === 'board' || view === 'map' ? view : 'list'
+  // The board is where the page opens: every machine in the list of its place.
+  const mode: DevicesView = view === 'list' || view === 'map' ? view : 'board'
   const board = mode === 'board'
 
   // Every device is read and narrowed here rather than in SQL: the search
@@ -121,7 +122,7 @@ export default async function DevicesPage({
   // Tab, search and view travel together: switching one keeps the others.
   const href = ({ where = tab, as = mode }: { where?: DeviceWhereFilter; as?: DevicesView }) => {
     const params = new URLSearchParams()
-    if (as !== 'list') params.set('view', as)
+    if (as !== 'board') params.set('view', as)
     if (where !== 'all') params.set('where', where)
     if (query) params.set('q', query)
     const qs = params.toString()

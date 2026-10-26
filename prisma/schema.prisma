@@ -259,6 +259,11 @@ model Project {
   id              String        @id @default(cuid())
   // Human-readable sequential number, e.g. "2026-0048"
   number          String        @unique
+  /// The client's own project number — the one in brackets behind a Trello
+  /// card's title, "(1234567)" — typed in or imported, editable, and the
+  /// project's ID in Wattro when set. Apart from `number` on purpose: that one
+  /// is the app's own and never changes, what the API and the automations use.
+  jobNumber       String?       @unique
   name            String
   customerId      String
   customer        Customer      @relation(fields: [customerId], references: [id])
@@ -1084,6 +1089,30 @@ model BoardColumn {
   sortOrder Int           @default(0)
 
   @@index([boardId])
+}
+
+/// A Trello board the server brings in by itself (src/lib/trello/auto-sync.ts):
+/// found on the account the key belongs to, switched on here. Its lists become
+/// the board's columns as they are and statuses by their names
+/// (suggestStatus), unless a list is pinned in `listStatus`.
+model TrelloSyncBoard {
+  /// Trello's board id.
+  id              String    @id
+  name            String
+  closed          Boolean   @default(false)
+  enabled         Boolean   @default(false)
+  includeArchived Boolean   @default(true)
+  makeBoard       Boolean   @default(true)
+  /// Null = read off the cards: a board whose cards name no customer is filed under one.
+  oneCustomer     Boolean?
+  /// list id → ProjectStatus or "SKIP", only where somebody pinned it.
+  listStatus      Json      @default("{}")
+  lastRunAt       DateTime?
+  lastResult      String?
+  lastError       String?
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model AppSetting {

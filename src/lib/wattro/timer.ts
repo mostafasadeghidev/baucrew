@@ -2,6 +2,7 @@ import 'server-only'
 
 import { runScheduledSync, configuredSyncInterval } from './auto-sync'
 import { TIMER_TICK_MINUTES } from './schedule'
+import { pushPendingProjects } from './project-push'
 
 /**
  * The automatic sync inside a long-running server (Docker, `next start`):
@@ -12,16 +13,23 @@ import { TIMER_TICK_MINUTES } from './schedule'
  * One timer per process, even if the module is loaded twice (development
  * reloads keep the process).
  */
+const CATCH_UP_MINUTES = 15
 const started = globalThis as unknown as { wattroTimer?: ReturnType<typeof setInterval> }
 
 export function startWattroTimer() {
-  if (started.wattroTimer || configuredSyncInterval() <= 0) return
+  if (started.wattroTimer) return
   let running = false
+  let lastCatchUp = 0
   const tick = async () => {
     if (running) return
     running = true
     try {
-      await runScheduledSync()
+      if (configuredSyncInterval() > 0) await runScheduledSync()
+      // Projects an event could not send are tried again, every 15 minutes at most.
+      if (Date.now() - lastCatchUp >= CATCH_UP_MINUTES * 60_000) {
+        lastCatchUp = Date.now()
+        await pushPendingProjects()
+      }
     } catch (e) {
       console.error('wattro: automatic sync crashed', e instanceof Error ? e.message : e)
     } finally {

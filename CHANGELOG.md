@@ -3,6 +3,106 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.55.0] — 2026-10-19
+
+Migration `20261019140000_project_job_number` (one new column, and the existing
+Trello numbers copied into it). Take a database backup before deploying.
+
+### Added
+- **The client's own project number is a field now: Projektnummer.** The
+  number in brackets behind every Trello card title ("Muster (1234567)") used
+  to sit in a hidden field; it can now be typed in or left empty on a new
+  project, changed on the edit form and the card sheet, and is found by the
+  board search. It shows under the name on the board and in the title of the
+  project page. Another project's number is refused. The Trello import fills it
+  in and never overwrites it; the migration copies the numbers the import had
+  already kept (a number that stands on two projects is copied to neither).
+  The app's own number ("2026-0048") is unchanged. (#52)
+- **Wattro knows a project by its Projektnummer** (the app's own number when it
+  has none), and when the number is changed the same project is renamed in
+  Wattro instead of made twice. (#52)
+
+### Changed
+- "Auftragsnr." is now "Projektnr." (Project no.) throughout. (#52)
+
+## [1.54.0] — 2026-10-19
+
+No migration. Writing to Wattro is off until the server has
+`WATTRO_PROJECT_PUSH=1`; see DEPLOYMENT.md.
+
+### Added
+- **Projects reach Wattro by themselves.** A project that is created as, or
+  moved to, *Beauftragt*, *Geplant* or *In Arbeit* is created in the client's
+  Wattro under its project number, and its name, address, contact and phone
+  are kept up to date; a completed, cancelled or archived project is marked
+  finished there. Leads and offers stay out. Prices, offers and internal notes
+  never go, nothing is ever deleted in Wattro, and a project already in Wattro
+  under the same number is adopted instead of made twice. A save never waits
+  for Wattro: a failed send is written to the audit log
+  (`project.wattroPushFailed`) and tried again every 15 minutes, for projects
+  created after the switch was turned on. Jobs that exist already are not sent
+  by themselves. See `docs/CHANGE-wattro-project-push.md`. (#50)
+
+## [1.53.1] — 2026-10-17
+
+### Fixed
+- **The board no longer falls over while a Trello run is moving a project
+  between customers.** For the blink in which the sync moves a project to
+  the customer its card names and drops the guessed one, the projects page
+  could load a card without its customer and crash; it now draws the card
+  with a blank customer line. (#48)
+
+## [1.53.0] — 2026-10-17
+
+Migration `20261017180000_trello_sync_board` (one new table). The server
+needs `TRELLO_API_KEY` and `TRELLO_TOKEN` for the new sync; see DEPLOYMENT.md.
+
+### Added
+- **The Trello boards come in by themselves.** *Einstellungen → Trello*
+  lists every board of the Trello account the server's key belongs to, one
+  switch each. A board switched on is pulled from Trello by the server and
+  brought into the projects — every hour and on *Jetzt abgleichen* — with
+  its lists as the board's columns, the status from the list's name, the
+  customer read off the card, and the comments, checklists and files along.
+  Nothing to upload, nothing to map. Per board: whether the cards are
+  customer jobs or all file under one customer (read off the cards unless
+  set), archived cards, the board with its columns; the row says when it was
+  last brought in and what came of it. One way only, Trello → BauCrew, until
+  the day Trello is frozen and the boards are switched off here. The file
+  wizard stays for a board the account does not see.
+  `TRELLO_SYNC_INTERVAL_MINUTES` changes the hour (`0` = off). Details in
+  `docs/CHANGE-trello-auto-sync.md` and `docs/TRELLO-RESYNC.md` §1a. (#46)
+
+### Changed
+- The Trello importer itself lives in `src/lib/trello/import.ts`; the file
+  wizard and the new sync both call it, so a board comes in the same way
+  whichever door it takes. (#46)
+
+## [1.52.0] — 2026-10-17
+
+No migration: a deploy is a rebuild and a restart.
+
+### Added
+- **The Devices page opens as the board.** One column per place — the
+  stores, every person, every site — with every machine as a card; the list
+  is `?view=list`, the map `?view=map`, old `?view=board` links still work.
+  (#41)
+- **The Trello re-sync is repeatable and written down.** `scripts/trello-pull.mjs`
+  pulls every board from the Trello API with all comments into the
+  git-excluded `local/trello-boards/`; `docs/TRELLO-RESYNC.md` is the runbook
+  — pull, import per board with its options, the files on the server with a
+  short-lived token, what a second import overwrites and what it keeps, the
+  verify query, the cutover. (#42)
+
+### Fixed
+- **A second Trello import no longer doubles or hijacks projects.** A card
+  finds its project by its link first; else by job number, but only a
+  project no card is linked to yet, so two cards sharing a number become two
+  projects instead of one project flipping between them. The rule that
+  adopted any project of the same name is gone — it had taken over two
+  hand-made projects on a copy of production. DB test
+  `tests/db/trello-import.test.ts`. (#42)
+
 ## [1.51.0] — 2026-10-10
 
 The fixes from the review of the integrated main, and the office's job number

@@ -94,7 +94,20 @@ list: rule `trello:<list id>` matched against the project link's
 `docs/CHANGE-card-route.md` (a card opened over the board lives at
 `/projects/card/<id>` in a parallel `@modal` slot, streamed over the board
 that stays put; a cold load shows the full project page; old `?card=` links
-still work). Add a new file there for similar changes.
+still work), `docs/CHANGE-trello-auto-sync.md` (the server pulls the Trello
+boards switched on under Einstellungen → Trello and runs the importer itself,
+hourly and on the button; the importer lives in `src/lib/trello/import.ts`).
+`docs/CHANGE-wattro-project-push.md` (the first thing written to Wattro: a
+project created there under its number, off unless `WATTRO_PROJECT_PUSH=1`).
+`docs/CHANGE-project-job-number.md` (the client's own project number, the
+Trello title's "(1234567)", as a field of its own: typed, edited, searched, filled
+by the import, and a project's ID in Wattro).
+Add a new file there for similar changes.
+
+`docs/TRELLO-RESYNC.md` is the runbook for bringing the client's Trello boards
+in again — by the server itself (Einstellungen → Trello) or by hand (pull with
+`scripts/trello-pull.mjs`, import per board, fetch files) — with the verify
+query, the cutover, and what a second import overwrites and what it keeps.
 
 ## Shared progress list
 

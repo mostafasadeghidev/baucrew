@@ -1,17 +1,37 @@
 import { describe, expect, it } from 'vitest'
-import { jobNumberOf } from '@/lib/job-number'
+import { JOB_NUMBER_MAX, jobNumberOf, normalizeJobNumber, wattroKeyOf } from '@/lib/job-number'
+
+describe('normalizeJobNumber', () => {
+  it('tidies whitespace', () => {
+    expect(normalizeJobNumber('  1234567  ')).toBe('1234567')
+    expect(normalizeJobNumber('A  12\t3')).toBe('A 12 3')
+  })
+
+  it('reads an empty field as no number', () => {
+    expect(normalizeJobNumber('')).toBeNull()
+    expect(normalizeJobNumber('   ')).toBeNull()
+    expect(normalizeJobNumber(null)).toBeNull()
+    expect(normalizeJobNumber(undefined)).toBeNull()
+  })
+
+  it('cuts at Wattro\'s 50 characters', () => {
+    expect(normalizeJobNumber('9'.repeat(80))).toHaveLength(JOB_NUMBER_MAX)
+  })
+})
 
 describe('jobNumberOf', () => {
-  it('gives back the number a Trello card carried in its title', () => {
-    expect(jobNumberOf({ externalSystem: 'trello', externalId: '4100001' })).toBe('4100001')
+  it('is the project\'s own field', () => {
+    expect(jobNumberOf({ jobNumber: '1234567' })).toBe('1234567')
+    expect(jobNumberOf({ jobNumber: null })).toBeNull()
+  })
+})
+
+describe('wattroKeyOf', () => {
+  it('is the client\'s number when the project has one', () => {
+    expect(wattroKeyOf({ jobNumber: '1234567', number: '2026-0645' })).toBe('1234567')
   })
 
-  it('has none for a card without a number, whose id is the Trello card id', () => {
-    expect(jobNumberOf({ externalSystem: 'trello', externalId: '6710b182cf10bba334c66856' })).toBeNull()
-  })
-
-  it('has none for a project from elsewhere or without a source', () => {
-    expect(jobNumberOf({ externalSystem: 'excel', externalId: '4100001' })).toBeNull()
-    expect(jobNumberOf({ externalSystem: null, externalId: null })).toBeNull()
+  it('is the app\'s own number otherwise, so every project has an ID in Wattro', () => {
+    expect(wattroKeyOf({ jobNumber: null, number: '2026-0645' })).toBe('2026-0645')
   })
 })
