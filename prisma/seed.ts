@@ -3,6 +3,9 @@ import { PrismaClient } from '../src/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 import { readFileSync } from 'node:fs'
+import { CATALOG_STARTER_CSV } from '../src/lib/catalog-starter'
+import { BUILT_IN } from '../src/lib/option-lists'
+import { planCatalogImport, readCatalogTable, splitTable } from '../src/lib/project-needs'
 
 // Base seed for a fresh installation: system accounts, work categories and a
 // small tool/material catalog. It contains NO company data (no employees,
@@ -49,6 +52,15 @@ async function main() {
   for (const item of data.catalogItems) {
     const existing = await db.catalogItem.findFirst({ where: { name: item.name } })
     if (!existing) await db.catalogItem.create({ data: item })
+  }
+
+  // ── Starter catalogue (painting, plastering, drywall) ────
+  // The same list and rules as Lager → Liste importieren: found by kind and
+  // name, only new entries made, nothing the office typed is touched.
+  const starter = readCatalogTable(splitTable(CATALOG_STARTER_CSV), BUILT_IN.itemKinds, 'MATERIAL').rows
+  const plan = planCatalogImport(starter, await db.catalogItem.findMany())
+  for (const entry of plan.filter((p) => p.action === 'create')) {
+    await db.catalogItem.create({ data: { kind: entry.kind, name: entry.name, category: entry.category, unit: entry.unit } })
   }
 
   console.log('Done.')

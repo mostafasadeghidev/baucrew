@@ -29,6 +29,8 @@ describe('the backup', () => {
       for (const [, parent] of body.matchAll(/^\s+\w+\s+(\w+)\??\s+@relation\(/gm)) {
         if (!order.has(parent)) continue
         if (bothWays.some(([child, p]) => child === model && p === parent)) continue
+        // A table pointing at itself — a folder in a folder — is put in order row by row (lib/backup.ts).
+        if (parent === model) continue
         expect(order.get(parent)!, `${parent} must come before ${model}`).toBeLessThan(order.get(model)!)
       }
     }

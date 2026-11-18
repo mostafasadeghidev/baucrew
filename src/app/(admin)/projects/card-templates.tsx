@@ -99,13 +99,7 @@ export function CardTemplates({
     startTransition(async () => {
       const result = await createCardFromTemplate(template.id, place, data)
       if (result.error || !result.id) {
-        setError(
-          result.error === 'nameRequired'
-            ? t('kanbanAddErrorName')
-            : result.error === 'customerRequired'
-              ? t('kanbanAddErrorCustomer')
-              : tc('saveFailed')
-        )
+        setError(result.error === 'customerRequired' ? t('kanbanAddErrorCustomer') : tc('saveFailed'))
         return
       }
       close()
@@ -180,26 +174,6 @@ export function CardTemplates({
           <>
             {head(t('templateCreateTitle'), () => go({ kind: 'list' }))}
             <form key={view.template.id} onSubmit={(e) => submitCard(e, view.template)} className="space-y-3">
-              <label className="block">
-                <span className="text-xs font-semibold text-muted">{t('templateCardTitle')}</span>
-                <textarea
-                  name="name"
-                  required
-                  autoFocus
-                  rows={2}
-                  maxLength={300}
-                  defaultValue={view.template.name}
-                  onFocus={(e) => e.currentTarget.select()}
-                  onKeyDown={(e) => {
-                    // Enter makes the card, as in Trello; a line break has no place in a title.
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      e.currentTarget.form?.requestSubmit()
-                    }
-                  }}
-                  className="mt-1 block w-full resize-none rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-              </label>
               <div>
                 <span className="text-xs font-semibold text-muted">{t('templateCustomer')}</span>
                 {newCustomer ? (

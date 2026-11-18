@@ -185,6 +185,7 @@ async function allProjects(): Promise<JobProject[]> {
     select: {
       id: true,
       name: true,
+      sourceTitle: true,
       status: true,
       sourceCreatedAt: true,
       createdAt: true,
@@ -197,7 +198,8 @@ async function allProjects(): Promise<JobProject[]> {
   })
   return rows.map((r) => ({
     id: r.id,
-    name: r.name,
+    // The sheet names a job the way its card was titled, not "Kunde · Leistung".
+    name: r.sourceTitle ?? r.name,
     customer: r.customer.name,
     sourceCreatedAt: r.sourceCreatedAt,
     createdAt: r.createdAt,
@@ -402,10 +404,12 @@ async function findLinkedProject(p: PlanLinkRecord['project']): Promise<string |
     })
     if (hit) return hit.id
   }
-  const byNumber = await db.project.findFirst({ where: { number: p.number, name: p.name }, select: { id: true } })
+  // A file written before the names came from customer and trade names the old title.
+  const named = { OR: [{ name: p.name }, { sourceTitle: p.name }] }
+  const byNumber = await db.project.findFirst({ where: { number: p.number, ...named }, select: { id: true } })
   if (byNumber) return byNumber.id
   const byName = await db.project.findMany({
-    where: { name: p.name, status: { not: 'CANCELLED' } },
+    where: { ...named, status: { not: 'CANCELLED' } },
     select: { id: true },
     take: 2,
   })

@@ -34,6 +34,7 @@ export type MergeFields = {
   actualEnd: Date | null
   inspectionDate: Date | null
   executionWish: string | null
+  workNote: string | null
   managerId: string | null
   coverDocumentId: string | null
   description: string | null
@@ -75,6 +76,7 @@ export function mergedFields(keep: MergeFields, drop: MergeFields, from: string)
     actualEnd: keep.actualEnd ?? drop.actualEnd,
     inspectionDate: keep.inspectionDate ?? drop.inspectionDate,
     executionWish: keep.executionWish ?? drop.executionWish,
+    workNote: keep.workNote ?? drop.workNote,
     managerId: keep.managerId ?? drop.managerId,
     coverDocumentId: keep.coverDocumentId ?? drop.coverDocumentId,
     description: joined(keep.description, drop.description),

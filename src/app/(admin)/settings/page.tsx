@@ -48,7 +48,7 @@ export default async function SettingsPage({
   const tab = ["accounts", "categories", "data"].includes(tabParam ?? "")
     ? (tabParam as string)
     : "";
-  const [t, tNav, tRoles, tc, tImport, tImportPlan, tImportExcel, tStatus, tProjects, tImportMaster, tTrello] =
+  const [t, tNav, tRoles, tc, tImport, tImportPlan, tImportExcel, tStatus, tProjects, tImportMaster, tTrello, tFeedback, tCatalogImport] =
     await Promise.all([
       getTranslations("settings"),
       getTranslations("nav"),
@@ -61,6 +61,8 @@ export default async function SettingsPage({
       getTranslations("projects"),
       getTranslations("importMaster"),
       getTranslations("trelloSync"),
+      getTranslations("feedback"),
+      getTranslations("catalogImport"),
     ]);
 
   const [users, categories, branding] = await Promise.all([
@@ -287,6 +289,13 @@ export default async function SettingsPage({
 
       {tab === "" && (
         <div className="space-y-8">
+          {/* Feedback: the comments left in comment mode, as tasks */}
+          <Card title={tFeedback("settingsTitle")} description={tFeedback("settingsHint")}>
+            <Link href="/feedback" className={btn.outline}>
+              {tFeedback("settingsOpen")}
+            </Link>
+          </Card>
+
           {/* Branding: name, colour and logo in one card */}
           <Card title={t("brandingTitle")} description={t("brandingHint")}>
             <div className="grid gap-6 lg:grid-cols-2">
@@ -486,6 +495,13 @@ export default async function SettingsPage({
           <Card title={tImportMaster("title")} description={tImportMaster("hint")}>
             <Link href="/settings/import-master" className={btn.outline}>
               {tImportMaster("settingsLink")}
+            </Link>
+          </Card>
+
+          {/* Materials and tools (the catalogue lives in the warehouse area) */}
+          <Card title={tCatalogImport("title")} description={tCatalogImport("settingsHint")}>
+            <Link href="/warehouse/import" className={btn.outline}>
+              {tCatalogImport("settingsLink")}
             </Link>
           </Card>
 

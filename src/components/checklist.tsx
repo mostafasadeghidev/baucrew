@@ -11,7 +11,7 @@ import {
   setChecklistItemPlan,
 } from '@/app/(admin)/projects/[id]/checklist-actions'
 import { convertChecklistItemToCard } from '@/app/(admin)/projects/actions'
-import { cardHref, isCardPath } from '@/lib/card-url'
+import { boardBaseOf, cardHref, isCardPath } from '@/lib/card-url'
 import { btn } from './ui/button'
 import { Menu, MenuSeparator, menuItemClass } from './ui/menu'
 import { Popover, PopoverHead } from './ui/popover'
@@ -127,7 +127,7 @@ export function Checklist({
       }
       const url = new URL(window.location.href)
       if (isCardPath(url.pathname)) {
-        router.push(cardHref(new URLSearchParams(url.searchParams), res.id), { scroll: false })
+        router.push(cardHref(new URLSearchParams(url.searchParams), res.id, undefined, boardBaseOf(url.pathname)), { scroll: false })
       } else router.push(`/projects/${res.id}`)
     })
 

@@ -2,9 +2,10 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { requireManagement } from '@/lib/authz'
-import { parseFields, parseSigners } from '@/lib/forms'
+import { LAYOUT_TYPES, parseFields, parseSigners } from '@/lib/forms'
 import { btn } from '@/components/ui/button'
 import { PageBar, PageHint, PagePanel, StickyHead } from '@/components/ui/page-panel'
+import { ImportTemplates } from './import-templates'
 
 /** The form templates: what a project's forms are made from. */
 export default async function FormTemplatesPage() {
@@ -23,13 +24,23 @@ export default async function FormTemplatesPage() {
           back={{ href: '/projects', label: tProjects('title') }}
           title={t('templatesTitle')}
           actions={
-            <Link href="/projects/forms/new" className={btn.primary}>
-              {t('templateAdd')}
-            </Link>
+            <>
+              {templates.length > 0 && (
+                <a href="/api/form-templates" className={btn.outline}>
+                  {t('exportAll')}
+                </a>
+              )}
+              <Link href="/projects/forms/new" className={btn.primary}>
+                {t('templateAdd')}
+              </Link>
+            </>
           }
         />
       </StickyHead>
       <PageHint>{t('templatesHint')}</PageHint>
+      <div className="flex">
+        <ImportTemplates />
+      </div>
 
       <PagePanel>
         <div className="overflow-x-auto">
@@ -65,9 +76,10 @@ export default async function FormTemplatesPage() {
                         {template.name}
                       </Link>
                       {template.description && <p className="text-xs text-muted">{template.description}</p>}
+                      {template.financial && <p className="text-xs text-muted">{t('templateFinancialBadge')}</p>}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-muted">
-                      {parseFields(template.fields).filter((f) => f.type !== 'heading').length}
+                      {parseFields(template.fields).filter((f) => !LAYOUT_TYPES.has(f.type)).length}
                     </td>
                     <td className="truncate px-4 py-3 text-muted">{parseSigners(template.signers).join(', ') || '—'}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-muted">{template._count.forms || '—'}</td>

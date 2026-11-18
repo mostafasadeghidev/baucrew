@@ -144,7 +144,6 @@ export default async function NewProjectPage({
           label: locale === 'en' ? c.nameEn : c.nameDe,
         }))}
         initial={{
-          name: draft?.name ?? template?.name ?? '',
           jobNumber: '',
           customerId: draftCustomer?.id ?? '',
           status: 'LEAD',
@@ -178,6 +177,7 @@ export default async function NewProjectPage({
               ? `Kunde laut Import: ${draft.customerName}`
               : '',
           categoryIds: template?.workCategoryId ? [template.workCategoryId] : [],
+          workNote: '',
           teamIds: template?.employees.map((te) => te.employeeId) ?? [],
           checklistIds: template?.checklists.map((tc) => tc.checklistTemplateId) ?? [],
           deviceIds: template?.deviceNeeds.map((td) => td.deviceId) ?? [],

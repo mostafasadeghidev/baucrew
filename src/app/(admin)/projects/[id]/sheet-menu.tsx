@@ -18,7 +18,7 @@ import { createTemplateFromProject } from '../templates/actions'
 import { reopenProject } from '../../schedule/actions'
 import { PROJECT_EDIT_ALL_EVENT } from '../project-form'
 import { ROUND_BUTTON } from '../card-sheet'
-import { cardPath } from '@/lib/card-url'
+import { boardBaseOf, cardPath } from '@/lib/card-url'
 
 export function SheetMenu({
   projectId,
@@ -56,7 +56,9 @@ export function SheetMenu({
       the template sheet is always the board page's own, over the board. */
   const over = (key: 'card' | 'template', id: string) => {
     const url = new URL(window.location.href)
-    url.pathname = key === 'card' ? cardPath(id) : '/projects'
+    // Over Baustellen the next card opens there too, on the same board.
+    const base = boardBaseOf(url.pathname)
+    url.pathname = key === 'card' ? cardPath(id, base) : base
     url.searchParams.delete('card')
     url.searchParams.delete('template')
     if (key === 'template') url.searchParams.set('template', id)

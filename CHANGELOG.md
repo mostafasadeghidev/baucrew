@@ -3,6 +3,119 @@
 All notable changes to BauCrew are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: [SemVer](https://semver.org/).
 
+## [1.58.1] — 2026-11-10
+
+No migrations, no new settings.
+
+### Fixed
+- **Jobs moved in Trello reach Wattro.** The Trello sync changed a project's
+  status without telling Wattro, so a job moved to "In Ausführung" in Trello
+  never became a site there. The sync now hands over what it moved; more than
+  20 new sites out of one run are held back and noted in the audit log. Not
+  retroactive: projects that moved before this release are sent by hand
+  (`docs/CHANGE-wattro-project-push.md`). (#68)
+- A failed Wattro push of an older project is tried again for 7 days. (#68)
+- The app no longer stops at start when `OPENAI_BASE_URL` is not set. (#67)
+
+## [1.58.0] — 2026-11-03
+
+Thirteen migrations, all applied on container start. Two of them rename
+projects (`project_title_from_customer`, `project_title_not_work`); the old
+title stays as `sourceTitle`. **Back up the database before deploying.** After
+the deploy, run the quote backfill once (`docs/CHANGE-quote-reading.md`). New
+optional settings: `QUOTE_OCR` (off), `OPENAI_TRANSCRIBE_MODEL`,
+`OPENAI_TRANSCRIBE_LANGUAGE`, `OPEN_METEO_API_KEY`.
+
+### Added
+- **Project name = customer · trades** ("Muster GmbH · Malern"). There is no
+  typed name any more. Trello's "Art der Arbeit" is read in full, and the
+  words that match no trade become a free work note. Marketing labels never
+  name a project. (#65)
+- **Materials, tools and machines** on the project card, with a catalogue
+  import and a needs-list import. (#65)
+- **Project documentation**: photos (camera or gallery), PDFs, notes and voice
+  notes written out by OpenAI. Each project has a folder tree for attachments
+  and documentation, and tasks can have photos. (#65)
+- **Rain warnings 14 days ahead** on the overview, the project card and the
+  project page. Facade jobs booked as Putz or Malern count as outdoor work.
+  (#65)
+- **Search window** (⌘K or the magnifier) across the office area, projects
+  first. (#65)
+- **Form templates** that read like the client's printed forms. Templates that
+  hold prices are seen only with financial access. (#65)
+- **Quote reading**: net, VAT, gross, Vorgangsnummer and date are read from a
+  project's quote PDFs. They fill the price and the Projektnummer only while
+  those are empty. Supplement quotes (Nachtrag) stay out of the total. (#65)
+- **Baustellen** shows the running-jobs board in the same view as Projekte.
+  The old list's warnings appear as markers on the cards. (#65)
+- **Assistant**: conversations are kept per person, with a history and an
+  archive. It can open pages, ask questions with answers to click and undo a
+  change, and it has a new look. (#63)
+- **Feedback for agents**: the live feedback list over MCP, with a
+  "Nur Feedback-Aufgaben" API key. (#64)
+- **Boards window**: make and change boards in one place, with a colour per
+  column. (#60)
+
+### Changed
+- Wattro gets a project's name only when the project is created there. Existing
+  Wattro projects keep their names. (#65)
+- The assistant reports only changes that really ran. (#63)
+
+## [1.57.0] — 2026-10-31
+
+No migrations. New optional settings in `.env` for the assistant
+(`OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL`,
+`ASSISTANT_APPROVAL_SECRET`); without them the assistant stays off and nothing
+is sent anywhere.
+
+### Added
+- **Assistant in the office area** (the ✦ button at the bottom right): ask in
+  plain words, and it reads and changes projects, customers, the schedule and
+  more as the logged-in user. Every change is shown first, field by field, and
+  runs only after *Ausführen*. Off until an OpenAI key is set on the server;
+  until then the panel says it is not set up. See
+  `docs/CHANGE-mcp-ai-chat.md` and `DEPLOYMENT.md` → "Assistant (optional)". (#59)
+- **MCP tools completed**: `POST /api/mcp` offers 25 tools for projects,
+  comments, defects, customers, employees, vehicles, the schedule and revenue,
+  under the same role and money rules as the app. (#59)
+- **Feedback in the user menu**: the menu at the foot of the sidebar has
+  *Kommentieren* (comment mode on the page one is on) and *Feedback-Aufgaben*. (#61)
+
+### Changed
+- The REST API's customer endpoints refuse site managers, and a site manager
+  sees only their own projects there too. (#59)
+- Moving a schedule entry goes through one shared, audited path for the page
+  and the API. (#59)
+
+## [1.56.0] — 2026-10-31
+
+Migrations `20261031120000_feedback_tool` (four new tables) and
+`20261031120100_feedback_checklist_entries` (the old progress list's entries).
+Existing data is not changed. Take a database backup before deploying.
+
+### Added
+- **Feedback straight from the page.** Anybody logged in adds `?comment` to
+  any address, in the office area and on `/my`: a bar at the bottom lets them
+  point at a spot or draw on a screenshot, and sends a comment with the page,
+  the spot, the browser and the screenshot. Open comments show as numbered
+  pins on their page. (#57)
+- **Feedback-Aufgaben** (Einstellungen → Allgemein, `/feedback`; the crew has
+  `/my/feedback`): every comment as a task, in a list or on a board by status,
+  with search, filters, notes, and proposals for an agent that the office
+  accepts or rejects. The office's own items stay hidden from site managers
+  and the crew. Screenshots are kept in the app's file storage and in the
+  backup. See `docs/CHANGE-feedback-tool.md`. (#57)
+- `scripts/wattro-backfill-projects.mjs`: sends a hand-picked list of existing
+  projects to Wattro, dry run by default. (#54)
+
+### Changed
+- The progress list `/checklist` moved into the feedback tasks with its
+  numbers; the old address leads there. (#56, #57)
+
+### Security
+- Next.js 16.4.1, React 19.2.9 and sharp 0.35.5 for the October advisories
+  (a denial of service through Server Actions among them). (#55)
+
 ## [1.55.0] — 2026-10-19
 
 Migration `20261019140000_project_job_number` (one new column, and the existing

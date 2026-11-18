@@ -35,6 +35,24 @@ export const LABEL_PILL = [
   'bg-pink-200 text-pink-900 dark:bg-pink-800 dark:text-pink-100',
 ]
 
+/**
+ * The ground a list wears on the board when it was given a colour — a pale
+ * tint of the label colour, so the white cards still stand out on it; deep
+ * in the dark. Same order as `LABEL_COLORS`.
+ */
+export const LIST_TINT = [
+  'bg-sky-100 dark:bg-sky-950/50',
+  'bg-emerald-100 dark:bg-emerald-950/50',
+  'bg-amber-100 dark:bg-amber-950/50',
+  'bg-rose-100 dark:bg-rose-950/50',
+  'bg-violet-100 dark:bg-violet-950/50',
+  'bg-teal-100 dark:bg-teal-950/50',
+  'bg-orange-100 dark:bg-orange-950/50',
+  'bg-indigo-100 dark:bg-indigo-950/50',
+  'bg-lime-100 dark:bg-lime-950/50',
+  'bg-pink-100 dark:bg-pink-950/50',
+]
+
 /** The two labels that are not trades. */
 /**
  * The grounds Trello draws three of a card's field lines on — the order value

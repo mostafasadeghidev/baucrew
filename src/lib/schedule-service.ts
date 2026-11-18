@@ -128,3 +128,90 @@ export async function createEntries(userId: string, d: EntryData): Promise<Entry
   await promoteToPlanned(d.projectId, userId)
   return { created }
 }
+
+/**
+ * One day of a project moved to another, crew and vehicles along — the
+ * board's drag, and the API's. The same project on the new day already is a
+ * duplicate and refused.
+ */
+export async function moveEntry(userId: string, id: string, newDate: string): Promise<EntryResult> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return { error: 'saveFailed' }
+  const before = await db.scheduleEntry.findUnique({
+    where: { id },
+    include: { project: { select: { number: true } } },
+  })
+  if (!before) return { error: 'saveFailed' }
+  const oldDate = before.date.toISOString().slice(0, 10)
+  if (oldDate === newDate) return {}
+  try {
+    await db.scheduleEntry.update({ where: { id }, data: { date: utcDay(newDate) } })
+    await audit({
+      userId,
+      action: 'schedule.move',
+      entity: 'ScheduleEntry',
+      entityId: id,
+      field: before.project.number,
+      oldValue: oldDate,
+      newValue: newDate,
+    })
+  } catch (e) {
+    return { error: isUniqueConflict(e) ? 'duplicateEntry' : 'saveFailed' }
+  }
+  return {}
+}
+
+/** What may change on one day without touching the days around it. */
+export type EntryDayPatch = {
+  employeeIds?: string[]
+  vehicleIds?: string[]
+  startTime?: string | null
+  endTime?: string | null
+  note?: string | null
+}
+
+/** One day's crew, vehicles, hours or note; what the patch leaves out stays as it is. */
+export async function updateEntryDay(userId: string, id: string, patch: EntryDayPatch): Promise<EntryResult> {
+  const before = await db.scheduleEntry.findUnique({ where: { id }, include: { project: { select: { number: true } } } })
+  if (!before) return { error: 'saveFailed' }
+  try {
+    await db.scheduleEntry.update({
+      where: { id },
+      data: {
+        ...(patch.startTime !== undefined ? { startTime: patch.startTime } : {}),
+        ...(patch.endTime !== undefined ? { endTime: patch.endTime } : {}),
+        ...(patch.note !== undefined ? { note: patch.note } : {}),
+        ...(patch.employeeIds
+          ? { employees: { deleteMany: {}, create: patch.employeeIds.map((employeeId) => ({ employeeId })) } }
+          : {}),
+        ...(patch.vehicleIds ? { vehicles: { deleteMany: {}, create: patch.vehicleIds.map((vehicleId) => ({ vehicleId })) } } : {}),
+      },
+    })
+  } catch {
+    return { error: 'saveFailed' }
+  }
+  await audit({
+    userId,
+    action: 'schedule.update',
+    entity: 'ScheduleEntry',
+    entityId: id,
+    oldValue: `${before.project.number} @ ${before.date.toISOString().slice(0, 10)}`,
+    newValue: Object.keys(patch).join(', '),
+  })
+  return {}
+}
+
+/** One day taken out of the plan, the reversible way: cancelled, so planning it again brings it back. */
+export async function cancelEntry(userId: string, id: string): Promise<void> {
+  const entry = await db.scheduleEntry.update({
+    where: { id },
+    data: { cancelledAt: new Date() },
+    include: { project: { select: { number: true } } },
+  })
+  await audit({
+    userId,
+    action: 'schedule.cancel',
+    entity: 'ScheduleEntry',
+    entityId: id,
+    oldValue: `${entry.project.number} @ ${entry.date.toISOString().slice(0, 10)}`,
+  })
+}

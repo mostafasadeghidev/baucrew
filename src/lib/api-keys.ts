@@ -32,3 +32,22 @@ export function bearerToken(header: string | null | undefined): string | null {
   const m = /^Bearer\s+(\S+)$/i.exec(header.trim())
   return m ? m[1] : null
 }
+
+/**
+ * What a key may open besides everything: "feedback" is a key for a coding
+ * agent working off the feedback list — the feedback tools over MCP, nothing
+ * of the REST API and none of the other tools.
+ */
+export const API_KEY_SCOPES = ['feedback'] as const
+export type ApiKeyScope = (typeof API_KEY_SCOPES)[number]
+
+export const isApiKeyScope = (value: unknown): value is ApiKeyScope => API_KEY_SCOPES.includes(value as ApiKeyScope)
+
+/**
+ * Whether a key of this scope opens a door that lets in these scopes. A full
+ * key (null) opens every door; a limited one only a door that names it — so a
+ * door that says nothing stays shut to every limited key.
+ */
+export function scopeAllows(keyScope: string | null, doorScopes: readonly ApiKeyScope[] = []): boolean {
+  return keyScope === null || doorScopes.includes(keyScope as ApiKeyScope)
+}

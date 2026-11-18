@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { compressToUTF16 } from 'lz-string'
-import { cardFields, foldName, hasFields, matchTrades, powerUpFields, splitAddress, unpack } from '@/lib/trello-fields'
+import { cardFields, foldName, hasFields, matchTrades, powerUpFields, splitAddress, splitWorkTypes, unpack } from '@/lib/trello-fields'
 import { parseTrelloExport } from '@/lib/trello'
 
 /** A plugin's stored value the way Trello keeps a custom-fields power-up's: JSON, a key, lz-string inside. */
@@ -112,6 +112,22 @@ describe('splitAddress', () => {
   })
 })
 
+describe('splitWorkTypes', () => {
+  it('splits at commas, slashes and "und"', () => {
+    expect(splitWorkTypes('Malern, Spachteln und Fassade')).toEqual(['Malern', 'Spachteln', 'Fassade'])
+    expect(splitWorkTypes('Putz / Trockenbau + Boden; Gerüst')).toEqual(['Putz', 'Trockenbau', 'Boden', 'Gerüst'])
+  })
+
+  it('keeps a word cut short with a hyphen with the one after it', () => {
+    expect(splitWorkTypes('Innen- und Außenputz')).toEqual(['Innen- und Außenputz'])
+    expect(splitWorkTypes('Malern, Innen-, Außenputz')).toEqual(['Malern', 'Innen-, Außenputz'])
+  })
+
+  it('leaves out pieces without a letter', () => {
+    expect(splitWorkTypes('Malern,, - , 2 / ')).toEqual(['Malern'])
+  })
+})
+
 describe('matchTrades', () => {
   const trades = [
     { id: 't1', names: ['Malern', 'Painting'] },
@@ -124,8 +140,91 @@ describe('matchTrades', () => {
     expect(matchTrades(['Painting', 'Malern'], trades)).toEqual({ ids: ['t1'], unknown: [] })
   })
 
+  it('takes a trade named whole for that trade alone', () => {
+    const own = [
+      { id: 'mal', names: ['Malern', 'Painting'] },
+      { id: 'own', names: ['Malerei Muster', 'Malerei Muster'] },
+    ]
+    expect(matchTrades(['Malerei Muster'], own).ids).toEqual(['own'])
+  })
+
   it('leaves over what the app has no trade for', () => {
     expect(matchTrades(['Dach', 'Malern'], trades)).toEqual({ ids: ['t1'], unknown: ['Dach'] })
+  })
+
+  it('keeps what is no work on a site out of the leftover words, but still finds it as a trade', () => {
+    expect(matchTrades(['Lead Anzeige', 'Kundengewinnung (SM)', 'Malern'], trades)).toEqual({ ids: ['t1'], unknown: [] })
+    const office = [...trades, { id: 'lead', names: ['Lead Anzeige', 'Lead Anzeige'] }]
+    expect(matchTrades(['Lead Anzeige'], office)).toEqual({ ids: ['lead'], unknown: [] })
+  })
+
+  it('reads the office\'s own words for a trade', () => {
+    const office = [
+      { id: 'mal', names: ['Malern', 'Painting'] },
+      { id: 'putz', names: ['Putz', 'Plaster'] },
+      { id: 'tb', names: ['Trockenbau', 'Drywall'] },
+      { id: 'fas', names: ['Außenfassade', 'Exterior facade'] },
+      { id: 'wdvs', names: ['WDVS', 'ETICS insulation'] },
+      { id: 'ren', names: ['Renovierung', 'Renovation'] },
+    ]
+    const ids = (words: string[]) => matchTrades(words, office).ids
+    expect(ids(['Malerarbeiten'])).toEqual(['mal'])
+    expect(ids(['Innenmaler', 'Streichen'])).toEqual(['mal'])
+    expect(ids(['Innenputz'])).toEqual(['putz'])
+    expect(ids(['Außenputzarbeiten'])).toEqual(['putz'])
+    expect(ids(['IP'])).toEqual(['putz'])
+    expect(ids(['Trockenbauarbeiten'])).toEqual(['tb'])
+    expect(ids(['Fassade streichen'])).toEqual(['mal', 'fas'])
+    expect(ids(['Außenputz (ggf. WDVS)'])).toEqual(['putz', 'wdvs'])
+    expect(ids(['Dämmung'])).toEqual(['wdvs'])
+    // A refurbishment only where no trade is named: the facade's is the facade.
+    expect(ids(['Fassadensanierung'])).toEqual(['fas'])
+    expect(ids(['Wasserschadensanierung'])).toEqual(['ren'])
+    expect(matchTrades(['Dach', 'Innen-'], office)).toEqual({ ids: [], unknown: ['Dach', 'Innen-'] })
+  })
+
+  it('reads the words that come up again and again', () => {
+    const office = [
+      { id: 'mal', names: ['Malern', 'Painting'] },
+      { id: 'putz', names: ['Putz', 'Plaster'] },
+      { id: 'tb', names: ['Trockenbau', 'Drywall'] },
+      { id: 'bod', names: ['Bodenbeläge', 'Flooring'] },
+      { id: 'ren', names: ['Renovierung', 'Renovation'] },
+      { id: 'bad', names: ['Fugenloses Bad', 'Seamless bathroom'] },
+    ]
+    const ids = (words: string[]) => matchTrades(words, office).ids
+    expect(ids(splitWorkTypes('Innen- und Außenputz'))).toEqual(['putz'])
+    expect(ids(['Spachteln'])).toEqual(['mal'])
+    expect(ids(['Verspachteln Q3'])).toEqual(['mal'])
+    expect(ids(['DG-Ausbau'])).toEqual(['tb'])
+    expect(ids(['Innenausbau'])).toEqual(['tb'])
+    expect(ids(['Rigips'])).toEqual(['tb'])
+    expect(ids(['Fliesen'])).toEqual(['bod'])
+    expect(ids(['Parkett schleifen'])).toEqual(['bod'])
+    expect(ids(['Fugenloses Bad'])).toEqual(['bad'])
+    expect(ids(['fugenl. Bad'])).toEqual(['bad'])
+    expect(ids(['Bad Stucco Veneziano'])).toEqual(['bad'])
+    // The refurbishment as a whole only where nothing else is named.
+    expect(ids(['Komplett'])).toEqual(['ren'])
+    expect(ids(['Alles'])).toEqual(['ren'])
+    expect(ids(['Komplettneubau'])).toEqual(['ren'])
+    expect(ids(['Diverse'])).toEqual(['ren'])
+    expect(ids(['Versicherungsschaden'])).toEqual(['ren'])
+    expect(ids(['Anfahrschaden'])).toEqual(['ren'])
+    expect(ids(['Komplett streichen'])).toEqual(['mal'])
+    // A trade's own name first does not hide the next one.
+    expect(ids(['Putz- und Malerarbeiten'])).toEqual(['putz', 'mal'])
+    expect(ids(['Trockenbau-, Malerarbeiten'])).toEqual(['tb', 'mal'])
+    // The seamless floor is the floor's.
+    expect(ids(['fugenloser Boden'])).toEqual(['bod'])
+  })
+
+  it('finds no seamless bathroom where the app has none', () => {
+    expect(matchTrades(['Fugenloses Bad'], trades)).toEqual({ ids: [], unknown: ['Fugenloses Bad'] })
+  })
+
+  it('leaves a word for a trade the app does not have', () => {
+    expect(matchTrades(['Gerüstaufbau'], trades)).toEqual({ ids: [], unknown: ['Gerüstaufbau'] })
   })
 
   it('folds a name the way the fields are matched', () => {

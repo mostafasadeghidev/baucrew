@@ -57,6 +57,16 @@ export function KeyForm({ users }: { users: Array<{ value: string; label: string
           </div>
           <span className="mt-1 block text-xs text-muted">{t('keyUserHint')}</span>
         </label>
+        <label className="block text-sm sm:col-span-2">
+          <span className="text-muted">{t('keyScope')}</span>
+          <div className="mt-1">
+            <Select name="scope" className="w-full sm:w-1/2" defaultValue="">
+              <option value="">{t('keyScopeAll')}</option>
+              <option value="feedback">{t('keyScopeFeedback')}</option>
+            </Select>
+          </div>
+          <span className="mt-1 block text-xs text-muted">{t('keyScopeHint')}</span>
+        </label>
       </div>
       {state.error && (
         <p role="alert" className="text-sm text-danger">

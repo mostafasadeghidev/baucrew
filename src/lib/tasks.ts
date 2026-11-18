@@ -63,6 +63,15 @@ export function canDeleteTask(user: { id: string; role: string }, task: { create
   return task.createdById === user.id && !task.doneAt
 }
 
+/**
+ * Who may take a task's photo away: the office and the site manager any;
+ * the crew the photos it took itself — a colleague's proof stays.
+ */
+export function canDeleteTaskPhoto(user: { id: string; role: string }, photo: { uploadedById: string | null }): boolean {
+  if (user.role !== 'EMPLOYEE') return true
+  return photo.uploadedById !== null && photo.uploadedById === user.id
+}
+
 /** A task as a list draws it: everything already in words. */
 export type TaskRow = {
   id: string
@@ -79,6 +88,8 @@ export type TaskRow = {
   deletable: boolean
   /** The project, where a list spans several — "2026-0048 — Musterhaus". */
   project?: { id: string; label: string }
+  /** Photos taken for it, oldest first; each with whether the reader may take it away. */
+  photos: Array<{ id: string; filename: string; deletable: boolean }>
 }
 
 type Person = { username: string; employee: { firstName: string; lastName: string } | null } | null
@@ -96,6 +107,7 @@ export type TaskRecord = {
   createdBy: Person
   doneBy: Person
   project?: { id: string; number: string; name: string }
+  photos?: Array<{ id: string; filename: string; uploadedById: string | null }>
 }
 
 const personName = (person: Person): string | null =>
@@ -119,6 +131,7 @@ export function taskRows(
     made: signed(t.createdBy, t.createdAt),
     done: t.doneAt ? signed(t.doneBy, t.doneAt) : null,
     deletable: canDeleteTask(reader, t),
+    photos: (t.photos ?? []).map((p) => ({ id: p.id, filename: p.filename, deletable: canDeleteTaskPhoto(reader, p) })),
     ...(t.project ? { project: { id: t.project.id, label: `${t.project.number} — ${t.project.name}` } } : {}),
   }))
 }

@@ -3,29 +3,32 @@
 /**
  * The board's own menu, the three dots at the right end of its bar the way
  * Trello has them: whether the cards show their details, the archive, and
- * the office's doors — drafts, templates, checklists, forms, the settings.
+ * the office's doors — drafts, templates, checklists, forms — and, for an
+ * administrator, the boards' settings window and a new board.
  */
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Activity, Archive, Check, MoreHorizontal, Settings2 } from 'lucide-react'
+import { Activity, Archive, Check, MoreHorizontal, Plus, Settings2 } from 'lucide-react'
 import { Menu, MenuLabel, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { useCardDetails } from './board-prefs'
 import { projectControl } from './toolbar-styles'
+import { openBoardSettings } from './board-settings'
 
 export function BoardMenu({
   boardView,
   archivedHref,
   activityHref,
   links,
-  settingsHref,
+  manageBoards,
 }: {
   boardView: boolean
   archivedHref: string
   /** Trello's "Aktivität": what happened on the board's cards, newest first. */
   activityHref: string
   links: Array<{ href: string; label: string; count?: number }>
-  settingsHref: string | null
+  /** The board the settings window opens on, for an administrator; null for everyone else. */
+  manageBoards: string | null
 }) {
   const t = useTranslations('projects')
   const [details, toggleDetails] = useCardDetails()
@@ -64,13 +67,17 @@ export function BoardMenu({
           ))}
         </>
       )}
-      {settingsHref && (
+      {manageBoards && (
         <>
           <MenuSeparator />
-          <Link href={settingsHref} role="menuitem" className={menuItemClass}>
+          <button type="button" role="menuitem" className={menuItemClass} onClick={() => openBoardSettings(manageBoards)}>
             <Settings2 aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted" />
             {t('boardsManage')}
-          </Link>
+          </button>
+          <button type="button" role="menuitem" className={menuItemClass} onClick={() => openBoardSettings('new')}>
+            <Plus aria-hidden className="h-3.5 w-3.5 shrink-0 text-muted" />
+            {t('boardNew')}
+          </button>
         </>
       )}
     </Menu>

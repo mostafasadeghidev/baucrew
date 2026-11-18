@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { lockPageScroll } from '@/lib/scroll-lock'
 import { useTranslations } from 'next-intl'
@@ -12,8 +12,10 @@ import {
   Handshake,
   HardHat,
   LayoutDashboard,
+  ListTodo,
   LogOut,
   Menu as MenuIcon,
+  MessageSquarePlus,
   PanelLeftClose,
   PanelLeftOpen,
   Package,
@@ -30,6 +32,8 @@ import { ThemeToggle } from './theme-toggle'
 import { HidePricesToggle } from './price-visibility'
 import { RailTip } from './ui/rail-tip'
 import { SIDEBAR_COOKIE, SIDEBAR_COOKIE_MAX_AGE, sidebarCookieValue } from '@/lib/sidebar'
+import { withCommentParam } from '@/lib/feedback'
+import { SearchButton } from './search-palette'
 
 type NavItem = { href: string; key: string; icon: typeof LayoutDashboard; /** Where a site manager may go; the office everywhere. */ site?: boolean }
 type NavGroup = { labelKey: string; items: NavItem[] }
@@ -135,13 +139,14 @@ function NavLinks({
   )
 }
 
-/** Footer: user button that opens a menu (settings, sign out) — shadcn style. */
+/** Footer: user button that opens a menu (feedback, settings, sign out) — shadcn style. */
 function UserMenu({
   username,
   role,
   isAdmin,
   priceSwitch,
   collapsed = false,
+  onNavigate,
 }: {
   username: string
   role: string
@@ -149,9 +154,13 @@ function UserMenu({
   /** Offer to hide prices — only to somebody who sees them. */
   priceSwitch: boolean
   collapsed?: boolean
+  /** The phone's drawer closes when an entry leads somewhere. */
+  onNavigate?: () => void
 }) {
   const t = useTranslations('nav')
   const tAuth = useTranslations('auth')
+  const tFeedback = useTranslations('feedback')
+  const router = useRouter()
   return (
     <div className={`border-t border-border ${collapsed ? 'p-1.5' : 'p-2'}`}>
       <Menu
@@ -194,8 +203,27 @@ function UserMenu({
           </MenuRow>
         )}
         <MenuSeparator />
+        {/* Comment mode on the page one is on (docs/CHANGE-feedback-tool.md), and the tasks it fills. */}
+        <button
+          type="button"
+          role="menuitem"
+          className={menuItemClass}
+          onClick={() => {
+            onNavigate?.()
+            const { pathname, search, hash } = window.location
+            router.push(withCommentParam(`${pathname}${search}${hash}`), { scroll: false })
+          }}
+        >
+          <MessageSquarePlus className="h-4 w-4 text-muted" aria-hidden />
+          {tFeedback('comment')}
+        </button>
+        <Link href="/feedback" className={menuItemClass} role="menuitem" onNavigate={onNavigate}>
+          <ListTodo className="h-4 w-4 text-muted" aria-hidden />
+          {tFeedback('title')}
+        </Link>
+        <MenuSeparator />
         {isAdmin && (
-          <Link href="/settings" className={menuItemClass} role="menuitem">
+          <Link href="/settings" className={menuItemClass} role="menuitem" onNavigate={onNavigate}>
             <Settings className="h-4 w-4 text-muted" aria-hidden />
             {t('settings')}
           </Link>
@@ -318,6 +346,16 @@ export function Sidebar({
             </button>
           </RailTip>
         </div>
+        {/* The search window (⌘K): a box while the sidebar is open, the magnifier on the rail. */}
+        <div className={`shrink-0 ${collapsed ? 'flex justify-center px-1.5 pt-2' : 'px-2 pt-2'}`}>
+          {collapsed ? (
+            <RailTip label={t('search')}>
+              <SearchButton variant="icon" />
+            </RailTip>
+          ) : (
+            <SearchButton variant="field" className="w-full" />
+          )}
+        </div>
         <NavLinks groups={groups} pathname={pathname} collapsed={collapsed} />
         <UserMenu username={username} role={role} isAdmin={isAdmin} priceSwitch={priceSwitch} collapsed={collapsed} />
       </div>
@@ -401,7 +439,7 @@ export function MobileNav({
               </button>
             </div>
             <NavLinks groups={groups} pathname={pathname} onNavigate={() => setOpen(false)} />
-            <UserMenu username={username} role={role} isAdmin={isAdmin} priceSwitch={priceSwitch} />
+            <UserMenu username={username} role={role} isAdmin={isAdmin} priceSwitch={priceSwitch} onNavigate={() => setOpen(false)} />
           </aside>
         </div>
       )}

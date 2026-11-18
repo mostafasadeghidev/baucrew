@@ -96,7 +96,6 @@ export default async function EditProjectPage({
           label: locale === 'en' ? c.nameEn : c.nameDe,
         }))}
         initial={{
-          name: project.name,
           jobNumber: project.jobNumber ?? '',
           customerId: project.customerId,
           status: project.status,
@@ -128,6 +127,7 @@ export default async function EditProjectPage({
           description: project.description ?? '',
           internalNotes: project.internalNotes ?? '',
           categoryIds: project.workCategories.map((wc) => wc.workCategoryId),
+          workNote: project.workNote ?? '',
           teamIds: project.team.map((m) => m.employeeId),
           checklistIds: project.checklists
             .map((c) => c.templateId)

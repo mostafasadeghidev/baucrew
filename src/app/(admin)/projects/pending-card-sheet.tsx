@@ -20,7 +20,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { cardPath, isCardPath } from '@/lib/card-url'
+import { boardBaseOf, cardIdOf, cardPath, isCardPath } from '@/lib/card-url'
 import { CardSheet, SheetClose } from './card-sheet'
 
 /** What the sheet shows while its content is on the way — here and in the route's loading state, the same. */
@@ -48,10 +48,9 @@ export function PendingCardSheet() {
       // What the board itself ignores: a click on a control of the card is
       // that control's, not the card's.
       if (target.closest('a, button, input, textarea, select, [role="menuitem"]')) {
-        const link = target.closest<HTMLAnchorElement>('a[href*="/projects/card/"]')
+        const link = target.closest<HTMLAnchorElement>('a[href*="/card/"]')
         if (!link) return null
-        const id = link.getAttribute('href')?.match(/^\/projects\/card\/([^/?]+)/)?.[1]
-        return id ?? null
+        return cardIdOf(link.getAttribute('href') ?? '')
       }
       return target.closest('[data-card-id]')?.getAttribute('data-card-id') ?? null
     }
@@ -69,7 +68,7 @@ export function PendingCardSheet() {
   }, [])
 
   // Does the address already show this card (its route, or the board page's ?card=)?
-  const opened = pending !== null && (isCardPath(pathname) ? pathname.startsWith(cardPath(pending)) : searchParams.get('card') === pending)
+  const opened = pending !== null && (isCardPath(pathname) ? pathname.startsWith(cardPath(pending, boardBaseOf(pathname))) : searchParams.get('card') === pending)
 
   // The frame goes away: at once when the real sheet has taken over (it hides
   // itself above; this only forgets the click), and after a short grace when

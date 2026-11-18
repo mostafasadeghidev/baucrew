@@ -21,6 +21,7 @@ export default async function ApiKeysPage() {
         id: true,
         name: true,
         prefix: true,
+        scope: true,
         lastUsedAt: true,
         revokedAt: true,
         createdAt: true,
@@ -62,6 +63,7 @@ export default async function ApiKeysPage() {
                   <th className="px-2 py-2 font-medium">{t('keyName')}</th>
                   <th className="px-2 py-2 font-medium">{t('keyPrefix')}</th>
                   <th className="px-2 py-2 font-medium">{t('keyUser')}</th>
+                  <th className="px-2 py-2 font-medium">{t('keyScope')}</th>
                   <th className="px-2 py-2 font-medium">{t('keyCreatedAt')}</th>
                   <th className="px-2 py-2 font-medium">{t('keyLastUsed')}</th>
                   <th className="px-2 py-2" />
@@ -73,6 +75,7 @@ export default async function ApiKeysPage() {
                     <td className="px-2 py-2">{k.name}</td>
                     <td className="px-2 py-2 font-mono text-xs">{k.prefix}…</td>
                     <td className="px-2 py-2">{k.user.username}</td>
+                    <td className="px-2 py-2">{k.scope === 'feedback' ? t('keyScopeFeedbackShort') : t('keyScopeAllShort')}</td>
                     <td className="px-2 py-2 whitespace-nowrap">{formatDate(k.createdAt, locale)}</td>
                     <td className="px-2 py-2 whitespace-nowrap">{k.lastUsedAt ? formatDate(k.lastUsedAt, locale) : t('keyNever')}</td>
                     <td className="px-2 py-2 text-right">
@@ -100,6 +103,11 @@ export default async function ApiKeysPage() {
           <div>
             <p className="font-medium">{t('connectClaudeCode')}</p>
             <code className={code}>{`claude mcp add --transport http baucrew ${base}/api/mcp --header "Authorization: Bearer KEY"`}</code>
+          </div>
+          <div>
+            <p className="font-medium">{t('connectFeedback')}</p>
+            <p className="mb-1 text-xs text-muted">{t('connectFeedbackHint')}</p>
+            <code className={code}>{`claude mcp add --scope user --transport http baucrew-feedback ${base}/api/mcp --header "Authorization: Bearer KEY"`}</code>
           </div>
           <div>
             <p className="font-medium">{t('connectClaudeDesktop')}</p>

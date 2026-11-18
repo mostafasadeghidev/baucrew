@@ -18,6 +18,10 @@ vi.mock('next/navigation', () => ({
   },
 }))
 vi.mock('@/lib/geocode', () => ({ geocodeCity: async () => null }))
+// Wattro itself is never called from a test: the import only hands over what it moved.
+const wattro = vi.hoisted(() => ({ pushed: vi.fn(async () => ({ sent: 0, held: 0 })) }))
+vi.mock('@/lib/wattro/project-push', () => ({ pushImportedProjects: wattro.pushed }))
+vi.mock('@/lib/wattro/client', async (orig) => ({ ...(await orig<typeof import('@/lib/wattro/client')>()), isProjectPushEnabled: () => true }))
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })
 
@@ -102,6 +106,9 @@ describe('the Trello import, run again', () => {
     // second card of that number does not take it twice — the number is unique.
     expect(legacy.jobNumber).toBe(NUMBER)
     expect(second.jobNumber).toBeNull()
+    // The card's list moved the old project from Geplant to Beauftragt: Wattro is
+    // handed that one. The two new projects are the catch-up timer's, not this.
+    expect(wattro.pushed).toHaveBeenLastCalledWith([{ id: legacyId, change: 'status', linked: false }], 'trello')
   })
 
   it('never overwrites a Projektnummer somebody corrected in the app', async () => {
@@ -122,5 +129,7 @@ describe('the Trello import, run again', () => {
     expect({ created: result.created, updated: result.updated, customers: result.customersCreated }).toEqual({ created: 0, updated: 3, customers: 0 })
     const after = await projects()
     expect(after.map((p) => [p.id, p.links])).toEqual(before.map((p) => [p.id, p.links]))
+    // Nothing moved, so Wattro is handed nothing: a running job is not sent again every hour.
+    expect(wattro.pushed).toHaveBeenLastCalledWith([], 'trello')
   })
 })

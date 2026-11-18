@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canDeleteTask, parseTaskInput, sortTasks, taskRows, type TaskRecord } from '@/lib/tasks'
+import { canDeleteTask, canDeleteTaskPhoto, parseTaskInput, sortTasks, taskRows, type TaskRecord } from '@/lib/tasks'
 
 const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`)
 
@@ -66,9 +66,47 @@ describe('taskRows', () => {
       done: null,
       deletable: false,
       project: { id: 'p1', label: '2026-0001 — Musterhaus' },
+      photos: [],
     })
     const [other] = taskRows([record], { id: 'u1', role: 'MANAGER', employeeId: null }, day('2026-09-21'), fmt)
     expect(other.mine).toBe(false)
     expect(other.deletable).toBe(true)
+  })
+})
+
+describe('canDeleteTaskPhoto', () => {
+  it('lets the office and the site manager take any photo away, the crew its own', () => {
+    expect(canDeleteTaskPhoto({ id: 'a', role: 'ADMIN' }, { uploadedById: 'c' })).toBe(true)
+    expect(canDeleteTaskPhoto({ id: 's', role: 'SITE_MANAGER' }, { uploadedById: 'c' })).toBe(true)
+    expect(canDeleteTaskPhoto({ id: 'c', role: 'EMPLOYEE' }, { uploadedById: 'c' })).toBe(true)
+    expect(canDeleteTaskPhoto({ id: 'c', role: 'EMPLOYEE' }, { uploadedById: 'd' })).toBe(false)
+    expect(canDeleteTaskPhoto({ id: 'c', role: 'EMPLOYEE' }, { uploadedById: null })).toBe(false)
+  })
+})
+
+describe('taskRows photos', () => {
+  it('carries a task’s photos with what the reader may do to each', () => {
+    const record: TaskRecord = {
+      id: 't2',
+      title: 'Fensterbank abkleben',
+      description: null,
+      dueDate: null,
+      createdAt: day('2026-09-18'),
+      doneAt: null,
+      createdById: 'u1',
+      assigneeId: null,
+      assignee: null,
+      createdBy: null,
+      doneBy: null,
+      photos: [
+        { id: 'f1', filename: 'IMG_0001.jpg', uploadedById: 'u2' },
+        { id: 'f2', filename: 'IMG_0002.jpg', uploadedById: 'u3' },
+      ],
+    }
+    const [row] = taskRows([record], { id: 'u2', role: 'EMPLOYEE', employeeId: 'e2' }, day('2026-09-21'), (d) => d.toISOString())
+    expect(row.photos).toEqual([
+      { id: 'f1', filename: 'IMG_0001.jpg', deletable: true },
+      { id: 'f2', filename: 'IMG_0002.jpg', deletable: false },
+    ])
   })
 })

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { canViewFinancials, isOffice } from '@/lib/authz'
 import { readStoredFile } from '@/lib/file-storage'
 import { canWorkOn } from '@/lib/crew-access'
 import { servesInline } from '@/lib/files'
@@ -9,7 +10,9 @@ import { servesInline } from '@/lib/files'
  * Download a project file. The office sees everything; a site manager the files
  * of their own projects; crew accounts only the files of projects they work
  * on, and of those only what the office marked as visible — offers with
- * prices stay office-only.
+ * prices stay office-only, and a PDF read as a quote (src/lib/quotes-db.ts)
+ * is the office's alone, site managers' projects too. The signed sheet of a form with prices in it only
+ * those who may see money.
  *
  * A file is shown in the page only when its type is one a browser draws
  * without running anything; everything else is a download. The browser is
@@ -21,8 +24,12 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const { id } = await ctx.params
-  const doc = await db.document.findUnique({ where: { id } })
+  const doc = await db.document.findUnique({ where: { id }, include: { form: { select: { financial: true } }, quote: { select: { kind: true } } } })
   if (!doc) return NextResponse.json({ error: 'notFound' }, { status: 404 })
+  // The signed sheet of a form with prices in it — a contract — only for those who may see money.
+  if (doc.form?.financial && !canViewFinancials(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  // A quote — the customer's prices — is the office's paper, whoever marked it for whom.
+  if (doc.quote?.kind === 'QUOTE' && !isOffice(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   if (user.role === 'EMPLOYEE' && !doc.visibleToCrew) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }

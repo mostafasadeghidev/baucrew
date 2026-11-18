@@ -3,15 +3,20 @@ import { MAX_PLAN_MONTHS, parseMonthInput } from './plan-month'
 import { randomUUID } from 'crypto'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import type { Prisma } from '@/generated/prisma/client'
 import { db } from './db'
 import type { CurrentUser } from './auth'
-import { canViewFinancials } from './authz'
+import { canViewFinancials, isOffice } from './authz'
 import { audit } from './audit'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { isUniqueClash, nextProjectNumber } from './project-numbers'
 import { entrySchema, type EntryResult } from './schedule-entry'
-import { createEntries } from './schedule-service'
+import { cancelEntry, createEntries, moveEntry, updateEntryDay } from './schedule-service'
+import { canSeeProject, projectScope } from './project-scope'
+import { JOB_NUMBER_MAX, normalizeJobNumber } from './job-number'
+import { getBoards } from './boards-db'
+import { columnFor, dropPatch } from './board-rules'
 import { actualDatesForStatus } from './project-lifecycle'
 import { getPlanGaps, getYearRevenue, orderValue } from './reports'
 import {
@@ -23,6 +28,10 @@ import {
   type EventActor,
 } from './project-events'
 import { normalizeSystem, trelloShortLink } from './webhook-events'
+import { matchTrades } from './trello-fields'
+import { isPdfDocument } from './quotes-db'
+import { readUploadedQuote } from './quotes-app'
+import { refreshProjectTitle, refreshProjectTitles, titleFor } from './project-title-db'
 import { suggestStatus } from './trello'
 import { INVOICE_KIND, invoicePartOf, suggestedInvoiceAmount, type InvoicePart } from './invoices'
 import { COMMENT_MAX } from './comments'
@@ -32,9 +41,11 @@ import { createDefect, defectListSelect, setDefectResolved } from './defects-db'
 import { mimeFromName, safeFileName, storageKeyFor, validateUpload } from './files'
 import { saveStoredFile } from './file-storage'
 
-// What the API and the MCP tools do, in one place. Every function takes the
-// user the caller acts as and gives back plain data; the same rules as the
-// pages apply — management only, and money only for those who may see it.
+// What the API, the MCP tools and the in-app assistant do, in one place. Every
+// function takes the user the caller acts as and gives back plain data; the
+// same rules as the pages apply — never the crew, a site manager only on the
+// projects they are named on and never on the master data, and money only for
+// those who may see it.
 
 /** A refusal or a miss, with the HTTP status it means. */
 export class ApiError extends Error {
@@ -61,8 +72,29 @@ const text = (max: number) =>
     .optional()
     .transform((v) => (v ? v : null))
 
+/** The office and the site managers — what `requireStaff` lets onto the pages. */
 function assertManagement(user: CurrentUser): void {
   if (user.role === 'EMPLOYEE') throw new ApiError(403, 'forbidden', 'This key belongs to a crew account; the API is for the office.')
+}
+
+/** Admin or manager — the master data, as `requireManagement` keeps it from the site managers. */
+function assertOffice(user: CurrentUser): void {
+  assertManagement(user)
+  if (!isOffice(user)) throw new ApiError(403, 'forbidden', 'Customers and the master data are for the office.')
+}
+
+/** A project the user may not see is answered as one that is not there, so its existence does not leak. */
+async function assertSees(user: CurrentUser, projectId: string): Promise<void> {
+  if (!(await canSeeProject(user, projectId))) throw new ApiError(404, 'notFound', 'No such project.')
+}
+
+/** The client's own project number, checked: nobody else may have it. */
+async function freeJobNumber(raw: string | null | undefined, ownId: string | null): Promise<string | null> {
+  const jobNumber = normalizeJobNumber(raw)
+  if (!jobNumber) return null
+  const other = await db.project.findUnique({ where: { jobNumber }, select: { id: true } })
+  if (other && other.id !== ownId) throw new ApiError(409, 'jobNumberTaken', `Another project already has the project number ${jobNumber}.`)
+  return jobNumber
 }
 
 function assertFinancials(user: CurrentUser): void {
@@ -88,7 +120,10 @@ const clearableText = (max: number) =>
 const projectSelect = {
   id: true,
   number: true,
+  jobNumber: true,
   name: true,
+  sourceTitle: true,
+  workNote: true,
   status: true,
   isSub: true,
   price: true,
@@ -113,12 +148,16 @@ const projectSelect = {
   addOns: { select: { amount: true } },
   links: { select: { system: true, externalId: true, url: true }, orderBy: { system: 'asc' } },
   invoices: { select: { part: true, number: true, amount: true, readyAt: true }, orderBy: { part: 'asc' } },
+  workCategories: { select: { workCategory: { select: { nameDe: true, sortOrder: true } } } },
 } as const
 
 type ProjectRow = {
   id: string
   number: string
+  jobNumber: string | null
   name: string
+  sourceTitle: string | null
+  workNote: string | null
   status: ProjectStatus
   isSub: boolean
   price: { toString(): string } | null
@@ -151,6 +190,7 @@ type ProjectRow = {
   addOns: Array<{ amount: { toString(): string } }>
   links: Array<{ system: string; externalId: string; url: string | null }>
   invoices: Array<{ part: number; number: string | null; amount: { toString(): string } | null; readyAt: Date }>
+  workCategories: Array<{ workCategory: { nameDe: string; sortOrder: number } }>
 }
 
 function projectDto(p: ProjectRow, user: CurrentUser, statusSince: Date) {
@@ -158,8 +198,19 @@ function projectDto(p: ProjectRow, user: CurrentUser, statusSince: Date) {
   return {
     id: p.id,
     number: p.number,
+    /** The client's own project number (Projektnummer), the project's ID in Wattro; null when none was given. */
+    jobNumber: p.jobNumber,
+    /** The customer followed by the trades and the work note, "Muster GmbH · Malern, Küche"; the old title while neither is set. */
     name: p.name,
+    /** The trades by their German name, in the order Settings lists them. */
+    trades: [...p.workCategories].sort((a, b) => a.workCategory.sortOrder - b.workCategory.sortOrder).map((w) => w.workCategory.nameDe),
+    /** The type of work in the office's own words, where no trade says it ("Art der Arbeit (frei)"); null when none. */
+    workNote: p.workNote,
+    /** What it was called before — the Trello title, the name an automation sent; null for one made in the app. */
+    sourceTitle: p.sourceTitle,
     status: p.status,
+    /** The project's page in the app. */
+    url: `/projects/${p.id}`,
     /** Since when it stands in that status — for reminders on offers nobody answered. */
     statusSince: statusSince.toISOString(),
     isSub: p.isSub,
@@ -213,14 +264,18 @@ export async function listProjects(user: CurrentUser, input: z.infer<typeof list
   assertManagement(user)
   const system = input.system ? normalizeSystem(input.system) : null
   if (input.system && !system) throw new ApiError(400, 'invalid', 'system is letters, digits, - and _.')
-  const where = {
+  const scope = projectScope(user)
+  const where: Prisma.ProjectWhereInput = {
+    ...(scope ? { AND: [scope] } : {}),
     ...(input.status ? { status: input.status } : {}),
     ...(system ? { links: { some: { system, ...(input.externalId ? { externalId: input.externalId } : {}) } } } : {}),
     ...(input.q
       ? {
           OR: [
             { name: { contains: input.q, mode: 'insensitive' as const } },
+            { sourceTitle: { contains: input.q, mode: 'insensitive' as const } },
             { number: { contains: input.q } },
+            { jobNumber: { contains: input.q, mode: 'insensitive' as const } },
             { customer: { name: { contains: input.q, mode: 'insensitive' as const } } },
             { city: { contains: input.q, mode: 'insensitive' as const } },
           ],
@@ -238,8 +293,9 @@ export async function listProjects(user: CurrentUser, input: z.infer<typeof list
 /** A project by id or by its number ("2026-0048"). */
 export async function getProject(user: CurrentUser, idOrNumber: string) {
   assertManagement(user)
+  const scope = projectScope(user)
   const p = await db.project.findFirst({
-    where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] },
+    where: { OR: [{ id: idOrNumber }, { number: idOrNumber }, { jobNumber: idOrNumber }], ...(scope ? { AND: [scope] } : {}) },
     select: {
       ...projectSelect,
       team: { select: { employee: { select: { id: true, firstName: true, lastName: true } } } },
@@ -264,6 +320,8 @@ export async function getProject(user: CurrentUser, idOrNumber: string) {
   const since = await statusSinceFor([p])
   return {
     ...projectDto(p, user, since.get(p.id)!),
+    /** The work order (Arbeitsauftrag) to print for the crew, made from this record. */
+    workOrderUrl: `/projects/${p.id}/sheet`,
     team: p.team.map((t) => ({ id: t.employee.id, name: `${t.employee.firstName} ${t.employee.lastName}`.trim() })),
     vehicles: p.vehicles.map((v) => v.vehicle),
     schedule: p.scheduleEntries.map((e) => ({
@@ -281,9 +339,18 @@ export async function getProject(user: CurrentUser, idOrNumber: string) {
   }
 }
 
+/** The trades by name, "Malern", "Trockenbau" — what the project's name is made of. */
+const tradesInput = z.array(z.string().trim().min(1).max(100)).max(20)
+
 export const createProjectInput = z
   .object({
-    name: z.string().trim().min(1).max(300),
+    /** Not the name any more — that is the customer and the trades — but kept as the old title, shown while no trade is set. */
+    name: z.string().trim().min(1).max(300).optional(),
+    trades: tradesInput.optional(),
+    /** The type of work in free words where no trade says it ("Küche"); part of the name. */
+    workNote: text(200),
+    /** The client's own project number ("1234567"). */
+    jobNumber: z.string().trim().max(JOB_NUMBER_MAX).optional(),
     customerId: z.string().min(1).optional(),
     /** Found by name, or created when there is no such customer. */
     customerName: z.string().trim().min(1).max(200).optional(),
@@ -364,6 +431,19 @@ async function managerFor(input: { managerId?: string | null; managerName?: stri
   return { warning: fits.length === 0 ? 'managerNotFound' : 'managerAmbiguous' }
 }
 
+/**
+ * The trades an automation names, among the ones Settings has — by name or
+ * by the office's own words for them (src/lib/trello-fields.ts). A word for
+ * no trade is refused: the name would leave it out without a word.
+ */
+async function tradeIdsFor(names: string[] | undefined): Promise<string[] | undefined> {
+  if (names === undefined) return undefined
+  const categories = await db.workCategory.findMany({ where: { active: true }, select: { id: true, nameDe: true, nameEn: true } })
+  const { ids, unknown } = matchTrades(names, categories.map((c) => ({ id: c.id, names: [c.nameDe, c.nameEn] })))
+  if (unknown.length > 0) throw new ApiError(400, 'invalid', `No such trade: ${unknown.join(', ')}. See list_trades.`)
+  return ids
+}
+
 /** Makes the project and gives back its id; telling automations is the caller's, once everything hangs on it. */
 async function insertProject(user: CurrentUser, data: Omit<Prisma.ProjectUncheckedCreateInput, 'number'>): Promise<string> {
   // Retry once if the sequential number collides with a concurrent create.
@@ -381,9 +461,17 @@ async function insertProject(user: CurrentUser, data: Omit<Prisma.ProjectUncheck
 
 export async function createProject(user: CurrentUser, input: z.infer<typeof createProjectInput>, actor?: EventActor) {
   assertManagement(user)
+  const jobNumber = await freeJobNumber(input.jobNumber, null)
   const customerId = await customerFor(input)
+  const categoryIds = (await tradeIdsFor(input.trades)) ?? []
+  const sourceTitle = input.name ?? null
+  const workNote = input.workNote ?? null
   const id = await insertProject(user, {
-    name: input.name,
+    name: await titleFor({ customerId, categoryIds, workNote, sourceTitle }),
+    sourceTitle,
+    workNote,
+    workCategories: { create: categoryIds.map((workCategoryId) => ({ workCategoryId })) },
+    jobNumber,
     customerId,
     status: input.status,
     isSub: input.isSub,
@@ -399,6 +487,8 @@ export async function createProject(user: CurrentUser, input: z.infer<typeof cre
     postalCode: input.postalCode,
     city: input.city,
     description: input.description,
+    // A site manager's own project is theirs to run, or they could not see it — as on the board's "Karte hinzufügen".
+    ...(user.role === 'SITE_MANAGER' && user.employee ? { managerId: user.employee.id } : {}),
   })
   revalidatePath('/projects')
   revalidatePath('/dashboard')
@@ -414,7 +504,14 @@ export async function setProjectStatus(user: CurrentUser, idOrNumber: string, st
 
 export const updateProjectInput = z
   .object({
+    /** The old title, shown while no trade is set; the name itself is the customer and the trades. */
     name: z.string().trim().min(1).max(300).optional(),
+    /** All the project's trades by name; the ones not named are taken off. */
+    trades: tradesInput.optional(),
+    /** The type of work in free words where no trade says it; null clears it. Renames the project. */
+    workNote: clearableText(200),
+    /** The client's own project number; null or empty takes it away. */
+    jobNumber: clearableText(JOB_NUMBER_MAX),
     status: z.enum(ProjectStatus).optional(),
     isSub: z.boolean().optional(),
     plannedStart: isoDate.nullable().optional(),
@@ -449,14 +546,22 @@ export async function updateProject(
 ) {
   assertManagement(user)
   const current = await db.project.findFirst({
-    where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] },
-    select: { id: true, status: true, actualStart: true, actualEnd: true, plannedStart: true, plannedEnd: true, city: true },
+    where: { OR: [{ id: idOrNumber }, { number: idOrNumber }, { jobNumber: idOrNumber }] },
+    select: { id: true, status: true, actualStart: true, actualEnd: true, plannedStart: true, plannedEnd: true, city: true, jobNumber: true },
   })
   if (!current) throw new ApiError(404, 'notFound', 'No such project.')
+  await assertSees(user, current.id)
 
   const warnings: string[] = []
   const data: Prisma.ProjectUncheckedUpdateInput = {}
-  if (input.name !== undefined) data.name = input.name
+  if (input.name !== undefined) data.sourceTitle = input.name
+  if (input.workNote !== undefined) data.workNote = input.workNote
+  const categoryIds = await tradeIdsFor(input.trades)
+  if (categoryIds !== undefined) data.workCategories = { deleteMany: {}, create: categoryIds.map((workCategoryId) => ({ workCategoryId })) }
+  if (input.jobNumber !== undefined) {
+    const jobNumber = await freeJobNumber(input.jobNumber, current.id)
+    if (jobNumber !== current.jobNumber) data.jobNumber = jobNumber
+  }
   if (input.isSub !== undefined) data.isSub = input.isSub
   if (input.description !== undefined) data.description = input.description
   if (input.street !== undefined) data.street = input.street
@@ -493,6 +598,7 @@ export async function updateProject(
   if (Object.keys(data).length > 0) {
     const before = await projectBefore(current.id)
     await db.project.update({ where: { id: current.id }, data })
+    if (data.sourceTitle !== undefined || data.workNote !== undefined || data.workCategories !== undefined) await refreshProjectTitle(current.id)
     if (statusChanged) {
       await audit({
         userId: user.id,
@@ -611,15 +717,19 @@ export async function upsertProjectByLink(
     return { created: false, project: await updateProject(user, projectId, fields, actor) }
   }
 
-  if (!fields.name) throw new ApiError(400, 'invalid', 'name is required to make a new project.')
   if (fields.plannedStart && fields.plannedEnd && fields.plannedEnd < fields.plannedStart) {
     throw new ApiError(400, 'invalid', 'plannedEnd must not be before plannedStart.')
   }
   if (fields.price != null && !canViewFinancials(user)) throw new ApiError(403, 'forbidden', 'This user may not set the price.')
   const manager = await managerFor(fields)
+  const linkedCustomerId = await customerFor({ customerId, customer })
+  const categoryIds = (await tradeIdsFor(fields.trades)) ?? []
   const id = await insertProject(user, {
-    name: fields.name,
-    customerId: await customerFor({ customerId, customer }),
+    name: await titleFor({ customerId: linkedCustomerId, categoryIds, workNote: fields.workNote ?? null, sourceTitle: fields.name ?? null }),
+    sourceTitle: fields.name ?? null,
+    workNote: fields.workNote ?? null,
+    workCategories: { create: categoryIds.map((workCategoryId) => ({ workCategoryId })) },
+    customerId: linkedCustomerId,
     status: fields.status ?? 'LEAD',
     isSub: fields.isSub ?? false,
     plannedStart: fields.plannedStart ? utcDay(fields.plannedStart) : null,
@@ -658,8 +768,7 @@ export const projectLinkInput = z.object({
 export async function setProjectLink(user: CurrentUser, idOrNumber: string, systemRaw: string, input: z.infer<typeof projectLinkInput>) {
   assertManagement(user)
   const { system, externalId } = linkKey(systemRaw, input.externalId)
-  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
-  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  const project = { id: await projectIdOf(user, idOrNumber) }
   const taken = await linkedProjectId(system, externalId)
   if (taken && taken !== project.id) throw new ApiError(409, 'linkTaken', 'That record is linked to another project.')
   await db.projectLink.upsert({
@@ -675,8 +784,7 @@ export async function removeProjectLink(user: CurrentUser, idOrNumber: string, s
   assertManagement(user)
   const system = normalizeSystem(systemRaw)
   if (!system) throw new ApiError(400, 'invalid', 'The system is letters, digits, - and _.')
-  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
-  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  const project = { id: await projectIdOf(user, idOrNumber) }
   const removed = await db.projectLink.deleteMany({ where: { projectId: project.id, system } })
   if (removed.count > 0) {
     await audit({ userId: user.id, action: 'api.project.unlink', entity: 'Project', entityId: project.id, field: system })
@@ -761,8 +869,7 @@ export async function markInvoiceReady(
 export async function withdrawInvoice(user: CurrentUser, idOrNumber: string, partRaw: string | number) {
   assertFinancials(user)
   const part = invoicePart(partRaw)
-  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
-  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  const project = { id: await projectIdOf(user, idOrNumber) }
   const removed = await db.projectInvoice.deleteMany({ where: { projectId: project.id, part } })
   if (removed.count > 0) {
     await audit({ userId: user.id, action: 'project.invoice.withdraw', entity: 'Project', entityId: project.id, field: `invoice${part}` })
@@ -807,8 +914,13 @@ const commentDto = (n: CommentRow) => ({
   mentions: n.mentions,
 })
 
-async function projectIdOf(idOrNumber: string): Promise<string> {
-  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
+/** A project the user may see, by id, the app's number or the client's — or a 404. */
+async function projectIdOf(user: CurrentUser, idOrNumber: string): Promise<string> {
+  const scope = projectScope(user)
+  const project = await db.project.findFirst({
+    where: { OR: [{ id: idOrNumber }, { number: idOrNumber }, { jobNumber: idOrNumber }], ...(scope ? { AND: [scope] } : {}) },
+    select: { id: true },
+  })
   if (!project) throw new ApiError(404, 'notFound', 'No such project.')
   return project.id
 }
@@ -816,7 +928,7 @@ async function projectIdOf(idOrNumber: string): Promise<string> {
 /** The comments on a project, oldest first. */
 export async function listComments(user: CurrentUser, idOrNumber: string) {
   assertManagement(user)
-  const projectId = await projectIdOf(idOrNumber)
+  const projectId = await projectIdOf(user, idOrNumber)
   const rows = await db.note.findMany({ where: { projectId }, orderBy: { createdAt: 'asc' }, select: commentSelect })
   return rows.map(commentDto)
 }
@@ -824,7 +936,7 @@ export async function listComments(user: CurrentUser, idOrNumber: string) {
 /** A comment from an automation — "Angebot versendet", say — written as the key's user. */
 export async function addComment(user: CurrentUser, idOrNumber: string, input: z.infer<typeof commentInput>, actor?: EventActor) {
   assertManagement(user)
-  const projectId = await projectIdOf(idOrNumber)
+  const projectId = await projectIdOf(user, idOrNumber)
   const result = await createComment({ projectId, authorId: user.id, body: input.body, office: input.office, actor: actorFor(user, actor) })
   if ('error' in result) throw new ApiError(400, 'invalid', 'The comment is empty.')
   revalidatePath(`/projects/${projectId}`)
@@ -884,7 +996,7 @@ const defectDto = (d: DefectApiRow) => ({
 /** The defects of a project, the open ones first. */
 export async function listDefects(user: CurrentUser, idOrNumber: string) {
   assertManagement(user)
-  const projectId = await projectIdOf(idOrNumber)
+  const projectId = await projectIdOf(user, idOrNumber)
   const rows = await db.defect.findMany({
     where: { projectId },
     orderBy: [{ resolvedAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
@@ -896,7 +1008,7 @@ export async function listDefects(user: CurrentUser, idOrNumber: string) {
 /** A defect reported by an automation, as the key's user. Raises `defect.reported`. */
 export async function addDefect(user: CurrentUser, idOrNumber: string, input: z.infer<typeof defectInput>, actor?: EventActor) {
   assertManagement(user)
-  const projectId = await projectIdOf(idOrNumber)
+  const projectId = await projectIdOf(user, idOrNumber)
   const defect = parseDefectInput(input)
   if (!defect) throw new ApiError(400, 'invalid', 'title is required.')
   const result = await createDefect({ projectId, reporterId: user.id, defect, actor: actorFor(user, actor) })
@@ -909,6 +1021,8 @@ export async function addDefect(user: CurrentUser, idOrNumber: string, input: z.
 /** Put right, or open again. Raises `defect.resolved` the moment it is put right. */
 export async function patchDefect(user: CurrentUser, defectId: string, input: z.infer<typeof defectPatchInput>, actor?: EventActor) {
   assertManagement(user)
+  const defect = await db.defect.findUnique({ where: { id: defectId }, select: { projectId: true } })
+  if (!defect || !(await canSeeProject(user, defect.projectId))) throw new ApiError(404, 'notFound', 'No such defect.')
   const result = await setDefectResolved({ id: defectId, userId: user.id, resolved: input.resolved, actor: actorFor(user, actor) })
   if ('error' in result) throw new ApiError(404, 'notFound', 'No such defect.')
   revalidatePath(`/projects/${result.projectId}`)
@@ -925,8 +1039,7 @@ export async function patchDefect(user: CurrentUser, defectId: string, input: z.
  */
 export async function addProjectFile(user: CurrentUser, idOrNumber: string, file: File) {
   assertManagement(user)
-  const project = await db.project.findFirst({ where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] }, select: { id: true } })
-  if (!project) throw new ApiError(404, 'notFound', 'No such project.')
+  const project = { id: await projectIdOf(user, idOrNumber) }
   const mimeType = file.type && file.type !== 'application/octet-stream' ? file.type : (mimeFromName(file.name) ?? file.type)
   const invalid = validateUpload(file.size, mimeType)
   if (invalid) throw new ApiError(400, invalid, invalid === 'badType' ? 'This type of file is not accepted.' : invalid === 'tooLarge' ? 'The file is larger than 25 MB.' : 'The file is empty.')
@@ -938,6 +1051,8 @@ export async function addProjectFile(user: CurrentUser, idOrNumber: string, file
   })
   await audit({ userId: user.id, action: 'api.project.file', entity: 'Project', entityId: project.id, newValue: doc.filename })
   revalidatePath(`/projects/${project.id}`)
+  // A quote sent in this way is read like one uploaded in the app — after the answer.
+  if (isPdfDocument(doc)) after(() => readUploadedQuote(doc.id, user.id))
   return doc
 }
 
@@ -958,7 +1073,7 @@ const customerSelect = {
 } as const
 
 export async function listCustomers(user: CurrentUser, q: string | undefined, limit = 50) {
-  assertManagement(user)
+  assertOffice(user)
   const rows = await db.customer.findMany({
     where: q
       ? {
@@ -991,7 +1106,7 @@ export const createCustomerInput = z.object({
 })
 
 export async function getCustomer(user: CurrentUser, id: string) {
-  assertManagement(user)
+  assertOffice(user)
   const c = await db.customer.findUnique({ where: { id }, select: customerSelect })
   if (!c) throw new ApiError(404, 'notFound', 'No such customer.')
   return { ...c, projects: c._count.projects, _count: undefined }
@@ -1014,7 +1129,7 @@ export const updateCustomerInput = z
 
 /** Changes what is sent; an absent field stays, null clears it. */
 export async function updateCustomer(user: CurrentUser, id: string, input: z.infer<typeof updateCustomerInput>) {
-  assertManagement(user)
+  assertOffice(user)
   const current = await db.customer.findUnique({ where: { id }, select: { id: true, city: true } })
   if (!current) throw new ApiError(404, 'notFound', 'No such customer.')
   const data: Record<string, unknown> = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined))
@@ -1022,6 +1137,8 @@ export async function updateCustomer(user: CurrentUser, id: string, input: z.inf
   if (input.city !== undefined && input.city !== current.city) Object.assign(data, { latitude: null, longitude: null })
   if (Object.keys(data).length > 0) {
     await db.customer.update({ where: { id }, data })
+    // The customer's name is the first part of every project's name.
+    if (data.name !== undefined) await refreshProjectTitles({ customerId: id })
     await audit({ userId: user.id, action: 'api.customer.update', entity: 'Customer', entityId: id, newValue: Object.keys(data).join(', ') })
     revalidatePath('/customers')
     revalidatePath(`/customers/${id}`)
@@ -1030,7 +1147,7 @@ export async function updateCustomer(user: CurrentUser, id: string, input: z.inf
 }
 
 export async function createCustomer(user: CurrentUser, input: z.infer<typeof createCustomerInput>) {
-  assertManagement(user)
+  assertOffice(user)
   const c = await db.customer.create({ data: input, select: customerSelect })
   await audit({ userId: user.id, action: 'api.customer.create', entity: 'Customer', entityId: c.id, newValue: c.name })
   revalidatePath('/customers')
@@ -1065,6 +1182,9 @@ export const listScheduleInput = z
     from: isoDate,
     to: isoDate,
     projectId: z.string().min(1).optional(),
+    /** Only the days this employee, or this vehicle, is out on. */
+    employeeId: z.string().min(1).optional(),
+    vehicleId: z.string().min(1).optional(),
   })
   .refine((d) => d.to >= d.from, { message: 'to must not be before from', path: ['to'] })
 
@@ -1075,6 +1195,8 @@ export async function listSchedule(user: CurrentUser, input: z.infer<typeof list
       cancelledAt: null,
       date: { gte: utcDay(input.from), lte: utcDay(input.to) },
       ...(input.projectId ? { projectId: input.projectId } : {}),
+      ...(input.employeeId ? { employees: { some: { employeeId: input.employeeId } } } : {}),
+      ...(input.vehicleId ? { vehicles: { some: { vehicleId: input.vehicleId } } } : {}),
     },
     orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     select: {
@@ -1151,7 +1273,164 @@ export async function planEntry(user: CurrentUser, input: z.infer<typeof planEnt
   revalidatePath('/schedule')
   revalidatePath('/dashboard')
   revalidatePath(`/projects/${project.id}`)
-  return { created: result.created ?? 0, projectId: project.id }
+  return { created: result.created ?? 0, projectId: project.id, url: `/schedule?date=${input.date}` }
+}
+
+/** One day on the board — what the tools below change — or a 404. */
+async function scheduleDay(id: string) {
+  const entry = await db.scheduleEntry.findUnique({ where: { id }, select: { id: true, projectId: true, date: true, cancelledAt: true } })
+  if (!entry || entry.cancelledAt) throw new ApiError(404, 'notFound', 'No such schedule entry.')
+  return entry
+}
+
+function entryFailure(error: NonNullable<EntryResult['error']>): never {
+  const e = ENTRY_ERRORS[error]
+  throw new ApiError(e.status, error, e.message)
+}
+
+function refreshSchedule(projectId: string) {
+  revalidatePath('/schedule')
+  revalidatePath('/dashboard')
+  revalidatePath(`/projects/${projectId}`)
+}
+
+export const moveScheduleInput = z.object({ entryId: z.string().min(1), date: isoDate })
+
+/** One day of a project moved to another day, crew and vehicles along — the board's drag. */
+export async function moveScheduleDay(user: CurrentUser, input: z.infer<typeof moveScheduleInput>) {
+  assertManagement(user)
+  const entry = await scheduleDay(input.entryId)
+  const result = await moveEntry(user.id, entry.id, input.date)
+  if (result.error) entryFailure(result.error)
+  refreshSchedule(entry.projectId)
+  return { entryId: entry.id, projectId: entry.projectId, from: day(entry.date), to: input.date, url: `/schedule?date=${input.date}` }
+}
+
+export const updateScheduleInput = z
+  .object({
+    entryId: z.string().min(1),
+    /** The whole crew and fleet of that day, in place of what it has. */
+    employeeIds: z.array(z.string().min(1)).max(50).optional(),
+    vehicleIds: z.array(z.string().min(1)).max(20).optional(),
+    startTime: z.string().regex(/^(\d{2}:\d{2})?$/, 'HH:MM').nullable().optional(),
+    endTime: z.string().regex(/^(\d{2}:\d{2})?$/, 'HH:MM').nullable().optional(),
+    note: z.string().max(1000).nullable().optional(),
+  })
+  .strict()
+
+/** Who and what goes out on one day, its hours and its note; what is not sent stays. */
+export async function updateScheduleDay(user: CurrentUser, input: z.infer<typeof updateScheduleInput>) {
+  assertManagement(user)
+  const entry = await scheduleDay(input.entryId)
+  const { entryId, ...patch } = input
+  const result = await updateEntryDay(user.id, entryId, {
+    ...patch,
+    ...(patch.startTime !== undefined ? { startTime: patch.startTime || null } : {}),
+    ...(patch.endTime !== undefined ? { endTime: patch.endTime || null } : {}),
+    ...(patch.note !== undefined ? { note: patch.note?.trim() || null } : {}),
+  })
+  if (result.error) entryFailure(result.error)
+  refreshSchedule(entry.projectId)
+  return { entryId, projectId: entry.projectId, date: day(entry.date), url: `/schedule?date=${day(entry.date)}` }
+}
+
+export const cancelScheduleInput = z.object({ entryId: z.string().min(1) })
+
+/**
+ * One day taken out of the plan. It is cancelled, not deleted — the way
+ * completing a project or shortening a block takes days out — so planning the
+ * day again brings it back.
+ */
+export async function cancelScheduleDay(user: CurrentUser, input: z.infer<typeof cancelScheduleInput>) {
+  assertManagement(user)
+  const entry = await scheduleDay(input.entryId)
+  await cancelEntry(user.id, entry.id)
+  refreshSchedule(entry.projectId)
+  return { entryId: entry.id, projectId: entry.projectId, date: day(entry.date), cancelled: true, url: `/schedule?date=${day(entry.date)}` }
+}
+
+// ── Boards ────────────────────────────────────────────────────────────
+
+/** The project boards, each with its columns left to right: the status a column holds and the rule that narrows it. */
+export async function listBoards(user: CurrentUser) {
+  assertManagement(user)
+  const boards = await getBoards()
+  return boards.map((b) => ({
+    id: b.id,
+    name: b.name,
+    columns: b.columns.map((c) => ({ id: c.id, title: c.title, status: c.status, rule: c.rule })),
+  }))
+}
+
+/** The trades Settings lists — the words a project's name is made of. */
+export async function listTrades(user: CurrentUser) {
+  assertManagement(user)
+  const rows = await db.workCategory.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { nameDe: 'asc' }], select: { id: true, nameDe: true, nameEn: true } })
+  return rows.map((r) => ({ id: r.id, name: r.nameDe, nameEn: r.nameEn }))
+}
+
+export const moveToColumnInput = z.object({ project: z.string().trim().min(1), columnId: z.string().min(1) })
+
+/**
+ * A project put in a column of a board, as if its card were dragged there:
+ * the column's status, and what the column's rule asks (on hold, low
+ * priority, next year) — while what the rule of the column it leaves had
+ * set is undone. Lists the board does not let a hand fill are refused.
+ */
+export async function moveProjectToColumn(user: CurrentUser, input: z.infer<typeof moveToColumnInput>, actor?: EventActor) {
+  assertManagement(user)
+  const column = await db.boardColumn.findUnique({
+    where: { id: input.columnId },
+    select: { id: true, boardId: true, status: true, rule: true, title: true },
+  })
+  if (!column) throw new ApiError(404, 'notFound', 'No such board column.')
+  const projectId = await projectIdOf(user, input.project)
+  const facts = await db.project.findUnique({
+    where: { id: projectId },
+    select: {
+      status: true,
+      pausedAt: true,
+      plannedStart: true,
+      planMonth: true,
+      priority: true,
+      invoices: { where: { part: 1 }, select: { id: true } },
+      links: { where: { system: 'trello' }, select: { id: true, externalListId: true } },
+    },
+  })
+  if (!facts) throw new ApiError(404, 'notFound', 'No such project.')
+  const ruleFacts = {
+    pausedAt: facts.pausedAt,
+    plannedStart: facts.plannedStart,
+    planMonth: facts.planMonth,
+    priority: facts.priority,
+    invoice1: facts.invoices.length > 0,
+    trelloListId: facts.links[0]?.externalListId ?? null,
+  }
+  const now = new Date()
+  // The column of that board the card stands in now, so its rule is let go of.
+  const siblings = await db.boardColumn.findMany({ where: { boardId: column.boardId }, select: { id: true, status: true, rule: true } })
+  const from = columnFor(siblings.map((c) => ({ ...c, key: c.id })), facts.status, ruleFacts, now.getUTCFullYear())
+  const patch = dropPatch(from?.rule ?? null, column.rule, { ...ruleFacts, trelloListId: null }, now)
+  if (patch === 'refused') throw new ApiError(409, 'ruleRefused', 'This list is filled by the first invoice, not by hand.')
+  if (patch === 'fixedStart') throw new ApiError(409, 'fixedStart', 'The project has a fixed start this year; move the start date first.')
+  const { trelloListId, ...projectPatch } = patch
+  const project = await updateProject(user, projectId, { status: column.status }, actor)
+  if (trelloListId !== undefined && facts.links[0]) {
+    await db.projectLink.update({ where: { id: facts.links[0].id }, data: { externalListId: trelloListId } })
+  }
+  if (Object.keys(projectPatch).length > 0) {
+    await db.project.update({ where: { id: projectId }, data: projectPatch as Prisma.ProjectUncheckedUpdateInput })
+    await audit({
+      userId: user.id,
+      action: 'api.project.rule',
+      entity: 'Project',
+      entityId: projectId,
+      oldValue: from?.rule ?? undefined,
+      newValue: column.rule ?? undefined,
+    })
+    revalidatePath('/projects')
+  }
+  return { ...project, column: { id: column.id, boardId: column.boardId, title: column.title, status: column.status, rule: column.rule } }
 }
 
 // ── Reports ───────────────────────────────────────────────────────────

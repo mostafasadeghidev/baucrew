@@ -61,12 +61,17 @@ export default async function WarehousePage({
         <PageBar
           title={t('title')}
           actions={
-            <Link
-              href="/warehouse/new"
-              className={btn.primary}
-            >
-              {t('newItem')}
-            </Link>
+            <>
+              <Link href="/warehouse/import" className={btn.outline}>
+                {t('importList')}
+              </Link>
+              <Link
+                href="/warehouse/new"
+                className={btn.primary}
+              >
+                {t('newItem')}
+              </Link>
+            </>
           }
         />
       </StickyHead>

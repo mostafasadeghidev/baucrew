@@ -52,8 +52,14 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   // Before the documents: a photo points at the defect it shows.
   { key: 'defects', model: 'Defect' },
   { key: 'projectTasks', model: 'ProjectTask' },
+  // Before the documents and the documentation: both point at the folder they lie in.
+  { key: 'projectFolders', model: 'ProjectFolder' },
   { key: 'documents', model: 'Document' },
+  // After the documents: what was read inside a PDF, one row per file.
+  { key: 'documentQuotes', model: 'DocumentQuote' },
   { key: 'cardLinks', model: 'CardLink' },
+  { key: 'documentationEntries', model: 'DocumentationEntry' },
+  { key: 'documentationFiles', model: 'DocumentationFile' },
   { key: 'cardWatches', model: 'CardWatch' },
   // After the documents: a signed form points at its PDF among them.
   { key: 'formTemplates', model: 'FormTemplate' },
@@ -66,6 +72,13 @@ export const BACKUP_TABLES: readonly BackupTable[] = [
   { key: 'apiKeys', model: 'ApiKey' },
   { key: 'webhookEndpoints', model: 'WebhookEndpoint' },
   { key: 'trelloSyncBoards', model: 'TrelloSyncBoard' },
+  // The feedback tool: the items first, then what hangs on them.
+  { key: 'feedbackItems', model: 'FeedbackItem' },
+  { key: 'feedbackNotes', model: 'FeedbackNote' },
+  { key: 'feedbackStatusChanges', model: 'FeedbackStatusChange' },
+  { key: 'feedbackAttachments', model: 'FeedbackAttachment' },
+  // The assistant's conversations, each a person's own.
+  { key: 'assistantChats', model: 'AssistantChat' },
   { key: 'auditLogs', model: 'AuditLog' },
 ]
 

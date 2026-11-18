@@ -148,18 +148,16 @@ What must hold: `projects_other`, `users`, `schedule_entries` unchanged;
 `by_number_only` 0 after the site board; `doubles` 0; a second import of the
 same file creates 0 projects and 0 customers.
 
-Proven on 2026-10-17 on a copy of the production database of 10 Oct (224
-projects, 208 of them from Trello, 131 known by number only, 77 links): after
-the three boards 658 projects, 642 from Trello and every one linked to its
-card, 0 known by number only; the 16 hand-made projects, the 77 schedule
-entries and the 7 users byte-for-byte as before; 555 customers, 1,390 notes,
-2,061 attachment links. The second run of the site board and the sales board
-created 0 projects and 0 customers and left every count the same. The DB
+Proven on a copy of the production database: after the three boards every
+Trello project was linked to its card and none was known by number only; the
+hand-made projects, schedule entries and users stayed as before. A second run
+of the same boards created no projects and no customers and left every count
+the same. The DB
 test `tests/db/trello-import.test.ts` keeps those rules.
 
 `doubles` counts job numbers shared by several projects. A number that stands
 on two cards (an offer archived and the job made anew) gives two projects on
-purpose; 9 such numbers were on the boards on 2026-10-17. A number twice with
+purpose; a few such numbers were on the boards. A number twice with
 the *same* card would be a fault.
 
 ## 6. Cutover

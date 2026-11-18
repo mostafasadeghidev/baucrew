@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bearerToken, hashApiKey, keyPrefix, looksLikeApiKey, newApiKey } from '@/lib/api-keys'
+import { bearerToken, hashApiKey, isApiKeyScope, keyPrefix, looksLikeApiKey, newApiKey, scopeAllows } from '@/lib/api-keys'
 
 describe('API keys', () => {
   it('makes a long random key with a recognisable prefix', () => {
@@ -31,5 +31,26 @@ describe('API keys', () => {
     expect(bearerToken('bearer   bc_abc ')).toBe('bc_abc')
     expect(bearerToken('Basic dXNlcjpwdw==')).toBeNull()
     expect(bearerToken(null)).toBeNull()
+  })
+})
+
+describe('what a limited key opens', () => {
+  it('lets a full key through every door', () => {
+    expect(scopeAllows(null)).toBe(true)
+    expect(scopeAllows(null, ['feedback'])).toBe(true)
+  })
+
+  it('keeps a feedback key out of every door that does not name it', () => {
+    // The REST API asks for no scope: a feedback key never reaches projects or customers there.
+    expect(scopeAllows('feedback')).toBe(false)
+    expect(scopeAllows('feedback', ['feedback'])).toBe(true)
+    // A scope the code does not know (a row written by hand) opens nothing.
+    expect(scopeAllows('everything', ['feedback'])).toBe(false)
+  })
+
+  it('knows its scopes', () => {
+    expect(isApiKeyScope('feedback')).toBe(true)
+    expect(isApiKeyScope('')).toBe(false)
+    expect(isApiKeyScope(null)).toBe(false)
   })
 })

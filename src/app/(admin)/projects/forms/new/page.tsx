@@ -12,7 +12,7 @@ export default async function NewFormTemplatePage() {
       <StickyHead>
         <PageBar back={{ href: '/projects/forms', label: t('templatesTitle') }} title={t('templateAdd')} />
       </StickyHead>
-      <FormTemplateForm action={createFormTemplate} initial={{ name: '', description: '', active: true, fields: [], signers: [] }} />
+      <FormTemplateForm action={createFormTemplate} initial={{ name: '', description: '', active: true, financial: false, fields: [], signers: [] }} />
     </div>
   )
 }

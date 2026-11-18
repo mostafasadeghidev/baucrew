@@ -11,11 +11,15 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Check, Plus, User, X } from 'lucide-react'
+import { Camera, Check, Image as ImageIcon, Plus, User, X } from 'lucide-react'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { btn } from '@/components/ui/button'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
-import { addTask, completeTask, deleteTask } from '@/app/task-actions'
+import { Menu, menuItemClass } from '@/components/ui/menu'
+import { PhotoGallery } from '@/components/photo-gallery'
+import { usePhotoPicker } from '@/components/photo-picker'
+import { uploadTaskPhoto } from '@/lib/photo-upload'
+import { addTask, completeTask, deleteTask, deleteTaskPhoto } from '@/app/task-actions'
 import { TASK_TEXT_MAX, TASK_TITLE_MAX, type TaskRow } from '@/lib/tasks'
 
 export type { TaskRow } from '@/lib/tasks'
@@ -147,6 +151,7 @@ export function ProjectTasks({
             {task.done && <> · {t('doneBy', { who: task.done })}</>}
           </p>
         )}
+        {!compact && (task.project?.id ?? projectId) && <TaskPhotos projectId={task.project?.id ?? projectId!} task={task} large={large} />}
       </div>
     </li>
   )
@@ -284,5 +289,88 @@ export function ProjectTasks({
       {form}
       {foot}
     </section>
+  )
+}
+
+/**
+ * A task's photos — taken on the site as proof it is done, or of what stands
+ * in its way: the tiles, opening large, and "Foto" to add more. On a phone the
+ * camera and the gallery are both offered; at a desk, the file picker. The
+ * photos are the project's own files too, in its "Aufgaben" folder.
+ */
+function TaskPhotos({ projectId, task, large }: { projectId: string; task: TaskRow; large: boolean }) {
+  const t = useTranslations('tasks')
+  const router = useRouter()
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [, startTransition] = useTransition()
+
+  const send = (files: File[]) => {
+    setError(null)
+    setProgress({ done: 0, total: files.length })
+    startTransition(async () => {
+      let failed = 0
+      for (const [i, file] of files.entries()) {
+        const result = await uploadTaskPhoto(projectId, task.id, file)
+        if ('error' in result) failed++
+        setProgress({ done: i + 1, total: files.length })
+      }
+      setProgress(null)
+      if (failed > 0) setError(t('photoFailed', { count: failed }))
+      router.refresh()
+    })
+  }
+  const picker = usePhotoPicker(send)
+
+  const button = `${large ? btn.outline : btn.outlineXs} gap-1.5`
+  const label = progress ? t('photoSending', { done: progress.done, total: progress.total }) : t('photoAdd')
+  return (
+    <div className="mt-2 space-y-2">
+      {picker.inputs}
+      {task.photos.length > 0 && (
+        <PhotoGallery
+          photos={task.photos.map((p) => ({ id: p.id, filename: p.filename, href: `/api/files/${p.id}`, deletable: p.deletable }))}
+          tileClass={large ? 'h-20 w-20' : 'h-14 w-14'}
+          onDelete={async (id) => {
+            const result = await deleteTaskPhoto(id)
+            if (result.error) setError(t('notAllowed'))
+            router.refresh()
+          }}
+        />
+      )}
+      {picker.touch ? (
+        <Menu
+          side="bottom"
+          align="start"
+          label={t('photoAdd')}
+          className={button}
+          trigger={
+            <span className="inline-flex items-center gap-1.5">
+              <Camera className="h-4 w-4" aria-hidden />
+              {label}
+            </span>
+          }
+        >
+          <button type="button" role="menuitem" disabled={progress !== null} onClick={picker.openCamera} className={menuItemClass}>
+            <Camera className="h-4 w-4 text-muted" aria-hidden />
+            {t('photoCamera')}
+          </button>
+          <button type="button" role="menuitem" disabled={progress !== null} onClick={picker.openGallery} className={menuItemClass}>
+            <ImageIcon className="h-4 w-4 text-muted" aria-hidden />
+            {t('photoGallery')}
+          </button>
+        </Menu>
+      ) : (
+        <button type="button" disabled={progress !== null} onClick={picker.openGallery} className={button}>
+          <Camera className="h-4 w-4" aria-hidden />
+          {label}
+        </button>
+      )}
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
+    </div>
   )
 }

@@ -1,23 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
+  sitesBoard,
   BOARD_BACKGROUNDS,
   boardBackgroundCss,
   boardBackgroundKey,
   cleanBoardName,
   cleanColumnOrder,
   columnLabel,
-  columnsFromForm,
   moveColumn,
   pickBoard,
-  startingLists,
 } from '@/lib/boards'
-import { ALL_PROJECT_STATUSES } from '@/lib/prep-tab'
-
-const form = (picked: string[], titles: Record<string, string> = {}) => (name: string) => {
-  if (name.startsWith('column_')) return picked.includes(name.slice('column_'.length)) ? 'on' : null
-  if (name.startsWith('title_')) return titles[name.slice('title_'.length)] ?? ''
-  return null
-}
 
 describe('moveColumn', () => {
   const board = ['LEAD', 'QUOTED', 'APPROVED', 'PLANNED'] as const
@@ -35,32 +27,6 @@ describe('moveColumn', () => {
     expect(moveColumn(list, 'NOPE', 'LEAD')).toBe(list)
     expect(moveColumn(list, 'LEAD', 'GONE')).toBe(list)
     expect(moveColumn(list, 'LEAD', 'LEAD')).toBe(list)
-  })
-})
-
-describe('columnsFromForm', () => {
-  it('keeps the order the board was arranged in and appends what was newly ticked', () => {
-    expect(columnsFromForm(form(['LEAD', 'PAID', 'PLANNED']), ['PAID', 'LEAD', 'QUOTED'])).toEqual([
-      { status: 'PAID', title: null },
-      { status: 'LEAD', title: null },
-      { status: 'PLANNED', title: null },
-    ])
-  })
-
-  it('takes a column’s own name, trimmed, and none when it is blank', () => {
-    expect(columnsFromForm(form(['QUOTED', 'LEAD'], { QUOTED: '  Angebot fertig ', LEAD: '   ' }))).toEqual([
-      { status: 'LEAD', title: null },
-      { status: 'QUOTED', title: 'Angebot fertig' },
-    ])
-  })
-
-  it('cuts a name that runs on', () => {
-    const [column] = columnsFromForm(form(['LEAD'], { LEAD: 'x'.repeat(80) }))
-    expect(column.title).toHaveLength(40)
-  })
-
-  it('gives no columns when nothing is ticked', () => {
-    expect(columnsFromForm(form([]))).toEqual([])
   })
 })
 
@@ -117,32 +83,13 @@ describe('backgrounds', () => {
   })
 })
 
-describe('startingLists', () => {
-  it('reads the three ways a board made from the bar can start', () => {
-    expect(startingLists('pick:LEAD,QUOTED')).toEqual({ kind: 'pick', statuses: ['LEAD', 'QUOTED'] })
-    expect(startingLists('preset:sites')).toEqual({ kind: 'preset', key: 'sites' })
-    expect(startingLists('copy:cmboard0000abcd1234')).toEqual({ kind: 'copy', boardId: 'cmboard0000abcd1234' })
-    // The first board, made by the migration that brought boards in.
-    expect(startingLists('copy:board_all')).toEqual({ kind: 'copy', boardId: 'board_all' })
-  })
-
-  it('puts the ticked statuses in the order of the lifecycle, each once, known ones only', () => {
-    expect(startingLists('pick:PAID,LEAD,LEAD,NOPE')).toEqual({ kind: 'pick', statuses: ['LEAD', 'PAID'] })
-    expect(startingLists(`pick:${[...ALL_PROJECT_STATUSES].reverse().join(',')}`)).toEqual({
-      kind: 'pick',
-      statuses: [...ALL_PROJECT_STATUSES],
-    })
-  })
-
-  it('takes nothing else — a pick of none is nothing too', () => {
-    expect(startingLists('pick:')).toBeNull()
-    expect(startingLists('pick:NOPE')).toBeNull()
-    expect(startingLists('all')).toBeNull()
-    expect(startingLists('')).toBeNull()
-    expect(startingLists('copy:')).toBeNull()
-    expect(startingLists('copy:../x')).toBeNull()
-    expect(startingLists('preset:Sites')).toBeNull()
-    expect(startingLists(null)).toBeNull()
-    expect(startingLists(['pick:LEAD'])).toBeNull()
+describe('sitesBoard', () => {
+  it('is the board ticked for Baustellen, the first in the tabs’ order should two carry it, else none', () => {
+    const a = { id: 'a', showOnSites: false }
+    const b = { id: 'b', showOnSites: true }
+    const c = { id: 'c', showOnSites: true }
+    expect(sitesBoard([a, b, c])?.id).toBe('b')
+    expect(sitesBoard([a])).toBeNull()
+    expect(sitesBoard([])).toBeNull()
   })
 })
