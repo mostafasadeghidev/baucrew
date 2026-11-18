@@ -24,7 +24,7 @@ RUN npx prisma generate && npm run build
 # ── Migration tooling (kept separate from the app bundle) ────
 FROM node:24-alpine AS migrate-deps
 WORKDIR /migrate
-RUN npm init -y >/dev/null && npm install --no-audit --no-fund prisma@~7.9 dotenv@^17 pg@^8 bcryptjs@^3
+RUN npm init -y >/dev/null && npm install --no-audit --no-fund prisma@~7.10 dotenv@^17 pg@^8 bcryptjs@^3
 
 # ── Runtime stage ────────────────────────────────────────────
 FROM node:24-alpine AS runner

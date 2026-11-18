@@ -18,8 +18,8 @@
   "dependencies": {
     "@ai-sdk/openai": "^4.0.106",
     "@ai-sdk/react": "^4.0.163",
-    "@prisma/adapter-pg": "^7.9.1",
-    "@prisma/client": "^7.9.1",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "ai": "^7.0.159",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
@@ -28,7 +28,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^1.32.0",
     "lz-string": "1.5.0",
-    "next": "16.4.1",
+    "next": "16.4.6",
     "next-intl": "^4.13.6",
     "pdf-lib": "^1.17.1",
     "pg": "^8.23.0",
@@ -37,7 +37,7 @@
     "react-dom": "19.2.9",
     "streamdown": "2.7.1",
     "unpdf": "^2.1.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -49,8 +49,8 @@
     "@types/react-dom": "^19",
     "cross-env": "^10.1.0",
     "eslint": "^9",
-    "eslint-config-next": "16.4.1",
-    "prisma": "^7.9.1",
+    "eslint-config-next": "16.4.6",
+    "prisma": "^7.10.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
     "typescript": "^5",
