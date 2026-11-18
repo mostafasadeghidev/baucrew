@@ -1,7 +1,7 @@
 import { db } from './db'
-import { cleanColumnOrder, type BoardColumnDef } from './boards'
+import { cleanColumnOrder } from './boards'
 import { RULE_STATUS, type ColumnRule, trelloRuleId } from './board-rules'
-import type { BoardPreset } from './board-presets'
+import { planColumnSave, type CleanBoard } from './board-draft'
 
 export type BoardRow = {
   id: string
@@ -10,7 +10,9 @@ export type BoardRow = {
   /** A photo as the ground instead (its storage key), or null. */
   backgroundImage: string | null
   sortOrder: number
-  columns: Array<{ id: string; status: string; title: string | null; rule: string | null; sortOrder: number }>
+  /** Baustellen (/sites) shows this board. */
+  showOnSites: boolean
+  columns: Array<{ id: string; status: string; title: string | null; rule: string | null; color: string | null; sortOrder: number }>
 }
 
 /** Every board in the order they stand, each with its columns left to right. */
@@ -23,7 +25,8 @@ export async function getBoards(): Promise<BoardRow[]> {
       background: true,
       backgroundImage: true,
       sortOrder: true,
-      columns: { orderBy: { sortOrder: 'asc' }, select: { id: true, status: true, title: true, rule: true, sortOrder: true } },
+      showOnSites: true,
+      columns: { orderBy: { sortOrder: 'asc' }, select: { id: true, status: true, title: true, rule: true, color: true, sortOrder: true } },
     },
   })
 }
@@ -46,26 +49,19 @@ export async function saveColumnOrder(boardId: string, ids: unknown): Promise<bo
   return true
 }
 
-/** A board made from a preset, at the end of the tabs, with every list the preset names. */
-export async function createBoardFromPreset(preset: BoardPreset): Promise<string> {
-  const last = await db.board.aggregate({ _max: { sortOrder: true } })
-  const board = await db.board.create({
-    data: {
-      name: preset.name,
-      background: preset.background,
-      sortOrder: (last._max.sortOrder ?? -1) + 1,
-      columns: { create: preset.columns.map((c, sortOrder) => ({ status: c.status, rule: c.rule, title: c.title, sortOrder })) },
-    },
-    select: { id: true },
-  })
-  return board.id
-}
-
 /** A column's own name on its board, typed over on the board itself; blank is the status's name. Its board's id comes back. */
 export async function renameBoardColumn(columnId: string, title: string | null): Promise<string | null> {
   const column = await db.boardColumn.findUnique({ where: { id: columnId }, select: { boardId: true } })
   if (!column) return null
   await db.boardColumn.update({ where: { id: columnId }, data: { title } })
+  return column.boardId
+}
+
+/** A column's tint, picked from its menu on the board; null is the plain grey. Its board's id comes back. */
+export async function setBoardColumnColor(columnId: string, color: string | null): Promise<string | null> {
+  const column = await db.boardColumn.findUnique({ where: { id: columnId }, select: { boardId: true } })
+  if (!column) return null
+  await db.boardColumn.update({ where: { id: columnId }, data: { color } })
   return column.boardId
 }
 
@@ -98,24 +94,41 @@ export async function removeBoardColumn(columnId: string): Promise<string | null
 }
 
 /**
- * A board's plain columns as the settings form sent them: the ones left out
- * go, the others take the order and the names given. The rule lists are
- * added and taken away on the board itself and keep their places here, after
- * the plain ones.
+ * A board saved from the settings window, all of it at once: its name, its
+ * colour, whether Baustellen shows it, and its columns as the draft has them
+ * (see `planColumnSave`). A new board goes at the end of the tabs. Its id
+ * comes back; null when the board to change is not there.
+ *
+ * Baustellen shows one board: the tick saved on this one is taken off every
+ * other in the same transaction.
  */
-export async function saveBoardColumns(boardId: string, columns: BoardColumnDef[]): Promise<void> {
-  const existing = await db.boardColumn.findMany({ where: { boardId }, select: { id: true, status: true, rule: true, sortOrder: true } })
-  const plain = existing.filter((c) => c.rule === null)
-  const ruled = existing.filter((c) => c.rule !== null).sort((a, b) => a.sortOrder - b.sortOrder)
-  const gone = plain.filter((c) => !columns.some((w) => w.status === c.status)).map((c) => c.id)
+export async function saveBoardDraft(id: string | null, board: CleanBoard): Promise<string | null> {
+  if (id === null) {
+    return db.$transaction(async (tx) => {
+      const last = await tx.board.aggregate({ _max: { sortOrder: true } })
+      if (board.showOnSites) await tx.board.updateMany({ where: { showOnSites: true }, data: { showOnSites: false } })
+      const made = await tx.board.create({
+        data: {
+          name: board.name,
+          background: board.background,
+          showOnSites: board.showOnSites,
+          sortOrder: (last._max.sortOrder ?? -1) + 1,
+          columns: { create: board.columns.map((c, sortOrder) => ({ status: c.status, title: c.title, rule: c.rule, color: c.color, sortOrder })) },
+        },
+        select: { id: true },
+      })
+      return made.id
+    })
+  }
+  const existing = await db.boardColumn.findMany({ where: { boardId: id }, select: { id: true, rule: true } })
+  if (!(await db.board.findUnique({ where: { id }, select: { id: true } }))) return null
+  const plan = planColumnSave(existing, board.columns)
   await db.$transaction([
-    ...(gone.length > 0 ? [db.boardColumn.deleteMany({ where: { id: { in: gone } } })] : []),
-    ...columns.map((column, sortOrder) => {
-      const had = plain.find((c) => c.status === column.status)
-      return had
-        ? db.boardColumn.update({ where: { id: had.id }, data: { title: column.title, sortOrder } })
-        : db.boardColumn.create({ data: { boardId, status: column.status, title: column.title, sortOrder } })
-    }),
-    ...ruled.map((c, i) => db.boardColumn.update({ where: { id: c.id }, data: { sortOrder: columns.length + i } })),
+    ...(board.showOnSites ? [db.board.updateMany({ where: { showOnSites: true, id: { not: id } }, data: { showOnSites: false } })] : []),
+    db.board.update({ where: { id }, data: { name: board.name, background: board.background, showOnSites: board.showOnSites } }),
+    ...(plan.remove.length > 0 ? [db.boardColumn.deleteMany({ where: { id: { in: plan.remove }, boardId: id } })] : []),
+    ...plan.update.map((c) => db.boardColumn.update({ where: { id: c.id }, data: { status: c.status, title: c.title, color: c.color, sortOrder: c.sortOrder } })),
+    ...plan.create.map((c) => db.boardColumn.create({ data: { boardId: id, status: c.status, title: c.title, rule: c.rule, color: c.color, sortOrder: c.sortOrder } })),
   ])
+  return id
 }

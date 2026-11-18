@@ -11,11 +11,13 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Download, ExternalLink, Eye, EyeOff, Image as ImageIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { Download, ExternalLink, Eye, EyeOff, FolderInput, Image as ImageIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { AlertDialog } from '@/components/ui/alert-dialog'
 import { FilePreview } from '@/components/file-preview'
+import { MoveDialog, dragItem, useOpenFolder } from '@/components/project-folders'
 import type { PreviewKind } from '@/lib/files'
+import type { FolderItem, FolderView } from '@/lib/folders'
 import { removeProjectFile, renameProjectFile, setProjectCover, toggleFileVisibility } from './file-actions'
 
 export type AttachmentRow = {
@@ -28,6 +30,8 @@ export type AttachmentRow = {
   meta: string
   visibleToCrew: boolean
   isCover: boolean
+  /** The project folder it lies in; null = the top level. */
+  folderId: string | null
 }
 
 /** Up to this many lines before "show all". */
@@ -36,7 +40,16 @@ const FIRST = 6
 /** The tile of a file that is not a picture: the kind written large on grey, as Trello draws it. */
 const TILE = 'bg-subtle text-foreground/70'
 
-export function AttachmentList({ projectId, rows }: { projectId: string; rows: AttachmentRow[] }) {
+export function AttachmentList({
+  projectId,
+  rows: allRows,
+  folders,
+}: {
+  projectId: string
+  rows: AttachmentRow[]
+  /** The project's folders; the list then shows what lies in the open one (see project-folders.tsx). */
+  folders?: FolderView[]
+}) {
   const t = useTranslations('files')
   const tc = useTranslations('common')
   const router = useRouter()
@@ -46,6 +59,10 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [moving, setMoving] = useState<(FolderItem & { from: string | null }) | null>(null)
+  const openFolder = useOpenFolder(projectId)
+  const inFolder = folders ? (folders.some((f) => f.id === openFolder) ? openFolder : null) : undefined
+  const rows = inFolder === undefined ? allRows : allRows.filter((row) => row.folderId === inFolder)
   const labels = { preview: t('preview'), openInTab: t('openInTab'), download: t('download'), close: tc('close') }
   const shown = all ? rows : rows.slice(0, FIRST)
   const hidden = rows.length - shown.length
@@ -58,13 +75,13 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
       router.refresh()
     })
 
-  if (rows.length === 0) return <p className="text-sm text-muted">{t('none')}</p>
+  if (rows.length === 0) return <p className="text-sm text-muted">{inFolder ? t('noneInFolder') : t('none')}</p>
 
   return (
     <div>
       <ul className="divide-y divide-border">
         {shown.map((row) => (
-          <li key={row.id} className="flex items-center gap-3 py-2">
+          <li key={row.id} className="flex items-center gap-3 py-2" {...(folders ? dragItem({ kind: 'document', id: row.id }) : {})}>
             {row.kind === 'image' ? (
               <FilePreview id={row.id} filename={row.filename} kind="image" thumb thumbClass="h-12 w-16 shrink-0 rounded-md" labels={labels} />
             ) : (
@@ -147,6 +164,12 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
                 <Pencil className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
                 {t('fileRename')}
               </button>
+              {folders && (
+                <button type="button" role="menuitem" className={menuItemClass} onClick={() => setMoving({ kind: 'document', id: row.id, from: row.folderId })}>
+                  <FolderInput className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+                  {t('moveTo')}
+                </button>
+              )}
               {row.kind === 'image' && (
                 <button type="button" role="menuitem" className={menuItemClass} onClick={() => run(() => setProjectCover(projectId, row.isCover ? null : row.id))}>
                   <ImageIcon className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
@@ -179,6 +202,9 @@ export function AttachmentList({ projectId, rows }: { projectId: string; rows: A
         <p role="alert" className="mt-2 text-xs text-danger">
           {error}
         </p>
+      )}
+      {folders && (
+        <MoveDialog projectId={projectId} folders={folders} item={moving} from={moving?.from ?? null} onClose={() => setMoving(null)} />
       )}
       <AlertDialog
         open={removing !== null}

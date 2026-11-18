@@ -12,6 +12,7 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from 'reac
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { dragHasFiles, uploadProjectFiles } from './upload-files'
+import { useOpenFolder } from '@/components/project-folders'
 import { useUploadMessage } from './file-upload'
 
 export function CardDropZone({ projectId, children, className = '' }: { projectId: string; children: ReactNode; className?: string }) {
@@ -24,6 +25,8 @@ export function CardDropZone({ projectId, children, className = '' }: { projectI
   const [, startTransition] = useTransition()
   // Entering a child fires "leave" on the parent: counted, so the frame stays while the pointer is inside.
   const depth = useRef(0)
+  // Dropped while a folder is open on the card: the files go into it.
+  const openFolder = useOpenFolder(projectId)
 
   // A failure says its piece and goes; it is not a dialog to be closed.
   useEffect(() => {
@@ -34,7 +37,7 @@ export function CardDropZone({ projectId, children, className = '' }: { projectI
 
   async function send(files: File[]) {
     setError(null)
-    const { failed } = await uploadProjectFiles(projectId, files, (done, total) => setProgress({ done, total }))
+    const { failed } = await uploadProjectFiles(projectId, files, (done, total) => setProgress({ done, total }), openFolder)
     setProgress(null)
     if (failed.length > 0) setError(message(failed))
     startTransition(() => router.refresh())

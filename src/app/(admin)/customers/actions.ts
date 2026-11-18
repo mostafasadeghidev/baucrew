@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { db } from '@/lib/db'
+import { refreshProjectTitles } from '@/lib/project-title-db'
 import { requireManagement } from '@/lib/authz'
 import { audit } from '@/lib/audit'
 import { formPlace } from '@/lib/site-place'
@@ -106,6 +107,8 @@ export async function updateCustomer(
   const before = await db.customer.findUnique({ where: { id } })
   if (!before) return { error: 'saveFailed' }
   await db.customer.update({ where: { id }, data: withPlace(parsed.data) })
+  // The customer's name is the first half of every project's name.
+  if (parsed.data.name !== before.name) await refreshProjectTitles({ customerId: id })
   await audit({
     userId: user.id,
     action: 'customer.update',

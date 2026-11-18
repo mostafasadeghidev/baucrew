@@ -18,6 +18,17 @@ services:
       WATTRO_SYNC_INTERVAL_MINUTES: ${WATTRO_SYNC_INTERVAL_MINUTES:-}
       WATTRO_PROJECT_PUSH: ${WATTRO_PROJECT_PUSH:-}
       INBOUND_API_KEY: ${INBOUND_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      # Never empty: the AI SDK refuses an empty base URL when it loads, which
+      # stopped the app at start in 1.58.0. Unset means OpenAI's own address.
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_TRANSCRIBE_MODEL: ${OPENAI_TRANSCRIBE_MODEL:-}
+      OPENAI_TRANSCRIBE_LANGUAGE: ${OPENAI_TRANSCRIBE_LANGUAGE:-}
+      QUOTE_OCR: ${QUOTE_OCR:-}
+      QUOTE_OCR_MODEL: ${QUOTE_OCR_MODEL:-}
+      OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
+      ASSISTANT_APPROVAL_SECRET: ${ASSISTANT_APPROVAL_SECRET:-}
     volumes:
       - baucrew_files:/app/storage
     ports:

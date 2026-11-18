@@ -3,193 +3,73 @@
 import { revalidatePath } from 'next/cache'
 import { randomUUID } from 'crypto'
 import { deleteStoredFile, saveStoredFile } from '@/lib/file-storage'
-import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { audit } from '@/lib/audit'
-import { boardBackgroundKey, cleanBoardName, columnsFromForm, startingLists } from '@/lib/boards'
-import type { ProjectStatusKey } from '@/lib/prep-tab'
-import { createBoardFromPreset, saveBoardColumns } from '@/lib/boards-db'
-import { boardPreset, presetIsSound } from '@/lib/board-presets'
-import type { SaveState } from '@/components/saved-form'
-import type { DeleteState } from '@/components/delete-button'
+import { RECORD_ID } from '@/lib/boards'
+import { saveBoardDraft } from '@/lib/boards-db'
+import { cleanBoardDraft, cleanBoardOrder, type DraftError } from '@/lib/board-draft'
 
 function done() {
   revalidatePath('/projects')
+  // Baustellen shows the board with the tick.
+  revalidatePath('/sites')
   revalidatePath('/settings/boards')
 }
 
-/** A new board: its name and its columns, all nine unless some were unticked. */
-export async function createBoard(formData: FormData): Promise<SaveState> {
-  const admin = await requireAdmin()
-  const name = cleanBoardName(String(formData.get('name') ?? ''))
-  const columns = columnsFromForm((n) => formData.get(n))
-  if (!name || columns.length === 0) return { error: 'invalid' }
-  const last = await db.board.aggregate({ _max: { sortOrder: true } })
-  const board = await db.board.create({
-    data: {
-      name,
-      background: boardBackgroundKey(String(formData.get('background') ?? '')),
-      sortOrder: (last._max.sortOrder ?? -1) + 1,
-      columns: { create: columns.map((c, sortOrder) => ({ status: c.status, title: c.title, sortOrder })) },
-    },
-    select: { id: true },
-  })
-  await audit({ userId: admin.id, action: 'board.create', entity: 'Board', entityId: board.id, newValue: name })
-  done()
-  return { savedAt: Date.now() }
-}
-
 /**
- * A board's name and columns. Columns it already had keep the order they were
- * dragged into on the board; ones ticked now are appended.
+ * A board saved from the settings window — made, or changed — all at once:
+ * its name, its colour, and its columns in their order with their names and
+ * statuses (src/lib/board-draft.ts). Administrators only, as making and
+ * deleting boards always was; the lists on the board itself stay the office's.
  */
-export async function updateBoard(id: string, formData: FormData): Promise<SaveState> {
+export async function saveBoardSettings(id: string | null, draft: unknown): Promise<{ id?: string; error?: DraftError | 'notFound' }> {
   const admin = await requireAdmin()
-  const board = await db.board.findUnique({
-    where: { id },
-    select: { name: true, columns: { orderBy: { sortOrder: 'asc' }, select: { status: true } } },
-  })
-  if (!board) return { error: 'notFound' }
-  const name = cleanBoardName(String(formData.get('name') ?? ''))
-  const columns = columnsFromForm(
-    (n) => formData.get(n),
-    board.columns.map((c) => c.status)
-  )
-  if (!name || columns.length === 0) return { error: 'invalid' }
-  await db.board.update({ where: { id }, data: { name, background: boardBackgroundKey(String(formData.get('background') ?? '')) } })
-  await saveBoardColumns(id, columns)
+  if (id !== null && !RECORD_ID.test(id)) return { error: 'notFound' }
+  const clean = cleanBoardDraft(draft)
+  if ('error' in clean) return { error: clean.error }
+  const before = id ? await db.board.findUnique({ where: { id }, select: { name: true } }) : null
+  if (id && !before) return { error: 'notFound' }
+  const saved = await saveBoardDraft(id, clean.board)
+  if (!saved) return { error: 'notFound' }
   await audit({
     userId: admin.id,
-    action: 'board.update',
+    action: id ? 'board.update' : 'board.create',
     entity: 'Board',
-    entityId: id,
-    oldValue: board.name,
-    newValue: `${name}: ${columns.map((c) => c.status).join(',')}`,
+    entityId: saved,
+    oldValue: before?.name ?? null,
+    newValue: `${clean.board.name}: ${clean.board.columns.map((c) => (c.rule ? `${c.status}:${c.rule}` : c.status)).join(',')}`,
   })
   done()
-  return { savedAt: Date.now() }
+  return { id: saved }
 }
 
-/** A board the way the client had it in Trello, with one click; it opens once it is made. */
-export async function createPresetBoard(key: string): Promise<void> {
+/** The boards' tabs in the order they were dragged into. */
+export async function reorderBoards(ids: string[]): Promise<{ error?: 'saveFailed' }> {
   const admin = await requireAdmin()
-  const preset = boardPreset(key, new Date().getUTCFullYear())
-  if (!preset || !presetIsSound(preset)) return
-  const id = await createBoardFromPreset(preset)
-  await audit({ userId: admin.id, action: 'board.create', entity: 'Board', entityId: id, newValue: `${preset.name} (${key})` })
+  const boards = await db.board.findMany({ orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { id: true } })
+  const order = cleanBoardOrder(ids, boards.map((b) => b.id))
+  await db.$transaction(order.map((boardId, sortOrder) => db.board.update({ where: { id: boardId }, data: { sortOrder } })))
+  await audit({ userId: admin.id, action: 'board.order', entity: 'Board', entityId: order[0] ?? '', newValue: order.join(',') })
   done()
-  redirect(`/projects?board=${id}`)
+  return {}
 }
 
 /**
  * A board away. The last board stays: a projects page with no board is a page
- * with nothing on it. Its photo was its alone and goes with it.
+ * with nothing on it. Its photo was its alone and goes with it. The projects
+ * on it stay — a board is a view of them, never where they are kept.
  */
-async function dropBoard(userId: string, id: string): Promise<{ error?: 'lastBoard' | 'notFound' }> {
+export async function removeBoard(id: string): Promise<{ error?: 'lastBoard' | 'notFound' }> {
+  const admin = await requireAdmin()
   if ((await db.board.count()) <= 1) return { error: 'lastBoard' }
   const board = await db.board.findUnique({ where: { id }, select: { name: true, backgroundImage: true } })
   if (!board) return { error: 'notFound' }
   await db.board.delete({ where: { id } })
   if (board.backgroundImage) await deleteStoredFile(board.backgroundImage)
-  await audit({ userId, action: 'board.delete', entity: 'Board', entityId: id, oldValue: board.name })
+  await audit({ userId: admin.id, action: 'board.delete', entity: 'Board', entityId: id, oldValue: board.name })
   done()
   return {}
-}
-
-export async function deleteBoard(id: string, _prev: DeleteState, _formData: FormData): Promise<DeleteState> {
-  const admin = await requireAdmin()
-  return dropBoard(admin.id, id)
-}
-
-// ── From the board's own bar, the way Trello makes and changes a board ──
-
-/**
- * A board made from the "+" after the tabs: its name, its ground, and the
- * lists it starts with (see `startingLists`). Its id comes back, so the bar
- * can open it.
- */
-export async function createBoardFromBar(input: {
-  name: string
-  background: string | null
-  lists: string
-}): Promise<{ id?: string; error?: 'invalid' }> {
-  const admin = await requireAdmin()
-  const name = cleanBoardName(String(input.name ?? ''))
-  const start = startingLists(input.lists)
-  if (!name || !start) return { error: 'invalid' }
-  let columns: Array<{ status: ProjectStatusKey; title: string | null; rule: string | null }>
-  if (start.kind === 'preset') {
-    const preset = boardPreset(start.key, new Date().getUTCFullYear())
-    if (!preset || !presetIsSound(preset)) return { error: 'invalid' }
-    columns = preset.columns
-  } else if (start.kind === 'copy') {
-    const source = await db.board.findUnique({
-      where: { id: start.boardId },
-      select: { columns: { orderBy: { sortOrder: 'asc' }, select: { status: true, title: true, rule: true } } },
-    })
-    if (!source || source.columns.length === 0) return { error: 'invalid' }
-    columns = source.columns
-  } else {
-    columns = start.statuses.map((status) => ({ status, title: null, rule: null }))
-  }
-  const last = await db.board.aggregate({ _max: { sortOrder: true } })
-  const board = await db.board.create({
-    data: {
-      name,
-      background: boardBackgroundKey(input.background),
-      sortOrder: (last._max.sortOrder ?? -1) + 1,
-      columns: { create: columns.map((c, sortOrder) => ({ status: c.status, title: c.title, rule: c.rule, sortOrder })) },
-    },
-    select: { id: true },
-  })
-  await audit({ userId: admin.id, action: 'board.create', entity: 'Board', entityId: board.id, newValue: name })
-  done()
-  return { id: board.id }
-}
-
-/** A board's name typed over in the bar's window. */
-export async function renameBoard(id: string, rawName: string): Promise<{ error?: 'invalid' | 'notFound' }> {
-  const admin = await requireAdmin()
-  const name = cleanBoardName(String(rawName ?? ''))
-  if (!name) return { error: 'invalid' }
-  const board = await db.board.findUnique({ where: { id }, select: { name: true } })
-  if (!board) return { error: 'notFound' }
-  if (board.name === name) return {}
-  await db.board.update({ where: { id }, data: { name } })
-  await audit({ userId: admin.id, action: 'board.update', entity: 'Board', entityId: id, oldValue: board.name, newValue: name })
-  done()
-  return {}
-}
-
-/** The ground's colour picked in the bar's window; null is the app's own. A photo, if there is one, still stands before it. */
-export async function setBoardBackground(id: string, background: string | null): Promise<void> {
-  const admin = await requireAdmin()
-  const key = boardBackgroundKey(background)
-  const board = await db.board.findUnique({ where: { id }, select: { background: true } })
-  if (!board || board.background === key) return
-  await db.board.update({ where: { id }, data: { background: key } })
-  await audit({ userId: admin.id, action: 'board.update', entity: 'Board', entityId: id, oldValue: board.background, newValue: key })
-  done()
-}
-
-/** A board away from the bar's window; the answer says why not when it stays. */
-export async function removeBoard(id: string): Promise<{ error?: 'lastBoard' | 'notFound' }> {
-  const admin = await requireAdmin()
-  return dropBoard(admin.id, id)
-}
-
-/** One place up or down among the boards' tabs. */
-export async function moveBoard(id: string, direction: -1 | 1): Promise<void> {
-  await requireAdmin()
-  const boards = await db.board.findMany({ orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { id: true } })
-  const from = boards.findIndex((b) => b.id === id)
-  const to = from + direction
-  if (from === -1 || to < 0 || to >= boards.length) return
-  const order = boards.map((b) => b.id)
-  ;[order[from], order[to]] = [order[to], order[from]]
-  await db.$transaction(order.map((boardId, sortOrder) => db.board.update({ where: { id: boardId }, data: { sortOrder } })))
-  done()
 }
 
 // ── A photo as the board's ground ──

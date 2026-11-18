@@ -25,7 +25,10 @@ export function FilePreview({
   thumb = false,
   thumbClass = 'h-20 w-20',
   nameClassName,
+  href = `/api/files/${id}`,
 }: {
+  /** Where the file is read from, when it is not a project document (the documentation's files). */
+  href?: string
   /** How the name is drawn, when it should not look like a link — Trello's attachment list. */
   nameClassName?: string
   id: string
@@ -45,7 +48,6 @@ export function FilePreview({
     () => true,
     () => false
   )
-  const href = `/api/files/${id}`
 
   useEffect(() => {
     if (!open) return

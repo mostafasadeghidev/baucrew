@@ -8,7 +8,8 @@
  * As in Trello a box is typed into where it stands: the customer's wish, the
  * site visit, the order value and the site's address are saved the moment
  * Enter is pressed or the box is left; the type of work opens the labels
- * window, since the trades are the card's labels. The customer is picked in a
+ * window, since the trades are the card's labels; what no trade says is typed
+ * into the free field beside it. The customer is picked in a
  * small window from a list searched as it is typed into, or made new there;
  * the customer's number belongs to the customer, the day the card came in to
  * nobody.
@@ -51,7 +52,12 @@ export type CardFieldCell = {
 /** On the back the customer's wish has a ground of its own too, as it has in the client's Trello. */
 const TONE = { ...CARD_FIELD_TONE, wish: 'red' as const }
 const DATES = new Set<CardFieldKey>(['inspection', 'created'])
-const SAVE_KEY: Partial<Record<CardFieldKey, 'wish' | 'inspection' | 'price'>> = { wish: 'wish', inspection: 'inspection', value: 'price' }
+const SAVE_KEY: Partial<Record<CardFieldKey, 'wish' | 'inspection' | 'price' | 'workNote'>> = {
+  wish: 'wish',
+  inspection: 'inspection',
+  value: 'price',
+  workNote: 'workNote',
+}
 
 const INPUT = 'h-9 w-full rounded-md border border-accent bg-background px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
 
@@ -137,7 +143,7 @@ function InlineField({
   className,
 }: {
   projectId: string
-  saveKey: 'wish' | 'inspection' | 'price'
+  saveKey: 'wish' | 'inspection' | 'price' | 'workNote'
   kind: 'text' | 'date' | 'number'
   value: string
   text: string | null

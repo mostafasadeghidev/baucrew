@@ -17,6 +17,10 @@ import { cardCreatedAt, checklistTemplatesOf, splitCardTitle, type TrelloBoard }
 import { TRELLO_RULE_PREFIX } from '@/lib/board-rules'
 import { ProjectStatus } from '@/generated/prisma/enums'
 import { isUniqueClash, nextProjectNumber } from '@/lib/project-numbers'
+import { refreshProjectTitle } from '@/lib/project-title-db'
+import { isProjectPushEnabled } from '@/lib/wattro/client'
+import { pushImportedProjects, type ImportedChange } from '@/lib/wattro/project-push'
+import { wattroChangeOf, type PushableProject } from '@/lib/wattro/projects'
 
 /** A town's place on the map, looked up once per import; null where the lookup found nothing. */
 type Places = Map<string, { latitude: number; longitude: number } | null>
@@ -25,11 +29,13 @@ type Places = Map<string, { latitude: number; longitude: number } | null>
  * What a card's power-up fields put into its project. A new project takes all
  * of it; a project that is there already only where it is still empty — what
  * the office has typed in since stays. The trades are added, never taken
- * away. A town is looked up for the map once per import.
+ * away; what the type of work said that matched no trade becomes the work
+ * note, while the project has none. A town is looked up for the map once per import.
  */
 async function fieldData(
   fields: TrelloCardFields,
   tradeIds: string[],
+  workNote: string | null,
   existing: {
     street: string | null
     postalCode: string | null
@@ -37,6 +43,7 @@ async function fieldData(
     price: unknown
     executionWish: string | null
     inspectionDate: Date | null
+    workNote: string | null
     trades: string[]
   } | null,
   places: Places
@@ -62,6 +69,7 @@ async function fieldData(
   if (fields.orderValue !== undefined && empty(existing?.price)) data.price = fields.orderValue
   if (fields.executionWish && empty(existing?.executionWish)) data.executionWish = fields.executionWish
   if (fields.inspectionDate && empty(existing?.inspectionDate)) data.inspectionDate = new Date(`${fields.inspectionDate}T00:00:00Z`)
+  if (workNote && empty(existing?.workNote)) data.workNote = workNote
   return { data, tradeIds: tradeIds.filter((id) => !existing?.trades.includes(id)) }
 }
 
@@ -297,6 +305,36 @@ export async function runTrelloImport(board: TrelloBoard, options: TrelloImportO
     }
   }
 
+  // What Wattro shows of a project, read before the card is written and after.
+  const wattroSelect = {
+    number: true,
+    jobNumber: true,
+    name: true,
+    status: true,
+    archivedAt: true,
+    street: true,
+    postalCode: true,
+    city: true,
+    phone: true,
+    contact: true,
+    links: { where: { system: 'wattro' }, select: { id: true } },
+  } as const
+  /**
+   * The projects this run moved to another status, or changed where Wattro
+   * already has them. Wattro is told once the board is through: the card's list
+   * is written straight into the project here, past the forms that would tell
+   * it, and a job the office moves to "In Ausführung" in Trello has to reach
+   * Wattro like one moved in the app.
+   */
+  const forWattro: ImportedChange[] = []
+  const noteForWattro = async (before: PushableProject & { id: string; links: { id: string }[] }) => {
+    if (!isProjectPushEnabled()) return
+    const linked = before.links.length > 0
+    const after = await db.project.findUnique({ where: { id: before.id }, select: wattroSelect })
+    const change = after ? wattroChangeOf(before, after, linked) : null
+    if (change) forWattro.push({ id: before.id, change, linked })
+  }
+
   let boardCustomerId: string | null = null
   for (const card of board.cards) {
     const status = mapping.get(card.idList)
@@ -318,19 +356,23 @@ export async function runTrelloImport(board: TrelloBoard, options: TrelloImportO
     // the year a job belongs to, which the reconciliation with the planning
     // sheet relies on.
     const sourceCreatedAt = (fields.createdDate ? validDate(`${fields.createdDate}T00:00:00Z`) : null) ?? cardCreatedAt(card.id) ?? undefined
-    // The type of work, among the trades here; a word the app has no trade for stays readable on the card.
+    // The type of work, among the trades here; the words the app has no trade for are the work note.
     const matched = fields.workTypes ? matchTrades(fields.workTypes, trades) : { ids: [], unknown: [] }
-    const description =
-      [card.desc, matched.unknown.length ? `Art der Arbeit: ${matched.unknown.join(', ')}` : ''].filter(Boolean).join('\n\n') || null
+    const workNote = matched.unknown.join(', ').slice(0, 200) || null
 
     const due = card.due ? validDate(card.due) : null
-    /** What the card says, the same for a new project and one met again: the card's own line follows Trello. */
+    /**
+     * What the card says, the same for a new project and one met again: the
+     * card's own line follows Trello. Its title is the project's old title;
+     * the name is the customer and the trades once those are set (afterWrite).
+     */
     const cardData = {
       status,
-      name: projectName.slice(0, 200),
-      description,
+      sourceTitle: projectName.slice(0, 200),
+      description: card.desc || null,
       externalUrl: card.shortUrl || undefined,
       sourceCreatedAt,
+      ...(want.fields ? { workTypeText: fields.workTypes?.join(', ').slice(0, 500) || null } : {}),
       ...(due ? { dueDate: utcDay(due) } : {}),
       plannedStart: card.start && validDate(card.start) ? utcDay(validDate(card.start)!) : undefined,
       boardPosition: card.pos || undefined,
@@ -353,6 +395,7 @@ export async function runTrelloImport(board: TrelloBoard, options: TrelloImportO
           price: true,
           executionWish: true,
           inspectionDate: true,
+          workNote: true,
           workCategories: { select: { workCategoryId: true } },
         },
       })
@@ -361,7 +404,7 @@ export async function runTrelloImport(board: TrelloBoard, options: TrelloImportO
       if (fields.customerNumber) {
         await db.customer.updateMany({ where: { id: row.customerId, number: null }, data: { number: fields.customerNumber } })
       }
-      const fill = await fieldData(fields, matched.ids, { ...row, trades: row.workCategories.map((w) => w.workCategoryId) }, places)
+      const fill = await fieldData(fields, matched.ids, workNote, { ...row, trades: row.workCategories.map((w) => w.workCategoryId) }, places)
       if (Object.keys(fill.data).length === 0 && fill.tradeIds.length === 0) return
       await db.project.update({
         where: { id: projectId },
@@ -372,6 +415,7 @@ export async function runTrelloImport(board: TrelloBoard, options: TrelloImportO
     const afterWrite = async (projectId: string) => {
       await linkCard(projectId, card.id, card.shortUrl, card.idList)
       await fillCard(projectId, card)
+      await refreshProjectTitle(projectId)
     }
 
     // A second import must move the project on, not double it: the card it is
@@ -382,7 +426,7 @@ export async function runTrelloImport(board: TrelloBoard, options: TrelloImportO
     // is in Trello (an offer archived and a job made anew, say), and gets a
     // project of its own. Nothing else: a project of the same name that no
     // import made is somebody's own, never the card's.
-    const select = { id: true, customerId: true, doneAt: true, plannedStart: true, plannedEnd: true, dueDate: true, jobNumber: true }
+    const select = { id: true, customerId: true, doneAt: true, plannedStart: true, plannedEnd: true, dueDate: true, ...wattroSelect }
     // The title's number becomes the project's Projektnummer — where no other project has it already.
     const titleJobNumber = number && !(await db.project.findUnique({ where: { jobNumber: number }, select: { id: true } })) ? number : null
     const existing =
@@ -415,14 +459,17 @@ export async function runTrelloImport(board: TrelloBoard, options: TrelloImportO
       if (named !== existing.customerId) await dropGuessedCustomer(existing.customerId)
       await fillExisting(existing.id)
       await afterWrite(existing.id)
+      await noteForWattro(existing)
       updated++
       continue
     }
 
-    const fill = hasFields(fields) ? await fieldData(fields, matched.ids, null, places) : { data: {}, tradeIds: [] as string[] }
+    const fill = hasFields(fields) ? await fieldData(fields, matched.ids, workNote, null, places) : { data: {}, tradeIds: [] as string[] }
     if (Object.keys(fill.data).length > 0 || fill.tradeIds.length > 0) fieldsTaken++
     const data = {
       ...cardData,
+      // Until afterWrite has laid the labels on: the name a project must have from the start.
+      name: projectName.slice(0, 200),
       customerId: await customerId(),
       externalSystem: 'trello',
       externalId,
@@ -487,6 +534,8 @@ export async function runTrelloImport(board: TrelloBoard, options: TrelloImportO
     entityId: 'trello',
     newValue: importSummary(board.name, result),
   })
+  // In the background: an import never waits for Wattro and never fails because of it.
+  void pushImportedProjects(forWattro, 'trello').catch((e) => console.error('wattro: push after import failed', e))
   return result
 }
 

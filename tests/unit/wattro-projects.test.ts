@@ -5,6 +5,7 @@ import {
   projectPatch,
   shouldCreateInWattro,
   toWattroProject,
+  wattroChangeOf,
   wattroPhone,
   WATTRO_LIMITS,
   type PushableProject,
@@ -104,10 +105,11 @@ describe('what is sent to a project Wattro already has', () => {
   })
 
   it('sends only the fields that differ', () => {
-    expect(projectPatch(body, { ...same, name: 'Alter Name', address: 'Anderswo 1' })).toEqual({
-      name: body.name,
-      address: body.address,
-    })
+    expect(projectPatch(body, { ...same, address: 'Anderswo 1' })).toEqual({ address: body.address })
+  })
+
+  it('never renames a project Wattro already holds', () => {
+    expect(projectPatch(body, { ...same, name: 'Alter Name' })).toEqual({})
   })
 
   it('renames a project Wattro holds under another number', () => {
@@ -125,5 +127,36 @@ describe('what is sent to a project Wattro already has', () => {
     const done = toWattroProject(project({ status: 'COMPLETED' }))
     expect(projectPatch(done, { ...same })).toEqual({ finished: true })
     expect(projectPatch(body, { ...same, finished: true })).toEqual({ finished: false })
+  })
+})
+
+describe('what a change made by the Trello sync means for Wattro', () => {
+  const old = project({ status: 'QUOTED' })
+
+  it('makes a site of a job the sync moved to a status Wattro gets', () => {
+    expect(wattroChangeOf(old, project({ status: 'IN_PROGRESS' }), false)).toBe('status')
+    expect(wattroChangeOf(project({ status: 'APPROVED' }), project({ status: 'IN_PROGRESS' }), false)).toBe('status')
+  })
+
+  it('leaves out a job moved anywhere else, or put away as it was moved', () => {
+    expect(wattroChangeOf(old, project({ status: 'CANCELLED' }), false)).toBeNull()
+    expect(wattroChangeOf(old, project({ status: 'IN_PROGRESS', archivedAt: new Date() }), false)).toBeNull()
+  })
+
+  it('leaves the stock from before the push alone: a running job whose status stood still', () => {
+    const running = project({ status: 'IN_PROGRESS' })
+    expect(wattroChangeOf(running, { ...running, street: 'Musterweg 9' }, false)).toBeNull()
+  })
+
+  it('tells Wattro of every new status of a site it has, so a finished job leaves the list', () => {
+    expect(wattroChangeOf(project({ status: 'IN_PROGRESS' }), project({ status: 'COMPLETED' }), true)).toBe('status')
+  })
+
+  it('tells Wattro what changed on a site it has — but not a new name, which Wattro keeps', () => {
+    const running = project({ status: 'IN_PROGRESS' })
+    expect(wattroChangeOf(running, { ...running, street: 'Musterweg 9' }, true)).toBe('updated')
+    expect(wattroChangeOf(running, { ...running, archivedAt: new Date() }, true)).toBe('updated')
+    expect(wattroChangeOf(running, { ...running, name: 'Muster Neubau' }, true)).toBeNull()
+    expect(wattroChangeOf(running, { ...running }, true)).toBeNull()
   })
 })

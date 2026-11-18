@@ -87,6 +87,7 @@ export default async function PlanMatchPage({
         id: true,
         number: true,
         name: true,
+        sourceTitle: true,
         status: true,
         sourceCreatedAt: true,
         createdAt: true,
@@ -139,7 +140,8 @@ export default async function PlanMatchPage({
   // but it takes the phase next to what it has and keeps a namesake off it.
   const matchable: JobProject[] = projects.map((p) => ({
     id: p.id,
-    name: p.name,
+    // The sheet names a job the way its card was titled, not "Kunde · Leistung".
+    name: p.sourceTitle ?? p.name,
     customer: p.customer.name,
     sourceCreatedAt: p.sourceCreatedAt,
     createdAt: p.createdAt,

@@ -9,7 +9,9 @@ import { deleteStoredFile, readStoredFile, saveStoredFile } from './file-storage
 import {
   badNumbers,
   cleanValues,
+  fieldName,
   formStatus,
+  germanDay,
   missingRequired,
   parseFields,
   parseSigners,
@@ -35,11 +37,15 @@ async function prefillContext(projectId: string): Promise<PrefillContext | null>
       where: { id: projectId },
       select: {
         number: true,
+        jobNumber: true,
         name: true,
         street: true,
         postalCode: true,
         city: true,
-        customer: { select: { name: true, number: true } },
+        plannedStart: true,
+        plannedEnd: true,
+        dueDate: true,
+        customer: { select: { name: true, number: true, street: true, postalCode: true, city: true, phone: true, email: true } },
         manager: { select: { firstName: true, lastName: true } },
         workCategories: { select: { workCategory: { select: { nameDe: true } } }, orderBy: { workCategory: { sortOrder: 'asc' } } },
         defects: { where: { resolvedAt: null }, orderBy: { createdAt: 'asc' }, select: { title: true, location: true } },
@@ -49,17 +55,32 @@ async function prefillContext(projectId: string): Promise<PrefillContext | null>
   ])
   if (!project) return null
   const town = [project.postalCode, project.city].filter(Boolean).join(' ')
+  const customerTown = [project.customer.postalCode, project.customer.city].filter(Boolean).join(' ')
+  const today = iso(todayUtc())
   return {
     projectNumber: project.number,
+    jobNumber: project.jobNumber ?? '',
     projectName: project.name,
     customerName: project.customer.name,
     customerNumber: project.customer.number ?? '',
     siteAddress: [project.street, town].filter(Boolean).join(', '),
     manager: project.manager ? `${project.manager.firstName} ${project.manager.lastName}`.trim() : '',
     workTypes: project.workCategories.map((wc) => wc.workCategory.nameDe).join(', '),
-    today: iso(todayUtc()),
+    today,
     openDefects: project.defects.map((d) => `– ${d.title}${d.location ? ` (${d.location})` : ''}`).join('\n'),
     companyName: branding.companyName,
+    // The customer as an address is written: the name, the street, the town — one line each.
+    customerWithAddress: [project.customer.name, project.customer.street, customerTown].filter(Boolean).join('\n'),
+    customerAddress: [project.customer.street, customerTown].filter(Boolean).join('\n'),
+    customerStreet: project.customer.street ?? '',
+    customerTown,
+    customerPhone: project.customer.phone ?? '',
+    customerEmail: project.customer.email ?? '',
+    siteCity: project.city ?? '',
+    placeToday: [project.city, germanDay(today)].filter(Boolean).join(', '),
+    plannedStart: project.plannedStart ? iso(project.plannedStart) : '',
+    plannedEnd: project.plannedEnd ? iso(project.plannedEnd) : '',
+    dueDate: project.dueDate ? iso(project.dueDate) : '',
   }
 }
 
@@ -81,6 +102,7 @@ export async function createFilledForm(input: {
       fields,
       signers: parseSigners(template.signers),
       values: prefillValues(fields, context),
+      financial: template.financial,
       createdById: input.userId,
     },
     select: { id: true },
@@ -96,6 +118,7 @@ const formSelect = {
   fields: true,
   signers: true,
   values: true,
+  financial: true,
   documentId: true,
   createdAt: true,
   updatedAt: true,
@@ -163,7 +186,7 @@ export async function signFilledForm(input: {
   if (!name) return { error: 'nameRequired' }
   if (!input.image) return { error: 'badSignature' }
   const missing = missingRequired(form.fields, form.values)
-  if (missing.length > 0) return { error: 'incomplete', missing: missing.map((f) => f.label) }
+  if (missing.length > 0) return { error: 'incomplete', missing: missing.map((f) => fieldName(form.fields, f)) }
 
   await db.formSignature.create({
     data: {

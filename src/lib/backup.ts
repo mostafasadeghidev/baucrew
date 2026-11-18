@@ -1,11 +1,13 @@
 import 'server-only'
 import { db } from './db'
 import { readStoredFile, saveStoredFile } from './file-storage'
+import { parentsFirst, type FolderNode } from './folders'
 import { BACKUP_FORMAT, BACKUP_TABLES, BACKUP_VERSION, delegateName } from './backup-tables'
 
 // The whole installation as one JSON file, and back again. Every table the
-// app has (see backup-tables.ts) and the files behind the documents, so a
-// backup taken on one installation stands up the same thing on another.
+// app has (see backup-tables.ts) and the files behind the documents and the
+// feedback's pictures, so a backup taken on one installation stands up the
+// same thing on another.
 
 type Delegate = {
   findMany: () => Promise<unknown[]>
@@ -21,7 +23,7 @@ export type BackupFile = {
   version: number
   exportedAt: string
   tables: Record<string, unknown[]>
-  /** The documents' files, base64 — version 2 and later. */
+  /** The documents', the documentation's and the feedback's files, base64 — version 2 and later. */
   files?: Array<{ path: string; data: string }>
 }
 
@@ -29,9 +31,13 @@ export type BackupFile = {
 export async function exportBackup(): Promise<BackupFile> {
   const tables: Record<string, unknown[]> = {}
   for (const t of BACKUP_TABLES) tables[t.key] = await delegate(t.model).findMany()
+  // Folders nest: every parent goes in before the folders inside it.
+  tables.projectFolders = parentsFirst((tables.projectFolders ?? []) as FolderNode[])
 
   const files: BackupFile['files'] = []
-  for (const doc of tables.documents as Array<{ path: string }>) {
+  // The documents' files, the documentation's and the feedback's screenshots: all live in storage/.
+  const stored = [...(tables.documents ?? []), ...(tables.documentationFiles ?? []), ...(tables.feedbackAttachments ?? [])] as Array<{ path: string }>
+  for (const doc of stored) {
     try {
       files.push({ path: doc.path, data: (await readStoredFile(doc.path)).toString('base64') })
     } catch {
@@ -82,6 +88,8 @@ export async function restoreFromBackup(backup: BackupFile): Promise<void> {
     ...[...BACKUP_TABLES].reverse().map((t) => delegate(t.model).deleteMany()),
     ...BACKUP_TABLES.filter((t) => rows(t.key).length > 0).map((t) => delegate(t.model).createMany({ data: data(t) })),
     ...covers.map((p) => db.project.update({ where: { id: p.id }, data: { coverDocumentId: p.coverDocumentId } })),
+    // The feedback items came back with their numbers; the counter goes on from the highest.
+    db.$executeRaw`SELECT setval(pg_get_serial_sequence('"FeedbackItem"', 'number'), GREATEST((SELECT MAX("number") FROM "FeedbackItem"), 1))`,
   ] as never[])
 
   for (const file of backup.files ?? []) {

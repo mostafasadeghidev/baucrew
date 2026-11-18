@@ -12,9 +12,10 @@ import { Mentions } from '@/components/mentions'
  */
 export default async function MyAreaLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser()
-  const [tAuth, tNav, branding] = await Promise.all([
+  const [tAuth, tNav, tFeedback, branding] = await Promise.all([
     getTranslations('auth'),
     getTranslations('nav'),
+    getTranslations('feedback'),
     getBranding(),
   ])
   const name = user.employee
@@ -30,6 +31,7 @@ export default async function MyAreaLayout({ children }: { children: React.React
           languageLabel={tNav('language')}
           themeLabel={tNav('theme')}
           logoutLabel={tAuth('logout')}
+          feedbackLabel={tFeedback('title')}
         />
       </header>
       <main className="flex-1 p-4 pb-16">{children}</main>

@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale } from 'next-intl/server'
 import { getBranding, shiftColor } from '@/lib/branding'
+import { CommentModeMount } from '@/components/feedback/comment-mode-mount'
 import './globals.css'
 
 // Untitled UI's typeface.
@@ -53,7 +54,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <style id="brand-accent">{accentCss}</style>
       </head>
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          {children}
+          {/* ?comment on any page: the comment tools (docs/CHANGE-feedback-tool.md). */}
+          <CommentModeMount />
+        </NextIntlClientProvider>
       </body>
     </html>
   )

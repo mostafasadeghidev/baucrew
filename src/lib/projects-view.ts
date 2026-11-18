@@ -1,3 +1,5 @@
+import type { BoardBase } from './card-url'
+
 /**
  * Whether the projects page opens as the board or as the list.
  *
@@ -38,7 +40,7 @@ export type ProjectsViewKeep = {
  * above), so the board is asked for by name when one goes with it; the page
  * number is the one thing left behind, it counts rows only the list has.
  */
-export function projectsViewHref(target: 'list' | 'board', keep: ProjectsViewKeep): string {
+export function projectsViewHref(target: 'list' | 'board', keep: ProjectsViewKeep, base: BoardBase = '/projects'): string {
   const params = new URLSearchParams()
   if (target === 'list') params.set('view', 'list')
   else if (keep.status) params.set('view', 'kanban')
@@ -53,7 +55,7 @@ export function projectsViewHref(target: 'list' | 'board', keep: ProjectsViewKee
   if (keep.done) params.set('done', keep.done)
   if (keep.activity) params.set('activity', keep.activity)
   const query = params.toString()
-  return query ? `/projects?${query}` : '/projects'
+  return query ? `${base}?${query}` : base
 }
 
 /** Changing scope preserves shared filters, but never an old board's open panel. */
@@ -61,7 +63,7 @@ export function boardViewHref(query: string, board: string): string {
   const params = new URLSearchParams(query)
   params.set('board', board)
   params.set('view', params.get('view') === 'list' ? 'list' : 'kanban')
-  for (const key of ['page', 'status', 'card', 'template', 'archived', 'aq', 'feed', 'pop']) params.delete(key)
+  for (const key of ['page', 'status', 'card', 'template', 'archived', 'aq', 'feed', 'pop', 'boardSettings']) params.delete(key)
   return `/projects?${params.toString()}`
 }
 

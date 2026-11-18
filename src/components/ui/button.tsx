@@ -36,6 +36,8 @@ export const btn = {
   danger: `${base} border border-danger/40 h-9 px-3.5 text-danger hover:bg-danger/10`,
   dangerSm: `${base} border border-danger/40 h-8 px-3 text-danger hover:bg-danger/10`,
   icon: `${base} h-8 w-8 border border-border-strong bg-surface text-muted hover:bg-surface-hover hover:text-foreground`,
+  /** An icon in a bar of its own (a panel's head): no frame until the pointer is on it. */
+  ghostIcon: `${base} h-8 w-8 text-muted hover:bg-surface-hover hover:text-foreground`,
 } as const
 
 export type ButtonVariant = keyof typeof btn

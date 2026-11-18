@@ -5,6 +5,7 @@ import { linkLabel, linkSite } from '@/lib/card-links'
 import { AttachmentList, type AttachmentRow } from './attachment-list'
 import { AttachButton } from './attach-panel'
 import { LinkList, type LinkRow } from './link-list'
+import type { FolderView } from '@/lib/folders'
 
 export type FileRow = {
   id: string
@@ -12,11 +13,14 @@ export type FileRow = {
   mimeType: string
   /** True for a photo that shows a defect — it is drawn with the defect too. */
   defect?: boolean
+  /** True for a photo taken for one of the project's tasks. */
+  task?: boolean
   size: number
   source: string
   visibleToCrew: boolean
   createdAt: Date
   uploadedBy: { username: string } | null
+  folderId?: string | null
 }
 
 export type CardLinkRow = { id: string; url: string; title: string | null; createdAt: Date; createdBy: { username: string } | null }
@@ -33,12 +37,15 @@ export async function FilesCard({
   files,
   links = [],
   coverId = null,
+  folders,
 }: {
   projectId: string
   files: FileRow[]
   links?: CardLinkRow[]
   /** The photo on the front of the project's card, if one was chosen. */
   coverId?: string | null
+  /** The project's folders: the list shows the open folder's files, and files move between them. */
+  folders?: FolderView[]
 }) {
   const [t, locale] = await Promise.all([getTranslations('files'), getLocale()])
   const fmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
@@ -59,12 +66,14 @@ export async function FilesCard({
       file.uploadedBy?.username,
       file.source === 'site' ? t('fromSite') : formatFileSize(file.size),
       file.defect ? t('ofDefect') : null,
+      file.task ? t('ofTask') : null,
       file.source !== 'manual' && file.source !== 'site' ? file.source : null,
     ]
       .filter(Boolean)
       .join(' · '),
     visibleToCrew: file.visibleToCrew,
     isCover: file.id === coverId,
+    folderId: file.folderId ?? null,
   }))
 
   const linkRows: LinkRow[] = links.map((link) => ({
@@ -98,7 +107,7 @@ export async function FilesCard({
           </div>
         )}
         {rows.length > 0 && <p className="mb-1 text-xs font-semibold text-muted">{t('filesHeading')}</p>}
-        {(rows.length > 0 || linkRows.length === 0) && <AttachmentList projectId={projectId} rows={rows} />}
+        {(rows.length > 0 || linkRows.length === 0) && <AttachmentList projectId={projectId} rows={rows} folders={folders} />}
       </div>
     </section>
   )

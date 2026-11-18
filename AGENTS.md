@@ -102,6 +102,61 @@ project created there under its number, off unless `WATTRO_PROJECT_PUSH=1`).
 `docs/CHANGE-project-job-number.md` (the client's own project number, the
 Trello title's "(1234567)", as a field of its own: typed, edited, searched, filled
 by the import, and a project's ID in Wattro).
+`docs/CHANGE-board-management-ui.md` (boards made and changed in one window —
+gear on the open tab, "Neues Board", Einstellungen → Boards: name, colour,
+columns with a live preview, drag to reorder, plain-language column rules,
+saved at once, delete with confirmation; a colour per column, from the
+window or the list's menu — migration `board_column_color`).
+`docs/CHANGE-mcp-ai-chat.md` (the MCP tools completed from one catalogue with
+per-role access and a money filter at the door; an in-app assistant on the
+same tools, OpenAI key from `OPENAI_API_KEY`, every change confirmed before
+it runs; conversations kept per person with history and archive, pages
+opened and questions asked from the chat — migration `assistant_chats`).
+`docs/CHANGE-feedback-tool.md` (comment mode on every page with `?comment`, the
+feedback tasks as list and Kanban with agent proposals, the JSON handoff and
+`scripts/feedback-export.mjs`; replaces `/checklist`, whose entries moved in;
+agents work the live list over MCP with a "Nur Feedback-Aufgaben" key,
+migration `api_key_scope`).
+`docs/CHANGE-quote-reading.md` (every PDF on a project read for a quote —
+net, VAT, gross, Vorgangsnummer, date — into `DocumentQuote`; the price and the
+Projektnummer filled from them only while empty; OCR of scans only with
+`QUOTE_OCR=1`; backfill `scripts/quote-backfill.mjs`; migration `quote_reading`).
+`docs/CHANGE-project-title-from-customer.md` (no typed project name: the name
+is the customer and the trades, "Muster GmbH · Malern", kept current by
+`src/lib/project-title-db.ts`; the old title kept as `Project.sourceTitle` and
+shown small; the Trello field "Art der Arbeit" read with the office's own
+words, what matches no trade kept as `Project.workNote`, which follows the
+trades in the name; marketing labels such as "Lead Anzeige" never name a
+project, and Wattro keeps the name a project was made there with).
+`docs/CHANGE-form-templates-from-pdfs.md` (forms that read like printed sheets:
+fixed texts, words after a value, fixed table rows, half width, signatures
+placed in the sheet, page breaks; templates with prices only with financial
+access; templates exported and imported as JSON — the client's own forms are
+imported from a file kept outside the repository).
+`docs/CHANGE-project-documentation.md` (a Dokumentation section on the card,
+the project page and `/my`: photos, PDFs, notes and voice notes written out by
+OpenAI; tables `DocumentationEntry`/`DocumentationFile`, not `Document`).
+`docs/CHANGE-project-folders.md` (one folder tree per project for attachments
+and documentation: folder bar, drag onto a folder or "Verschieben nach …",
+table `ProjectFolder`, `folderId` on `Document` and `DocumentationEntry`).
+`docs/CHANGE-task-photos.md` (photos on a project's tasks: camera or gallery,
+lightbox, delete; stored as `Document.taskId`, filed into an "Aufgaben" folder).
+`docs/CHANGE-project-needs.md` (the card's needs in three sections — Material,
+Werkzeug, Maschinen — with quantity and note edited in place; a catalogue list
+imported under Lager → Liste importieren, a starter list for painting/plaster/
+drywall, a needs list pasted into one project; assistant tools for the needs).
+`docs/CHANGE-rain-warnings-two-weeks.md` (rain on outdoor work looked up 14
+days ahead — days 1–7 firm, 8–14 a "Tendenz" — on the overview, the project
+card and page; one cached Open-Meteo call per place; `OPEN_METEO_API_KEY` for
+the paid API).
+`docs/CHANGE-search-palette.md` (one search window for the administration
+area: ⌘K or the magnifier, projects first — scoped like the projects page —
+then the office's master data and the app's pages; `/api/search`).
+`docs/CHANGE-baustellen-board.md` (Baustellen is the projects page's board
+view fixed to one board, the one ticked "unter Baustellen zeigen" — migration
+`board_show_on_sites` ticks "Aktuell laufende Baustellen"; cards open at
+`/sites/card/<id>`; the old list's flags are markers on the cards, on both
+pages).
 Add a new file there for similar changes.
 
 `docs/TRELLO-RESYNC.md` is the runbook for bringing the client's Trello boards
@@ -109,12 +164,42 @@ in again — by the server itself (Einstellungen → Trello) or by hand (pull wi
 `scripts/trello-pull.mjs`, import per board, fetch files) — with the verify
 query, the cutover, and what a second import overwrites and what it keeps.
 
-## Shared progress list
+## Shared progress list: the feedback tool
 
-`/checklist` (not in the navigation; `src/app/checklist/items.ts`) shows what
-is done and what is open across all sessions, numbered, with the session that
-holds each entry. Temporary; add to it when asked. The `docs/CHANGE-*.md` files
-stay the record for reversible changes.
+What is done and what is open — across people, agent sessions and the client —
+lives in the feedback tool (`docs/CHANGE-feedback-tool.md`), not in a file.
+Anybody logged in adds `?comment` to any page and leaves a comment with a
+screenshot; the office works them off in **Einstellungen → Feedback-Aufgaben**
+(`/feedback`; the crew has `/my/feedback`). The old `/checklist` redirects there;
+its entries moved in with their numbers (source "Fortschrittsliste").
+
+- **The list is the live one.** "The feedback", "the next five items", "#64"
+  always mean the list on the live site — never this machine's database, which
+  is a test copy (comments made there never reach anybody). Nobody needs to
+  say "online".
+- **Read it over MCP**: the `baucrew-feedback` MCP server (set up once per
+  computer, see `docs/CHANGE-feedback-tool.md` → "Agents and the live list")
+  offers `list_feedback`, `get_feedback`, `get_feedback_image` (the
+  screenshots), `add_feedback`, `add_feedback_note`, `record_feedback_proposal`
+  and `set_feedback_status`. Without it: `npx tsx --env-file=<main checkout>/.env
+  scripts/feedback-export.mjs` (open items, readable; `--json` for the same
+  JSON as "Für Agent kopieren", `--waiting=agent` for what an agent may take,
+  `64 71` for single items; it fetches the screenshots and prints their paths).
+  If neither is set up, say so instead of reading the local database;
+  `--local` is for testing the tool itself.
+- **Report back on the item**: what was found or built, the branch or pull
+  request, how to check it — a note (`add_feedback_note`) or the proposal
+  (`record_feedback_proposal`), and the status `IN_PROGRESS` or `DECISION`.
+  Accepting a proposal and marking an item done stay with a person; the tools
+  do not offer it.
+- **Honour the item**: status DECISION waits on a person — do not build it
+  before its open question is answered. Act on an accepted proposal only while
+  its decision still matches the current proposal (`evidenceMatchesCurrent`).
+- **Add an entry when asked** with `add_feedback` (it lands in "Neu" with the
+  source "Agent"), or a person adds it in the app — never in code. Real client
+  data stays out of comments that are meant for agents, as everywhere.
+
+The `docs/CHANGE-*.md` files stay the record for reversible changes.
 
 ## Commands
 

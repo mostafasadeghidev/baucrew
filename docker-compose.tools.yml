@@ -1,0 +1,28 @@
+# One-off scripts that need the source and tsx, which the slim app image has
+# not: they run from the Dockerfile's `tools` stage (no Next.js build), on the
+# same network, the same database and the same file volume as the app. Never started by
+# `docker compose up` — only when named, together with docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.tools.yml run --rm quote-backfill            dry run
+#   docker compose -f docker-compose.yml -f docker-compose.tools.yml run --rm quote-backfill --apply    writes
+#
+# See docs/CHANGE-quote-reading.md.
+services:
+  quote-backfill:
+    profiles: [tools]
+    image: baucrew-quote-backfill
+    pull_policy: build
+    build:
+      context: .
+      target: tools
+    environment:
+      DATABASE_URL: postgresql://baucrew:${POSTGRES_PASSWORD}@db:5432/baucrew?schema=public
+      FILE_STORAGE_DIR: /app/storage
+      # Scans stay unread here: no QUOTE_OCR, no OpenAI key.
+    volumes:
+      # The backfill only reads the files.
+      - baucrew_files:/app/storage:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["./node_modules/.bin/tsx", "scripts/quote-backfill.mjs"]

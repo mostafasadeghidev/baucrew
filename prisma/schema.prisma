@@ -22,19 +22,19 @@ enum Role {
 }
 
 model User {
-  id                String   @id @default(cuid())
-  username          String   @unique
+  id                String    @id @default(cuid())
+  username          String    @unique
   passwordHash      String
-  role              Role     @default(EMPLOYEE)
+  role              Role      @default(EMPLOYEE)
   // Managers may optionally be granted access to financial data (prices, revenue).
-  canViewFinancials Boolean  @default(false)
-  active            Boolean  @default(true)
+  canViewFinancials Boolean   @default(false)
+  active            Boolean   @default(true)
   // Personal dashboard layout (order, hidden widgets, widths) as JSON.
   dashboardLayout   String?
   /// When the user last opened the list of comments naming them; what came after is new.
   mentionsSeenAt    DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   employee          Employee?
   sessions          Session[]
@@ -42,20 +42,28 @@ model User {
   auditLogs         AuditLog[]
   notes             Note[]
   noteReactions     NoteReaction[]
-  uploadedDocuments Document[]         @relation("DocumentUploader")
-  reportedDefects   Defect[]           @relation("DefectReporter")
-  createdTasks      ProjectTask[]      @relation("TaskCreator")
-  doneTasks         ProjectTask[]      @relation("TaskDoneBy")
-  createdForms      FilledForm[]       @relation("FormCreator")
-  takenSignatures   FormSignature[]    @relation("SignatureTakenBy")
-  resolvedDefects   Defect[]           @relation("DefectResolver")
-  timeEntryEdits    TimeEntry[]        @relation("TimeEntryEditor")
-  deviceHandouts    DeviceAssignment[] @relation("DeviceAssignmentEditor")
-  readyInvoices     ProjectInvoice[]   @relation("InvoiceReadyBy")
-  cardLinks         CardLink[]         @relation("CardLinkCreator")
+  uploadedDocuments Document[]             @relation("DocumentUploader")
+  confirmedQuotes   DocumentQuote[]        @relation("QuoteConfirmer")
+  reportedDefects   Defect[]               @relation("DefectReporter")
+  createdTasks      ProjectTask[]          @relation("TaskCreator")
+  doneTasks         ProjectTask[]          @relation("TaskDoneBy")
+  createdForms      FilledForm[]           @relation("FormCreator")
+  takenSignatures   FormSignature[]        @relation("SignatureTakenBy")
+  resolvedDefects   Defect[]               @relation("DefectResolver")
+  timeEntryEdits    TimeEntry[]            @relation("TimeEntryEditor")
+  deviceHandouts    DeviceAssignment[]     @relation("DeviceAssignmentEditor")
+  readyInvoices     ProjectInvoice[]       @relation("InvoiceReadyBy")
+  cardLinks         CardLink[]             @relation("CardLinkCreator")
   cardWatches       CardWatch[]
-  notifications     Notification[]     @relation("NotificationFor")
-  notificationsSent Notification[]     @relation("NotificationBy")
+  notifications     Notification[]         @relation("NotificationFor")
+  notificationsSent Notification[]         @relation("NotificationBy")
+  feedbackItems     FeedbackItem[]         @relation("FeedbackAuthor")
+  feedbackNotes     FeedbackNote[]         @relation("FeedbackNoteAuthor")
+  documentation     DocumentationEntry[]   @relation("DocumentationAuthor")
+  createdFolders    ProjectFolder[]        @relation("FolderCreator")
+  feedbackChanges   FeedbackStatusChange[] @relation("FeedbackChangedBy")
+  feedbackFiles     FeedbackAttachment[]   @relation("FeedbackUploader")
+  assistantChats    AssistantChat[]
 }
 
 model Session {
@@ -122,6 +130,9 @@ model ApiKey {
   /// The key's first characters, so a person can tell keys apart in a list.
   prefix     String
   tokenHash  String    @unique
+  /// What the key opens: null = everything its user may do; "feedback" = only
+  /// the feedback tools over MCP (an agent working off the feedback list).
+  scope      String?
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   lastUsedAt DateTime?
@@ -256,32 +267,53 @@ model WorkCategory {
 }
 
 model Project {
-  id              String        @id @default(cuid())
+  id                 String        @id @default(cuid())
   // Human-readable sequential number, e.g. "2026-0048"
-  number          String        @unique
+  number             String        @unique
   /// The client's own project number — the one in brackets behind a Trello
   /// card's title, "(1234567)" — typed in or imported, editable, and the
   /// project's ID in Wattro when set. Apart from `number` on purpose: that one
   /// is the app's own and never changes, what the API and the automations use.
-  jobNumber       String?       @unique
-  name            String
-  customerId      String
-  customer        Customer      @relation(fields: [customerId], references: [id])
-  status          ProjectStatus @default(LEAD)
+  jobNumber          String?       @unique
+  /// The Projektnummer as a quote's Vorgangsnummer put it there
+  /// (src/lib/quotes-db.ts), while the project had none: shown as "aus Angebot
+  /// erkannt" until the office confirms it. A number typed by hand differs
+  /// from it, and is never touched.
+  jobNumberFromQuote String?
+  /// What the project is called: the customer followed by its trades,
+  /// "Muster GmbH · Malern" — never typed, kept current by
+  /// src/lib/project-title-db.ts; without a trade yet, sourceTitle.
+  name               String
+  /// The title it was given before the name came from customer and trade:
+  /// the Trello card's title, an automation's words, the name typed in until
+  /// 2026-10. Shown small under the name while it differs.
+  sourceTitle        String?
+  /// The type of work in the office's own words where no trade says it —
+  /// "Küche", "Treppenhaus" — the client's "Art der Arbeit (frei)": filled by
+  /// the Trello import with what matched no trade, typed in on the card. Named
+  /// after the trades in the project's name.
+  workNote           String?
+  /// The card's "Art der Arbeit" as written, every entry — "Außenputz", "AP".
+  /// The trades keep only "Putz"; the rain check reads the outside from here.
+  /// Follows the card on every import; not shown, not in the name.
+  workTypeText       String?
+  customerId         String
+  customer           Customer      @relation(fields: [customerId], references: [id])
+  status             ProjectStatus @default(LEAD)
   // Configurable in Settings (AppSetting `clientTypes` / `buildingTypes`)
-  clientType      String?
-  buildingType    String?
+  clientType         String?
+  buildingType       String?
   /// empty = normal, HIGH | LOW
-  priority        String?
+  priority           String?
   /// Where the request came from — configurable list in Settings.
-  leadSource      String?
+  leadSource         String?
   /// Link back to the source record (board card, import row …).
-  externalSystem  String?
-  externalId      String?
-  externalUrl     String?
+  externalSystem     String?
+  externalId         String?
+  externalUrl        String?
   /// When the record came into being in the source system — a board card's
   /// creation time, for instance. Not the import time (that is createdAt).
-  sourceCreatedAt DateTime?
+  sourceCreatedAt    DateTime?
 
   // Site address (may differ from customer address)
   street     String?
@@ -293,25 +325,30 @@ model Project {
   contact    String?
 
   // Financial — restricted to users with canViewFinancials / ADMIN
-  price Decimal? @db.Decimal(12, 2)
+  price          Decimal? @db.Decimal(12, 2)
+  /// The price as the quotes' net total put it there (src/lib/quotes.ts): set
+  /// while the price is that figure and nobody has confirmed it — shown as "aus
+  /// Angebot erkannt", and it keeps following the quotes. A price typed by hand
+  /// differs from it, and is never touched.
+  priceFromQuote Decimal? @db.Decimal(12, 2)
   // Subcontractor job ("SUB" section in the Monatsplanumsatz sheet)
-  isSub Boolean  @default(false)
+  isSub          Boolean  @default(false)
 
-  plannedStart DateTime? @db.Date
-  plannedEnd   DateTime? @db.Date
+  plannedStart   DateTime? @db.Date
+  plannedEnd     DateTime? @db.Date
   /// The month the work is expected in — that month's first day — the office's
   /// rough placing before a day is fixed. A planned start wins over it; with a
   /// planned end the job runs over the months between (src/lib/plan-month.ts).
-  planMonth    DateTime? @db.Date
+  planMonth      DateTime? @db.Date
   /// How many months the job runs from planMonth when no end is fixed; its
   /// order value is spread evenly over them.
-  planMonths   Int       @default(1)
+  planMonths     Int       @default(1)
   /// The day the work has to be done by — a promise to the customer, not a plan
   /// of the office's own. Apart from plannedEnd on purpose: a job can be planned
   /// to end well before it is due, or be planned past it, which is the warning.
-  dueDate      DateTime? @db.Date
-  actualStart  DateTime? @db.Date
-  actualEnd    DateTime? @db.Date
+  dueDate        DateTime? @db.Date
+  actualStart    DateTime? @db.Date
+  actualEnd      DateTime? @db.Date
   /// The day somebody goes to look at the site before the offer — the
   /// client's "Termin Besichtigung".
   inspectionDate DateTime? @db.Date
@@ -360,6 +397,10 @@ model Project {
   scheduleEntries ScheduleEntry[]
   notes           Note[]
   documents       Document[]
+  /// The site's documentation: notes, photos, PDFs and voice notes, newest first.
+  documentation   DocumentationEntry[]
+  /// Folders its files and documentation are sorted into.
+  folders         ProjectFolder[]
   defects         Defect[]
   tasks           ProjectTask[]
   forms           FilledForm[]
@@ -387,19 +428,19 @@ model Project {
 /// project. One per system per project, and one project per record, so an
 /// automation can find the project by what it knows from the other side.
 model ProjectLink {
-  id         String   @id @default(cuid())
-  projectId  String
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   /// "trello", "wattro" … lower case.
-  system     String
-  externalId String
-  url        String?
+  system         String
+  externalId     String
+  url            String?
   /// Where the record stands in the source system — the Trello list a card
   /// is in, say. What a rule column of the board reads to mirror the other
   /// side's lists without statuses of their own (src/lib/board-rules.ts).
   externalListId String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@unique([system, externalId])
   @@unique([projectId, system])
@@ -902,29 +943,173 @@ model CardLink {
 }
 
 model Document {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   projectId     String
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   filename      String
   mimeType      String
   size          Int
-  path          String   @unique
-  source        String   @default("manual")
-  visibleToCrew Boolean  @default(false)
+  path          String         @unique
+  source        String         @default("manual")
+  visibleToCrew Boolean        @default(false)
   uploadedById  String?
-  uploadedBy    User?    @relation("DocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedBy    User?          @relation("DocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
   /// The defect this photo shows, when it was taken for one. A defect that is
   /// deleted leaves its photos on the project.
   defectId      String?
-  defect        Defect?  @relation(fields: [defectId], references: [id], onDelete: SetNull)
+  defect        Defect?        @relation(fields: [defectId], references: [id], onDelete: SetNull)
+  /// The task this photo was taken for — done, or a problem with it. A task
+  /// that is deleted leaves its photos on the project, as a defect does.
+  taskId        String?
+  task          ProjectTask?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
   /// The signed form this PDF is the paper of.
   form          FilledForm?
+  /// What was read inside it, when it is a PDF: a quote and its sums, or not.
+  quote         DocumentQuote?
   /// The project whose card wears this picture on its front.
-  coverOf       Project? @relation("ProjectCover")
-  createdAt     DateTime @default(now())
+  coverOf       Project?       @relation("ProjectCover")
+  /// The project folder it is sorted into; null = the top level.
+  folderId      String?
+  folder        ProjectFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  createdAt     DateTime       @default(now())
 
   @@index([projectId])
   @@index([defectId])
+  @@index([folderId])
+  @@index([taskId])
+}
+
+/// What reading a PDF found (src/lib/quotes-db.ts).
+enum QuoteKind {
+  /// A quote (Angebot): its sums and numbers are on the row.
+  QUOTE
+  /// Words, but no quote — a letter, an invoice, a plan.
+  OTHER
+  /// No words to read: a scan or a photo. Read by OCR only when switched on.
+  SCAN
+  /// The file would not open as a PDF.
+  FAILED
+}
+
+/// A PDF read for a quote: whether it is one and, if it is, its totals as
+/// printed, its own number, the Vorgangsnummer (the project's Projektnummer)
+/// and its date. One row per document; the office confirms or corrects it,
+/// and decides whether it counts towards the project's total. Amounts are
+/// financial: only for those with `canViewFinancials`.
+model DocumentQuote {
+  id             String    @id @default(cuid())
+  documentId     String    @unique
+  document       Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  kind           QuoteKind
+  /// "text" (the PDF's own words) or "ocr" (the pages looked at by OpenAI) or "manual" (typed in).
+  method         String    @default("text")
+  /// The reader's version (QUOTE_READER_VERSION) — an older one is read again by the backfill.
+  version        Int       @default(1)
+  /// What the document calls itself: "Angebot", "Angebot Nachtrag", "Rechnung" …
+  docType        String?
+  /// The quote's own number.
+  quoteNumber    String?
+  /// The Vorgangsnummer — the job's number, which is the project's Projektnummer.
+  jobNumber      String?
+  quoteDate      DateTime? @db.Date
+  net            Decimal?  @db.Decimal(12, 2)
+  vat            Decimal?  @db.Decimal(12, 2)
+  vatRate        Decimal?  @db.Decimal(5, 2)
+  gross          Decimal?  @db.Decimal(12, 2)
+  /// Whether it counts towards the project's total; the office decides.
+  inTotal        Boolean   @default(true)
+  /// Why the reading itself left it out: "duplicate" (the same quote again),
+  /// "noJobNumber" (no Vorgangsnummer — most likely a supplier's quote).
+  excludedReason String?
+  /// When somebody in the office confirmed or corrected it; then it is never read again.
+  confirmedAt    DateTime?
+  confirmedById  String?
+  confirmedBy    User?     @relation("QuoteConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([kind])
+}
+
+/// What an entry of a project's documentation is: a written note, photos, a PDF, a voice note.
+enum DocumentationKind {
+  TEXT
+  IMAGE
+  PDF
+  VOICE
+}
+
+/// How far a voice note's words are written out.
+enum TranscriptionState {
+  PENDING // sent, no answer yet
+  DONE
+  FAILED // the service answered with an error; may be tried again
+  OFF // no OpenAI key on the server
+}
+
+/// One entry of a project's documentation — its own section on the card, apart
+/// from the attachments and the comments. Read and written through
+/// src/lib/documentation.ts (rules) and src/lib/documentation-db.ts.
+model DocumentationEntry {
+  id            String              @id @default(cuid())
+  projectId     String
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind          DocumentationKind
+  /// A note's words; a voice note's transcript. Null for photos and PDFs.
+  text          String?
+  /// Only for a voice note.
+  transcription TranscriptionState?
+  authorId      String?
+  author        User?               @relation("DocumentationAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt     DateTime            @default(now())
+  /// When the words were last put right; null while they stand as first saved.
+  editedAt      DateTime?
+  files         DocumentationFile[]
+  /// The project folder it is sorted into; null = the top level.
+  folderId      String?
+  folder        ProjectFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([folderId])
+}
+
+/// A folder of a project's files: attachments (Document) and documentation
+/// entries are sorted into it; folders nest. Deleting one moves what is in it
+/// one level up — never deletes a file. Rules in src/lib/folders.ts.
+model ProjectFolder {
+  id          String               @id @default(cuid())
+  projectId   String
+  project     Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// The folder it lies in; null = the top level.
+  parentId    String?
+  parent      ProjectFolder?       @relation("FolderTree", fields: [parentId], references: [id], onDelete: NoAction)
+  children    ProjectFolder[]      @relation("FolderTree")
+  name        String
+  createdById String?
+  createdBy   User?                @relation("FolderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime             @default(now())
+  documents   Document[]
+  entries     DocumentationEntry[]
+
+  @@index([projectId])
+}
+
+/// A stored file of a documentation entry: a photo (several per entry), the
+/// PDF, the voice note's recording. Lives in storage/ like a Document.
+model DocumentationFile {
+  id         String             @id @default(cuid())
+  entryId    String
+  entry      DocumentationEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  filename   String
+  mimeType   String
+  size       Int
+  path       String             @unique
+  /// A recording's length, as the phone measured it.
+  durationMs Int?
+  sortOrder  Int                @default(0)
+  createdAt  DateTime           @default(now())
+
+  @@index([entryId])
 }
 
 /// A form the office builds once — an acceptance protocol, say — and fills in
@@ -938,6 +1123,9 @@ model FormTemplate {
   fields      Json
   /// string[]: who signs, in order — "Auftraggeber", "Auftragnehmer".
   signers     Json
+  /// The form holds prices — a contract's sums, say: its forms are seen only
+  /// by those who may see the money (src/lib/authz.ts → canViewFinancials).
+  financial   Boolean      @default(false)
   active      Boolean      @default(true)
   sortOrder   Int          @default(0)
   forms       FilledForm[]
@@ -959,6 +1147,8 @@ model FilledForm {
   signers     Json
   /// Record<fieldId, string | boolean>
   values      Json
+  /// Copied from the template when the form was made: it holds prices.
+  financial   Boolean         @default(false)
   createdById String?
   createdBy   User?           @relation("FormCreator", fields: [createdById], references: [id], onDelete: SetNull)
   /// The PDF kept on the project once everybody has signed.
@@ -976,23 +1166,23 @@ model FilledForm {
 /// was signed in with — the customer has none, the site manager holding the
 /// tablet does.
 model FormSignature {
-  id         String     @id @default(cuid())
-  formId     String
-  form       FilledForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  id        String     @id @default(cuid())
+  formId    String
+  form      FilledForm @relation(fields: [formId], references: [id], onDelete: Cascade)
   /// Which of the form's signers: the place in `signers`.
-  slot       Int
+  slot      Int
   /// The signer's role as the form called it when it was signed.
-  role       String
+  role      String
   /// The name typed beside the signature.
-  name       String
+  name      String
   /// The drawing, a PNG in base64 — text, so a backup carries it as it is.
-  image      String
+  image     String
   /// SHA-256 of the form's content at the moment of signing.
-  digest     String
-  signedAt   DateTime   @default(now())
-  takenById  String?
-  takenBy    User?      @relation("SignatureTakenBy", fields: [takenById], references: [id], onDelete: SetNull)
-  userAgent  String?
+  digest    String
+  signedAt  DateTime   @default(now())
+  takenById String?
+  takenBy   User?      @relation("SignatureTakenBy", fields: [takenById], references: [id], onDelete: SetNull)
+  userAgent String?
 
   @@unique([formId, slot])
 }
@@ -1007,46 +1197,48 @@ model FormSignature {
 /// ticked off. Open is `doneAt` being empty; there is no status beside it to
 /// fall out of step.
 model ProjectTask {
-  id          String    @id @default(cuid())
+  id          String     @id @default(cuid())
   projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title       String
   description String?
-  dueDate     DateTime? @db.Date
+  dueDate     DateTime?  @db.Date
   assigneeId  String?
-  assignee    Employee? @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignee    Employee?  @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   createdById String?
-  createdBy   User?     @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   User?      @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
   doneAt      DateTime?
   doneById    String?
-  doneBy      User?     @relation("TaskDoneBy", fields: [doneById], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  doneBy      User?      @relation("TaskDoneBy", fields: [doneById], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  /// Photos taken for it on the site; project documents like any other.
+  photos      Document[]
 
   @@index([projectId, doneAt])
   @@index([assigneeId, doneAt])
 }
 
 model Defect {
-  id           String    @id @default(cuid())
+  id           String     @id @default(cuid())
   projectId    String
-  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title        String
   description  String?
   /// Where on the site: "Bad OG, Decke".
   location     String?
   /// The day it has to be put right by.
-  dueDate      DateTime? @db.Date
+  dueDate      DateTime?  @db.Date
   assigneeId   String?
-  assignee     Employee? @relation("DefectAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignee     Employee?  @relation("DefectAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   reportedById String?
-  reportedBy   User?     @relation("DefectReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  reportedBy   User?      @relation("DefectReporter", fields: [reportedById], references: [id], onDelete: SetNull)
   resolvedAt   DateTime?
   resolvedById String?
-  resolvedBy   User?     @relation("DefectResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedBy   User?      @relation("DefectResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
   photos       Document[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([projectId, resolvedAt])
 }
@@ -1063,16 +1255,19 @@ model Defect {
 /// enquiries and the offers and the site side at what is being built, each on
 /// a board of its own — the way their Trello was laid out.
 model Board {
-  id         String        @id @default(cuid())
-  name       String
+  id              String        @id @default(cuid())
+  name            String
   /// The ground the lists float on — a key from src/lib/boards.ts; null is the app's own.
-  background String?
+  background      String?
   /// A photo as the ground instead, the way Trello's boards wear one: its key in the file storage.
   backgroundImage String?
-  sortOrder Int           @default(0)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  columns   BoardColumn[]
+  sortOrder       Int           @default(0)
+  /// Baustellen (/sites) shows this board — the running jobs. One board at
+  /// most: saving the tick on one takes it off every other (src/lib/boards-db.ts).
+  showOnSites     Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  columns         BoardColumn[]
 }
 
 model BoardColumn {
@@ -1085,6 +1280,8 @@ model BoardColumn {
   /// A list that holds only some of a status's cards — the paused ones, the
   /// ones for next year (src/lib/board-rules.ts); null is the plain list.
   rule      String?
+  /// The tint the list wears on the board — a key of LABEL_COLORS in src/lib/board-cards.ts; null is the plain grey.
+  color     String?
   /// Left to right, as the board was dragged into.
   sortOrder Int           @default(0)
 
@@ -1191,4 +1388,138 @@ model PlanEntry {
 
   @@index([year, month])
   @@index([projectId])
+}
+
+// ─────────────────────────────────────────────
+// Feedback: comments on the app itself (?comment) and the tasks made of them
+// ─────────────────────────────────────────────
+
+/// Where a piece of feedback stands. Inbox is new and unread; Decision waits
+/// on somebody's say before anything is built. See docs/CHANGE-feedback-tool.md.
+enum FeedbackStatus {
+  INBOX
+  TODO
+  DECISION
+  IN_PROGRESS
+  DONE
+  CLOSED
+}
+
+/// One request about the app: a comment left on a page in comment mode, or an
+/// entry of the old shared progress list (/checklist).
+model FeedbackItem {
+  id             String         @id @default(cuid())
+  /// The readable number, "#64". The progress list's entries kept theirs.
+  number         Int            @unique @default(autoincrement())
+  title          String
+  comment        String
+  status         FeedbackStatus @default(INBOX)
+  /// comment (left in comment mode) | checklist (the old progress list) | agent
+  source         String         @default("comment")
+  /// Who it waits on: agent | owner | teammate | client — or nobody.
+  waitingOn      String?
+  /// Written by somebody who sees the office's pages: its screenshots may show
+  /// prices, so only the office reads it.
+  officeOnly     Boolean        @default(false)
+  /// The page's path and query (without the comment switch).
+  page           String         @default("")
+  /// The element picked: { selector, text, x, y }.
+  anchor         Json?
+  /// Browser, OS, viewport, screen, pixel ratio, language, time zone, scroll.
+  metadata       Json?
+  /// Anything else the item came with (the progress list's session, refs, date).
+  context        Json?
+  /// The agent's proposal — what it would do, and the evidence for it.
+  suggestion     String         @default("")
+  /// The question somebody has to answer before it is built.
+  decision       String         @default("")
+  beforeText     String         @default("")
+  afterText      String         @default("")
+  completionNote String         @default("")
+  /// Raised on every change; a save names the version it was made on.
+  version        Int            @default(1)
+  authorId       String?
+  author         User?          @relation("FeedbackAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  notes       FeedbackNote[]
+  changes     FeedbackStatusChange[]
+  attachments FeedbackAttachment[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// A note for the agent, or a decision on its proposal. Never edited: a later
+/// note does not take back an earlier accept or reject.
+model FeedbackNote {
+  id          String       @id @default(cuid())
+  itemId      String
+  item        FeedbackItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  /// note | accept | reject
+  choice      String       @default("note")
+  body        String       @default("")
+  /// The item's version the note was written on.
+  itemVersion Int
+  /// The proposal as it stood, so a decision stays tied to what was shown.
+  evidence    Json?
+  authorId    String?
+  author      User?        @relation("FeedbackNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+
+  @@index([itemId, createdAt])
+}
+
+model FeedbackStatusChange {
+  id          String          @id @default(cuid())
+  itemId      String
+  item        FeedbackItem    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  fromStatus  FeedbackStatus?
+  toStatus    FeedbackStatus
+  changedById String?
+  changedBy   User?           @relation("FeedbackChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+
+  @@index([itemId, createdAt])
+}
+
+/// A picture with a feedback item, in the app's file storage (storage/feedback/…).
+model FeedbackAttachment {
+  id           String       @id @default(cuid())
+  itemId       String
+  item         FeedbackItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  /// screenshot (taken in comment mode) | upload | before | after (the proposal's evidence)
+  kind         String       @default("screenshot")
+  filename     String
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  path         String       @unique
+  uploadedById String?
+  uploadedBy   User?        @relation("FeedbackUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime     @default(now())
+
+  @@index([itemId])
+}
+
+/// One conversation with the in-app assistant, the person's own: nobody else
+/// lists or opens it. `messages` holds the conversation as the panel draws it
+/// (the AI SDK's UI messages), proposals and their answers included.
+model AssistantChat {
+  /// Made by the panel when the conversation starts.
+  id         String    @id
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The first question, shortened; renamed by hand if wanted.
+  title      String
+  messages   Json
+  /// Set when put away; the history lists it under "Archiv".
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  /// When it was last talked in — set on saving, so putting it away does not move it.
+  updatedAt  DateTime  @default(now())
+
+  @@index([userId, archivedAt, updatedAt])
 }

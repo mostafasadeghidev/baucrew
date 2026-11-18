@@ -32,6 +32,17 @@ export type McpServerInfo = {
  */
 export class McpToolError extends Error {}
 
+/** One piece of a tool's answer: text, or a picture as base64. */
+export type McpContentPart = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }
+
+/**
+ * An answer that is more than JSON text — a screenshot the assistant should
+ * see. Returned by a tool as it is, instead of being written out as JSON.
+ */
+export class McpContent {
+  constructor(public readonly content: McpContentPart[]) {}
+}
+
 type JsonRpcId = string | number | null
 
 export type JsonRpcResponse = {
@@ -102,6 +113,7 @@ export async function handleMcpMessage<Ctx>(
       const args = isRecord(params.arguments) ? params.arguments : {}
       try {
         const result = await tool.run(args, ctx)
+        if (result instanceof McpContent) return success(id, { content: result.content, isError: false })
         const text = typeof result === 'string' ? result : JSON.stringify(result, null, 2)
         return success(id, { content: [{ type: 'text', text }], isError: false })
       } catch (e) {

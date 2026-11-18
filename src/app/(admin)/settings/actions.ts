@@ -6,6 +6,7 @@ import { cookies } from 'next/headers'
 import { createHash } from 'crypto'
 import { z } from 'zod'
 import { db } from '@/lib/db'
+import { refreshProjectTitles } from '@/lib/project-title-db'
 import { requireAdmin } from '@/lib/authz'
 import { hashPassword } from '@/lib/auth'
 import { audit } from '@/lib/audit'
@@ -400,6 +401,8 @@ export async function updateCategory(id: string, formData: FormData): Promise<Sa
   // No colour sent leaves the one it has.
   const color = labelColorKey(String(formData.get('color') ?? ''))
   await db.workCategory.update({ where: { id }, data: { ...parsed.data, ...(color ? { color } : {}) } })
+  // A trade's German name stands in the name of every project it is on.
+  if (parsed.data.nameDe !== before.nameDe) await refreshProjectTitles({ workCategories: { some: { workCategoryId: id } } })
   await audit({
     userId: admin.id,
     action: 'workCategory.update',

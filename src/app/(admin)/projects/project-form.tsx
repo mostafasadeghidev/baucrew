@@ -55,7 +55,6 @@ export type CustomerAddress = {
 }
 
 export type ProjectFormValues = {
-  name: string
   /** The client's own project number; empty when there is none. */
   jobNumber: string
   customerId: string
@@ -89,6 +88,7 @@ export type ProjectFormValues = {
   description: string
   internalNotes: string
   categoryIds: string[]
+  workNote: string
   teamIds: string[]
   /** Checklist templates copied into the project on save. */
   checklistIds: string[]
@@ -473,7 +473,7 @@ export function ProjectForm({
   const [customerOptions, setCustomerOptions] = useState(customers)
   const [customerId, setCustomerId] = useState(initial.customerId)
   const [addresses, setAddresses] = useState(customerAddresses)
-  const isNew = !initial.name && !initial.street && !initial.city
+  const isNew = !initial.customerId && !initial.street && !initial.city
   const [address, setAddress] = useState({
     street: initial.street,
     postalCode: initial.postalCode,
@@ -712,7 +712,8 @@ export function ProjectForm({
       )}
       <div className={fold ? `order-3 col-span-full grid grid-cols-1 items-start gap-6 @3xl:grid-cols-2 ${unfolded ? '' : 'hidden'}` : 'contents'}>
       <Section title={t('basicData')} {...card('basic')}>
-        <TextField label={t('name')} name="name" defaultValue={initial.name} required />
+        {/* No name to type: it is the customer and the trades (src/lib/project-title.ts). */}
+        <p className="col-span-full text-sm text-muted">{t('nameFromCustomer')}</p>
         <TextField label={t('jobNumberLabel')} name="jobNumber" defaultValue={initial.jobNumber} maxLength={50} placeholder={t('jobNumberPlaceholder')} />
         <div>
           <label className="block text-sm font-medium">
@@ -789,6 +790,7 @@ export function ProjectForm({
           options={categories}
           selected={initial.categoryIds}
         />
+        <TextField label={t('workNote')} name="workNote" defaultValue={initial.workNote} placeholder={t('workNotePlaceholder')} maxLength={200} />
         <div className="col-span-full">
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
             <input

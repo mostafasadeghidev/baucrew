@@ -48,7 +48,11 @@ const ENTRY_INCLUDE = {
       latitude: true,
       longitude: true,
       customer: { select: { name: true } },
-      workCategories: { select: { workCategory: { select: { nameDe: true, outdoor: true } } } },
+      workCategories: { select: { workCategory: { select: { nameDe: true, nameEn: true, outdoor: true } } } },
+      workNote: true,
+      workTypeText: true,
+      sourceTitle: true,
+      description: true,
     },
   },
   vehicles: { include: { vehicle: { select: { id: true, name: true, status: true } } } },
@@ -269,7 +273,7 @@ export default async function SchedulePage({
     outdoorPairs
       .filter((p) => weatherPlace(p) === w.place && p.date === w.date)
       .map((p) =>
-        t('weatherWarning', {
+        t(w.confidence === 'trend' ? 'weatherWarningTrend' : 'weatherWarning', {
           project: p.entry.project.name,
           city: w.city,
           date: dateFmt.format(p.entry.date),

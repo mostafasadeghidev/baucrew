@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { authenticateApi } from '@/lib/api-auth'
 import { unauthorized } from '@/lib/api-http'
 import { handleMcpBody, parseErrorResponse } from '@/lib/mcp'
-import { MCP_SERVER_INFO, mcpTools } from '@/lib/mcp-tools'
+import { MCP_SERVER_INFO, mcpToolsFor } from '@/lib/mcp-tools'
 
 // The MCP endpoint: an AI assistant's door into the app, over plain HTTP
 // (the "Streamable HTTP" transport, without a server-side stream — every
@@ -12,7 +12,8 @@ import { MCP_SERVER_INFO, mcpTools } from '@/lib/mcp-tools'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
-  const identity = await authenticateApi(req)
+  // A feedback-only key opens this door too, for the feedback tools alone.
+  const identity = await authenticateApi(req, ['feedback'])
   if (!identity) return unauthorized()
   if (identity.user.role === 'EMPLOYEE') {
     return NextResponse.json({ error: 'forbidden', message: 'This key belongs to a crew account; MCP is for the office.' }, { status: 403 })
@@ -24,7 +25,8 @@ export async function POST(req: Request) {
     const { status, body: answer } = parseErrorResponse()
     return NextResponse.json(answer, { status })
   }
-  const { status, body: answer } = await handleMcpBody(body, mcpTools, MCP_SERVER_INFO, identity)
+  // Only the tools this user's role may use are listed, or run.
+  const { status, body: answer } = await handleMcpBody(body, mcpToolsFor(identity), MCP_SERVER_INFO, identity)
   if (answer === null) return new NextResponse(null, { status })
   return NextResponse.json(answer, { status })
 }

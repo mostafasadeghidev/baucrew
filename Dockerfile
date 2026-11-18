@@ -1,3 +1,15 @@
+# ── One-off scripts (docker-compose.tools.yml) ───────────────
+# The source, tsx and the Prisma client, without the Next.js build. First in
+# the file: the classic builder builds every stage before the one it is asked
+# for, so the tools never wait for (or run out of memory in) `next build`. The
+# layers are those of the build stage below, so the app's build reuses them.
+FROM node:24-alpine AS tools
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npx prisma generate
+
 # ── Build stage ──────────────────────────────────────────────
 FROM node:24-alpine AS builder
 WORKDIR /app
@@ -12,7 +24,7 @@ RUN npx prisma generate && npm run build
 # ── Migration tooling (kept separate from the app bundle) ────
 FROM node:24-alpine AS migrate-deps
 WORKDIR /migrate
-RUN npm init -y >/dev/null && npm install --no-audit --no-fund prisma@~7.9 dotenv@^17 pg@^8 bcryptjs@^3
+RUN npm init -y >/dev/null && npm install --no-audit --no-fund prisma@~7.10 dotenv@^17 pg@^8 bcryptjs@^3
 
 # ── Runtime stage ────────────────────────────────────────────
 FROM node:24-alpine AS runner

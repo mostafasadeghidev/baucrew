@@ -4,12 +4,15 @@ import {
   badNumbers,
   cleanValues,
   displayValue,
+  fieldName,
   formStatus,
+  germanDay,
   missingRequired,
   parseFields,
   parseSigners,
   prefillValues,
   signatureBase64,
+  signaturePlaces,
   signedContent,
   type FormField,
 } from '@/lib/forms'
@@ -236,5 +239,140 @@ describe('badNumbers', () => {
   it('lets numbers and empty fields pass', () => {
     expect(badNumbers(fields, { qty: '1.250,5', area: '' })).toEqual([])
     expect(badNumbers(fields, null)).toEqual([])
+  })
+})
+
+describe('what printed forms need — fixed texts, words after a value, fixed rows, placed signatures', () => {
+  const sheet: FormField[] = parseFields([
+    { id: 'intro', type: 'info', label: '', body: 'Musterbedingungen\r\n• erster Punkt\n• zwei\u00adter Punkt' },
+    { id: 'h', type: 'heading', label: '1. Abnahme' },
+    { id: 'how', type: 'choice', label: '', options: ['ohne Vorbehalte', 'mit Vorbehalten'], required: true },
+    { id: 'start', type: 'date', label: 'Der Baubeginn wird am', suffix: 'erfolgen.', prefill: 'plannedStart' },
+    { id: 'startText', type: 'text', label: 'Beginn', prefill: 'plannedStart' },
+    { id: 'company', type: 'longtext', label: 'Auftragnehmer:', defaultValue: 'Muster Maler GmbH\nBeispielweg 1', half: true },
+    { id: 'customer', type: 'longtext', label: 'Auftraggeber:', prefill: 'customerWithAddress', half: true },
+    { id: 'oneLine', type: 'text', label: 'Anschrift', prefill: 'customerWithAddress' },
+    { id: 'trades', type: 'multi', label: 'Gewerk:', options: ['Maler', 'Trockenbau', 'Innenputz'], prefill: 'workTypes' },
+    {
+      id: 'steps',
+      type: 'table',
+      label: 'Ablauf',
+      options: ['Schritt', 'Maßnahme', 'Erledigt'],
+      rows: [
+        ['Beginn', 'auf 25 °C', ''],
+        ['Ende', 'abgestellt', '', 'zu viel'],
+      ],
+      widths: [3, 3, 2],
+      required: true,
+    },
+    { id: 'defects', type: 'table', label: 'Mängel', options: ['Mangel', 'Termin'], prefill: 'openDefects' },
+    { id: 'signHere', type: 'signatures', label: '', options: ['Auftragnehmer', 'Niemand'] },
+    { id: 'page', type: 'pagebreak', label: '' },
+  ])
+  const context = {
+    plannedStart: '2026-11-03',
+    customerWithAddress: 'Max Mustermann\nMusterstraße 1\n12345 Musterstadt',
+    workTypes: 'malern, Fassade, Putz',
+    openDefects: '– Riss im Putz (Flur)\n– Farbnase (Bad)',
+  }
+
+  it('keeps the new kinds and their words, and needs no label where none is printed', () => {
+    expect(sheet.map((f) => f.id)).toEqual(['intro', 'h', 'how', 'start', 'startText', 'company', 'customer', 'oneLine', 'trades', 'steps', 'defects', 'signHere', 'page'])
+    // Line ends kept, the soft hyphen of a word processor gone.
+    expect(sheet[0].body).toBe('Musterbedingungen\n• erster Punkt\n• zweiter Punkt')
+    expect(sheet[3]).toMatchObject({ suffix: 'erfolgen.', prefill: 'plannedStart' })
+    expect(sheet[5]).toMatchObject({ half: true, defaultValue: 'Muster Maler GmbH\nBeispielweg 1' })
+    // A fixed row holds its columns, no more.
+    expect(sheet[9].rows).toEqual([
+      ['Beginn', 'auf 25 °C', ''],
+      ['Ende', 'abgestellt', ''],
+    ])
+    expect(sheet[9].widths).toEqual([3, 3, 2])
+    expect(sheet[11].options).toEqual(['Auftragnehmer', 'Niemand'])
+  })
+
+  it('drops what a kind cannot have', () => {
+    expect(parseFields([{ type: 'info', label: '', body: '' }])).toEqual([])
+    expect(parseFields([{ type: 'text', label: '' }])).toEqual([])
+    // A blank the words after it name needs no label: "____ Euro netto".
+    expect(parseFields([{ type: 'number', label: '', suffix: 'Euro netto' }])[0]).toEqual({ id: 'f1', type: 'number', label: '', suffix: 'Euro netto' })
+    expect(parseFields([{ type: 'checkbox', label: 'Besenrein', suffix: 'x', defaultValue: 'y', prefill: 'today' }])[0]).toEqual({
+      id: 'f1',
+      type: 'checkbox',
+      label: 'Besenrein',
+    })
+    expect(parseFields([{ type: 'info', label: 'T', body: 'x', required: true, half: true }])[0]).toEqual({ id: 'f1', type: 'info', label: 'T', body: 'x' })
+    // A default a choice cannot hold is no default; widths all the same say nothing.
+    expect(parseFields([{ type: 'choice', label: 'E', options: ['a', 'b'], defaultValue: 'c' }])[0].defaultValue).toBeUndefined()
+    expect(parseFields([{ type: 'table', label: 'T', options: ['a', 'b'], widths: [1, 1] }])[0].widths).toBeUndefined()
+  })
+
+  it('starts with what the project knows, a day written the German way in a text, several lines as one in a short field', () => {
+    const values = prefillValues(sheet, context)
+    expect(values.start).toBe('2026-11-03')
+    expect(values.startText).toBe('03.11.2026')
+    expect(values.company).toBe('Muster Maler GmbH\nBeispielweg 1')
+    expect(values.customer).toBe('Max Mustermann\nMusterstraße 1\n12345 Musterstadt')
+    expect(values.oneLine).toBe('Max Mustermann, Musterstraße 1, 12345 Musterstadt')
+    // The project's trades ticked among the answers, whatever their case.
+    expect(values.trades).toEqual(['Maler'])
+    expect(values.steps).toEqual([
+      ['Beginn', 'auf 25 °C', ''],
+      ['Ende', 'abgestellt', ''],
+    ])
+    expect(values.defects).toEqual([
+      ['Riss im Putz (Flur)', ''],
+      ['Farbnase (Bad)', ''],
+    ])
+    expect(Object.keys(values)).not.toContain('intro')
+    expect(Object.keys(values)).not.toContain('signHere')
+  })
+
+  it('keeps a fixed table to its rows and its words, whatever is sent', () => {
+    const values = cleanValues(sheet, { steps: [['Anders', 'x', '01.11. 8:00 MM'], [], ['zu', 'viele', 'Zeilen']] })
+    expect(values.steps).toEqual([
+      ['Beginn', 'auf 25 °C', '01.11. 8:00 MM'],
+      ['Ende', 'abgestellt', ''],
+    ])
+    expect(cleanValues(sheet, null).steps).toEqual([
+      ['Beginn', 'auf 25 °C', ''],
+      ['Ende', 'abgestellt', ''],
+    ])
+  })
+
+  it('counts a fixed table as empty until one of its gaps is filled, and names an unnamed choice by its heading', () => {
+    const empty = cleanValues(sheet, {})
+    expect(missingRequired(sheet, empty).map((f) => f.id)).toEqual(['how', 'steps'])
+    const filled = cleanValues(sheet, { how: 'ohne Vorbehalte', steps: [['', '', 'erledigt']] })
+    expect(missingRequired(sheet, filled)).toEqual([])
+    expect(fieldName(sheet, sheet[2])).toBe('1. Abnahme')
+    expect(fieldName(sheet, sheet[3])).toBe('Der Baubeginn wird am')
+  })
+
+  it('places each signer once: where a block names them, the rest where a block names nobody, or at the end', () => {
+    const signers = ['Auftragnehmer', 'Auftraggeber', 'Zeuge']
+    expect(Object.fromEntries(signaturePlaces(sheet, signers))).toEqual({ signHere: [0], end: [1, 2] })
+    const two = parseFields([
+      { id: 'a', type: 'signatures', label: '' },
+      { id: 'b', type: 'signatures', label: '', options: ['Zeuge'] },
+    ])
+    expect(Object.fromEntries(signaturePlaces(two, signers))).toEqual({ a: [0, 1], b: [2], end: [] })
+    expect(Object.fromEntries(signaturePlaces([], signers))).toEqual({ end: [0, 1, 2] })
+  })
+
+  it('signs the words around the values too — and a form without them exactly as before', () => {
+    const values = prefillValues(sheet, context)
+    const base = signedContent('Vertrag', sheet, values, ['A'])
+    const changed = (patch: Partial<FormField>, at: number) => signedContent('Vertrag', sheet.map((f, i) => (i === at ? { ...f, ...patch } : f)), values, ['A'])
+    expect(changed({ body: 'Andere Bedingungen' }, 0)).not.toBe(base)
+    expect(changed({ suffix: 'beginnen.' }, 3)).not.toBe(base)
+    expect(changed({ rows: [['Beginn', 'auf 30 °C', ''], ['Ende', 'abgestellt', '']] }, 9)).not.toBe(base)
+    // A field of the old kinds signs as it always has: the digest of a form signed before is unchanged.
+    expect(signedContent('T', [{ id: 'x', type: 'text', label: 'X' }], { x: 'y' }, [])).toBe('{"title":"T","fields":[["x","text","X","y"]],"signers":[]}')
+  })
+
+  it('writes a day the German way', () => {
+    expect(germanDay('2026-11-03')).toBe('03.11.2026')
+    expect(germanDay('morgen')).toBe('morgen')
   })
 })

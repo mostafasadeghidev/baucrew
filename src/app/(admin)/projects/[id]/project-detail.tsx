@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { monthInputValue } from '@/lib/plan-month'
 import { getBranding } from '@/lib/branding'
 import { mailtoHref, offerMailDraft, type OfferMailWords } from '@/lib/offer-mail'
@@ -27,7 +28,8 @@ import { ClampText } from '@/components/ui/clamp-text'
 import { previewKind } from '@/lib/files'
 import { ArchiveButton } from '../archive-button'
 import { CardAddBar, CardAddButton, CardPanelButton, type CardEditData } from './card-popovers'
-import { EditableTitle } from './editable-title'
+import { CardTitle, FormerTitle } from './card-title'
+import { formerTitle } from '@/lib/project-title'
 import { WatchButton } from './watch-button'
 import { CardSeen } from './card-seen'
 import { CoverPicker } from './cover-picker'
@@ -36,7 +38,8 @@ import { SheetTitle } from './sheet-title'
 import { DoneTick } from '../done-tick'
 import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
 import { todayUtc } from '@/lib/dates'
-import { ProjectItemsEditor, type ProjectItemRow } from './project-items'
+import { NeedsSections, type NeedsItem } from './needs-sections'
+import { kindOrder } from '@/lib/project-needs'
 import { PlanEntryButton } from './plan-entry-button'
 import { MergeButton } from './merge-button'
 import { ChecklistSection } from './checklist-section'
@@ -63,13 +66,19 @@ import { dateTone, dueTone, initials, labelSwatch, swatchOf } from '@/lib/board-
 import { INVOICE_PARTS, suggestedInvoiceAmount } from '@/lib/invoices'
 import { ProjectTimeSummary } from './time-summary'
 import { daysOut } from '@/lib/devices'
-import { ProjectDevicesEditor } from './project-devices'
 import { getProjectDevices } from '../../devices/actions'
 import { orderValue } from '@/lib/reports'
 import { PhoneLink } from '@/components/phone-link'
 import { JobNumber } from '@/components/job-number'
 import { jobNumberOf } from '@/lib/job-number'
 import { historyLines } from '@/lib/card-history'
+import { ProjectDocumentation } from '@/components/project-documentation'
+import { FolderBar } from '@/components/project-folders'
+import { foldersFor } from '@/lib/folders-db'
+import { docEntriesFor } from '@/lib/documentation-db'
+import { transcriptionConfigured } from '@/lib/transcription'
+import { ProjectRain } from '@/components/project-rain'
+import { ProjectQuotes } from './quotes-card'
 
 /**
  * A project, as its page shows it and as the board's card sheet shows it:
@@ -115,6 +124,14 @@ export async function ProjectDetail({
       // Lines of the year-planning sheet someone tied to this project.
       planEntries: { orderBy: [{ year: 'asc' }, { month: 'asc' }] },
       documents: {
+        // The signed sheet of a form with prices in it only for those who may see money;
+        // a quote only for the office (src/lib/quotes-db.ts).
+        where: {
+          AND: [
+            canViewFinancials(user) ? {} : { NOT: { form: { is: { financial: true } } } },
+            isOffice(user) ? {} : { NOT: { quote: { is: { kind: 'QUOTE' } } } },
+          ],
+        },
         orderBy: { createdAt: 'desc' },
         include: { uploadedBy: { select: { username: true } } },
       },
@@ -141,6 +158,8 @@ export async function ProjectDetail({
       tasks: { select: taskListSelect },
       // Protocols and other forms: which there are and how far each is signed.
       forms: {
+        // A form with prices in it only for those who may see money.
+        ...(canViewFinancials(user) ? {} : { where: { financial: false } }),
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
@@ -199,6 +218,22 @@ export async function ProjectDetail({
   // A site manager opens the projects they are named on and no other.
   if (!(await canSeeProject(user, project.id))) redirect('/projects')
 
+  // The site's documentation, a section of its own beside the attachments;
+  // whoever opens the card may add to it (the office, the site manager). Both
+  // lists show what lies in the folder open in the bar above them.
+  const [docEntries, folders] = await Promise.all([docEntriesFor(project.id, user), foldersFor(project.id, user)])
+  const documentation = (
+    <ProjectDocumentation projectId={project.id} entries={docEntries} canAdd transcriptionReady={transcriptionConfigured()} folders={folders} />
+  )
+  const folderBar = (
+    <FolderBar
+      projectId={project.id}
+      folders={folders}
+      itemFolderIds={[...project.documents.map((d) => d.folderId), ...docEntries.map((e) => e.folderId)]}
+      canAdd
+    />
+  )
+
   const [allEmployees, allVehicles, checklistTemplates, customers, allCategories, otherProjects, people, formTemplates, auditEntries, watching, unseen] =
     await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { firstName: 'asc' }, select: { id: true, firstName: true, lastName: true } }),
@@ -239,7 +274,7 @@ export async function ProjectDetail({
     // Everybody a comment can name with @.
     mentionablePeople(),
     // What a new form can be made from.
-    db.formTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } }),
+    db.formTemplate.findMany({ where: { active: true, ...(canViewFinancials(user) ? {} : { financial: false }) }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } }),
     // The story of the card, newest first — what Trello calls its activity.
     db.auditLog.findMany({
       where: { entity: 'Project', entityId: id },
@@ -257,7 +292,7 @@ export async function ProjectDetail({
   // Nor does an office-only comment: not even that one was written, changed or taken back.
   const readable = auditEntries.filter(
     (e) =>
-      (canViewFinancials(user) || !e.action.startsWith('project.invoice')) &&
+      (canViewFinancials(user) || !(e.action.startsWith('project.invoice') || e.action.startsWith('project.quote'))) &&
       (isOffice(user) || !(e.action.startsWith('project.comment') && e.field === OFFICE_COMMENT))
   )
   const history = historyLines(
@@ -318,16 +353,18 @@ export async function ProjectDetail({
     await db.catalogItem.findMany({
       where: { active: true },
       orderBy: [{ kind: 'asc' }, { name: 'asc' }],
-      select: { id: true, name: true, unit: true },
+      select: { id: true, name: true, unit: true, kind: true },
     })
   )
     .filter((c) => !assignedItemIds.has(c.id))
-    .map((c) => ({ value: c.id, label: c.unit ? `${c.name} (${c.unit})` : c.name }))
+    .map((c) => ({ value: c.id, label: c.unit ? `${c.name} (${c.unit})` : c.name, kind: c.kind }))
 
   const { rows: deviceRows, options: deviceOptions } = await getProjectDevices(project.id)
 
-  const itemRows: ProjectItemRow[] = project.items.map((item) => ({
+  const itemRows: NeedsItem[] = project.items.map((item) => ({
     id: item.id,
+    kind: item.catalogItem.kind,
+    note: item.note,
     name: item.catalogItem.name,
     unit: item.catalogItem.unit,
     quantity: item.quantity != null ? Number(item.quantity) : null,
@@ -335,7 +372,28 @@ export async function ProjectDetail({
     status: item.status,
   }))
 
+  const needsProps = {
+    projectId: project.id,
+    kinds: kindOrder(lists.itemKinds).map((k) => ({ value: k.value, label: optionLabel(lists.itemKinds, k.value, locale) })),
+    items: itemRows,
+    catalog: catalogOptions,
+    devices: deviceRows,
+    deviceOptions,
+    handouts: project.devices.map((handout) => ({
+      id: handout.id,
+      deviceId: handout.device.id,
+      name: handout.device.name,
+      inventoryNo: handout.device.inventoryNo,
+      since: [tDevices('sinceDays', { days: daysOut(handout.takenAt, new Date()) }), handout.note].filter(Boolean).join(' · '),
+    })),
+    office: isOffice(user),
+  }
+
   const showPrice = canViewFinancials(user)
+  // The quotes read from the project's PDFs, beside its files (src/lib/quotes-db.ts).
+  const quotesCard = <ProjectQuotes user={user} project={project} locale={locale} hidePrices={hidePrices} />
+  // The price as the quotes' total put it there, not yet confirmed by the office.
+  const priceFromQuote = project.price !== null && project.priceFromQuote !== null && project.price.equals(project.priceFromQuote)
   const addOnTotal = project.addOns.reduce((sum, a) => sum + Number(a.amount), 0)
   // What the year-planning sheet had pencilled in for this project.
   const plannedTotal = project.planEntries.reduce((sum, e) => sum + Number(e.amount), 0)
@@ -448,6 +506,7 @@ export async function ProjectDetail({
                 ))}
           </span>
         )}
+        {row(t('workNote'), project.workNote || '—')}
         {row(t('isSub'), project.isSub ? tc('yes') : tc('no'))}
         {project.externalUrl &&
           row(
@@ -520,6 +579,11 @@ export async function ProjectDetail({
                 <dt className="w-40 shrink-0 break-words text-muted hyphens-auto">{t('price')}</dt>
                 <dd className="min-w-0 flex-1 basis-28 break-words font-medium tabular-nums">
                   {formatCurrency(project.price ? Number(project.price) : null, locale, { hidden: hidePrices })}
+                  {priceFromQuote && (
+                    <a href="#quotes" className="ml-2 rounded bg-accent/10 px-1.5 py-0.5 text-xs font-normal text-accent hover:underline">
+                      {t('priceFromQuote')}
+                    </a>
+                  )}
                   {/* Follow-on offers raise the order value — show both. */}
                   {addOnTotal > 0 && (
                     <span className="ml-2 text-xs font-normal text-muted">
@@ -693,6 +757,7 @@ export async function ProjectDetail({
       href: null,
       edit: { kind: 'labels' },
     },
+    { key: 'workNote', text: project.workNote, section: 'basic', href: null, edit: { kind: 'text', value: project.workNote ?? '' } },
     { key: 'wish', text: project.executionWish, section: 'planning', href: null, edit: { kind: 'text', value: project.executionWish ?? '' } },
     {
       key: 'inspection',
@@ -748,7 +813,6 @@ export async function ProjectDetail({
         buildingTypes={lists.buildingTypes.map((e) => ({ value: e.value, label: optionLabel(lists.buildingTypes, e.value, locale) }))}
         categories={allCategories.map((c) => ({ value: c.id, label: categoryLabel(c) }))}
         initial={{
-          name: project.name,
           jobNumber: project.jobNumber ?? '',
           customerId: project.customerId,
           status: project.status,
@@ -779,6 +843,7 @@ export async function ProjectDetail({
           description: project.description ?? '',
           internalNotes: isOffice(user) ? (project.internalNotes ?? '') : '',
           categoryIds: project.workCategories.map((wc) => wc.workCategoryId),
+          workNote: project.workNote ?? '',
           teamIds: project.team.map((m) => m.employeeId),
           checklistIds: project.checklists
             .map((c) => c.templateId)
@@ -792,6 +857,8 @@ export async function ProjectDetail({
         // what is open, the forms, the days planned — one under the other — and
         // the office's blocks folded under one line at the end.
         <div className="grid grid-cols-1 gap-6">
+        {folderBar}
+
         <div id="files" className="scroll-mt-24">
         <FilesCard
           projectId={project.id}
@@ -801,15 +868,22 @@ export async function ProjectDetail({
             filename: d.filename,
             mimeType: d.mimeType,
             defect: d.defectId !== null,
+            task: d.taskId !== null,
             size: d.size,
             source: d.source,
             visibleToCrew: d.visibleToCrew,
             createdAt: d.createdAt,
             uploadedBy: d.uploadedBy,
+            folderId: d.folderId,
           }))}
           links={project.cardLinks}
+          folders={folders}
         />
         </div>
+
+        {quotesCard}
+
+        {documentation}
 
         {/* Site checklists — ticked off on site, saved with who and when */}
         <section id="checklists" className="scroll-mt-24 rounded-xl border border-border bg-surface">
@@ -830,6 +904,9 @@ export async function ProjectDetail({
             />
           </div>
         </section>
+
+        {/* What the job needs: material, tools, machines */}
+        <NeedsSections {...needsProps} />
 
         <div id="tasks" className="scroll-mt-24">
           <ProjectTasks
@@ -909,60 +986,6 @@ export async function ProjectDetail({
             {t('sheetMoreData')}
           </summary>
           <div className="grid grid-cols-1 gap-6 border-t border-border p-5">
-        {/* `#material`: the CRM's missing-material lists link straight here. */}
-        <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface">
-          <div className="border-b border-border px-5 py-3">
-            <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
-          </div>
-          <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} canCreateItems={isOffice(user)} />
-        </section>
-
-        {/* Machines this site needs — same shape as the tools/materials list */}
-        <section className="rounded-xl border border-border bg-surface">
-          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
-            <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
-            {isOffice(user) && (
-              <Link href="/devices" className={`${btn.outlineXs} px-2 text-muted`}>
-                {tDevices('openDevices')} <span aria-hidden>→</span>
-              </Link>
-            )}
-          </div>
-          <ProjectDevicesEditor
-            projectId={project.id}
-            devices={deviceRows}
-            options={deviceOptions}
-            canHandOut={isOffice(user)}
-          />
-          {project.devices.length > 0 && (
-            <div className="border-t border-border px-5 py-3">
-              <h3 className="text-xs font-semibold text-muted">
-                {tDevices('onProject')}
-              </h3>
-              <ul className="mt-2 space-y-1 text-sm">
-                {project.devices.map((handout) => (
-                  <li key={handout.id} className="flex flex-wrap items-baseline gap-x-2">
-                    <Link
-                      href={`/devices/${handout.device.id}`}
-                      className="font-medium text-accent hover:underline"
-                    >
-                      {handout.device.name}
-                    </Link>
-                    {handout.device.inventoryNo && (
-                      <span className="text-xs tabular-nums text-muted">
-                        {handout.device.inventoryNo}
-                      </span>
-                    )}
-                    <span className="text-xs text-muted">
-                      {tDevices('sinceDays', { days: daysOut(handout.takenAt, new Date()) })}
-                      {handout.note && ` · ${handout.note}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-
         {/* Hours booked on this project — plan vs. reality while it still runs */}
         <ProjectTimeSummary
           entries={project.timeEntries.map((e) => ({
@@ -1018,59 +1041,7 @@ export async function ProjectDetail({
         {/* The two invoices; marking one ready lets the automation draft the e-mail. */}
         {showPrice && <ProjectInvoices projectId={project.id} rows={invoiceRows} amountField={!hidePrices} />}
 
-        {/* `#material`: the CRM's missing-material lists link straight here. */}
-        <section id="material" className="scroll-mt-24 rounded-xl border border-border bg-surface">
-          <div className="border-b border-border px-5 py-3">
-            <h2 className="text-sm font-semibold">{t('itemsTitle')}</h2>
-          </div>
-          <ProjectItemsEditor projectId={project.id} items={itemRows} options={catalogOptions} canCreateItems={isOffice(user)} />
-        </section>
-
-        {/* Machines this site needs — same shape as the tools/materials list */}
-        <section className="rounded-xl border border-border bg-surface">
-          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
-            <h2 className="text-sm font-semibold">{tDevices('needTitle')}</h2>
-            {isOffice(user) && (
-              <Link href="/devices" className={`${btn.outlineXs} px-2 text-muted`}>
-                {tDevices('openDevices')} <span aria-hidden>→</span>
-              </Link>
-            )}
-          </div>
-          <ProjectDevicesEditor
-            projectId={project.id}
-            devices={deviceRows}
-            options={deviceOptions}
-            canHandOut={isOffice(user)}
-          />
-          {project.devices.length > 0 && (
-            <div className="border-t border-border px-5 py-3">
-              <h3 className="text-xs font-semibold text-muted">
-                {tDevices('onProject')}
-              </h3>
-              <ul className="mt-2 space-y-1 text-sm">
-                {project.devices.map((handout) => (
-                  <li key={handout.id} className="flex flex-wrap items-baseline gap-x-2">
-                    <Link
-                      href={`/devices/${handout.device.id}`}
-                      className="font-medium text-accent hover:underline"
-                    >
-                      {handout.device.name}
-                    </Link>
-                    {handout.device.inventoryNo && (
-                      <span className="text-xs tabular-nums text-muted">
-                        {handout.device.inventoryNo}
-                      </span>
-                    )}
-                    <span className="text-xs text-muted">
-                      {tDevices('sinceDays', { days: daysOut(handout.takenAt, new Date()) })}
-                      {handout.note && ` · ${handout.note}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
+        <NeedsSections {...needsProps} />
 
         {/* Hours booked on this project — plan vs. reality while it still runs */}
         <ProjectTimeSummary
@@ -1144,6 +1115,8 @@ export async function ProjectDetail({
           />
         </div>
 
+        {folderBar}
+
         <div id="files" className="scroll-mt-24">
         <FilesCard
           projectId={project.id}
@@ -1153,15 +1126,22 @@ export async function ProjectDetail({
             filename: d.filename,
             mimeType: d.mimeType,
             defect: d.defectId !== null,
+            task: d.taskId !== null,
             size: d.size,
             source: d.source,
             visibleToCrew: d.visibleToCrew,
             createdAt: d.createdAt,
             uploadedBy: d.uploadedBy,
+            folderId: d.folderId,
           }))}
           links={project.cardLinks}
+          folders={folders}
         />
         </div>
+
+        {quotesCard}
+
+        {documentation}
 
         {/* Schedule (read-only here) */}
         <section className="overflow-hidden rounded-xl border border-border bg-surface">
@@ -1375,6 +1355,7 @@ export async function ProjectDetail({
       <MergeButton projectId={project.id} projects={otherProjects.map((p) => ({ value: p.id, label: `${p.number} — ${p.name}` }))} />
     ) : null
   const jobNumber = jobNumberOf(project)
+  const formerName = formerTitle(project.name, project.sourceTitle)
   const customerLine = (
     <>
       {isOffice(user) ? (
@@ -1393,6 +1374,12 @@ export async function ProjectDetail({
         </>
       )}
     </>
+  )
+  // Rain on the work days ahead — streamed, so the forecast never holds the card up.
+  const rainBlock = (
+    <Suspense fallback={null}>
+      <ProjectRain project={project} />
+    </Suspense>
   )
   const archivedBanner = project.archivedAt ? (
     <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 dark:text-amber-300">
@@ -1491,7 +1478,7 @@ export async function ProjectDetail({
                 <DoneTick projectId={project.id} done={project.doneAt !== null} large className="mt-1.5" />
                 <div className="min-w-0 flex-1">
                   <div className="flex">
-                    <EditableTitle projectId={project.id} name={project.name} number={project.number} />
+                    <CardTitle name={project.name} number={project.number} sourceTitle={project.sourceTitle} formerLabel={t('formerTitle')} />
                   </div>
                   {jobNumber && <JobNumber value={jobNumber} className="text-sm" />}
                 </div>
@@ -1504,6 +1491,7 @@ export async function ProjectDetail({
               <CardAddBar data={cardEdit} labels={addLabels} />
             </div>
             <div className="mt-5">{meta}</div>
+            <div className="mt-4">{rainBlock}</div>
             <div className="mt-6 space-y-8">{body}</div>
           </div>
           <aside
@@ -1570,8 +1558,12 @@ export async function ProjectDetail({
           }
         />
       </StickyHead>
-      <PageHint>{customerLine}</PageHint>
+      <div>
+        {formerName && <FormerTitle text={formerName} label={t('formerTitle')} className="px-1" />}
+        <PageHint>{customerLine}</PageHint>
+      </div>
       {archivedBanner}
+      {rainBlock}
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-6">{body}</div>
         {talk}

@@ -33,7 +33,8 @@ import {
  *   whose number changed is renamed in Wattro (found by the id kept in its
  *   link), not made again.
  * - Only name, number, address, contact, phone and finished travel. Prices,
- *   offers, internal notes and customer data stay here.
+ *   offers, internal notes and customer data stay here. The name only once,
+ *   when the project is made there: Wattro keeps it (projects.ts).
  * - Nothing is ever deleted in Wattro.
  */
 
@@ -150,7 +151,7 @@ async function pushOnce(projectId: string, trigger: string, mayCreate: boolean):
 
 export async function pushProjectToWattro(
   projectId: string,
-  trigger: 'created' | 'status' | 'updated' | 'timer' = 'updated'
+  trigger: 'created' | 'status' | 'updated' | 'timer' | 'import' = 'updated'
 ): Promise<PushOutcome> {
   if (!isProjectPushEnabled()) return { ok: true, result: 'off' }
   try {
@@ -169,13 +170,56 @@ export async function pushProjectToWattro(
   }
 }
 
+// ── After an import ──────────────────────────────────────────────────────
+// The Trello sync writes a card's list straight into the project, past the
+// forms and their events. While the office still works in Trello that is how
+// nearly every job becomes "In Ausführung" — so the sync hands what it moved
+// to this, or Wattro never hears of it.
+
+/** A project an import changed in a way Wattro should hear of (`wattroChangeOf`). */
+export type ImportedChange = { id: string; change: 'status' | 'updated'; linked: boolean }
+
+/**
+ * More new sites than this out of one run is not somebody moving cards: a list
+ * given another status, a board read anew. Those are held back and noted in
+ * the audit log, like the stock from before the push — sending them is a
+ * person's decision, not something that happens by itself.
+ */
+export const MAX_CREATED_PER_IMPORT = 20
+
+/** Sends what one import run changed, one project after the other. Never throws. */
+export async function pushImportedProjects(changes: ImportedChange[], source: string): Promise<{ sent: number; held: number }> {
+  if (!isProjectPushEnabled() || changes.length === 0) return { sent: 0, held: 0 }
+  const creating = changes.filter((c) => !c.linked)
+  const hold = creating.length > MAX_CREATED_PER_IMPORT
+  if (hold) {
+    console.warn('wattro: too many projects moved at once, none of them created', { source, count: creating.length })
+    await audit({
+      userId: null,
+      action: 'project.wattroPushHeld',
+      entity: 'System',
+      entityId: 'wattro',
+      newValue: `${source}: ${creating.length} projects moved at once, not created`,
+    })
+  }
+  let sent = 0
+  for (const c of hold ? changes.filter((c) => c.linked) : changes) {
+    // A failure is in the audit log and the timer tries it again: go on with the rest.
+    const outcome = await pushProjectToWattro(c.id, c.change === 'status' ? 'import' : 'updated')
+    if (outcome.ok && !['skipped', 'unchanged', 'off'].includes(outcome.result)) sent++
+  }
+  return { sent, held: hold ? creating.length : 0 }
+}
+
 // ── Catching up ──────────────────────────────────────────────────────────
-// A push that failed (Wattro down, key rejected) is tried again by the timer.
-// Only projects created after the switch was first turned on are caught up:
-// the 200-odd running jobs that existed before are a deliberate backfill, not
-// something that happens by itself.
+// A push that failed (Wattro down, key rejected) is tried again by the timer:
+// for a project created after the switch was first turned on, and for an older
+// one whose push failed within the last days. Nothing else — the 200-odd
+// running jobs that existed before are a deliberate backfill, not something
+// that happens by itself.
 
 const FROM_KEY = 'wattro.projectPushFrom'
+const RETRY_FAILED_DAYS = 7
 
 async function pushFrom(): Promise<Date> {
   const row = await db.appSetting.findUnique({ where: { key: FROM_KEY } })
@@ -195,9 +239,19 @@ export function pushProjectInBackground(projectId: string, trigger: 'created' | 
 export async function pushPendingProjects(limit = 10): Promise<number> {
   if (!isProjectPushEnabled()) return 0
   const since = await pushFrom()
+  // An older project is tried again only where a push of it failed lately — a
+  // card moved in Trello while Wattro did not answer. Once it is linked it
+  // drops out of the query below by itself.
+  const retryFrom = new Date(Math.max(since.getTime(), Date.now() - RETRY_FAILED_DAYS * 86_400_000))
+  const failed = await db.auditLog.findMany({
+    where: { action: 'project.wattroPushFailed', entity: 'Project', createdAt: { gte: retryFrom } },
+    distinct: ['entityId'],
+    select: { entityId: true },
+    take: 200,
+  })
   const pending = await db.project.findMany({
     where: {
-      createdAt: { gte: since },
+      OR: [{ createdAt: { gte: since } }, { id: { in: failed.map((f) => f.entityId) } }],
       status: { in: [...PUSH_STATUSES] as never },
       archivedAt: null,
       links: { none: { system: 'wattro' } },

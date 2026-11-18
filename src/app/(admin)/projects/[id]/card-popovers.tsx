@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
-import { CheckSquare, ChevronLeft, ChevronRight, Clock, MessageSquare, Paperclip, Plus, Star, Tag, UserPlus, Users, X } from 'lucide-react'
+import { BookOpen, CheckSquare, ChevronLeft, ChevronRight, Clock, MessageSquare, Paperclip, Plus, Star, Tag, UserPlus, Users, X } from 'lucide-react'
 import { Popover, PopoverHead } from '@/components/ui/popover'
 import { btn } from '@/components/ui/button'
 import { LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
@@ -574,6 +574,7 @@ const jump = (id: string, focus = false) => {
 export function CardAddButton({ data, labels }: { data: CardEditData; labels: AddLabels }) {
   const t = useTranslations('projects')
   const tc = useTranslations('common')
+  const tDoc = useTranslations('documentation')
   const anchor = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   const [panel, setPanel] = useState<PanelKey | null>(null)
@@ -595,6 +596,18 @@ export function CardAddButton({ data, labels }: { data: CardEditData; labels: Ad
       run: () => {
         close()
         jump('comments', true)
+      },
+    },
+    {
+      // The documentation's own section (src/components/project-documentation.tsx)
+      // asks how: camera, gallery, PDF, note, voice note.
+      icon: BookOpen,
+      label: tDoc('title'),
+      hint: t('addDocumentationHint'),
+      run: () => {
+        close()
+        jump('documentation')
+        setTimeout(() => window.dispatchEvent(new Event('documentation:add')), 400)
       },
     },
   ]

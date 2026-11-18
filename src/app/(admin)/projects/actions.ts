@@ -15,16 +15,17 @@ import type { Prisma } from '@/generated/prisma/client'
 import { isUniqueClash, nextProjectNumber } from '@/lib/project-numbers'
 import { normalizeJobNumber } from '@/lib/job-number'
 import { pushProjectInBackground } from '@/lib/wattro/project-push'
+import { refreshProjectTitle, titleFor } from '@/lib/project-title-db'
 import {
   announceProjectChanges,
   announceProjectCreated,
   announceProjectDeleted,
   projectBefore,
 } from '@/lib/project-events'
-import { getTranslations } from 'next-intl/server'
 import { createProject as createProjectRecord, createProjectInput } from '@/lib/api-service'
 import { COLUMN_TITLE_MAX } from '@/lib/boards'
-import { addBoardColumn, removeBoardColumn, renameBoardColumn, saveColumnOrder } from '@/lib/boards-db'
+import { labelColorKey } from '@/lib/board-cards'
+import { addBoardColumn, removeBoardColumn, renameBoardColumn, saveColumnOrder, setBoardColumnColor } from '@/lib/boards-db'
 import { isColumnSort, orderCards, positionBetween, renumbered, sortedBy, tooClose } from '@/lib/board-order'
 import { columnRuleKey, dropPatch, trelloRuleId } from '@/lib/board-rules'
 import { keptParts, type TemplatePart } from '@/lib/card-templates'
@@ -79,7 +80,7 @@ const optionalDate = z
 
 const projectSchema = z
   .object({
-    name: z.string().trim().min(1).max(300),
+    // No name: it is the customer followed by the trades (src/lib/project-title.ts).
     // The client's own project number: optional, unique when given (src/lib/job-number.ts).
     jobNumber: z.string().transform((v) => normalizeJobNumber(v)),
     customerId: z.string().min(1),
@@ -130,6 +131,12 @@ const projectSchema = z
       .max(10000)
       .transform((v) => (v ? v : null)),
     categoryIds: z.array(z.string()),
+    // The type of work in the office's own words, where no trade says it; part of the name.
+    workNote: z
+      .string()
+      .trim()
+      .max(200)
+      .transform((v) => (v ? v.replace(/\s+/g, ' ') : null)),
     teamIds: z.array(z.string()),
   })
   .refine(
@@ -145,7 +152,6 @@ function parsePrice(raw: string): { ok: true; value: number | null } | { ok: fal
 
 function parseProjectForm(formData: FormData) {
   return projectSchema.safeParse({
-    name: formData.get('name') ?? '',
     jobNumber: formData.get('jobNumber') ?? '',
     customerId: formData.get('customerId') ?? '',
     status: formData.get('status') ?? 'LEAD',
@@ -177,6 +183,7 @@ function parseProjectForm(formData: FormData) {
     description: formData.get('description') ?? '',
     internalNotes: formData.get('internalNotes') ?? '',
     categoryIds: formData.getAll('categoryIds').map(String),
+    workNote: formData.get('workNote') ?? '',
     teamIds: formData.getAll('teamIds').map(String),
   })
 }
@@ -184,7 +191,6 @@ function parseProjectForm(formData: FormData) {
 function formErrorKey(
   issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }>
 ): NonNullable<ProjectFormState['error']> {
-  if (issues.some((i) => i.path[0] === 'name')) return 'nameRequired'
   if (issues.some((i) => i.path[0] === 'customerId')) return 'customerRequired'
   if (issues.some((i) => i.message === 'dateOrder')) return 'dateOrder'
   return 'saveFailed'
@@ -258,7 +264,8 @@ export async function createProject(
         data: {
           number: await nextProjectNumber(),
           jobNumber: d.jobNumber,
-          name: d.name,
+          name: await titleFor({ customerId: d.customerId, categoryIds: d.categoryIds, workNote: d.workNote }),
+          workNote: d.workNote,
           customerId: d.customerId,
           status: d.status,
           isSub: d.isSub,
@@ -352,8 +359,11 @@ export async function createProject(
           externalSystem: draft.externalSystem,
           externalId: draft.externalId,
           externalUrl: draft.externalUrl,
+          // What the automation called it: the name until a trade is set.
+          sourceTitle: draft.name,
         },
       })
+      await refreshProjectTitle(project.id)
       await db.projectDraft.update({
         where: { id: draftId },
         data: { status: 'done', projectId: project.id },
@@ -431,7 +441,6 @@ export async function updateProject(
       ...(saving.has('basic')
         ? {
             jobNumber,
-            name: d.name,
             customerId: d.customerId,
             status: d.status,
             isSub: d.isSub,
@@ -439,6 +448,7 @@ export async function updateProject(
             priority: d.priority,
             leadSource: d.leadSource,
             buildingType: d.buildingType,
+            workNote: d.workNote,
             workCategories: {
               deleteMany: {},
               create: d.categoryIds.map((cid) => ({ workCategoryId: cid })),
@@ -504,6 +514,8 @@ export async function updateProject(
   }
 
   if (saving.has('assignment')) await syncProjectChecklists(id, d.checklistIds)
+  // Customer, trades and work note are the name; the jobNumber push below sends it as well.
+  if (saving.has('basic')) await refreshProjectTitle(id)
 
   if (before.status !== status) {
     await audit({
@@ -521,7 +533,7 @@ export async function updateProject(
     action: 'project.update',
     entity: 'Project',
     entityId: id,
-    newValue: `${before.number} ${saving.has('basic') ? d.name : before.name}`,
+    newValue: `${before.number} ${saving.has('basic') ? await titleFor({ customerId: d.customerId, categoryIds: d.categoryIds, workNote: d.workNote, sourceTitle: before.sourceTitle }) : before.name}`,
   })
   if (jobNumber !== before.jobNumber) {
     await audit({ userId: user.id, action: 'project.jobNumber', entity: 'Project', entityId: id, field: 'jobNumber', oldValue: before.jobNumber, newValue: jobNumber })
@@ -692,7 +704,6 @@ export async function copyProject(id: string): Promise<{ id?: string; error?: st
     },
   })
   if (!source) return { error: 'saveFailed' }
-  const t = await getTranslations('projects')
   // Right under the original: between it and whatever follows it in its list.
   const next =
     source.boardPosition == null
@@ -709,7 +720,10 @@ export async function copyProject(id: string): Promise<{ id?: string; error?: st
       created = await db.project.create({
         data: {
           number: await nextProjectNumber(),
-          name: t('copyName', { name: source.name }).slice(0, 300),
+          // The same customer and trades are the same name; what the original was called before goes along.
+          name: source.name,
+          sourceTitle: source.sourceTitle,
+          workNote: source.workNote,
           customerId: source.customerId,
           status: source.status,
           isSub: source.isSub,
@@ -864,6 +878,18 @@ export async function renameColumn(columnId: string, title: string): Promise<{ e
   const boardId = await renameBoardColumn(columnId, name || null)
   if (!boardId) return { error: 'notFound' }
   await audit({ userId: user.id, action: 'board.column.rename', entity: 'Board', entityId: boardId, newValue: `${columnId}: ${name}` })
+  revalidatePath('/projects')
+  revalidatePath('/settings/boards')
+  return {}
+}
+
+/** A column's tint picked from its menu on the board; null, or a colour not ours, gives it the plain grey back. */
+export async function colorColumn(columnId: string, color: string | null): Promise<{ error?: string }> {
+  const user = await requireManagement()
+  const key = labelColorKey(color)
+  const boardId = await setBoardColumnColor(columnId, key)
+  if (!boardId) return { error: 'notFound' }
+  await audit({ userId: user.id, action: 'board.column.color', entity: 'Board', entityId: boardId, newValue: `${columnId}: ${key ?? ''}` })
   revalidatePath('/projects')
   revalidatePath('/settings/boards')
   return {}
@@ -1150,7 +1176,10 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
       }),
       db.projectAddOn.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.note.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      // The folders first: the files and the documentation keep lying in theirs.
+      db.projectFolder.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.document.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
+      db.documentationEntry.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.projectChecklist.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.timeEntry.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
       db.deviceAssignment.updateMany({ where: { projectId: dropId }, data: { projectId: keepId } }),
@@ -1187,6 +1216,8 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
     console.error('merge failed', e)
     return { error: 'saveFailed' }
   }
+  // The dropped one's trades came along, and with them perhaps more words in the name.
+  await refreshProjectTitle(keepId)
 
   await audit({
     userId: user.id,
@@ -1207,11 +1238,11 @@ export async function mergeProjects(keepId: string, dropId: string): Promise<Mer
 
 // ── The board: a card added from its list, a card changed from its menu ──
 
-export type QuickAddResult = { error?: 'nameRequired' | 'customerRequired' | 'saveFailed' }
+export type QuickAddResult = { error?: 'customerRequired' | 'saveFailed' }
 
 /**
- * Lays a template over a project that was just made with nothing but a name
- * and a customer: its description always, and of what else it recommends —
+ * Lays a template over a project that was just made with nothing but a
+ * customer: its description always, and of what else it recommends —
  * trade, site manager and crew, checklists, vehicles, machines, tools and
  * materials — the parts that were kept under "Behalten …".
  */
@@ -1252,6 +1283,7 @@ async function applyTemplate(projectId: string, templateId: string, keep: Readon
     })
   }
   if (keep.has('checklists')) await copyChecklistsToProject(projectId, template.checklists.map((c) => c.checklistTemplateId))
+  if (keep.has('labels') && template.workCategoryId) await refreshProjectTitle(projectId)
 }
 
 /**
@@ -1331,29 +1363,41 @@ async function nameSiteManager(user: Awaited<ReturnType<typeof requireStaff>>, p
     await db.project.update({ where: { id: projectId }, data: { team: { create: [{ employeeId }] } } })
 }
 
-/** The name and the customer of a card added on the board — the customer picked, or made from the name typed. */
+/**
+ * The customer of a card added on the board — picked, or made from the name
+ * typed — and its trades: together they are its name (src/lib/project-title.ts).
+ */
 function cardBasics(formData: FormData) {
-  const name = String(formData.get('name') ?? '').trim().slice(0, 300)
   const customerId = String(formData.get('customerId') ?? '').trim()
   const customerName = String(formData.get('customerName') ?? '').trim().slice(0, 200)
-  const error: QuickAddResult['error'] = !name ? 'nameRequired' : !customerId && !customerName ? 'customerRequired' : undefined
-  return { name, customer: customerId ? { customerId } : { customerName }, error }
+  const trades = formData.getAll('categoryIds').map(String).filter(Boolean)
+  const error: QuickAddResult['error'] = !customerId && !customerName ? 'customerRequired' : undefined
+  return { customer: customerId ? { customerId } : { customerName }, trades, error }
+}
+
+/** The trades ticked when the card was added, laid on it; the name follows. */
+async function setTrades(projectId: string, categoryIds: string[]) {
+  const known = await db.workCategory.findMany({ where: { id: { in: categoryIds }, active: true }, select: { id: true } })
+  if (known.length === 0) return
+  await db.projectWorkCategory.createMany({ data: known.map((c) => ({ projectId, workCategoryId: c.id })), skipDuplicates: true })
+  await refreshProjectTitle(projectId)
 }
 
 /**
- * "Karte hinzufügen" at the foot of a list: a project with a name and a
- * customer in that list — its status, and what the list's rule asks of it.
+ * "Karte hinzufügen" at the foot of a list: a project for a customer, with
+ * the trades ticked, in that list — its status, and what the list's rule asks of it.
  * Everything else is filled in on the card afterwards.
  */
 export async function quickAddProject(status: string, formData: FormData, rule: string | null = null): Promise<QuickAddResult> {
   const user = await requireStaff()
-  const { name, customer, error } = cardBasics(formData)
+  const { customer, trades, error } = cardBasics(formData)
   if (error) return { error }
   if (!(status in ProjectStatus)) return { error: 'saveFailed' }
   if (!(await isListRule(rule, status))) return { error: 'saveFailed' }
   try {
-    const input = createProjectInput.parse({ name, status, ...customer })
+    const input = createProjectInput.parse({ status, ...customer })
     const project = await createProjectRecord(user, input, { type: 'user', userId: user.id })
+    await setTrades(project.id, trades)
     await applyListRule(project.id, rule)
     await nameSiteManager(user, project.id)
     await placeAtBottom(project.id)
@@ -1367,7 +1411,7 @@ export async function quickAddProject(status: string, formData: FormData, rule: 
 
 /**
  * Trello's "Karte aus Vorlage erstellen", opened at the foot of a list: a
- * card with the name and the customer given, in that list, carrying the
+ * card for the customer given, with the trades ticked, in that list, carrying the
  * template's description and the parts of it that were kept. The answer
  * names the card, which opens at once for what is still to be filled in.
  */
@@ -1377,15 +1421,16 @@ export async function createCardFromTemplate(
   formData: FormData
 ): Promise<QuickAddResult & { id?: string }> {
   const user = await requireStaff()
-  const { name, customer, error } = cardBasics(formData)
+  const { customer, trades, error } = cardBasics(formData)
   if (error) return { error }
   if (!(place.status in ProjectStatus)) return { error: 'saveFailed' }
   if (!(await isListRule(place.rule, place.status))) return { error: 'saveFailed' }
   const template = await db.projectTemplate.findFirst({ where: { id: templateId, active: true }, select: { name: true } })
   if (!template) return { error: 'saveFailed' }
   try {
-    const input = createProjectInput.parse({ name, status: place.status, ...customer })
+    const input = createProjectInput.parse({ status: place.status, ...customer })
     const project = await createProjectRecord(user, input, { type: 'user', userId: user.id })
+    await setTrades(project.id, trades)
     await applyTemplate(project.id, templateId, keptParts(formData.getAll('keep')))
     await applyListRule(project.id, place.rule)
     await nameSiteManager(user, project.id)
@@ -1503,7 +1548,7 @@ export async function setCardMember(id: string, employeeId: string, on: boolean)
 
 /**
  * Trello's "In Karte umwandeln" on a checklist item: a card of its own with the
- * item's words as its name, for the same customer, in the same list, at its
+ * item's words as its old title — the name until a trade is set — for the same customer, in the same list, at its
  * foot — and the item goes from the checklist. The new card opens.
  */
 export async function convertChecklistItemToCard(itemId: string): Promise<{ id?: string; error?: 'saveFailed' }> {
@@ -1600,6 +1645,8 @@ export async function setCardLabel(id: string, label: string, on: boolean): Prom
       data: { workCategories: on ? { create: [{ workCategoryId: trade.id }] } : { deleteMany: { workCategoryId: trade.id } } },
     })
     text = trade.nameDe
+    // The trades are the name's second half.
+    await refreshProjectTitle(id)
   }
   await audit({
     userId: user.id,
@@ -1667,6 +1714,7 @@ export type CardFieldEdit =
   | { key: 'wish'; value: string }
   | { key: 'inspection'; value: string }
   | { key: 'price'; value: string }
+  | { key: 'workNote'; value: string }
   | {
       key: 'address'
       value: { street: string; postalCode: string; city: string; latitude?: number | null; longitude?: number | null }
@@ -1689,6 +1737,11 @@ export async function setCardField(id: string, edit: CardFieldEdit): Promise<{ e
     case 'wish': {
       const wish = String(edit.value ?? '').trim().slice(0, 200)
       data = { executionWish: wish || null }
+      break
+    }
+    case 'workNote': {
+      const note = String(edit.value ?? '').replace(/\s+/g, ' ').trim().slice(0, 200)
+      data = { workNote: note || null }
       break
     }
     case 'inspection': {
@@ -1732,26 +1785,23 @@ export async function setCardField(id: string, edit: CardFieldEdit): Promise<{ e
   }
   const snapshot = await projectBefore(id)
   await db.project.update({ where: { id }, data })
+  // Another customer is another first half of the name, the work note part of the second.
+  if (edit.key === 'customer' || edit.key === 'workNote') await refreshProjectTitle(id)
   await audit({ userId: user.id, action: 'project.field', entity: 'Project', entityId: id, field: edit.key })
   await afterCardEdit(user, id, snapshot)
   return {}
 }
 
-/** The quick menu on a card: another name, or urgent on and off. */
+/** The quick menu on a card: urgent on and off. The name is not typed — it is the customer and the trades. */
 export async function quickUpdateProject(
   id: string,
-  changes: { name?: string; urgent?: boolean }
-): Promise<{ error?: 'nameRequired' | 'saveFailed' }> {
+  changes: { urgent?: boolean }
+): Promise<{ error?: 'saveFailed' }> {
   const user = await requireStaff()
   if (!(await canSeeProject(user, id))) return { error: 'saveFailed' }
-  const project = await db.project.findUnique({ where: { id }, select: { name: true, priority: true } })
+  const project = await db.project.findUnique({ where: { id }, select: { priority: true } })
   if (!project) return { error: 'saveFailed' }
-  const data: { name?: string; priority?: string | null } = {}
-  if (changes.name !== undefined) {
-    const name = changes.name.trim().slice(0, 300)
-    if (!name) return { error: 'nameRequired' }
-    if (name !== project.name) data.name = name
-  }
+  const data: { priority?: string | null } = {}
   if (changes.urgent !== undefined) {
     // Taking "hoch" away leaves a "niedrig" alone.
     const priority = changes.urgent ? 'HIGH' : project.priority === 'HIGH' ? null : project.priority
@@ -1760,9 +1810,6 @@ export async function quickUpdateProject(
   if (Object.keys(data).length === 0) return {}
   const snapshot = await projectBefore(id)
   await db.project.update({ where: { id }, data })
-  if (data.name !== undefined) {
-    await audit({ userId: user.id, action: 'project.update', entity: 'Project', entityId: id, field: 'name', oldValue: project.name, newValue: data.name })
-  }
   if (data.priority !== undefined) {
     await audit({ userId: user.id, action: 'project.update', entity: 'Project', entityId: id, field: 'priority', oldValue: project.priority, newValue: data.priority })
   }

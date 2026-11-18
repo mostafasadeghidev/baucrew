@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { Columns3, List, Plus } from 'lucide-react'
 import { projectsViewHref, type ProjectsViewKeep } from '@/lib/projects-view'
+import type { BoardBase } from '@/lib/card-url'
 import { HeadDivider, pageTitle, pageToolbar } from '@/components/ui/page-panel'
 import { projectControl } from './toolbar-styles'
 import { ProjectNavLink } from './project-nav-link'
@@ -11,9 +12,10 @@ import { ProjectNavLink } from './project-nav-link'
  * one row: the page's name, the boards as pills with the choice of board or
  * list beside them, and on the right what can be done. One rule under it —
  * no track around the tabs, no box around the bar. The board is the visual
- * reference; both views render this same head.
+ * reference; both views render this same head — and so does Baustellen
+ * (`base` "/sites"), whose one board stands where the tabs stand here.
  */
-export function ProjectsToolbar({ boards, search, filters, years, menu, boardView, keep, labels, canCreate }: {
+export function ProjectsToolbar({ boards, search, filters, years, menu, boardView, keep, labels, canCreate, base = '/projects' }: {
   boards: ReactNode
   search: ReactNode
   filters: ReactNode
@@ -23,6 +25,8 @@ export function ProjectsToolbar({ boards, search, filters, years, menu, boardVie
   keep: ProjectsViewKeep
   labels: { title: string; board: string; list: string; create: string; view: string }
   canCreate: boolean
+  /** Which page the board/list switch stays on. */
+  base?: BoardBase
 }) {
   return (
     <header className="shrink-0 border-b border-border bg-surface px-4 text-foreground md:pl-6 md:pr-8 md:pt-2">
@@ -35,10 +39,10 @@ export function ProjectsToolbar({ boards, search, filters, years, menu, boardVie
           <div className="min-w-0">{boards}</div>
           <HeadDivider />
           <nav aria-label={labels.view} className={projectControl.viewGroup}>
-            <ProjectNavLink title={labels.board} href={projectsViewHref('board', keep)} active={boardView} className={`${projectControl.viewButton} ${boardView ? projectControl.viewOn : projectControl.viewOff}`}>
+            <ProjectNavLink title={labels.board} href={projectsViewHref('board', keep, base)} active={boardView} className={`${projectControl.viewButton} ${boardView ? projectControl.viewOn : projectControl.viewOff}`}>
               <Columns3 className="h-4 w-4" aria-hidden /><span className="sr-only">{labels.board}</span>
             </ProjectNavLink>
-            <ProjectNavLink title={labels.list} href={projectsViewHref('list', keep)} active={!boardView} className={`${projectControl.viewButton} ${!boardView ? projectControl.viewOn : projectControl.viewOff}`}>
+            <ProjectNavLink title={labels.list} href={projectsViewHref('list', keep, base)} active={!boardView} className={`${projectControl.viewButton} ${!boardView ? projectControl.viewOn : projectControl.viewOff}`}>
               <List className="h-4 w-4" aria-hidden /><span className="sr-only">{labels.list}</span>
             </ProjectNavLink>
           </nav>

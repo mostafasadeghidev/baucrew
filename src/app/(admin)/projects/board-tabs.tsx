@@ -1,20 +1,24 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import { Check, ChevronDown } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import { Check, ChevronDown, Plus, Settings } from 'lucide-react'
 import { Menu, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { boardViewHref } from '@/lib/projects-view'
-import { ProjectNavLink } from './project-nav-link'
+import { ProjectNavLink, rememberBoardHere } from './project-nav-link'
 import { projectControl } from './toolbar-styles'
-import { EditBoardButton, NewBoardButton, type ManagedBoard } from './board-admin'
+import {
+  BOARD_SETTINGS_PARAM,
+  BoardSettingsDialog,
+  closeBoardSettings,
+  openBoardSettings,
+  type SettingsBoard,
+} from './board-settings'
 
-export type BoardTab = ManagedBoard & {
+export type BoardTab = SettingsBoard & {
   /** The board's own colour or photo, as CSS for a `background` — or none. */
   swatch: string | null
 }
-
-/** Making and changing boards from the bar — the ready-made boards on offer; null for those who may not. */
-export type ManageBoards = { presets: Array<{ key: string; name: string; background: string }> }
 
 /**
  * The board's colour, worn by its tab instead of by the whole page. A board
@@ -41,30 +45,52 @@ function Swatch({ css }: { css: string | null }) {
  * sideways if there are more than fit. On a narrow screen the same choices
  * fold into a menu under the current board's name.
  *
- * For an administrator a "+" after the boards makes one and the arrow on the
- * open tab changes it — its title, colour or photo, place, or away with it —
- * the way Trello makes and changes boards where they stand.
+ * For an administrator the open tab carries a gear and the row ends in "Neues
+ * Board": both open the one window where boards are made and changed
+ * (board-settings.tsx) — name, colour, columns, order, delete.
  */
-export function BoardTabs({ boards, current, ariaLabel, allLabel, manageBoards = null }: {
+export function BoardTabs({ boards, current, ariaLabel, allLabel, manageBoards = false }: {
   boards: BoardTab[]
   current: string
   ariaLabel: string
   allLabel: string
-  manageBoards?: ManageBoards | null
+  manageBoards?: boolean
 }) {
+  const t = useTranslations('projects')
+  const router = useRouter()
   const searchParams = useSearchParams()
   const index = boards.findIndex((board) => board.id === current)
   const currentBoard = index >= 0 ? boards[index] : undefined
   const caption = currentBoard?.name ?? allLabel
   const href = (id: string) => boardViewHref(searchParams.toString(), id)
   const remember = (id: string) => (id === 'all' ? undefined : id)
+  const settings = manageBoards ? searchParams.get(BOARD_SETTINGS_PARAM) : null
 
-  // The arrow on the open board, and the "+" for a new one: the administrator's.
+  // The gear on the open board, and "Neues Board": the administrator's.
   const edit =
     manageBoards && currentBoard ? (
-      <EditBoardButton key={`edit-${currentBoard.id}`} board={currentBoard} index={index} count={boards.length} leaveHref={href('all')} />
+      <button
+        type="button"
+        onClick={() => openBoardSettings(currentBoard.id)}
+        title={t('boardSettingsOpen')}
+        aria-label={`${t('boardSettingsOpen')}: ${currentBoard.name}`}
+        className="-ml-1 mr-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+      >
+        <Settings className="h-3.5 w-3.5" aria-hidden />
+      </button>
     ) : null
-  const add = manageBoards ? <NewBoardButton boards={boards} presets={manageBoards.presets} openHref={href} /> : null
+  const add = manageBoards ? (
+    <button
+      type="button"
+      onClick={() => openBoardSettings('new')}
+      title={t('boardNew')}
+      className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-sm text-muted transition-colors hover:bg-subtle/60 hover:text-foreground"
+    >
+      <Plus className="h-4 w-4" aria-hidden />
+      <span className="hidden xl:inline">{t('boardNew')}</span>
+      <span className="sr-only xl:hidden">{t('boardNew')}</span>
+    </button>
+  ) : null
 
   const entry = (id: string, name: string, swatch?: string | null) => (
     <ProjectNavLink key={id} role="menuitemradio" href={href(id)} active={id === current} rememberBoard={remember(id)} className={menuItemClass}>
@@ -92,7 +118,7 @@ export function BoardTabs({ boards, current, ariaLabel, allLabel, manageBoards =
       <nav aria-label={ariaLabel} className="hidden min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] lg:flex [&::-webkit-scrollbar]:hidden">
         {boards.map((board) =>
           board.id === current && edit ? (
-            // The open tab carries the arrow that changes its board, inside the same pill.
+            // The open tab carries the gear that opens its settings, inside the same pill.
             <span key={board.id} className={`flex shrink-0 items-center rounded-md ${projectControl.boardTabOn}`}>
               {tab(board.id, board.name, board.swatch)}
               {edit}
@@ -125,6 +151,18 @@ export function BoardTabs({ boards, current, ariaLabel, allLabel, manageBoards =
         {edit}
         {add}
       </div>
+      {settings && (
+        <BoardSettingsDialog
+          boards={boards}
+          initial={settings}
+          onClose={closeBoardSettings}
+          onCreated={(id) => {
+            // A new board opens at once, the way Trello opens one.
+            rememberBoardHere(id)
+            router.push(href(id))
+          }}
+        />
+      )}
     </>
   )
 }

@@ -16,10 +16,14 @@ knows each project's record there, as a *link* (`system` + `externalId`).
 - A key acts as one office user (administrator or manager). It has that
   user's role and financial access: price fields, order values and the
   revenue reports are simply absent when that user may not see them. Crew
-  accounts get no key.
+  accounts get no key. A site manager's session (the in-app assistant) sees
+  only the projects they are named on and no customers, as on the pages.
 - Send the key as a bearer token: `Authorization: Bearer bc_…`. The app keeps
   only its hash; a key is shown once, when it is made, and can be revoked at
   any time on the same page.
+- A key may be limited to the feedback list ("Nur Feedback-Aufgaben", for a
+  coding agent): it opens only `POST /api/mcp`, and there only the feedback
+  tools. Every REST route answers it with 401.
 - Every write is recorded in the change log under the key's user, with an
   `api.` prefix.
 - The app's own pages may call the API with the signed-in session instead of
@@ -41,10 +45,10 @@ knows each project's record there, as a *link* (`system` + `externalId`).
 | Method | Path | What |
 | --- | --- | --- |
 | GET | `/api/v1/me` | Who the key acts as, and whether financial data is visible |
-| GET | `/api/v1/projects` | Projects, newest first. `q` (name, number, customer, town), `status`, `system` and `externalId` (linked records), `limit` (≤200), `offset` |
-| POST | `/api/v1/projects` | Create a project: `name`, `customerId` or `customerName`, optional `status`, `isSub`, `plannedStart`, `plannedEnd`, `planMonth` ("YYYY-MM", the month the work is expected in when no start is fixed), `planMonths`, `dueDate`, `inspectionDate` (the site visit), `executionWish` (when the customer would like the work, in their words, up to 200 characters), `price`, `street`, `postalCode`, `city`, `description` |
+| GET | `/api/v1/projects` | Projects, newest first. `q` (name, old title, number, customer, town), `status`, `system` and `externalId` (linked records), `limit` (≤200), `offset` |
+| POST | `/api/v1/projects` | Create a project: `customerId` or `customerName`, `trades` (the work by trade name, `["Malern"]` — the project is named after customer and trades, "Muster GmbH · Malern"; an unknown trade is refused), `workNote` (the work in free words where no trade says it, "Küche" — it follows the trades in the name, up to 200 characters), optional `name` (kept as the old title, shown only while no trade is set), `status`, `isSub`, `plannedStart`, `plannedEnd`, `planMonth` ("YYYY-MM", the month the work is expected in when no start is fixed), `planMonths`, `dueDate`, `inspectionDate` (the site visit), `executionWish` (when the customer would like the work, in their words, up to 200 characters), `price`, `street`, `postalCode`, `city`, `description` |
 | GET | `/api/v1/projects/{id}` | One project by id or number (`2026-0048`): team, vehicles, schedule, plan lines |
-| PATCH | `/api/v1/projects/{id}` | Change what is sent: `status`, `name`, `isSub`, `plannedStart`, `plannedEnd`, `planMonth`, `planMonths`, `dueDate`, `inspectionDate`, `executionWish`, `price`, `managerId` or `managerName`, `description`, `street`, `postalCode`, `city`. Absent stays, `null` clears |
+| PATCH | `/api/v1/projects/{id}` | Change what is sent: `status`, `trades` (all of them; the name follows), `workNote` (the free type of work; the name follows, `null` clears it), `name` (the old title), `isSub`, `plannedStart`, `plannedEnd`, `planMonth`, `planMonths`, `dueDate`, `inspectionDate`, `executionWish`, `price`, `managerId` or `managerName`, `description`, `street`, `postalCode`, `city`. Absent stays, `null` clears |
 | GET | `/api/v1/projects/by-link/{system}/{externalId}` | The project linked to a record of another system |
 | PUT | `/api/v1/projects/by-link/{system}/{externalId}` | Update the linked project, or create one and link it — see below. Answers `{ created, project }` |
 | PUT | `/api/v1/projects/{id}/links/{system}` | Link the project to a record: `{ "externalId": "…", "url": "…" }`. `409 linkTaken` when the record belongs to another project |
@@ -93,10 +97,11 @@ of another system — a Trello card above all. `system` is lower case (`trello`,
 `wattro`); `externalId` is the record's id there (the card id).
 
 - The linked project is updated with what is sent, like `PATCH`.
-- With no linked project, one is made and linked: `name` is required, and
-  `customerId` or `customer` (`name`, optional `company`, `contactPerson`,
+- With no linked project, one is made and linked: `customerId` or `customer` (`name`, optional `company`, `contactPerson`,
   `phone`, `email`, `street`, `postalCode`, `city`). The customer is found by
-  name or made. Its status is `LEAD` unless `status` says otherwise.
+  name or made. Its name is the customer and `trades`; a `name` sent (the
+  card's title) is kept as the old title and is the name while no trade is
+  set. Its status is `LEAD` unless `status` says otherwise.
 - `list`: the name of the board column the card stands in; the status is read
   from it when no `status` is sent.
 - `url`: the record's address. For `trello`, a project imported from the board
@@ -194,10 +199,27 @@ sends what is due once a minute.
 
 The same functions are MCP tools at `POST /api/mcp` (Streamable HTTP, one
 JSON answer per request, no server-side stream). Authenticate with the same
-bearer key. Tools: `list_projects`, `get_project`, `create_project`,
-`set_project_status`, `search_customers`, `create_customer`,
-`list_employees`, `list_vehicles`, `list_schedule`, `plan_assignment`,
-`revenue_by_month`, `plan_gaps`.
+bearer key. `tools/list` offers only what the key's user may use:
+
+| Area | Read | Change |
+|---|---|---|
+| Projects | `list_projects`, `get_project` (with the work order's address) | `create_project`, `update_project` (details, address, dates, Projektnummer, site manager, price when allowed), `set_project_status` |
+| Boards | `list_boards` | `move_project_to_column` (status plus the column's rule, as a drag) |
+| Comments, defects | `list_comments`, `list_defects` | `add_comment`, `add_defect`, `set_defect_resolved` |
+| Customers (office only) | `search_customers`, `get_customer` | `create_customer`, `update_customer` |
+| People, vehicles | `list_employees`, `list_vehicles` | — |
+| Schedule | `list_schedule` (by project, employee or vehicle) | `plan_assignment`, `move_schedule_entry`, `update_schedule_entry`, `cancel_schedule_entry` (cancelled, not deleted) |
+| Reports (financial access only) | `revenue_by_month`, `plan_gaps` | — |
+| Feedback (MCP only, not the in-app assistant) | `list_feedback`, `get_feedback`, `get_feedback_image` | `add_feedback`, `add_feedback_note`; office: `record_feedback_proposal`, `set_feedback_status` (never done) |
+
+A feedback key is offered the feedback row alone. How agents use it:
+`docs/CHANGE-feedback-tool.md` → "Agents and the live list".
+
+A project is found by its id, its number (`2026-0048`) or its Projektnummer.
+Money fields are left out of every answer for a user without financial
+access, and a price sent by such a user is refused. The catalogue lives in
+`src/lib/mcp-catalog.ts`, the work in `src/lib/mcp-tools.ts`; the in-app
+assistant (`/api/assistant`) uses the same two files.
 
 Claude Code:
 

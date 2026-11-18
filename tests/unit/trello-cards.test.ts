@@ -10,6 +10,7 @@ describe('cardFieldLines', () => {
       created: '29.05.2026',
       inspection: '08.07.2026',
       wish: 'Frühjahr 2027',
+      workNote: 'Garage',
       workType: 'Fassade WDVS',
       value: '61.000 €',
       address: 'Musterweg 1, 12345 Musterstadt',

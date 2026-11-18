@@ -4,7 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { requireUser } from '@/lib/authz'
 import { canWorkOn } from '@/lib/crew-access'
-import { canDeleteTask, parseTaskInput, type TaskResult } from '@/lib/tasks'
+import { canDeleteTask, canDeleteTaskPhoto, parseTaskInput, type TaskResult } from '@/lib/tasks'
+import { deleteStoredFile } from '@/lib/file-storage'
+import { audit } from '@/lib/audit'
 import { createTask, removeTask, setTaskDone } from '@/lib/tasks-db'
 
 /**
@@ -57,5 +59,18 @@ export async function deleteTask(id: string): Promise<TaskResult> {
   const result = await removeTask(id, user.id)
   if ('error' in result) return { error: 'notFound' }
   refresh(result.projectId)
+  return {}
+}
+
+/** A task's photo taken away — the office and the site manager any, the crew its own (`canDeleteTaskPhoto`). */
+export async function deleteTaskPhoto(documentId: string): Promise<TaskResult> {
+  const user = await requireUser()
+  const photo = await db.document.findUnique({ where: { id: documentId }, select: { projectId: true, taskId: true, uploadedById: true, path: true, filename: true } })
+  if (!photo || !photo.taskId) return { error: 'notFound' }
+  if (!canDeleteTaskPhoto(user, photo) || !(await canWorkOn(user, photo.projectId))) return { error: 'notAllowed' }
+  await db.document.delete({ where: { id: documentId } })
+  await deleteStoredFile(photo.path)
+  await audit({ userId: user.id, action: 'project.task.photo.delete', entity: 'Project', entityId: photo.projectId, oldValue: photo.filename })
+  refresh(photo.projectId)
   return {}
 }

@@ -14,6 +14,7 @@ import { Popover, PopoverHead } from '@/components/ui/popover'
 import { btn } from '@/components/ui/button'
 import { ACCEPT_UPLOADS } from '@/lib/files'
 import { uploadProjectFiles } from './upload-files'
+import { useOpenFolder } from '@/components/project-folders'
 import { useUploadMessage } from './file-upload'
 import { addCardLink } from './file-actions'
 
@@ -32,11 +33,13 @@ export function AttachPanel({ projectId, close, back = null }: { projectId: stri
   const [sending, setSending] = useState(false)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  // Added while a folder is open on the card: the files go into it.
+  const openFolder = useOpenFolder(projectId)
 
   async function send(files: File[]) {
     setError(null)
     setSending(true)
-    const { failed } = await uploadProjectFiles(projectId, files)
+    const { failed } = await uploadProjectFiles(projectId, files, undefined, openFolder)
     setSending(false)
     if (failed.length > 0) {
       setError(message(failed))

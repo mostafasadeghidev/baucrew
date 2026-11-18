@@ -10,20 +10,25 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Camera } from 'lucide-react'
+import { Camera, FolderInput } from 'lucide-react'
 import { btn } from '@/components/ui/button'
 import { FilePreview } from '@/components/file-preview'
 import { uploadProjectPhoto } from '@/lib/photo-upload'
+import { MoveDialog, useOpenFolder } from '@/components/project-folders'
+import type { FolderView } from '@/lib/folders'
 
 export function SitePhotos({
   projectId,
-  photos,
+  photos: allPhotos,
   large = false,
+  folders,
 }: {
   projectId: string
-  photos: Array<{ id: string; filename: string }>
+  photos: Array<{ id: string; filename: string; folderId?: string | null }>
   /** Larger targets, for the phone. */
   large?: boolean
+  /** The project's folders: the photos of the open one show, new ones go into it, each can be moved. */
+  folders?: FolderView[]
 }) {
   const t = useTranslations('files')
   const tc = useTranslations('common')
@@ -31,6 +36,10 @@ export function SitePhotos({
   const [pending, startTransition] = useTransition()
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [moving, setMoving] = useState<{ id: string; from: string | null } | null>(null)
+  const openFolder = useOpenFolder(projectId)
+  const inFolder = folders ? (folders.some((f) => f.id === openFolder) ? openFolder : null) : undefined
+  const photos = inFolder === undefined ? allPhotos : allPhotos.filter((p) => (p.folderId ?? null) === inFolder)
 
   const send = (list: FileList | null) => {
     const chosen = Array.from(list ?? [])
@@ -40,7 +49,7 @@ export function SitePhotos({
     startTransition(async () => {
       let failed = 0
       for (const [i, file] of chosen.entries()) {
-        const result = await uploadProjectPhoto(projectId, file)
+        const result = await uploadProjectPhoto(projectId, file, undefined, false, inFolder ?? null)
         if ('error' in result) failed++
         setProgress({ done: i + 1, total: chosen.length })
       }
@@ -54,15 +63,26 @@ export function SitePhotos({
     <div>
       <div className="flex flex-wrap items-center gap-2">
         {photos.map((photo) => (
-          <FilePreview
-            key={photo.id}
-            id={photo.id}
-            filename={photo.filename}
-            kind="image"
-            thumb
-            thumbClass={large ? 'h-20 w-20' : 'h-16 w-16'}
-            labels={{ preview: t('preview'), openInTab: t('openInTab'), download: t('download'), close: tc('close') }}
-          />
+          <div key={photo.id} className="relative">
+            <FilePreview
+              id={photo.id}
+              filename={photo.filename}
+              kind="image"
+              thumb
+              thumbClass={large ? 'h-20 w-20' : 'h-16 w-16'}
+              labels={{ preview: t('preview'), openInTab: t('openInTab'), download: t('download'), close: tc('close') }}
+            />
+            {folders && (
+              <button
+                type="button"
+                onClick={() => setMoving({ id: photo.id, from: photo.folderId ?? null })}
+                aria-label={`${t('moveTo')}: ${photo.filename}`}
+                className="absolute -bottom-1.5 -right-1.5 rounded-full border border-border bg-surface p-1.5 text-muted hover:text-foreground"
+              >
+                <FolderInput className="h-4 w-4" aria-hidden />
+              </button>
+            )}
+          </div>
         ))}
         <label className={`${large ? btn.outline : btn.outlineSm} cursor-pointer gap-1.5 ${pending ? 'pointer-events-none opacity-60' : ''}`}>
           <Camera className="h-4 w-4" aria-hidden />
@@ -83,6 +103,15 @@ export function SitePhotos({
         <p role="alert" className="mt-2 text-sm text-danger">
           {error}
         </p>
+      )}
+      {folders && (
+        <MoveDialog
+          projectId={projectId}
+          folders={folders}
+          item={moving ? { kind: 'document', id: moving.id } : null}
+          from={moving?.from ?? null}
+          onClose={() => setMoving(null)}
+        />
       )}
     </div>
   )

@@ -1,8 +1,9 @@
 import { MobileNav } from './sidebar'
+import { SearchButton } from './search-palette'
 
 /**
- * Mobile-only bar: just the menu button. Language, theme, user and sign-out
- * live in the sidebar's user menu.
+ * Mobile-only bar: the menu button and the search window's magnifier.
+ * Language, theme, user and sign-out live in the sidebar's user menu.
  */
 export async function Topbar({
   username,
@@ -33,6 +34,7 @@ export async function Topbar({
         roleKey={roleKey}
         priceSwitch={priceSwitch}
       />
+      <SearchButton variant="icon" className="ml-auto h-10 w-10 border border-border" />
     </header>
   )
 }

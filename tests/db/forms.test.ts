@@ -23,9 +23,20 @@ const storedPaths: string[] = []
 beforeAll(async () => {
   const user = await prisma.user.create({ data: { username: TAG, passwordHash: 'x', role: 'ADMIN' } })
   userId = user.id
-  const customer = await prisma.customer.create({ data: { name: `${TAG} Muster GmbH`, number: 'K-4711' } })
+  const customer = await prisma.customer.create({
+    data: { name: `${TAG} Muster GmbH`, number: 'K-4711', street: 'Beispielweg 2', postalCode: '54321', city: 'Beispielstadt' },
+  })
   const project = await prisma.project.create({
-    data: { number: `${TAG}-1`, name: `${TAG} Musterhaus Fassade`, customerId: customer.id, street: 'Musterstraße 1', postalCode: '12345', city: 'Musterstadt' },
+    data: {
+      number: `${TAG}-1`,
+      name: `${TAG} Musterhaus Fassade`,
+      customerId: customer.id,
+      street: 'Musterstraße 1',
+      postalCode: '12345',
+      city: 'Musterstadt',
+      plannedStart: new Date('2026-11-09T00:00:00Z'),
+      dueDate: new Date('2026-11-27T00:00:00Z'),
+    },
   })
   projectId = project.id
   await prisma.defect.create({ data: { projectId, title: 'Riss in der Decke', location: 'Bad OG', reportedById: userId } })
@@ -49,7 +60,7 @@ afterAll(async () => {
   const { deleteStoredFile } = await import('@/lib/file-storage')
   for (const key of storedPaths) await deleteStoredFile(key).catch(() => {})
   await prisma.project.deleteMany({ where: { id: projectId } })
-  await prisma.formTemplate.deleteMany({ where: { id: templateId } })
+  await prisma.formTemplate.deleteMany({ where: { name: { startsWith: TAG } } })
   await prisma.customer.deleteMany({ where: { name: { startsWith: TAG } } })
   await prisma.auditLog.deleteMany({ where: { userId } })
   await prisma.user.deleteMany({ where: { id: userId } })
@@ -114,5 +125,42 @@ describe('a form on a project', () => {
     expect(reopened?.documentId).toBeNull()
     expect(await prisma.document.count({ where: { id: filed!.id } })).toBe(0)
     // Two sheets are drawn and one is written to disk: more than the usual five seconds on a busy machine.
+  }, 20_000)
+})
+
+describe('a form made from a printed sheet', () => {
+  it('starts with the project\'s dates and addresses, carries its template\'s words, and keeps a form with prices apart', async () => {
+    const { createFilledForm, filledFormPdf, loadFilledForm } = await import('@/lib/forms-db')
+    const template = await prisma.formTemplate.create({
+      data: {
+        name: `${TAG} Mustervertrag`,
+        financial: true,
+        fields: [
+          { id: 'intro', type: 'info', label: '1.0 Gegenstand', body: 'Mustertext eines Vertrags.' },
+          { id: 'customer', type: 'longtext', label: 'Auftraggeber:', prefill: 'customerWithAddress', half: true },
+          { id: 'company', type: 'longtext', label: 'Auftragnehmer:', defaultValue: 'Muster Maler GmbH', half: true },
+          { id: 'start', type: 'date', label: 'Der Baubeginn wird am', suffix: 'erfolgen.', prefill: 'plannedStart' },
+          { id: 'due', type: 'text', label: 'Fertig bis', prefill: 'dueDate' },
+          { id: 'place', type: 'text', label: 'Ort, Datum', prefill: 'placeToday' },
+          { id: 'sum', type: 'number', label: '', suffix: 'Euro netto' },
+          { id: 'here', type: 'signatures', label: '' },
+        ],
+        signers: ['Auftraggeber'],
+      },
+    })
+    const made = await createFilledForm({ projectId, templateId: template.id, userId })
+    if ('error' in made) throw new Error(made.error)
+    const form = await loadFilledForm(made.id)
+    expect(form?.financial).toBe(true)
+    expect(form?.values).toMatchObject({
+      customer: `${TAG} Muster GmbH\nBeispielweg 2\n54321 Beispielstadt`,
+      company: 'Muster Maler GmbH',
+      start: '2026-11-09',
+      due: '27.11.2026',
+      sum: '',
+    })
+    expect(String(form?.values.place)).toMatch(/^Musterstadt, \d{2}\.\d{2}\.\d{4}$/)
+    expect(form?.fields.find((f) => f.id === 'intro')?.body).toBe('Mustertext eines Vertrags.')
+    expect(await filledFormPdf(made.id, 'de')).not.toBeNull()
   }, 20_000)
 })
