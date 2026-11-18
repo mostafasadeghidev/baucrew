@@ -16,6 +16,7 @@
  */
 import { decompressFromUTF16 } from 'lz-string'
 import { parseAmount } from './amount'
+import { isWork } from './project-title'
 
 /** A field as the power-up defines it: `T` text, `N` number, `D` date, `L` a list of options. */
 export type PowerUpField = { id: string; type: string; name: string; options: Array<{ id: string; text: string }> }
@@ -153,6 +154,19 @@ function day(value: unknown): string | undefined {
   return match && !Number.isNaN(Date.parse(`${match[1]}T00:00:00Z`)) ? match[1] : undefined
 }
 
+/**
+ * The typed type of work as its entries: "Malern, Spachteln und Fassade" is
+ * three. A word cut short with a hyphen belongs to the one after it — "Innen-
+ * und Außenputz" is one entry, both of it plaster — and a piece without a
+ * letter in it is no entry.
+ */
+export function splitWorkTypes(text: string): string[] {
+  return text
+    .split(/(?<!-\s*)(?:[,;/+]|\bund\b)/)
+    .map((w) => w.replace(/\s+/g, ' ').trim())
+    .filter((w) => /\p{L}/u.test(w))
+}
+
 /** One card's field values, from its `pluginData`, read against the board's definitions. */
 export function cardFields(definitions: { pluginId: string; fields: PowerUpField[] } | null, cardPluginData: unknown): TrelloCardFields {
   const out: TrelloCardFields = {}
@@ -180,7 +194,7 @@ export function cardFields(definitions: { pluginId: string; fields: PowerUpField
       const words = Array.isArray(raw)
         ? raw.map((id) => field.options.find((o) => o.id === id)?.text ?? '').filter(Boolean)
         : typeof raw === 'string'
-          ? raw.split(/[,;/+]|\bund\b/).map((w) => w.trim()).filter(Boolean)
+          ? splitWorkTypes(raw)
           : []
       if (words.length > 0) out.workTypes = words
     } else if (key === 'siteAddress') {
@@ -200,24 +214,63 @@ export function cardFields(definitions: { pluginId: string; fields: PowerUpField
 export const hasFields = (fields: TrelloCardFields) => Object.keys(fields).length > 0
 
 /**
+ * The office's own words for a trade, the way "Art der Arbeit" was typed on
+ * the cards — "Malerarbeiten", "Innenputz", "Fassade streichen", "IP" — each
+ * pointing at a trade by the start of its name, folded. `within` is a part of
+ * the word, `exact` the whole of it, `unless` a part that makes it another
+ * job ("fugenloser Boden" is the floor, not the bathroom). One typed entry may
+ * name two trades ("Fassadenanstrich": the facade, painted).
+ */
+const TRADE_WORDS: Array<{ within: string[]; exact?: string[]; unless?: string[]; trade: string[] }> = [
+  { within: ['maler', 'streich', 'anstrich', 'tapet', 'tapez', 'farbe', 'spachtel'], trade: ['malern', 'malerarbeiten', 'painting'] },
+  { within: ['putz'], exact: ['ip', 'ap'], trade: ['putz', 'plaster'] },
+  { within: ['trockenbau', 'ausbau', 'rigips'], trade: ['trockenbau', 'drywall'] },
+  { within: ['fassade'], trade: ['aussenfassade', 'fassade', 'exteriorfacade'] },
+  { within: ['wdvs', 'dammung', 'warmeschutz'], trade: ['wdvs'] },
+  { within: ['gerust'], trade: ['gerustbau', 'scaffolding'] },
+  { within: ['lackier'], trade: ['lackierarbeiten', 'lacquer'] },
+  { within: ['abbruch', 'abriss', 'durchbruch'], trade: ['abbruch', 'demolition'] },
+  { within: ['boden', 'estrich', 'flies', 'parkett'], trade: ['bodenbelag', 'flooring'] },
+  { within: ['fugenl', 'stucco'], unless: ['boden'], trade: ['fugenlosesbad', 'seamlessbathroom'] },
+]
+
+/**
+ * A refurbishment as a whole — a damage put right, "komplett", "alles",
+ * "diverse": only where the entry names no trade of its own
+ * ("Fassadensanierung" is the facade).
+ */
+const GENERAL_WORDS = {
+  within: ['sanierung', 'renovier', 'instandsetz', 'umbau', 'schimmel', 'schaden', 'komplett', 'alles', 'divers'],
+  trade: ['renovierung', 'renovation'],
+}
+
+/**
  * The trades a card's type of work names, among the ones the app has — by
- * name, folded; a word the app has no trade for is left over.
+ * name, folded, or by the start of it, and by the office's own words for them
+ * (TRADE_WORDS): "Putz- und Malerarbeiten" is both. A word the app has no
+ * trade for is left over — unless it is no work on a site ("Lead Anzeige",
+ * NOT_WORK), which names nothing and is dropped.
  */
 export function matchTrades(words: string[], trades: Array<{ id: string; names: string[] }>): { ids: string[]; unknown: string[] } {
   const ids: string[] = []
   const unknown: string[] = []
+  const tradeFor = (starts: string[]) =>
+    trades.find((t) => t.names.some((n) => starts.some((s) => foldName(n).startsWith(s))))
   for (const word of words) {
     const folded = foldName(word)
     if (!folded) continue
-    const hit =
-      trades.find((t) => t.names.some((n) => foldName(n) === folded)) ??
-      trades.find((t) => t.names.some((n) => {
-        const name = foldName(n)
-        return name.length >= 4 && folded.length >= 4 && (name.startsWith(folded) || folded.startsWith(name))
-      }))
-    if (hit) {
-      if (!ids.includes(hit.id)) ids.push(hit.id)
-    } else unknown.push(word)
+    // A trade's name, whole, is that trade and no other.
+    const named = trades.find((t) => t.names.some((n) => foldName(n) === folded))
+    const hit = trades.find((t) => t.names.some((n) => {
+      const name = foldName(n)
+      return name.length >= 4 && folded.length >= 4 && (name.startsWith(folded) || folded.startsWith(name))
+    }))
+    const said = (w: { within: string[]; exact?: string[]; unless?: string[] }) =>
+      (w.within.some((part) => folded.includes(part)) || (w.exact ?? []).includes(folded)) && !(w.unless ?? []).some((part) => folded.includes(part))
+    let found = named ? [named] : [hit, ...TRADE_WORDS.filter(said).map((w) => tradeFor(w.trade))].filter((t) => t !== undefined)
+    if (found.length === 0 && said(GENERAL_WORDS)) found = [tradeFor(GENERAL_WORDS.trade)].filter((t) => t !== undefined)
+    if (found.length === 0 && isWork(word)) unknown.push(word)
+    for (const t of found) if (!ids.includes(t.id)) ids.push(t.id)
   }
   return { ids, unknown }
 }

@@ -72,18 +72,21 @@ import { AlertDialog } from '@/components/ui/alert-dialog'
 import { moveColumn } from '@/lib/boards'
 import { COLUMN_SORTS, insertIndex, type ColumnSort } from '@/lib/board-order'
 import { FIELD_CHIP, LABEL_BAR, LABEL_PILL, PERSON_SWATCH, SUB_LABEL, URGENT_LABEL } from '@/components/swatches'
-import { CARD_FIELD_TONE, type CardFieldKey } from '@/lib/board-cards'
+import { CARD_FIELD_TONE, type CardFieldKey, type LabelColor } from '@/lib/board-cards'
 import { Menu, MenuLabel, MenuSeparator, menuItemClass } from '@/components/ui/menu'
 import { Combobox } from '@/components/combobox'
+import { TradePicker } from './trade-picker'
 import { Select } from '@/components/ui/select'
 import { btn } from '@/components/ui/button'
 import { DRAG_THRESHOLD, LONG_PRESS_MS, LONG_PRESS_SLOP, carry, drop as dropGhost, holdTouchDrag, lift } from '@/lib/card-lift'
 import { isVerticalWheel, wheelPixels } from '@/lib/wheel-axis'
-import { cardHref } from '@/lib/card-url'
+import { boardBaseOf, cardHref } from '@/lib/card-url'
 import { useCardDetails, useCollapsedColumns, useLabelsOpen } from './board-prefs'
 import { dragHasFiles, uploadProjectFiles } from './[id]/upload-files'
 import { CARD } from './board-card'
 import { CardTemplates, type BoardTemplate } from './card-templates'
+import { openBoardSettings } from './board-settings'
+import { ColumnColorSwatches, listGround } from './column-color'
 import { DoneTick } from './done-tick'
 import { JobNumber } from '@/components/job-number'
 import { ShortcutsDialog, useBoardKeys } from './board-keys'
@@ -98,6 +101,7 @@ import {
   moveCards,
   quickAddProject,
   quickUpdateProject,
+  colorColumn,
   removeColumn,
   renameColumn,
   setBoardOrder,
@@ -107,7 +111,10 @@ import {
 export type KanbanCard = {
   id: string
   number: string
+  /** The customer and the trades, "Muster GmbH · Malern" (src/lib/project-title.ts). */
   name: string
+  /** What it was called before, shown small under the name while it says more. */
+  formerTitle: string | null
   /** The office's job number from the Trello title, when the card had one. */
   jobNumber: string | null
   customer: string
@@ -153,6 +160,8 @@ export type KanbanCard = {
   watching: boolean
   /** What happened on the card that the reader has not seen yet — Trello's red bell. */
   unread: number
+  /** What still hangs on the site (src/lib/sites.ts) — overdue work, a form to sign, no crew, nothing planned — with its words. */
+  flags: Array<{ flag: string; text: string }>
 }
 
 const DATE_TONE = {
@@ -175,11 +184,13 @@ export type KanbanColumn = {
   sum: string | null
   /** The colour the status wears everywhere else in the app. */
   badgeClass: string
+  /** The list's own tint, picked from its menu or the board window; null is the plain grey well. */
+  color: LabelColor | null
   cards: KanbanCard[]
 }
 
-/** A list is a well in the page's white panel: a tint, no border, no shadow. */
-const LIST = 'rounded-xl bg-subtle'
+/** A list is a well in the page's white panel: a tint (its own colour, else grey), no border, no shadow. */
+const LIST = 'rounded-xl'
 const HEAD_BUTTON = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-black/10 hover:text-foreground dark:hover:bg-white/10'
 
 /**
@@ -221,13 +232,14 @@ export function ProjectsKanban({
   boardId,
   columns,
   customers,
+  trades,
   templates,
   manageTemplates,
   canJoin,
   confirmFor,
   addable,
   canEditBoard,
-  settingsHref,
+  manageBoards,
   labels,
 }: {
   /** The board the columns belong to — the order they are dragged into is saved on it. */
@@ -235,6 +247,8 @@ export function ProjectsKanban({
   columns: KanbanColumn[]
   /** The customers a card added at the foot of a list can be given. */
   customers: Array<{ value: string; label: string }>
+  /** The trades such a card can be given — with the customer they are its name. */
+  trades: Array<{ value: string; label: string }>
   /** The card templates at the foot of every list, drawn as the cards they make. */
   templates: BoardTemplate[]
   /** Whether the reader may make and change templates there — the office. */
@@ -247,8 +261,8 @@ export function ProjectsKanban({
   addable: Array<{ value: string; rule: string | null; label: string }>
   /** Whether the reader may rename, add, sort and take away lists — the office. */
   canEditBoard: boolean
-  /** The way to Einstellungen → Boards, for those who may go there. */
-  settingsHref: string | null
+  /** Whether the reader may open the boards' settings window — the administrator. */
+  manageBoards: boolean
   /**
    * Plain words only: a server component cannot hand a client one a function,
    * so anything that needs a number in it is spelled out on the server and
@@ -280,9 +294,9 @@ export function ProjectsKanban({
    * way back. It is intercepted over the board, so the card streams in while
    * the board stays as it is.
    */
-  const openHref = (id: string) => cardHref(new URLSearchParams(searchParams), id)
+  const openHref = (id: string) => cardHref(new URLSearchParams(searchParams), id, undefined, boardBaseOf(pathname))
   /** The card's sheet with one of its small windows open at once — the pencil's labels, members, cover, dates. */
-  const popHref = (id: string, pop: 'labels' | 'members' | 'cover' | 'dates') => cardHref(new URLSearchParams(searchParams), id, pop)
+  const popHref = (id: string, pop: 'labels' | 'members' | 'cover' | 'dates') => cardHref(new URLSearchParams(searchParams), id, pop, boardBaseOf(pathname))
   /** A line at the foot of the window for a moment — "Link kopiert". */
   const [notice, setNotice] = useState<string | null>(null)
   useEffect(() => {
@@ -313,10 +327,6 @@ export function ProjectsKanban({
       pop: (id, which) => router.push(popHref(id, which), { scroll: false }),
       quickEdit: (id) =>
         document.querySelector<HTMLButtonElement>(`[data-card-id="${CSS.escape(id)}"] button[aria-label="${t('cardQuickEdit')}"]`)?.click(),
-      rename: (id) => {
-        const found = board.flatMap((c) => c.cards).find((c) => c.id === id)
-        if (found) setRenaming({ id, value: found.name })
-      },
       archive: (id) => {
         runOnServer(() => archiveProject(id, true))
         setNotice(t('cardArchivedNotice'))
@@ -370,7 +380,6 @@ export function ProjectsKanban({
   const [addError, setAddError] = useState<string | null>(null)
   const [addKey, setAddKey] = useState(0)
   /** The card whose name is being typed over, and the list whose name is. */
-  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
   const [renamingList, setRenamingList] = useState<{ status: string; value: string } | null>(null)
   /** A list about to be taken off the board. */
   const [removing, setRemoving] = useState<{ status: string; label: string } | null>(null)
@@ -518,13 +527,13 @@ export function ProjectsKanban({
   }
 
   /** The quick menu: the card changes at once, and goes back if the server says no. */
-  const quick = (card: KanbanCard, changes: { name?: string; urgent?: boolean }) => {
+  const quick = (card: KanbanCard, changes: { urgent?: boolean }) => {
     const before = board
     setBoard((current) =>
       current.map((column) => ({
         ...column,
         cards: column.cards.map((c) =>
-          c.id === card.id ? { ...c, name: changes.name ?? c.name, urgent: changes.urgent ?? c.urgent } : c
+          c.id === card.id ? { ...c, urgent: changes.urgent ?? c.urgent } : c
         ),
       }))
     )
@@ -548,6 +557,22 @@ export function ProjectsKanban({
     setError(null)
     startTransition(async () => {
       const result = await renameColumn(columnId, title)
+      if (result?.error) {
+        setBoard(before)
+        setError(labels.saveFailed)
+        return
+      }
+      router.refresh()
+    })
+  }
+
+  /** A list's colour picked from its menu: it changes at once, and goes back if the server says no. */
+  const recolor = (columnId: string, color: LabelColor | null) => {
+    const before = board
+    setBoard((current) => current.map((column) => (column.id === columnId ? { ...column, color } : column)))
+    setError(null)
+    startTransition(async () => {
+      const result = await colorColumn(columnId, color)
       if (result?.error) {
         setBoard(before)
         setError(labels.saveFailed)
@@ -598,20 +623,14 @@ export function ProjectsKanban({
     startTransition(async () => {
       const result = await quickAddProject(column.status, data, column.rule)
       if (result.error) {
-        setAddError(
-          result.error === 'nameRequired'
-            ? t('kanbanAddErrorName')
-            : result.error === 'customerRequired'
-              ? t('kanbanAddErrorCustomer')
-              : labels.saveFailed
-        )
+        setAddError(result.error === 'customerRequired' ? t('kanbanAddErrorCustomer') : labels.saveFailed)
         return
       }
       form.reset()
       setNewCustomer(null)
       setAddKey((k) => k + 1)
       router.refresh()
-      form.querySelector<HTMLInputElement>('input[name="name"]')?.focus()
+      form.querySelector<HTMLInputElement>('input[role="combobox"], input')?.focus()
     })
   }
 
@@ -850,7 +869,7 @@ export function ProjectsKanban({
     // A list of options or a menu drawn at the end of the document reaches
     // this handler through React, though it is not on the board at all.
     if (!e.currentTarget.contains(target)) return
-    if (target.closest('[data-board-card], [data-board-head], a, button, input, select, textarea')) return
+    if (target.closest('[data-board-card], [data-board-head], a, button, input, label, select, textarea')) return
     const box = scroller.current
     if (!box || box.scrollWidth <= box.clientWidth) return
     grab.current = { kind: 'pan', pointerId: e.pointerId, x: e.clientX, left: box.scrollLeft }
@@ -1064,7 +1083,7 @@ export function ProjectsKanban({
                 data-board-column={column.id}
                 onClick={() => toggleCollapsed(column.id)}
                 title={t('kanbanExpand')}
-                className={`flex max-h-full w-10 shrink-0 flex-col items-center gap-2 py-2 ${LIST} hover:bg-border`}
+                className={`flex max-h-full w-10 shrink-0 flex-col items-center gap-2 py-2 ${LIST} ${listGround(column.color)} hover:brightness-95 dark:hover:brightness-125`}
               >
                 <span className={HEAD_BUTTON} aria-hidden>
                   <ChevronsLeftRight className="h-3.5 w-3.5" />
@@ -1078,7 +1097,7 @@ export function ProjectsKanban({
             <div
               key={column.id}
               data-board-column={column.id}
-              className={`flex max-h-full w-[272px] shrink-0 flex-col overflow-hidden ${LIST} ${
+              className={`flex max-h-full w-[272px] shrink-0 flex-col overflow-hidden ${LIST} ${listGround(column.color)} ${
                 movingColumn === column.id ? 'opacity-40' : ''
               }`}
             >
@@ -1140,6 +1159,9 @@ export function ProjectsKanban({
                         {t('kanbanRenameList')}
                       </button>
                       <MenuSeparator />
+                      <MenuLabel>{t('columnColor')}</MenuLabel>
+                      <ColumnColorSwatches value={column.color} onPick={(color) => recolor(column.id, color)} inMenu />
+                      <MenuSeparator />
                       <MenuLabel>{t('kanbanSortBy')}</MenuLabel>
                       {COLUMN_SORTS.map((by) => (
                         <button key={by} type="button" role="menuitem" className={menuItemClass} onClick={() => runOnServer(() => sortColumn(column.status, by))}>
@@ -1166,10 +1188,10 @@ export function ProjectsKanban({
                       <button type="button" role="menuitem" className={`${menuItemClass} text-danger`} onClick={() => setRemoving({ status: column.id, label: column.label })}>
                         {t('kanbanRemoveList')}
                       </button>
-                      {settingsHref && (
-                        <Link href={settingsHref} role="menuitem" className={menuItemClass}>
+                      {manageBoards && (
+                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => openBoardSettings(boardId)}>
                           {t('boardsManage')}
-                        </Link>
+                        </button>
                       )}
                     </>
                   )}
@@ -1296,9 +1318,6 @@ export function ProjectsKanban({
                         <button type="button" role="menuitem" className={menuItemClass} onClick={() => router.push(popHref(card.id, 'dates'), { scroll: false })}>
                           {t('cardEditDates')}
                         </button>
-                        <button type="button" role="menuitem" className={menuItemClass} onClick={() => setRenaming({ id: card.id, value: card.name })}>
-                          {t('cardRename')}
-                        </button>
                         <button type="button" role="menuitem" className={menuItemClass} onClick={() => copy(card)}>
                           {t('cardCopy')}
                         </button>
@@ -1332,39 +1351,38 @@ export function ProjectsKanban({
                     <span className={`absolute left-0 top-0.5 flex h-4 w-4 transition-opacity duration-150 motion-reduce:transition-none ${card.done ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100'}`}>
                       <DoneTick projectId={card.id} done={card.done} />
                     </span>
-                    {renaming?.id === card.id ? (
-                      <input
-                        autoFocus
-                        value={renaming.value}
-                        maxLength={300}
-                        aria-label={t('cardRename')}
-                        onChange={(e) => setRenaming({ id: card.id, value: e.target.value })}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            const name = renaming.value.trim()
-                            if (name && name !== card.name) quick(card, { name })
-                            setRenaming(null)
-                          } else if (e.key === 'Escape') {
-                            setRenaming(null)
-                          }
-                        }}
-                        onBlur={() => setRenaming(null)}
-                        className="ml-5 block w-[calc(100%-1.25rem)] select-text rounded border border-accent bg-background px-1.5 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                      />
-                    ) : (
-                      <Link
-                        href={openHref(card.id)}
-                        scroll={false}
-                        prefetch={false}
-                        draggable={false}
-                        className={`block min-w-0 flex-1 break-words mr-5 pr-5 text-sm leading-snug text-foreground transition-transform duration-150 ease-out motion-reduce:transition-none hover:text-accent ${card.done ? 'translate-x-5' : 'group-hover:translate-x-5 group-focus-within:translate-x-5 [@media(hover:none)]:translate-x-5'}`}
-                      >
-                        {card.name}
-                      </Link>
-                    )}
+                    <Link
+                      href={openHref(card.id)}
+                      scroll={false}
+                      prefetch={false}
+                      draggable={false}
+                      className={`block min-w-0 flex-1 break-words mr-5 pr-5 text-sm leading-snug text-foreground transition-transform duration-150 ease-out motion-reduce:transition-none hover:text-accent ${card.done ? 'translate-x-5' : 'group-hover:translate-x-5 group-focus-within:translate-x-5 [@media(hover:none)]:translate-x-5'}`}
+                    >
+                      {card.name}
+                      {/* What the card was called before — its place, its detail — small, while it says more. */}
+                      {card.formerTitle && (
+                        <span title={t('formerTitle')} className="mt-0.5 block text-xs text-muted">
+                          <span className="sr-only">{t('formerTitle')}: </span>
+                          {card.formerTitle}
+                        </span>
+                      )}
+                    </Link>
                     </div>
-                    {card.jobNumber && renaming?.id !== card.id && <JobNumber value={card.jobNumber} className="mt-0.5" />}
+                    {card.jobNumber && <JobNumber value={card.jobNumber} className="mt-0.5" />}
+                    {/* What still hangs on the site, before everything else the card carries. */}
+                    {card.flags.length > 0 && (
+                      <ul className="mt-1.5 flex flex-wrap gap-1">
+                        {card.flags.map(({ flag, text }) => (
+                          <li
+                            key={flag}
+                            className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium leading-4 text-amber-700 dark:text-amber-400"
+                          >
+                            <TriangleAlert className="h-3 w-3 shrink-0" aria-hidden />
+                            {text}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     {/* What the card carries, as small marks in Trello's order:
                         news for the reader in red, the eye, the dates coloured
                         when they press, the description, what is said and
@@ -1495,23 +1513,12 @@ export function ProjectsKanban({
                 )}
               </div>
 
-              {/* The foot of a list: a card is added where it belongs — a name,
-                  a customer, Enter — and the box stays for the next one. */}
+              {/* The foot of a list: a card is added where it belongs — a
+                  customer, its trades (together its name), Enter — and the box
+                  stays for the next one. */}
               <div className="shrink-0 p-2 pt-1">
                 {adding === column.id ? (
                   <form onSubmit={(e) => submitAdd(e, column)} className="space-y-1.5">
-                    <input
-                      name="name"
-                      autoFocus
-                      required
-                      maxLength={300}
-                      placeholder={t('kanbanAddName')}
-                      aria-label={t('kanbanAddName')}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') closeAdd()
-                      }}
-                      className={`block w-full select-text px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent ${CARD}`}
-                    />
                     {newCustomer ? (
                       <p className="flex items-center justify-between gap-2 rounded-md bg-accent/10 px-2 py-1.5 text-xs text-accent">
                         <span className="truncate">{t('kanbanAddNewCustomer', { name: newCustomer })}</span>
@@ -1530,6 +1537,7 @@ export function ProjectsKanban({
                         createLabel={(name) => t('kanbanAddNewCustomer', { name })}
                       />
                     )}
+                    {trades.length > 0 && <TradePicker key={`trades-${addKey}`} trades={trades} legend={t('kanbanAddTrades')} />}
                     <div className="flex items-center gap-1.5">
                       <button type="submit" disabled={pending} className={btn.primarySm}>
                         {t('kanbanAddSubmit')}

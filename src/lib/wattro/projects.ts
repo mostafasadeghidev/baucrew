@@ -91,6 +91,25 @@ export function toWattroProject(p: PushableProject): WattroProjectBody {
   }
 }
 
+/**
+ * What a change made outside the app's own forms — the Trello sync writing a
+ * card's new list straight into the project — means for Wattro:
+ * - `status`: the status moved. A project Wattro has hears of it (a finished
+ *   job leaves the crews' list); one it lacks is made there when the new
+ *   status is one Wattro gets.
+ * - `updated`: same status, but something Wattro is told again changed on a
+ *   project it already has (number, address, contact, phone, put away).
+ * - `null`: nothing for Wattro. A project it lacks whose status stood still
+ *   stays out — the stock from before the push is a deliberate backfill.
+ */
+export function wattroChangeOf(before: PushableProject, after: PushableProject, linked: boolean): 'status' | 'updated' | null {
+  if (before.status !== after.status) return linked || shouldCreateInWattro(after) ? 'status' : null
+  if (!linked) return null
+  // The name is left out: Wattro keeps the one a project was made with (projectPatch).
+  const shown = (p: PushableProject) => JSON.stringify({ ...toWattroProject(p), name: '' })
+  return shown(before) === shown(after) ? null : 'updated'
+}
+
 /** What Wattro keeps of a project, as read back — the part we compare. */
 export type WattroProjectState = Partial<Omit<WattroProjectBody, 'human_id'>> & { human_id?: string | null }
 
@@ -99,10 +118,14 @@ export type WattroProjectState = Partial<Omit<WattroProjectBody, 'human_id'>> & 
  * nothing to send. A field Wattro filled in by hand and we leave empty is not
  * emptied: only a value of ours replaces it, except `finished`, which is
  * always ours to say.
+ *
+ * The name is never sent again: a project keeps in Wattro the name it was
+ * made or found there with. The crews pick their site by it, and the name
+ * here follows the customer and the trades (src/lib/project-title.ts) — a
+ * trade set later must not rename a site under their feet.
  */
-export function projectPatch(body: WattroProjectBody, current: WattroProjectState): Partial<WattroProjectBody> {
-  const patch: Partial<WattroProjectBody> = {}
-  if (body.name !== (current.name ?? '').trim()) patch.name = body.name
+export function projectPatch(body: WattroProjectBody, current: WattroProjectState): Partial<Omit<WattroProjectBody, 'name'>> {
+  const patch: Partial<Omit<WattroProjectBody, 'name'>> = {}
   // A project Wattro holds under another number is renamed (project-push.ts).
   if (current.human_id != null && body.human_id !== current.human_id) patch.human_id = body.human_id
   for (const key of ['contact', 'address', 'phone'] as const) {

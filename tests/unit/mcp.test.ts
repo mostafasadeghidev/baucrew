@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { handleMcpBody, handleMcpMessage, McpToolError, type McpTool } from '@/lib/mcp'
+import { handleMcpBody, handleMcpMessage, McpContent, McpToolError, type McpTool } from '@/lib/mcp'
 
 type Ctx = { user: string }
 
@@ -17,6 +17,12 @@ const tools: McpTool<Ctx>[] = [
     run: async () => {
       throw new McpToolError('No such project')
     },
+  },
+  {
+    name: 'picture',
+    description: 'Answers with an image',
+    inputSchema: { type: 'object', properties: {} },
+    run: async () => new McpContent([{ type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' }]),
   },
   {
     name: 'crash',
@@ -45,12 +51,17 @@ describe('the MCP wire', () => {
 
   it('lists the tools with their schemas', async () => {
     const r = await call({ jsonrpc: '2.0', id: 3, method: 'tools/list' })
-    expect((r?.result as { tools: Array<{ name: string }> }).tools.map((t) => t.name)).toEqual(['greet', 'fail', 'crash'])
+    expect((r?.result as { tools: Array<{ name: string }> }).tools.map((t) => t.name)).toEqual(['greet', 'fail', 'picture', 'crash'])
   })
 
   it('runs a tool and hands back its result as text', async () => {
     const r = await call({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'greet', arguments: { name: 'Anna' } } })
     expect(r?.result).toEqual({ content: [{ type: 'text', text: JSON.stringify({ hello: 'Anna', from: 'office' }, null, 2) }], isError: false })
+  })
+
+  it('hands a picture on as an image, not as JSON text', async () => {
+    const r = await call({ jsonrpc: '2.0', id: 40, method: 'tools/call', params: { name: 'picture', arguments: {} } })
+    expect(r?.result).toEqual({ content: [{ type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' }], isError: false })
   })
 
   it("reports a tool's own failure as a result the assistant can read", async () => {

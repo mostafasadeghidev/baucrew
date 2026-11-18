@@ -3,7 +3,9 @@ import { LayoutGrid } from 'lucide-react'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { detectAbsenceConflicts, detectConflicts } from '@/lib/schedule-conflicts'
-import { getRainWarnings, isOutdoorJob, weatherPlace } from '@/lib/weather'
+import { getProjectsRain, getRainThreshold } from '@/lib/weather'
+import { upcomingOutdoorProjects } from '@/lib/rain-db'
+import { RainAmount } from '@/components/project-rain'
 import { addDays, iso, isoWeek, mondayOf, todayUtc } from '@/lib/dates'
 import { btn } from '@/components/ui/button'
 import { pageTitle, pageToolbar, StickyHead } from '@/components/ui/page-panel'
@@ -18,6 +20,7 @@ import { WidgetFrame } from './widget-frame'
 import { WidgetGrid } from './widget-grid'
 import { resetDashboardLayout } from './actions'
 import { PlanEntryButton } from '../projects/[id]/plan-entry-button'
+import { SearchButton } from '@/components/search-palette'
 
 export default async function DashboardPage({
   searchParams,
@@ -80,10 +83,6 @@ export default async function DashboardPage({
           select: {
             id: true,
             name: true,
-            city: true,
-            latitude: true,
-            longitude: true,
-            workCategories: { select: { workCategory: { select: { nameDe: true, outdoor: true } } } },
           },
         },
         vehicles: { include: { vehicle: { select: { id: true, name: true, status: true } } } },
@@ -120,25 +119,25 @@ export default async function DashboardPage({
     todayEntries.flatMap((e) => e.vehicles.map((ev) => ev.vehicleId))
   ).size
 
-  // ── This week's conflicts + weather ─────────────────────────
+  // ── This week's conflicts ───────────────────────────────────
   const conflicts = [
     ...detectConflicts(weekEntries),
     ...detectAbsenceConflicts(weekEntries, weekAbsences),
   ]
-  const outdoorPairs = weekEntries
-    .filter(
-      (e) =>
-        e.project.city &&
-        isOutdoorJob(e.project)
-    )
-    .map((e) => ({
-      city: e.project.city!,
-      date: iso(e.date),
-      name: e.project.name,
-      latitude: e.project.latitude,
-      longitude: e.project.longitude,
-    }))
-  const rain = await getRainWarnings(outdoorPairs)
+  // ── Rain on outdoor work, two weeks ahead ───────────────────
+  // One forecast per place, however many jobs and days stand there.
+  const rainProjects = needs('weather') ? await upcomingOutdoorProjects(scope) : []
+  const [projectRain, rainThreshold] = needs('weather')
+    ? await Promise.all([getProjectsRain(rainProjects), getRainThreshold()])
+    : [new Map<string, never>(), 0]
+  const rainRows = rainProjects
+    .flatMap((p) => {
+      const r = projectRain.get(p.id)
+      return r?.ok ? r.days.map((d) => ({ ...d, project: p })) : []
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || b.probability - a.probability)
+  const rainFirm = rainRows.filter((r) => r.confidence === 'firm')
+  const rainTrend = rainRows.filter((r) => r.confidence === 'trend')
   const dateFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', {
     weekday: 'short',
     day: '2-digit',
@@ -367,28 +366,49 @@ export default async function DashboardPage({
 
     weather: (
 <section
-          className={`rounded-lg border p-4 ${
-            rain.length > 0 ? 'border-sky-500/40 bg-sky-500/10' : 'border-border bg-surface'
+          className={`@container min-w-0 rounded-lg border p-4 ${
+            rainFirm.length > 0 ? 'border-sky-500/40 bg-sky-500/10' : 'border-border bg-surface'
           }`}
         >
-          <h2 className="text-sm font-semibold">🌧 {t('weatherThisWeek')}</h2>
-          {rain.length === 0 ? (
+          <h2 className="text-sm font-semibold">🌧 {t('weatherTwoWeeks')}</h2>
+          {rainRows.length === 0 ? (
             <p className="mt-2 text-sm text-muted">{t('noWeatherWarnings')}</p>
           ) : (
-            <ul className="mt-2 space-y-1 text-sm">
-              {rain.map((w) => {
-                const names = outdoorPairs
-                  .filter((p) => weatherPlace(p) === w.place && p.date === w.date)
-                  .map((p) => p.name)
-                return (
-                  <li key={`${w.place}-${w.date}`}>
-                    <span className="font-medium">{[...new Set(names)].join(', ')}</span> ·{' '}
-                    {dateFmt.format(new Date(`${w.date}T00:00:00Z`))} · {w.city} · {w.probability}%
-                  </li>
-                )
-              })}
-            </ul>
+            <div className="mt-2 space-y-3">
+              {[
+                { rows: rainFirm, title: t('weatherFirm'), trend: false },
+                { rows: rainTrend, title: t('weatherTrend'), trend: true },
+              ]
+                .filter((g) => g.rows.length > 0)
+                .map((g) => (
+                  <div key={g.title}>
+                    <p className={`text-xs font-medium ${g.trend ? 'text-muted' : ''}`}>{g.title}</p>
+                    <ul className={`mt-1 space-y-0.5 text-sm ${g.trend ? 'text-muted' : ''}`}>
+                      {g.rows.slice(0, 8).map((r, i) => (
+                        <li key={`${r.project.id}-${r.date}`} className="flex items-baseline gap-2">
+                          <span className="w-20 shrink-0 tabular-nums">
+                            {i === 0 || g.rows[i - 1].date !== r.date ? dateFmt.format(new Date(`${r.date}T00:00:00Z`)) : ''}
+                          </span>
+                          <Link
+                            href={`/projects/${r.project.id}`}
+                            title={[r.project.name, r.project.city].filter(Boolean).join(' · ')}
+                            className="min-w-0 truncate font-medium text-accent hover:underline"
+                          >
+                            {r.project.name}
+                          </Link>
+                          {r.project.city && <span className="hidden shrink-0 text-muted @md:inline">{r.project.city}</span>}
+                          <span className="ml-auto shrink-0 tabular-nums">
+                            {r.probability} %<RainAmount amount={r.amount} locale={locale} />
+                          </span>
+                        </li>
+                      ))}
+                      {g.rows.length > 8 && <li className="text-xs text-muted">+{g.rows.length - 8}</li>}
+                    </ul>
+                  </div>
+                ))}
+            </div>
           )}
+          <p className="mt-3 text-xs text-muted">{t('weatherSource', { threshold: rainThreshold })}</p>
         </section>
     ),
 
@@ -772,7 +792,7 @@ export default async function DashboardPage({
   const widgetTitles: Record<DashboardWidget, string> = {
     stats: t('widgetStats'),
     conflicts: t('conflictsThisWeek'),
-    weather: t('weatherThisWeek'),
+    weather: t('weatherTwoWeeks'),
     packing: t('packingToday'),
     attention: t('needsAttention'),
     today: t('todaysSchedule'),
@@ -802,6 +822,8 @@ export default async function DashboardPage({
               }).format(new Date())}{' '}
               · {tSchedule('weekLabel', { week: isoWeek(today) })}
             </p>
+            {/* The search window, for the project somebody came to the overview to find. */}
+            <SearchButton variant="field" className="h-8 w-56 self-center max-md:hidden" />
             {editing ? (
               <span className="flex items-center gap-2">
                 <form action={resetDashboardLayout}>

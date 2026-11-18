@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardHref, cardPath, cardReturnTo, isCardPath } from '@/lib/card-url'
+import { boardBaseOf, cardHref, cardIdOf, cardPath, cardReturnTo, isCardPath } from '@/lib/card-url'
 
 describe('cardPath', () => {
   it('names the card route', () => {
@@ -47,5 +47,29 @@ describe('cardReturnTo', () => {
   it('keeps list context: page, status and filters', () => {
     const ctx = new URLSearchParams('view=list&status=APPROVED&page=2&member=me&urgent=1')
     expect(cardReturnTo(ctx, 'p1')).toBe('/projects?view=list&status=APPROVED&page=2&member=me&urgent=1&card=p1')
+  })
+})
+
+describe('a card over Baustellen', () => {
+  it('lives at /sites/card/<id> and returns to /sites', () => {
+    expect(cardPath('p1', '/sites')).toBe('/sites/card/p1')
+    expect(isCardPath('/sites/card/p1')).toBe(true)
+    expect(isCardPath('/sites')).toBe(false)
+    expect(cardHref(new URLSearchParams('q=maler&card=p0'), 'p1', undefined, '/sites')).toBe('/sites/card/p1?q=maler')
+    expect(cardReturnTo(new URLSearchParams('view=list'), 'p1', '/sites')).toBe('/sites?view=list&card=p1')
+  })
+
+  it('tells the page by its address', () => {
+    expect(boardBaseOf('/sites')).toBe('/sites')
+    expect(boardBaseOf('/sites/card/p1')).toBe('/sites')
+    expect(boardBaseOf('/sitesx')).toBe('/projects')
+    expect(boardBaseOf('/projects/card/p1')).toBe('/projects')
+    expect(boardBaseOf('/dashboard')).toBe('/projects')
+  })
+
+  it('reads the card’s id off either page’s card address', () => {
+    expect(cardIdOf('/projects/card/p1?board=b1')).toBe('p1')
+    expect(cardIdOf('/sites/card/p2')).toBe('p2')
+    expect(cardIdOf('/projects/p1')).toBeNull()
   })
 })

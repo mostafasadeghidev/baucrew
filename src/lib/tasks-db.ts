@@ -19,6 +19,8 @@ export const taskListSelect = {
   assignee: { select: { firstName: true, lastName: true } },
   createdBy: { select: person },
   doneBy: { select: person },
+  // Pictures only: a task's photos are what the route lets through for it.
+  photos: { select: { id: true, filename: true, uploadedById: true }, orderBy: { createdAt: 'asc' as const } },
 } as const
 
 export async function createTask(input: { projectId: string; userId: string; task: TaskInput }): Promise<{ id: string } | { error: 'notFound' }> {

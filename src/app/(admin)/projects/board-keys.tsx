@@ -8,7 +8,6 @@
  *   ← ↑ → ↓ / j k   walk between the cards and the lists
  *   Enter            open the card
  *   e                the card's quick menu (the pencil)
- *   t                rename it where it stands
  *   l  m  d          its labels, members, dates — the card opens with the window
  *   Space            put yourself on the card, or take yourself off
  *   s                follow it or stop ("Beobachten")
@@ -33,7 +32,6 @@ export type BoardKeyActions = {
   open: (id: string) => void
   pop: (id: string, which: 'labels' | 'members' | 'dates') => void
   quickEdit: (id: string) => void
-  rename: (id: string) => void
   archive: (id: string) => void
   watch: (id: string, on: boolean) => void
   /** Null when the reader has no person behind the account to put on a card. */
@@ -135,12 +133,6 @@ export function useBoardKeys({
             actions.quickEdit(card)
           }
           return
-        case 't':
-          if (card) {
-            e.preventDefault()
-            actions.rename(card)
-          }
-          return
         case 'l':
         case 'm':
         case 'd':
@@ -219,7 +211,6 @@ const KEYS: Array<[string, string]> = [
   ['← ↑ → ↓', 'keysWalk'],
   ['Enter', 'keysOpen'],
   ['e', 'keysQuick'],
-  ['t', 'keysRename'],
   ['l', 'keysLabels'],
   ['m', 'keysMembers'],
   ['d', 'keysDates'],

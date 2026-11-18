@@ -13,7 +13,7 @@ import { announceProjectChanges, projectBefore } from '@/lib/project-events'
 import { expandDateRange } from '@/lib/schedule-range'
 import { assignmentBlock } from '@/lib/schedule-block'
 import { entrySchema, entryErrorKey, type EntryInput, type EntryResult } from '@/lib/schedule-entry'
-import { createEntries } from '@/lib/schedule-service'
+import { createEntries, moveEntry } from '@/lib/schedule-service'
 import { canSeeProject } from '@/lib/project-scope'
 
 /** The statuses "reopen" takes back: the work was done. */
@@ -339,32 +339,10 @@ export async function updateScheduleEntry(id: string, input: EntryInput): Promis
 
 export async function moveScheduleEntry(id: string, newDate: string): Promise<EntryResult> {
   const user = await requireStaff()
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return { error: 'saveFailed' }
-  const before = await db.scheduleEntry.findUnique({
-    where: { id },
-    include: { project: { select: { number: true } } },
-  })
-  if (!before) return { error: 'saveFailed' }
-  const oldDate = before.date.toISOString().slice(0, 10)
-  if (oldDate === newDate) return {}
-  try {
-    await db.scheduleEntry.update({
-      where: { id },
-      data: { date: new Date(`${newDate}T00:00:00.000Z`) },
-    })
-    await audit({
-      userId: user.id,
-      action: 'schedule.move',
-      entity: 'ScheduleEntry',
-      entityId: id,
-      field: before.project.number,
-      oldValue: oldDate,
-      newValue: newDate,
-    })
-  } catch (e) {
-    return { error: isUniqueConflict(e) ? 'duplicateEntry' : 'saveFailed' }
-  }
-  revalidateBoard(before.projectId)
+  const result = await moveEntry(user.id, id, newDate)
+  if (result.error) return result
+  const entry = await db.scheduleEntry.findUnique({ where: { id }, select: { projectId: true } })
+  revalidateBoard(entry?.projectId)
   return {}
 }
 

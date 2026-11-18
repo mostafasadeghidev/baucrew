@@ -24,6 +24,12 @@ import { taskListSelect } from '@/lib/tasks-db'
 import { ProjectForms } from '@/components/project-forms'
 import { formStatus, parseSigners } from '@/lib/forms'
 import { SitePhotos } from '@/components/site-photos'
+import { ProjectDocumentation } from '@/components/project-documentation'
+import { FolderBar } from '@/components/project-folders'
+import { foldersFor } from '@/lib/folders-db'
+import { docEntriesFor } from '@/lib/documentation-db'
+import { transcriptionConfigured } from '@/lib/transcription'
+import { canWorkOn } from '@/lib/crew-access'
 import { defectRows } from '@/lib/defects'
 import { defectListSelect } from '@/lib/defects-db'
 import { previewKind } from '@/lib/files'
@@ -40,7 +46,7 @@ export default async function MyAreaPage({
 }) {
   const user = await requireUser()
   const { date } = await searchParams
-  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, tDefects, tForms, tTasks, tAbsences, locale] = await Promise.all([
+  const [t, tSheet, tChecklists, tFiles, tTime, tToday, tProjects, tDefects, tForms, tTasks, tAbsences, tDoc, locale] = await Promise.all([
     getTranslations('my'),
     getTranslations('sheet'),
     getTranslations('checklists'),
@@ -52,6 +58,7 @@ export default async function MyAreaPage({
     getTranslations('forms'),
     getTranslations('tasks'),
     getTranslations('absences'),
+    getTranslations('documentation'),
     getLocale(),
   ])
 
@@ -79,15 +86,18 @@ export default async function MyAreaPage({
                   orderBy: { catalogItem: { name: 'asc' } },
                 },
                 documents: {
-                  where: { visibleToCrew: true },
-                  select: { id: true, filename: true, mimeType: true, defectId: true },
+                  // Never a quote, whatever was ticked: the crew's page shows no money.
+                  where: { visibleToCrew: true, NOT: { quote: { is: { kind: 'QUOTE' } } } },
+                  select: { id: true, filename: true, mimeType: true, defectId: true, folderId: true },
                   orderBy: { createdAt: 'asc' },
                 },
                 // What is not right on the site — the crew reports it and ticks it off.
                 defects: { select: defectListSelect },
                 tasks: { select: taskListSelect },
                 // Protocols to fill in and have signed on the site.
+                // Never one with prices in it: the crew's page shows no money.
                 forms: {
+                  where: { financial: false },
                   orderBy: { createdAt: 'desc' },
                   select: { id: true, title: true, signers: true, createdAt: true, signatures: { select: { slot: true } } },
                 },
@@ -179,7 +189,7 @@ export default async function MyAreaPage({
   }
 
   const formTemplates = employeeId
-    ? await db.formTemplate.findMany({ where: { active: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } })
+    ? await db.formTemplate.findMany({ where: { active: true, financial: false }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true, name: true } })
     : []
   const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
@@ -207,6 +217,22 @@ export default async function MyAreaPage({
 
   const todayMinutes = sumMinutes(todayTime, new Date())
 
+  // The documentation of each job of the day — read and added to on the
+  // site, for as long as the phone offers the job (the same rule as photos).
+  const transcriptionReady = transcriptionConfigured()
+  const docs = new Map(
+    await Promise.all(
+      [...new Set(entries.map((e) => e.project.id))].map(
+        async (projectId) =>
+          [
+            projectId,
+            (await canWorkOn(user, projectId))
+              ? { entries: await docEntriesFor(projectId, user), folders: await foldersFor(projectId, user) }
+              : null,
+          ] as const
+      )
+    )
+  )
   const tel = (v: string) => `tel:${v.replace(/[^\d+]/g, '')}`
 
   return (
@@ -263,6 +289,8 @@ export default async function MyAreaPage({
 
       {entries.map((entry) => {
         const p = entry.project
+        const documentation = docs.get(p.id)
+        const sitePhotos = p.documents.filter((doc) => previewKind(doc.mimeType) === 'image' && doc.defectId === null)
         const address = [p.street, [p.postalCode, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
         const phone = p.phone ?? p.customer.phone
         const contact = p.contact ?? p.customer.contactPerson
@@ -444,6 +472,21 @@ export default async function MyAreaPage({
               )}
             </div>
 
+            {/* The project's folders: the photos and the documentation below show
+                what lies in the open one, and new ones go into it. */}
+            {documentation && (
+              <div className="border-t border-border px-4 py-3">
+                <FolderBar
+                  projectId={p.id}
+                  folders={documentation.folders}
+                  itemFolderIds={[...sitePhotos.map((doc) => doc.folderId), ...documentation.entries.map((e) => e.folderId)]}
+                  canAdd
+                  large
+                  frame={false}
+                />
+              </div>
+            )}
+
             {/* Photos of the site — taken here, seen by the office at once. A
                 defect's photos stand with the defect below. */}
             <div className="border-t border-border px-4 py-3">
@@ -451,13 +494,30 @@ export default async function MyAreaPage({
               <div className="mt-2">
                 <SitePhotos
                   projectId={p.id}
-                  photos={p.documents
-                    .filter((doc) => previewKind(doc.mimeType) === 'image' && doc.defectId === null)
-                    .map((doc) => ({ id: doc.id, filename: doc.filename }))}
+                  photos={sitePhotos.map((doc) => ({ id: doc.id, filename: doc.filename, folderId: doc.folderId }))}
+                  folders={documentation?.folders}
                   large
                 />
               </div>
             </div>
+
+            {/* Documentation: photos, PDFs, notes and voice notes from the site */}
+            {documentation && (
+              <div className="border-t border-border px-4 py-3">
+                <p className="text-xs text-muted">{tDoc('title')}</p>
+                <div className="mt-2">
+                  <ProjectDocumentation
+                    projectId={p.id}
+                    entries={documentation.entries}
+                    folders={documentation.folders}
+                    canAdd
+                    transcriptionReady={transcriptionReady}
+                    large
+                    frame={false}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Tasks on the job: tick them off, add what the customer asked for */}
             <div className="border-t border-border px-4 py-3">

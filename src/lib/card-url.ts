@@ -1,7 +1,8 @@
 /**
  * The addresses a card opened over the board lives at.
  *
- * The card is a route of its own, `/projects/card/<id>`, so opening it needs
+ * The card is a route of its own, `/projects/card/<id>` — or `/sites/card/<id>`
+ * over the Baustellen board, the same board in its second place — so opening it needs
  * no re-render of the board underneath (the sheet streams in over the board,
  * the way a Trello card opens). The board's own context — which board, the
  * search, the year, the filters, the view — rides along as search params, so
@@ -12,14 +13,27 @@
 /** The params that belong to a sheet, not to the board underneath it. */
 const SHEET_PARAMS = ['card', 'template']
 
-/** The route of a card opened over the board. */
-export function cardPath(id: string): string {
-  return `/projects/card/${id}`
+/** Where a board is drawn: the projects page, or Baustellen with its one board. */
+export type BoardBase = '/projects' | '/sites'
+
+/** Which of the two pages this address stands on — Baustellen, else the projects page. */
+export function boardBaseOf(pathname: string): BoardBase {
+  return pathname === '/sites' || pathname.startsWith('/sites/') ? '/sites' : '/projects'
 }
 
-/** Whether this address is a card opened over the board (not the project's full page). */
+/** The route of a card opened over the board. */
+export function cardPath(id: string, base: BoardBase = '/projects'): string {
+  return `${base}/card/${id}`
+}
+
+/** Whether this address is a card opened over a board (not the project's full page). */
 export function isCardPath(pathname: string): boolean {
-  return /^\/projects\/card\/[^/]+/.test(pathname)
+  return /^\/(projects|sites)\/card\/[^/]+/.test(pathname)
+}
+
+/** The card's id in a card route's address, or null. */
+export function cardIdOf(href: string): string | null {
+  return href.match(/^\/(?:projects|sites)\/card\/([^/?]+)/)?.[1] ?? null
 }
 
 /**
@@ -27,12 +41,12 @@ export function isCardPath(pathname: string): boolean {
  * the sheet's own params left out. `pop` rides along so a quick editor can
  * open the card with one of its small windows already open.
  */
-export function cardHref(context: URLSearchParams, id: string, pop?: string): string {
+export function cardHref(context: URLSearchParams, id: string, pop?: string, base: BoardBase = '/projects'): string {
   const params = new URLSearchParams(context)
   for (const key of SHEET_PARAMS) params.delete(key)
   if (pop) params.set('pop', pop)
   const qs = params.toString()
-  return `${cardPath(id)}${qs ? `?${qs}` : ''}`
+  return `${cardPath(id, base)}${qs ? `?${qs}` : ''}`
 }
 
 /**
@@ -42,10 +56,10 @@ export function cardHref(context: URLSearchParams, id: string, pop?: string): st
  * own `pop` is answered once by the window it opens; a round through the
  * server must not open it twice.
  */
-export function cardReturnTo(context: URLSearchParams, id: string): string {
+export function cardReturnTo(context: URLSearchParams, id: string, base: BoardBase = '/projects'): string {
   const params = new URLSearchParams(context)
   for (const key of SHEET_PARAMS) params.delete(key)
   params.delete('pop')
   params.set('card', id)
-  return `/projects?${params.toString()}`
+  return `${base}?${params.toString()}`
 }

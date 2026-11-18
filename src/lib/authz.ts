@@ -46,6 +46,6 @@ export function isOffice(user: { role: string }): boolean {
 }
 
 /** Financial data (prices, revenue) is visible to admins and explicitly-granted managers. */
-export function canViewFinancials(user: CurrentUser): boolean {
+export function canViewFinancials(user: { role: string; canViewFinancials: boolean }): boolean {
   return user.role === 'ADMIN' || (user.role === 'MANAGER' && user.canViewFinancials)
 }

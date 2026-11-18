@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { requireAdmin } from '@/lib/authz'
 import { audit } from '@/lib/audit'
-import { newApiKey } from '@/lib/api-keys'
+import { isApiKeyScope, newApiKey } from '@/lib/api-keys'
 
 export type KeyFormState = {
   error?: 'nameRequired' | 'userInvalid' | 'saveFailed'
@@ -16,24 +16,27 @@ export type KeyFormState = {
 /**
  * Makes a key for a program to act as one office user. The key is shown
  * once; the database keeps its hash. Crew accounts get no key — the API is
- * the office's door, not the crew's.
+ * the office's door, not the crew's. A key may be limited to the feedback
+ * tools (`scope`), the one a coding agent gets.
  */
 export async function createApiKey(_prev: KeyFormState, formData: FormData): Promise<KeyFormState> {
   const admin = await requireAdmin()
   const name = String(formData.get('name') ?? '').trim().slice(0, 120)
   const userId = String(formData.get('userId') ?? '')
+  const scopeValue = String(formData.get('scope') ?? '')
+  const scope = isApiKeyScope(scopeValue) ? scopeValue : null
   if (!name) return { error: 'nameRequired' }
   const user = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, active: true, username: true } })
   if (!user || !user.active || user.role === 'EMPLOYEE') return { error: 'userInvalid' }
   const key = newApiKey()
   try {
-    const row = await db.apiKey.create({ data: { name, prefix: key.prefix, tokenHash: key.hash, userId: user.id } })
+    const row = await db.apiKey.create({ data: { name, prefix: key.prefix, tokenHash: key.hash, scope, userId: user.id } })
     await audit({
       userId: admin.id,
       action: 'apiKey.create',
       entity: 'ApiKey',
       entityId: row.id,
-      newValue: `${name} (${user.username})`,
+      newValue: `${name} (${user.username}${scope ? `, ${scope}` : ''})`,
     })
   } catch {
     return { error: 'saveFailed' }

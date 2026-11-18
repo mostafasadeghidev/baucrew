@@ -55,13 +55,16 @@ describe('projectsViewHref', () => {
 
   it('leads to the bare page when there is nothing to keep', () => {
     expect(projectsViewHref('board', {})).toBe('/projects')
+    // Baustellen's switch stays on Baustellen.
+    expect(projectsViewHref('list', { q: 'Muster' }, '/sites')).toBe('/sites?view=list&q=Muster')
+    expect(projectsViewHref('board', {}, '/sites')).toBe('/sites')
     expect(projectsViewHref('list', { q: '', year: '' })).toBe('/projects?view=list')
   })
 })
 
 describe('boardViewHref', () => {
   it('preserves the view and shared filters but closes the previous board context', () => {
-    const query = 'view=list&board=old&q=Muster&done=0&activity=stale&year=2026&page=3&status=LEAD&card=old-card&template=old-template&archived=1&aq=old&feed=100&pop=labels'
+    const query = 'view=list&board=old&q=Muster&done=0&activity=stale&year=2026&page=3&status=LEAD&card=old-card&template=old-template&archived=1&aq=old&feed=100&pop=labels&boardSettings=old'
     const params = new URL(boardViewHref(query, 'new'), 'http://localhost').searchParams
     expect(Object.fromEntries(params)).toEqual({ view: 'list', board: 'new', q: 'Muster', done: '0', activity: 'stale', year: '2026' })
   })

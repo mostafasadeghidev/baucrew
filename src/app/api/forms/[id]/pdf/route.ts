@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getLocale } from 'next-intl/server'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { canViewFinancials } from '@/lib/authz'
 import { canWorkOn } from '@/lib/crew-access'
 import { filledFormPdf } from '@/lib/forms-db'
 
@@ -14,9 +15,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const { id } = await ctx.params
-  const form = await db.filledForm.findUnique({ where: { id }, select: { projectId: true } })
+  const form = await db.filledForm.findUnique({ where: { id }, select: { projectId: true, financial: true } })
   if (!form) return NextResponse.json({ error: 'notFound' }, { status: 404 })
   if (!(await canWorkOn(user, form.projectId))) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  if (form.financial && !canViewFinancials(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   const sheet = await filledFormPdf(id, await getLocale())
   if (!sheet) return NextResponse.json({ error: 'notFound' }, { status: 404 })
 

@@ -201,8 +201,10 @@ export function dueFilterRange(due: DueFilter, today: Date): { from: Date | null
  * cards show them: who, where, how much, what, when the customer would like
  * it, the site visit, when the card came in, the customer's number. The office
  * reads a board by these lines, so their order is fixed rather than chosen.
+ * The free type of work (`workNote`) is a field of its own on the card's back;
+ * the front shows it in the type of work's line, after the trades.
  */
-export const CARD_FIELDS = ['customer', 'address', 'value', 'workType', 'wish', 'inspection', 'created', 'customerNumber'] as const
+export const CARD_FIELDS = ['customer', 'address', 'value', 'workType', 'workNote', 'wish', 'inspection', 'created', 'customerNumber'] as const
 export type CardFieldKey = (typeof CARD_FIELDS)[number]
 
 /** The three lines Trello draws on a coloured ground; the rest are plain text. */

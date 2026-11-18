@@ -1,6 +1,7 @@
 'use client'
 
-import { ChevronDown, LogOut } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronDown, ListTodo, LogOut } from 'lucide-react'
 import { logout } from '@/app/actions'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -15,11 +16,14 @@ export function MyUserMenu({
   languageLabel,
   themeLabel,
   logoutLabel,
+  feedbackLabel,
 }: {
   name: string
   languageLabel: string
   themeLabel: string
   logoutLabel: string
+  /** The feedback tasks: what the crew commented, and how it stands. */
+  feedbackLabel: string
 }) {
   return (
     <Menu
@@ -48,6 +52,11 @@ export function MyUserMenu({
       <MenuRow label={themeLabel}>
         <ThemeToggle withLabel />
       </MenuRow>
+      <MenuSeparator />
+      <Link href="/my/feedback" role="menuitem" className={menuItemClass}>
+        <ListTodo className="h-4 w-4" aria-hidden />
+        {feedbackLabel}
+      </Link>
       <MenuSeparator />
       <form action={logout}>
         <button type="submit" role="menuitem" className={`${menuItemClass} text-danger hover:bg-danger/10`}>

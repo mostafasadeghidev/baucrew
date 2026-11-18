@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { ArrowLeft } from 'lucide-react'
-import { isOffice, requireUser } from '@/lib/authz'
+import { canViewFinancials, isOffice, requireUser } from '@/lib/authz'
 import { getBranding } from '@/lib/branding'
 import { canWorkOn } from '@/lib/crew-access'
 import { loadFilledForm } from '@/lib/forms-db'
@@ -17,7 +17,7 @@ import { DeleteFormButton } from './delete-form-button'
  * around it that a customer holding the device could wander into.
  *
  * The office sees every form; the crew those of the projects it works on. A
- * form carries no prices.
+ * form whose template holds prices only those who may see money.
  */
 export default async function FormPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser()
@@ -28,6 +28,8 @@ export default async function FormPage({ params }: { params: Promise<{ id: strin
   const office = isOffice(user)
   const staff = user.role !== 'EMPLOYEE'
   if (!(await canWorkOn(user, form.projectId))) redirect(staff ? '/projects' : '/my')
+  // A form with prices in it — a contract — only for those who may see money.
+  if (form.financial && !canViewFinancials(user)) redirect(staff ? `/projects/${form.projectId}` : '/my')
 
   const stamp = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'de-DE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Berlin' })
   const back = staff ? `/projects/${form.projectId}` : '/my'

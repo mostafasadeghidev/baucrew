@@ -58,12 +58,22 @@ export async function uploadProjectPhoto(
   file: File,
   defectId?: string,
   /** A photo on a form: whoever fills in or signs the form on the site sees it, whoever took it. */
-  forForm = false
+  forForm = false,
+  /** The project folder open while the photo was taken. */
+  folderId?: string | null
 ): Promise<{ id: string } | { error: PhotoUploadError }> {
+  return sendPhoto(projectId, file, { defectId, forForm: forForm ? '1' : undefined, folderId: folderId ?? undefined })
+}
+
+/** One photo of a task — done, or a problem with it. It lands in the project's "Aufgaben" folder. */
+export async function uploadTaskPhoto(projectId: string, taskId: string, file: File): Promise<{ id: string } | { error: PhotoUploadError }> {
+  return sendPhoto(projectId, file, { taskId })
+}
+
+async function sendPhoto(projectId: string, file: File, fields: Record<string, string | undefined>): Promise<{ id: string } | { error: PhotoUploadError }> {
   const data = new FormData()
   data.set('file', await downscaleImage(file))
-  if (defectId) data.set('defectId', defectId)
-  if (forForm) data.set('forForm', '1')
+  for (const [key, value] of Object.entries(fields)) if (value) data.set(key, value)
   try {
     const response = await fetch(`/api/projects/${projectId}/files`, { method: 'POST', body: data })
     const body = (await response.json().catch(() => null)) as { id?: string; error?: string } | null

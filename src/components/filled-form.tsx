@@ -14,6 +14,11 @@
  * one goes onto the project as a file the moment it is chosen (drawn smaller
  * first), and the form keeps the file's id. Taking a photo off the form leaves
  * the file on the project.
+ *
+ * The sheet reads the way the paper does: fixed texts between the fields, a
+ * unit or the rest of a sentence after a value, two half fields side by side,
+ * and a signature box where the paper has it — whoever the form places nowhere
+ * signs at the end.
  */
 
 import { useRef, useState, useTransition } from 'react'
@@ -25,7 +30,17 @@ import { btn } from '@/components/ui/button'
 import { SignaturePad } from '@/components/signature-pad'
 import { saveForm, signForm, unsignForm } from '@/app/form-actions'
 import { uploadProjectPhoto } from '@/lib/photo-upload'
-import { FIELD_LONGTEXT_MAX, FIELD_TEXT_MAX, MAX_PHOTOS, MAX_ROWS, type FormField, type FormStatus, type FormValue, type FormValues } from '@/lib/forms'
+import {
+  FIELD_LONGTEXT_MAX,
+  FIELD_TEXT_MAX,
+  MAX_PHOTOS,
+  MAX_ROWS,
+  signaturePlaces,
+  type FormField,
+  type FormStatus,
+  type FormValue,
+  type FormValues,
+} from '@/lib/forms'
 
 export type FormSignatureView = {
   slot: number
@@ -176,24 +191,93 @@ export function FilledFormEditor({
     if (el) el.value = ''
   }
 
+  const places = signaturePlaces(fields, signers)
+
+  /** One signer's box: the drawing and who signed, or the button to sign. */
+  const signatureBox = (slot: number) => {
+    const role = signers[slot]
+    const signature = signatures.find((s) => s.slot === slot)
+    return (
+      <div key={slot} className="rounded-lg border border-border p-3">
+        <p className="text-sm font-semibold">{role}</p>
+        {signature ? (
+          <>
+            <div className="mt-2 flex h-24 items-end justify-center rounded-md bg-white p-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`data:image/png;base64,${signature.image}`} alt={t('signatureOf', { name: signature.name })} className="max-h-full max-w-full object-contain" />
+            </div>
+            <p className="mt-2 text-sm">{signature.name}</p>
+            <p className="text-xs text-muted">{t('signedAt', { when: signature.when })}</p>
+            {office && (
+              <button type="button" onClick={() => setRemoving(signature)} disabled={pending} className="mt-2 text-xs text-muted hover:text-danger hover:underline">
+                {t('signatureRemove')}
+              </button>
+            )}
+          </>
+        ) : (
+          <button type="button" onClick={() => openPad(slot)} disabled={pending || uploading !== null} className={`${btn.primary} mt-3 w-full gap-2`}>
+            <PenLine className="h-4 w-4" aria-hidden />
+            {t('sign')}
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  /** A fixed text: its paragraphs as written, a line starting "• " or "- " as a point of a list. */
+  const fixedText = (body: string) =>
+    body.split('\n').map((line, i) => {
+      const point = /^\s*[•\-–]\s+/.exec(line)
+      if (point)
+        return (
+          <p key={i} className="flex gap-2 pl-1">
+            <span aria-hidden>•</span>
+            <span>{line.slice(point[0].length)}</span>
+          </p>
+        )
+      return line.trim() ? <p key={i}>{line}</p> : <div key={i} className="h-2" />
+    })
+
   const field = (f: FormField) => {
+    // Half fields share a row on a wide screen; everything else spans it.
+    const span = f.half ? '' : 'sm:col-span-2'
     if (f.type === 'heading') {
       return (
-        <h2 key={f.id} className="border-b border-border pb-1 pt-3 text-base font-semibold first:pt-0">
+        <h2 key={f.id} className={`${span} border-b border-border pb-1 pt-3 text-base font-semibold first:pt-0`}>
           {f.label}
         </h2>
       )
     }
+    if (f.type === 'pagebreak') return <hr key={f.id} className={`${span} border-dashed border-border`} />
+    if (f.type === 'info') {
+      return (
+        <div key={f.id} className={`${span} space-y-1 text-sm leading-relaxed`}>
+          {f.label && <p className="font-semibold">{f.label}</p>}
+          {f.body && fixedText(f.body)}
+        </div>
+      )
+    }
+    if (f.type === 'signatures') {
+      const slots = places.get(f.id) ?? []
+      if (slots.length === 0) return null
+      return (
+        <div key={f.id} className={span}>
+          {f.label && <p className="mb-2 text-sm font-semibold">{f.label}</p>}
+          <div className="grid gap-4 sm:grid-cols-2">{slots.map(signatureBox)}</div>
+          {!locked && <p className="mt-2 text-xs text-muted">{t('signaturesHint')}</p>}
+        </div>
+      )
+    }
     const id = `field-${f.id}`
-    const label = (
+    const label = f.label ? (
       <>
         {f.label}
         {f.required && <span className="text-danger"> *</span>}
       </>
-    )
+    ) : null
     if (f.type === 'checkbox') {
       return (
-        <label key={f.id} htmlFor={id} className="flex items-start gap-3 py-1 text-base">
+        <label key={f.id} htmlFor={id} className={`${span} flex items-start gap-3 py-1 text-base`}>
           <input
             id={id}
             type="checkbox"
@@ -215,8 +299,8 @@ export function FilledFormEditor({
           (f.options ?? []).filter((o) => (o === option ? !chosen.includes(o) : chosen.includes(o)))
         )
       return (
-        <div key={f.id}>
-          <p className="block text-sm font-medium">{label}</p>
+        <div key={f.id} className={span}>
+          {label && <p className="block text-sm font-medium">{label}</p>}
           <div className="mt-1 space-y-1.5">
             {(f.options ?? []).map((option) => (
               <label key={option} className="flex items-start gap-3 text-base">
@@ -237,10 +321,13 @@ export function FilledFormEditor({
     if (f.type === 'table') {
       const columns = f.options ?? []
       const current = rows(values[f.id])
+      // A table of the template's own rows: its words stand, only the gaps are written in, and it keeps its rows.
+      const fixed = (r: number, c: number) => Boolean(f.rows?.[r]?.[c])
+      const own = !locked && !f.rows
       const change = (r: number, c: number, text: string) => set(f.id, current.map((row, i) => (i === r ? row.map((v, j) => (j === c ? text : v)) : row)))
       return (
-        <div key={f.id}>
-          <p className="block text-sm font-medium">{label}</p>
+        <div key={f.id} className={span}>
+          {label && <p className="block text-sm font-medium">{label}</p>}
           {current.length === 0 ? (
             <p className="mt-1 text-sm text-muted">{t('tableEmpty')}</p>
           ) : (
@@ -253,7 +340,7 @@ export function FilledFormEditor({
                         {column}
                       </th>
                     ))}
-                    {!locked && <th className="w-8" />}
+                    {own && <th className="w-8" />}
                   </tr>
                 </thead>
                 <tbody>
@@ -261,17 +348,21 @@ export function FilledFormEditor({
                     <tr key={r}>
                       {columns.map((column, c) => (
                         <td key={column} className="align-top">
-                          <input
-                            aria-label={`${column} ${r + 1}`}
-                            value={row[c] ?? ''}
-                            maxLength={FIELD_TEXT_MAX}
-                            disabled={locked}
-                            onChange={(e) => change(r, c, e.target.value)}
-                            className={cell}
-                          />
+                          {fixed(r, c) ? (
+                            <span className="block px-2 py-1.5">{row[c]}</span>
+                          ) : (
+                            <input
+                              aria-label={`${column} ${r + 1}`}
+                              value={row[c] ?? ''}
+                              maxLength={FIELD_TEXT_MAX}
+                              disabled={locked}
+                              onChange={(e) => change(r, c, e.target.value)}
+                              className={cell}
+                            />
+                          )}
                         </td>
                       ))}
-                      {!locked && (
+                      {own && (
                         <td className="align-top">
                           <button
                             type="button"
@@ -290,7 +381,7 @@ export function FilledFormEditor({
               </table>
             </div>
           )}
-          {!locked && (
+          {own && (
             <button
               type="button"
               disabled={current.length >= MAX_ROWS}
@@ -308,7 +399,7 @@ export function FilledFormEditor({
       const ids = list(values[f.id])
       const busy = uploading === f.id
       return (
-        <div key={f.id}>
+        <div key={f.id} className={span}>
           <p className="block text-sm font-medium">{label}</p>
           <div className="mt-1 flex flex-wrap gap-2">
             {ids.map((docId) => (
@@ -361,10 +452,12 @@ export function FilledFormEditor({
     }
     const value = typeof values[f.id] === 'string' ? (values[f.id] as string) : ''
     return (
-      <div key={f.id}>
-        <label htmlFor={id} className="block text-sm font-medium">
-          {label}
-        </label>
+      <div key={f.id} className={span}>
+        {label && (
+          <label htmlFor={id} className="block text-sm font-medium">
+            {label}
+          </label>
+        )}
         {f.type === 'longtext' ? (
           <textarea
             id={id}
@@ -392,16 +485,19 @@ export function FilledFormEditor({
             ))}
           </div>
         ) : (
-          <input
-            id={id}
-            type={f.type === 'date' ? 'date' : 'text'}
-            inputMode={f.type === 'number' ? 'decimal' : undefined}
-            maxLength={f.type === 'date' ? undefined : f.type === 'number' ? 24 : FIELD_TEXT_MAX}
-            value={value}
-            disabled={locked}
-            onChange={(e) => set(f.id, e.target.value)}
-            className={`${input} ${f.type === 'number' ? 'max-w-xs tabular-nums' : ''}`}
-          />
+          <div className="flex items-baseline gap-2">
+            <input
+              id={id}
+              type={f.type === 'date' ? 'date' : 'text'}
+              inputMode={f.type === 'number' ? 'decimal' : undefined}
+              maxLength={f.type === 'date' ? undefined : f.type === 'number' ? 24 : FIELD_TEXT_MAX}
+              value={value}
+              disabled={locked}
+              onChange={(e) => set(f.id, e.target.value)}
+              className={`${input} ${f.type === 'number' || f.type === 'date' ? 'max-w-xs tabular-nums' : ''}`}
+            />
+            {f.suffix && <span className="shrink-0 text-base text-muted">{f.suffix}</span>}
+          </div>
         )}
       </div>
     )
@@ -441,7 +537,7 @@ export function FilledFormEditor({
       )}
       {locked && <p className="text-sm text-muted">{office ? t('lockedHintOffice') : t('lockedHint')}</p>}
 
-      <div className="space-y-4 rounded-xl border border-border bg-surface p-5">{fields.map(field)}</div>
+      <div className="grid gap-x-6 gap-y-4 rounded-xl border border-border bg-surface p-5 sm:grid-cols-2">{fields.map(field)}</div>
 
       {!locked && (
         <div className="flex flex-wrap items-center gap-3">
@@ -453,41 +549,12 @@ export function FilledFormEditor({
         </div>
       )}
 
-      {/* The signatures: one box for everybody the form names */}
-      {signers.length > 0 && (
+      {/* The signatures the form places nowhere else: one box for each, under all fields */}
+      {(places.get('end') ?? []).length > 0 && (
         <section className="rounded-xl border border-border bg-surface p-5">
           <h2 className="text-base font-semibold">{t('signatures')}</h2>
           <p className="mt-0.5 text-sm text-muted">{t('signaturesHint')}</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {signers.map((role, slot) => {
-              const signature = signatures.find((s) => s.slot === slot)
-              return (
-                <div key={slot} className="rounded-lg border border-border p-3">
-                  <p className="text-sm font-semibold">{role}</p>
-                  {signature ? (
-                    <>
-                      <div className="mt-2 flex h-24 items-end justify-center rounded-md bg-white p-1">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`data:image/png;base64,${signature.image}`} alt={t('signatureOf', { name: signature.name })} className="max-h-full max-w-full object-contain" />
-                      </div>
-                      <p className="mt-2 text-sm">{signature.name}</p>
-                      <p className="text-xs text-muted">{t('signedAt', { when: signature.when })}</p>
-                      {office && (
-                        <button type="button" onClick={() => setRemoving(signature)} disabled={pending} className="mt-2 text-xs text-muted hover:text-danger hover:underline">
-                          {t('signatureRemove')}
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <button type="button" onClick={() => openPad(slot)} disabled={pending || uploading !== null} className={`${btn.primary} mt-3 w-full gap-2`}>
-                      <PenLine className="h-4 w-4" aria-hidden />
-                      {t('sign')}
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">{(places.get('end') ?? []).map(signatureBox)}</div>
         </section>
       )}
 

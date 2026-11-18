@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
+import { Pencil } from 'lucide-react'
 import { Combobox, type ComboboxOption } from '@/components/combobox'
 import { addProjectItem, removeProjectItem, setProjectItemStatus } from '../actions'
+import { updateProjectItem } from './needs-actions'
 import { StockWarning } from '@/components/stock-warning'
 import { QuickItemModal } from '@/components/quick-item-modal'
 import { Select } from '@/components/ui/select'
@@ -17,6 +19,8 @@ export type ProjectItemRow = {
   /** Warehouse stock (null = unknown) — for the shortage warning. */
   stock: number | null
   status: 'REQUIRED' | 'COLLECTED' | 'MISSING'
+  /** What the crew should know about it ("für das Bad", "matt"). */
+  note?: string | null
 }
 
 const ITEM_STATUSES = ['REQUIRED', 'COLLECTED', 'MISSING'] as const
@@ -28,6 +32,9 @@ export function ProjectItemsEditor({
   onChanged,
   pending: externalPending = false,
   canCreateItems = true,
+  kinds,
+  placeholder,
+  emptyText,
 }: {
   projectId: string
   items: ProjectItemRow[]
@@ -39,6 +46,11 @@ export function ProjectItemsEditor({
   pending?: boolean
   /** A new catalog item is the office's to make; a site manager picks from the catalog. */
   canCreateItems?: boolean
+  /** The kinds a new catalog entry may be made as — one, when the list is of one kind. */
+  kinds?: Array<{ value: string; label: string }>
+  /** The picker's prompt, when the list is of one kind ("Material wählen …"). */
+  placeholder?: string
+  emptyText?: string
 }) {
   const t = useTranslations('projects')
   const tc = useTranslations('common')
@@ -53,6 +65,8 @@ export function ProjectItemsEditor({
   const [quantity, setQuantity] = useState('')
   // Name typed into the picker that is not in the catalog yet → quick-create dialog.
   const [newItemName, setNewItemName] = useState<string | null>(null)
+  // The row whose quantity and note are being edited, and what is typed there.
+  const [editing, setEditing] = useState<{ id: string; quantity: string; note: string } | null>(null)
   // Ref (not state) so the effect below stays side-effect only.
   const scrollAfterAdd = useRef(false)
 
@@ -112,13 +126,75 @@ export function ProjectItemsEditor({
     })
   }
 
+  /** Escape leaves the row's edit — and only that: the card around it stays open. */
+  function cancelEdit(e: { preventDefault: () => void }) {
+    e.preventDefault()
+    setEditing(null)
+  }
+
+  function saveEdit() {
+    if (!editing) return
+    const qty = editing.quantity.trim() ? Number(editing.quantity.replace(',', '.')) : null
+    if (qty != null && !Number.isFinite(qty)) return setError(t('quantityInvalid'))
+    setError(null)
+    startTransition(async () => {
+      const result = await updateProjectItem(projectId, editing.id, { quantity: qty, note: editing.note })
+      if (result.error) setError(tc('saveFailed'))
+      else {
+        setEditing(null)
+        onChanged?.()
+      }
+    })
+  }
+
   return (
     <div>
       {items.length === 0 ? (
-        <p className="px-5 py-4 text-sm text-muted">{t('noItems')}</p>
+        <p className="px-5 py-4 text-sm text-muted">{emptyText ?? t('noItems')}</p>
       ) : (
         <ul className="divide-y divide-border">
-          {items.map((item) => (
+          {items.map((item) =>
+            editing?.id === item.id ? (
+              <li key={item.id} className="flex flex-wrap items-center gap-2 px-5 py-2.5 text-sm">
+                <span className="min-w-0 basis-full font-medium sm:basis-auto">{item.name}</span>
+                <label className="flex items-center gap-1.5">
+                  <span className="sr-only">{t('quantity')}</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    autoFocus
+                    value={editing.quantity}
+                    onChange={(e) => setEditing({ ...editing, quantity: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveEdit()
+                      if (e.key === 'Escape') cancelEdit(e)
+                    }}
+                    placeholder={t('quantity')}
+                    className="w-20 rounded-lg border border-border-strong bg-surface px-2 py-1 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  {item.unit && <span className="text-xs text-muted">{item.unit}</span>}
+                </label>
+                <input
+                  type="text"
+                  value={editing.note}
+                  onChange={(e) => setEditing({ ...editing, note: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveEdit()
+                    if (e.key === 'Escape') cancelEdit(e)
+                  }}
+                  placeholder={t('itemNote')}
+                  aria-label={t('itemNote')}
+                  maxLength={500}
+                  className="min-w-40 flex-1 rounded-lg border border-border-strong bg-surface px-2 py-1 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+                <button type="button" disabled={pending} onClick={saveEdit} className={`${btn.primarySm} h-7 px-2.5 text-xs`}>
+                  {tc('save')}
+                </button>
+                <button type="button" onClick={() => setEditing(null)} className={`${btn.outlineXs} px-2`}>
+                  {tc('cancel')}
+                </button>
+              </li>
+            ) : (
             <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
               <span className="min-w-0">
                 {item.name}
@@ -133,8 +209,21 @@ export function ProjectItemsEditor({
                     <StockWarning needed={item.quantity} stock={item.stock} unit={item.unit} />
                   </span>
                 )}
+                {item.note && <span className="block text-xs text-muted">{item.note}</span>}
               </span>
               <span className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() =>
+                    setEditing({ id: item.id, quantity: item.quantity != null ? String(item.quantity).replace('.', ',') : '', note: item.note ?? '' })
+                  }
+                  title={t('editItem')}
+                  aria-label={t('editItem')}
+                  className="rounded-md border border-border p-1 text-muted hover:bg-surface-hover hover:text-foreground"
+                >
+                  <Pencil className="h-3.5 w-3.5" aria-hidden />
+                </button>
                 <Select
                   compact
                   value={item.status}
@@ -176,7 +265,8 @@ export function ProjectItemsEditor({
                 </button>
               </span>
             </li>
-          ))}
+            )
+          )}
         </ul>
       )}
 
@@ -186,7 +276,7 @@ export function ProjectItemsEditor({
             name="catalogItemId"
             options={options}
             defaultValue={selectedId}
-            placeholder={t('selectItem')}
+            placeholder={placeholder ?? t('selectItem')}
             noResultsLabel={tWarehouse('noResults')}
             onCreateNew={canCreateItems ? (name) => setNewItemName(name) : undefined}
             createLabel={canCreateItems ? (name) => `+ ${tWarehouse('createItemOption', { name })}` : undefined}
@@ -224,6 +314,7 @@ export function ProjectItemsEditor({
       {newItemName !== null && (
         <QuickItemModal
           initialName={newItemName}
+          kinds={kinds}
           onCreated={(item) => addById(item.id)}
           onClose={() => setNewItemName(null)}
         />

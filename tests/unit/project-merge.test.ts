@@ -29,6 +29,7 @@ const empty: MergeFields = {
   actualEnd: null,
   inspectionDate: null,
   executionWish: null,
+  workNote: null,
   managerId: null,
   coverDocumentId: null,
   description: null,

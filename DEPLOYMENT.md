@@ -118,6 +118,34 @@ created after the switch is turned on are caught up by the server; the jobs
 that exist already are not sent by themselves. Every send is in the audit log
 (`project.wattroPush`, `project.wattroPushFailed`).
 
+## Assistant (optional)
+
+The ✦ button at the bottom right of the office pages opens the assistant: the
+office types what it wants ("lege ein Projekt an", "ändere die Adresse von
+Projekt 2026-0048") and the assistant does it with the signed-in user's own
+rights. Every change is shown as a proposal first and runs only after
+"Ausführen". It needs an OpenAI key; without one the panel says it is not set
+up and everything else works as before. Set on the server, in the same `.env`
+as the other secrets (never in the repository):
+
+- `OPENAI_API_KEY` — the key from platform.openai.com (a project key is enough)
+- `OPENAI_MODEL` — optional, default `gpt-5-mini`
+- `ASSISTANT_APPROVAL_SECRET` — optional; `openssl rand -hex 32`. Without it
+  the confirmations are signed with a key derived from `SESSION_SECRET`.
+
+Then `docker compose up -d` to restart the app. What is said in the panel goes
+to OpenAI (the question and the records the assistant looks up for it); the
+key itself never reaches the browser and is not logged.
+
+The same key writes out the **voice notes** of a project's documentation
+(`docs/CHANGE-project-documentation.md`): the recording goes to OpenAI for
+that, and the recorder says so. Optional:
+
+- `OPENAI_TRANSCRIBE_MODEL` — default `gpt-4o-mini-transcribe`
+- `OPENAI_TRANSCRIBE_LANGUAGE` — default `de`
+
+Without a key the notes are kept as recordings only.
+
 ## Backups
 
 Two things make up the company's data, and both are backed up:

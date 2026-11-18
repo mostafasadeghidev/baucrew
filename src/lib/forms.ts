@@ -15,8 +15,29 @@
  * Pure: no database, no React, no Node — the browser reads these rules too.
  */
 
-export const FIELD_TYPES = ['heading', 'text', 'longtext', 'number', 'date', 'checkbox', 'choice', 'multi', 'table', 'photo'] as const
+export const FIELD_TYPES = [
+  'heading',
+  'info',
+  'text',
+  'longtext',
+  'number',
+  'date',
+  'checkbox',
+  'choice',
+  'multi',
+  'table',
+  'photo',
+  'signatures',
+  'pagebreak',
+] as const
 export type FieldType = (typeof FIELD_TYPES)[number]
+
+/**
+ * The kinds that hold nothing: a heading, a fixed text (the conditions of a
+ * contract, a note to the reader), the place where signatures stand, and the
+ * start of a new page.
+ */
+export const LAYOUT_TYPES: ReadonlySet<FieldType> = new Set(['heading', 'info', 'signatures', 'pagebreak'])
 
 /** What a field can be filled with from the project when the form is made. */
 export const PREFILL_SOURCES = [
@@ -30,17 +51,49 @@ export const PREFILL_SOURCES = [
   'today',
   'openDefects',
   'companyName',
+  'jobNumber',
+  'customerWithAddress',
+  'customerAddress',
+  'customerStreet',
+  'customerTown',
+  'customerPhone',
+  'customerEmail',
+  'siteCity',
+  'placeToday',
+  'plannedStart',
+  'plannedEnd',
+  'dueDate',
 ] as const
 export type PrefillSource = (typeof PREFILL_SOURCES)[number]
 
 export type FormField = {
   id: string
   type: FieldType
+  /** What the field is called; the title of an `info` (may be empty), the line a `checkbox` ticks. */
   label: string
   required?: boolean
-  /** The answers of a `choice` or a `multi`; the columns of a `table`. */
+  /**
+   * The answers of a `choice` or a `multi`; the columns of a `table`; the
+   * signers (by their role) whose boxes a `signatures` stands for — none means
+   * everybody not placed elsewhere.
+   */
   options?: string[]
   prefill?: PrefillSource
+  /** The fixed text of an `info`, as it stands: paragraphs, and lines starting with "• " or "- " as a list. */
+  body?: string
+  /** What is written after the value — a unit, or the rest of the sentence the value stands in: "mm", "erfolgen.". */
+  suffix?: string
+  /** What the field holds when the project has nothing for it — the company's own address, say. */
+  defaultValue?: string
+  /** Half the width: two half fields in a row stand side by side, on the screen and on paper. */
+  half?: boolean
+  /**
+   * A `table`'s rows, given by the template: the table has exactly these, a
+   * cell with text in it is fixed, an empty one is filled in.
+   */
+  rows?: string[][]
+  /** A `table`'s column widths, relative to each other: [3, 1] is three quarters and one. */
+  widths?: number[]
 }
 
 /**
@@ -52,10 +105,14 @@ export type FormValue = string | boolean | string[] | string[][]
 export type FormValues = Record<string, FormValue>
 
 export const FORM_NAME_MAX = 200
-export const FIELD_LABEL_MAX = 200
+/** Long enough for a contract's clause ticked as a whole. */
+export const FIELD_LABEL_MAX = 600
 export const FIELD_TEXT_MAX = 300
 export const FIELD_LONGTEXT_MAX = 5000
-export const MAX_FIELDS = 80
+/** A fixed text: a contract's longest clause fits several times over. */
+export const INFO_TEXT_MAX = 8000
+export const SUFFIX_MAX = 120
+export const MAX_FIELDS = 250
 export const MAX_OPTIONS = 12
 /** The columns a table may have, and the rows a filled one may hold. */
 export const MAX_COLUMNS = 6
@@ -73,13 +130,31 @@ const NUMBER = /^-?\d{1,3}(\.\d{3})*(,\d{1,4})?$|^-?\d{1,12}([.,]\d{1,4})?$/
 const DOCUMENT_ID = /^[a-z0-9]{10,40}$/
 
 /** The types whose value is typed with the project's words put in first. */
-const PREFILLABLE: ReadonlySet<FieldType> = new Set(['text', 'longtext', 'date', 'choice'])
+export const PREFILLABLE: ReadonlySet<FieldType> = new Set(['text', 'longtext', 'date', 'choice', 'multi', 'table'])
 /** The types that carry answers or columns. */
-const WITH_OPTIONS: ReadonlySet<FieldType> = new Set(['choice', 'multi', 'table'])
+export const WITH_OPTIONS: ReadonlySet<FieldType> = new Set(['choice', 'multi', 'table'])
+/** The types with a text after the value. */
+export const WITH_SUFFIX: ReadonlySet<FieldType> = new Set(['text', 'number', 'date'])
+/** The types a template can give a value of its own. */
+export const WITH_DEFAULT: ReadonlySet<FieldType> = new Set(['text', 'longtext', 'number', 'choice'])
+/** The types that can stand at half the width. */
+export const HALF_WIDTH: ReadonlySet<FieldType> = new Set(['text', 'longtext', 'number', 'date', 'checkbox', 'choice', 'multi'])
+/**
+ * The types that need no label: the text of an `info` is its body, an unnamed
+ * choice is its answers, lines or a table under a heading are that heading's.
+ * A text, number or date needs one unless the words after it say what it is
+ * ("____ Euro netto").
+ */
+const LABEL_OPTIONAL: ReadonlySet<FieldType> = new Set(['info', 'signatures', 'pagebreak', 'choice', 'multi', 'longtext', 'table'])
+/** The prefills that are a day — written the German way when the field is a text. */
+const DAY_SOURCES: ReadonlySet<PrefillSource> = new Set(['today', 'plannedStart', 'plannedEnd', 'dueDate'])
 
 const isType = (v: unknown): v is FieldType => (FIELD_TYPES as readonly unknown[]).includes(v)
 const isPrefill = (v: unknown): v is PrefillSource => (PREFILL_SOURCES as readonly unknown[]).includes(v)
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
+/** A text of several lines: line ends kept as "\n", the soft hyphens a word processor leaves in taken out. */
+const longText = (v: unknown, max: number) =>
+  typeof v === 'string' ? v.replace(/\r\n?/g, '\n').replace(/\u00ad/g, '').replace(/[ \t]+\n/g, '\n').trim().slice(0, max) : ''
 
 /**
  * The fields of a template as the editor sends them, put in order: unknown
@@ -94,28 +169,53 @@ export function parseFields(raw: unknown): FormField[] {
   for (const item of raw.slice(0, MAX_FIELDS)) {
     if (typeof item !== 'object' || item === null) continue
     const source = item as Record<string, unknown>
+    if (!isType(source.type)) continue
+    const type = source.type
     const label = text(source.label, FIELD_LABEL_MAX)
-    if (!isType(source.type) || !label) continue
+    const body = type === 'info' ? longText(source.body, INFO_TEXT_MAX) : ''
+    const suffix = WITH_SUFFIX.has(type) ? text(source.suffix, SUFFIX_MAX) : ''
+    if (type === 'info' ? !label && !body : !label && !suffix && !LABEL_OPTIONAL.has(type)) continue
     let id = typeof source.id === 'string' && /^[a-z0-9_-]{1,40}$/i.test(source.id) ? source.id : ''
     if (!id || taken.has(id)) {
       let n = fields.length + 1
       while (taken.has(`f${n}`)) n++
       id = `f${n}`
     }
-    taken.add(id)
-    const field: FormField = { id, type: source.type, label }
-    if (source.type !== 'heading') {
+    const field: FormField = { id, type, label }
+    if (!LAYOUT_TYPES.has(type)) {
       if (source.required === true) field.required = true
-      if (isPrefill(source.prefill) && PREFILLABLE.has(source.type)) field.prefill = source.prefill
+      if (isPrefill(source.prefill) && PREFILLABLE.has(type)) field.prefill = source.prefill
     }
-    if (WITH_OPTIONS.has(source.type)) {
-      const max = source.type === 'table' ? MAX_COLUMNS : MAX_OPTIONS
+    if (body) field.body = body
+    if (WITH_OPTIONS.has(type) || type === 'signatures') {
+      const max = type === 'table' ? MAX_COLUMNS : type === 'signatures' ? MAX_SIGNERS : MAX_OPTIONS
       const options = Array.isArray(source.options)
         ? [...new Set(source.options.map((o) => text(o, FIELD_TEXT_MAX)).filter(Boolean))].slice(0, max)
         : []
-      if (options.length === 0) continue
-      field.options = options
+      if (options.length === 0 && type !== 'signatures') continue
+      if (options.length > 0) field.options = options
     }
+    if (type === 'table') {
+      const columns = field.options!.length
+      if (Array.isArray(source.rows)) {
+        const rows = source.rows
+          .filter(Array.isArray)
+          .slice(0, MAX_ROWS)
+          .map((row) => Array.from({ length: columns }, (_, i) => text(row[i], FIELD_TEXT_MAX)))
+        if (rows.length > 0) field.rows = rows
+      }
+      if (Array.isArray(source.widths)) {
+        const widths = source.widths.slice(0, columns).map((w) => (typeof w === 'number' && w > 0 && w <= 100 ? w : 1))
+        if (widths.length === columns && widths.some((w) => w !== widths[0])) field.widths = widths
+      }
+    }
+    if (suffix) field.suffix = suffix
+    if (WITH_DEFAULT.has(type)) {
+      const value = type === 'longtext' ? longText(source.defaultValue, FIELD_LONGTEXT_MAX) : text(source.defaultValue, FIELD_TEXT_MAX)
+      if (value && (type !== 'choice' || field.options?.includes(value))) field.defaultValue = value
+    }
+    if (source.half === true && HALF_WIDTH.has(type)) field.half = true
+    taken.add(id)
     fields.push(field)
   }
   return fields
@@ -130,19 +230,56 @@ export function parseSigners(raw: unknown): string[] {
 /** What the project knows, in words, for the fields that ask for it. */
 export type PrefillContext = Partial<Record<PrefillSource, string>>
 
-/** What an untouched field holds. */
-export function emptyValue(type: FieldType): FormValue {
+/** What an untouched field holds; a table with rows of its own holds those. */
+export function emptyValue(type: FieldType, field?: FormField): FormValue {
   if (type === 'checkbox') return false
-  if (type === 'multi' || type === 'photo' || type === 'table') return []
+  if (type === 'table') return field?.rows ? field.rows.map((row) => [...row]) : []
+  if (type === 'multi' || type === 'photo') return []
   return ''
+}
+
+/** "2026-11-03" as it is written on a German sheet. */
+export function germanDay(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : iso
+}
+
+/** One field's start from what the project knows, or from the template's own value. */
+function prefillOne(field: FormField, context: PrefillContext): FormValue {
+  const known = field.prefill ? (context[field.prefill] ?? '') : ''
+  if (field.type === 'multi' || field.type === 'choice') {
+    // The project's words that are answers of the field: its trades ticked among "Maler, Trockenbau, …" —
+    // one word the start of the other counts, so the trade "Malern" ticks the answer "Maler".
+    const words = known.split(/,|\n/).map((w) => w.trim().toLowerCase()).filter(Boolean)
+    const same = (a: string, b: string) => a === b || (Math.min(a.length, b.length) >= 4 && (a.startsWith(b) || b.startsWith(a)))
+    const hits = (field.options ?? []).filter((o) => words.some((w) => same(w, o.toLowerCase())))
+    if (field.type === 'multi') return hits
+    return hits[0] ?? (field.options?.includes(known) ? known : (field.defaultValue ?? ''))
+  }
+  if (field.type === 'table') {
+    if (field.rows) return emptyValue('table', field)
+    // One line of the project's, one row: the open defects down the first column.
+    const columns = field.options?.length ?? 0
+    return known
+      .split('\n')
+      .map((line) => line.replace(/^[–•-]\s*/, '').trim())
+      .filter(Boolean)
+      .slice(0, MAX_ROWS)
+      .map((line) => Array.from({ length: columns }, (_, i) => (i === 0 ? line.slice(0, FIELD_TEXT_MAX) : '')))
+  }
+  if (!known) return field.defaultValue ?? emptyValue(field.type, field)
+  if (field.type === 'date') return /^\d{4}-\d{2}-\d{2}$/.test(known) ? known : ''
+  // A one-line field gets several lines as one, and a day the way a reader writes it.
+  if (field.type !== 'longtext') return (field.prefill && DAY_SOURCES.has(field.prefill) ? germanDay(known) : known).replace(/\s*\n+\s*/g, ', ')
+  return known
 }
 
 /** The values a new form starts with. */
 export function prefillValues(fields: FormField[], context: PrefillContext): FormValues {
   const values: FormValues = {}
   for (const field of fields) {
-    if (field.type === 'heading') continue
-    values[field.id] = field.prefill ? (context[field.prefill] ?? '') : emptyValue(field.type)
+    if (LAYOUT_TYPES.has(field.type)) continue
+    values[field.id] = prefillOne(field, context)
   }
   return values
 }
@@ -160,7 +297,7 @@ export function cleanValues(fields: FormField[], raw: unknown): FormValues {
   const sent = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
   const values: FormValues = {}
   for (const field of fields) {
-    if (field.type === 'heading') continue
+    if (LAYOUT_TYPES.has(field.type)) continue
     const value = sent[field.id]
     if (field.type === 'checkbox') {
       values[field.id] = value === true || value === 'on' || value === 'true'
@@ -178,6 +315,13 @@ export function cleanValues(fields: FormField[], raw: unknown): FormValues {
       values[field.id] = (field.options ?? []).filter((o) => chosen.has(o))
     } else if (field.type === 'photo') {
       values[field.id] = [...new Set(stringList(value).filter((id) => DOCUMENT_ID.test(id)))].slice(0, MAX_PHOTOS)
+    } else if (field.type === 'table' && field.rows) {
+      // The template's rows, each once and in its order: its own words stand, the gaps hold what was written.
+      const sentRows = Array.isArray(value) ? value : []
+      values[field.id] = field.rows.map((preset, r) => {
+        const row: unknown[] = Array.isArray(sentRows[r]) ? sentRows[r] : []
+        return preset.map((cell, c) => cell || text(row[c], FIELD_TEXT_MAX))
+      })
     } else if (field.type === 'table') {
       const columns = field.options?.length ?? 0
       const rows = (Array.isArray(value) ? value : [])
@@ -188,7 +332,7 @@ export function cleanValues(fields: FormField[], raw: unknown): FormValues {
         .slice(0, MAX_ROWS)
       values[field.id] = rows
     } else {
-      values[field.id] = text(value, field.type === 'longtext' ? FIELD_LONGTEXT_MAX : FIELD_TEXT_MAX)
+      values[field.id] = field.type === 'longtext' ? longText(value, FIELD_LONGTEXT_MAX) : text(value, FIELD_TEXT_MAX)
     }
   }
   return values
@@ -207,19 +351,59 @@ export function badNumbers(fields: FormField[], raw: unknown): string[] {
       const typed = text(sent[field.id], 24).replace(/\s/g, '')
       return typed !== '' && !NUMBER.test(typed)
     })
-    .map((field) => field.label)
+    .map((field) => fieldName(fields, field))
 }
 
-/** Whether a field holds nothing yet. */
-export function isEmptyValue(value: FormValue | undefined): boolean {
+/** Whether a field holds nothing yet. A table of the template's own rows is empty while none of its gaps is filled. */
+export function isEmptyValue(value: FormValue | undefined, field?: FormField): boolean {
   if (value === undefined) return true
+  if (field?.type === 'table' && field.rows && Array.isArray(value)) {
+    return !(value as string[][]).some((row, r) => row.some((cell, c) => cell && !field.rows![r]?.[c]))
+  }
   if (Array.isArray(value)) return value.length === 0
   return value === false || value === ''
 }
 
 /** The required fields that are still empty — a checkbox that must be ticked counts. */
 export function missingRequired(fields: FormField[], values: FormValues): FormField[] {
-  return fields.filter((field) => field.required && field.type !== 'heading' && isEmptyValue(values[field.id]))
+  return fields.filter((field) => field.required && !LAYOUT_TYPES.has(field.type) && isEmptyValue(values[field.id], field))
+}
+
+/**
+ * What a field is called where it has to be named — in "please fill in …":
+ * its label, or for an unnamed choice the heading it stands under.
+ */
+export function fieldName(fields: FormField[], field: FormField): string {
+  if (field.label) return field.label
+  if (field.suffix) return field.suffix
+  const at = fields.indexOf(field)
+  for (let i = at - 1; i >= 0; i--) if (fields[i].type === 'heading') return fields[i].label
+  return field.options?.[0] ?? field.id
+}
+
+/**
+ * Which signer's box stands where: a `signatures` field takes the roles it
+ * names, or — naming none — everybody not placed by another; whoever is
+ * placed nowhere stands at the end, under all fields (key "end").
+ */
+export function signaturePlaces(fields: FormField[], signers: string[]): Map<string, number[]> {
+  const places = new Map<string, number[]>()
+  const placed = new Set<number>()
+  const blocks = fields.filter((f) => f.type === 'signatures')
+  for (const block of blocks) {
+    if (!block.options) continue
+    const slots = block.options.map((role) => signers.indexOf(role)).filter((slot) => slot >= 0 && !placed.has(slot))
+    slots.forEach((slot) => placed.add(slot))
+    places.set(block.id, slots)
+  }
+  for (const block of blocks) {
+    if (block.options) continue
+    const slots = signers.map((_, slot) => slot).filter((slot) => !placed.has(slot))
+    slots.forEach((slot) => placed.add(slot))
+    places.set(block.id, slots)
+  }
+  places.set('end', signers.map((_, slot) => slot).filter((slot) => !placed.has(slot)))
+  return places
 }
 
 export type FormStatus = 'draft' | 'partly' | 'signed'
@@ -239,7 +423,18 @@ export function formStatus(signers: string[], signedSlots: number[]): FormStatus
 export function signedContent(title: string, fields: FormField[], values: FormValues, signers: string[]): string {
   return JSON.stringify({
     title,
-    fields: fields.map((f) => [f.id, f.type, f.label, f.type === 'heading' ? null : (values[f.id] ?? emptyValue(f.type))]),
+    fields: fields.map((f) => {
+      const entry: unknown[] = [f.id, f.type, f.label, LAYOUT_TYPES.has(f.type) ? null : (values[f.id] ?? emptyValue(f.type, f))]
+      // What else the sheet says around the value — a clause's text, the words after a blank, a table's fixed
+      // rows — is signed too. Only where a field has it: a form without these signs exactly as it always has.
+      const words: Record<string, unknown> = {}
+      if (f.body) words.body = f.body
+      if (f.suffix) words.suffix = f.suffix
+      if (f.rows) words.rows = f.rows
+      if (f.type === 'signatures' && f.options) words.options = f.options
+      if (Object.keys(words).length > 0) entry.push(words)
+      return entry
+    }),
     signers,
   })
 }

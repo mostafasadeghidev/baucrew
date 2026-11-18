@@ -11,7 +11,9 @@ export type UploadFailure = { name: string; error: UploadError }
 export async function uploadProjectFiles(
   projectId: string,
   files: File[],
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
+  /** The project folder open while the files were added; they go into it. */
+  folderId?: string | null
 ): Promise<{ sent: number; failed: UploadFailure[]; ids: string[] }> {
   let sent = 0
   const failed: UploadFailure[] = []
@@ -20,6 +22,7 @@ export async function uploadProjectFiles(
     onProgress?.(index, files.length)
     const body = new FormData()
     body.append('file', file)
+    if (folderId) body.append('folderId', folderId)
     try {
       const res = await fetch(`/api/projects/${projectId}/files`, { method: 'POST', body })
       if (res.ok) {

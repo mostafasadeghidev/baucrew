@@ -7,13 +7,16 @@ import { canWorkOn } from '@/lib/crew-access'
 import { audit } from '@/lib/audit'
 import { deleteStoredFile } from '@/lib/file-storage'
 import { linkLabel, normalizeLink, renamedFile } from '@/lib/card-links'
+import { applyQuotesToProject } from '@/lib/quotes-db'
 
 /** Show/hide a file for the crew accounts (worker area, kiosk). */
 export async function toggleFileVisibility(fileId: string): Promise<void> {
   const user = await requireStaff()
-  const doc = await db.document.findUnique({ where: { id: fileId } })
+  const doc = await db.document.findUnique({ where: { id: fileId }, include: { quote: { select: { kind: true } } } })
   if (!doc) return
   if (!(await canWorkOn(user, doc.projectId))) return
+  // A quote never goes to the crew's screens (src/lib/quotes-db.ts).
+  if (doc.quote?.kind === 'QUOTE' && !doc.visibleToCrew) return
   await db.document.update({
     where: { id: fileId },
     data: { visibleToCrew: !doc.visibleToCrew },
@@ -37,11 +40,13 @@ export async function deleteProjectFile(
   _formData: FormData
 ): Promise<{ error?: string }> {
   const user = await requireStaff()
-  const doc = await db.document.findUnique({ where: { id: fileId } })
+  const doc = await db.document.findUnique({ where: { id: fileId }, include: { quote: { select: { kind: true } } } })
   if (!doc) return { error: 'saveFailed' }
   if (!(await canWorkOn(user, doc.projectId))) return { error: 'saveFailed' }
   await db.document.delete({ where: { id: fileId } })
   await deleteStoredFile(doc.path)
+  // A quote gone: a price it put there follows the quotes that are left.
+  if (doc.quote?.kind === 'QUOTE') await applyQuotesToProject(db, doc.projectId, user.id)
   await audit({
     userId: user.id,
     action: 'project.file.delete',

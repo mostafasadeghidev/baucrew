@@ -4,6 +4,8 @@ import { db } from './db'
 import { deleteStoredFile, saveStoredFile } from './file-storage'
 import { MAX_FILE_SIZE, fetchedFileType, storageKeyFor } from './files'
 import { trelloDownload } from './trello'
+import { isPdfDocument } from './quotes-db'
+import { readUploadedQuote } from './quotes-app'
 
 /**
  * The files attached to Trello cards. The board export names them but does
@@ -107,6 +109,8 @@ export async function fetchTrelloFiles(userId: string | null): Promise<{ fetched
         })
       await db.cardLink.delete({ where: { id: link.id } })
       fetched++
+      // A quote among Trello's files is read for its sums and its Vorgangsnummer.
+      if (isPdfDocument({ mimeType, filename })) await readUploadedQuote(document.id, userId)
 
       // The card's cover picture, asked of Trello once per card.
       if (!covers.has(target.cardId)) {

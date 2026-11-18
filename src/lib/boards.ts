@@ -1,6 +1,6 @@
 /**
  * The boards of the projects page: which columns each has, how a board is
- * chosen when the page opens, and the rules the settings form and the drag
+ * chosen when the page opens, and the rules the drag
  * of a column follow.
  *
  * A column is a status. That is the whole reason the board can move a
@@ -16,8 +16,6 @@ export const BOARD_NAME_MAX = 60
 export const COLUMN_TITLE_MAX = 40
 /** Which board this browser opened last, so the page comes back to it. */
 export const BOARD_COOKIE = 'project-board'
-
-export type BoardColumnDef = { status: ProjectStatusKey; title: string | null }
 
 /**
  * How a board or a column is told apart: by its own id. A cuid for what was
@@ -95,31 +93,6 @@ export function moveColumn<T extends string>(statuses: T[], moved: string, befor
   return next
 }
 
-/**
- * The columns from the settings form: a tick `column_<STATUS>` and a name
- * `title_<STATUS>` for each status.
- *
- * Ticking a box must not undo a board somebody has arranged by hand, so the
- * columns that survive keep the order they had and only the newly ticked ones
- * are appended — at the end, where they can be seen and moved, rather than
- * somewhere in the middle where a lifecycle thinks they belong. A name that is
- * the status's own, or blank, is no name.
- */
-export function columnsFromForm(
-  get: (name: string) => FormDataEntryValue | null,
-  current: ProjectStatusKey[] = []
-): BoardColumnDef[] {
-  const ticked = ALL_PROJECT_STATUSES.filter((s) => get(`column_${s}`) === 'on')
-  const picked = new Set(ticked)
-  const kept = unique(current).filter((s) => picked.has(s))
-  const added = ticked.filter((s) => !kept.includes(s))
-  return [...kept, ...added].map((status) => {
-    const raw = get(`title_${status}`)
-    const title = typeof raw === 'string' ? raw.trim().slice(0, COLUMN_TITLE_MAX) : ''
-    return { status, title: title ? title : null }
-  })
-}
-
 /** The order a board was dragged into: its columns' ids, unique, in that order. */
 export function cleanColumnOrder(ids: unknown): string[] {
   return Array.isArray(ids) ? unique(ids.filter((id): id is string => typeof id === 'string' && COLUMN_ID.test(id))) : []
@@ -142,35 +115,15 @@ export function pickBoard<T extends { id: string }>(
   )
 }
 
+/**
+ * The board Baustellen shows: the one with the tick — the first in the tabs'
+ * order, should a second ever carry it too — or none.
+ */
+export function sitesBoard<T extends { showOnSites: boolean }>(boards: T[]): T | null {
+  return boards.find((b) => b.showOnSites) ?? null
+}
+
 /** What a column is called on its board: its own name, or the status's. */
 export function columnLabel(column: { title: string | null }, statusLabel: string): string {
   return column.title ?? statusLabel
-}
-
-/**
- * What a board made from the board's own bar starts with, the way Trello
- * offers a blank board or a template: the statuses ticked one by one, each a
- * plain list (`pick:LEAD,QUOTED`), a preset such as the client's Trello board
- * (`preset:<key>`), or the lists of a board that is there already, with their
- * own names and rule lists (`copy:<board id>`). Ticked statuses stand in the
- * order of the lifecycle, each once; a pick of none, or anything else, is
- * nothing.
- */
-export type StartingLists =
-  | { kind: 'pick'; statuses: ProjectStatusKey[] }
-  | { kind: 'preset'; key: string }
-  | { kind: 'copy'; boardId: string }
-
-export function startingLists(raw: unknown): StartingLists | null {
-  if (typeof raw !== 'string') return null
-  if (raw.startsWith('pick:')) {
-    const wanted = new Set(raw.slice('pick:'.length).split(','))
-    const statuses = ALL_PROJECT_STATUSES.filter((s) => wanted.has(s))
-    return statuses.length > 0 ? { kind: 'pick', statuses } : null
-  }
-  const preset = /^preset:([a-z]{1,20})$/.exec(raw)
-  if (preset) return { kind: 'preset', key: preset[1] }
-  const copy = /^copy:(.+)$/.exec(raw)
-  if (copy && RECORD_ID.test(copy[1])) return { kind: 'copy', boardId: copy[1] }
-  return null
 }

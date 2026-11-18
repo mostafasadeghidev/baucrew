@@ -1,6 +1,6 @@
 {
   "name": "baucrew",
-  "version": "1.55.0",
+  "version": "1.58.1",
   "private": true,
   "scripts": {
     "dev": "next dev -p 15700",
@@ -16,11 +16,15 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.106",
+    "@ai-sdk/react": "^4.0.163",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "ai": "^7.0.159",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
+    "html-to-image": "1.11.13",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.32.0",
     "lz-string": "1.5.0",
@@ -31,6 +35,8 @@
     "qrcode": "^1.5.4",
     "react": "19.2.9",
     "react-dom": "19.2.9",
+    "streamdown": "2.7.1",
+    "unpdf": "^2.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

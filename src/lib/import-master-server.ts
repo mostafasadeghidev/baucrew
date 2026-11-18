@@ -1,5 +1,6 @@
 import 'server-only'
 import { db } from './db'
+import { refreshProjectTitles } from './project-title-db'
 import { changesFor, mapMasterRow, matchKey, nameKey, type MasterKind, type MasterMapping, type MasterRecord } from './import-master'
 import type { ParsedSheet } from './import-excel-server'
 
@@ -63,6 +64,8 @@ export async function runMasterImport(
         : kind === 'employees'
           ? db.employee.update({ where: { id: found.id }, data: changes })
           : db.vehicle.update({ where: { id: found.id }, data: changes }))) as Existing
+      // A customer's new name is the first half of its projects' names.
+      if (kind === 'customers' && 'name' in changes) await refreshProjectTitles({ customerId: found.id })
       Object.assign(found, updated)
       remember(found)
       result.updated++

@@ -1,11 +1,11 @@
 // DB-backed: runs against the dev database (npm run test:db).
 // The boards of the projects page: their columns, the order they are dragged
-// into, and what the settings form does to them.
+// into, and what saving the settings window does to them.
 import 'dotenv/config'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '@/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { getBoards, saveBoardColumns, saveColumnOrder } from '@/lib/boards-db'
+import { getBoards, saveBoardDraft, saveColumnOrder, setBoardColumnColor } from '@/lib/boards-db'
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })
 
@@ -30,7 +30,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await prisma.board.deleteMany({ where: { name: TAG } })
+  await prisma.board.deleteMany({ where: { name: { startsWith: TAG } } })
   await prisma.$disconnect()
 })
 
@@ -53,15 +53,46 @@ describe('boards', () => {
     expect(await saveColumnOrder('no-such-board', [idOf('LEAD')])).toBe(false)
   })
 
-  it('replaces the columns as the settings form sent them, names included', async () => {
-    await saveBoardColumns(boardId, [
-      { status: 'QUOTED', title: null },
-      { status: 'PLANNED', title: 'Termin steht' },
+  it('saves the window’s draft: kept columns keep their id, left-out ones go, new ones are made, in the draft’s order', async () => {
+    const before = (await getBoards()).find((b) => b.id === boardId)!
+    const quoted = before.columns.find((c) => c.status === 'QUOTED')!
+    expect(
+      await saveBoardDraft(boardId, {
+        name: `${TAG} neu`,
+        background: 'green',
+        showOnSites: false,
+        columns: [
+          { id: null, status: 'PLANNED', title: 'Termin steht', rule: null, color: 'sky' },
+          { id: quoted.id, status: 'QUOTED', title: null, rule: null, color: 'rose' },
+          { id: null, status: 'IN_PROGRESS', title: null, rule: 'paused', color: null },
+        ],
+      })
+    ).toBe(boardId)
+    const board = (await getBoards()).find((b) => b.id === boardId)!
+    expect(board.name).toBe(`${TAG} neu`)
+    expect(board.background).toBe('green')
+    expect(board.columns.map((c) => [c.status, c.title, c.rule, c.color])).toEqual([
+      ['PLANNED', 'Termin steht', null, 'sky'],
+      ['QUOTED', null, null, 'rose'],
+      ['IN_PROGRESS', null, 'paused', null],
     ])
-    const board = (await getBoards()).find((b) => b.id === boardId)
-    expect(board?.columns.map((c) => [c.status, c.title])).toEqual([
-      ['QUOTED', null],
-      ['PLANNED', 'Termin steht'],
-    ])
+    expect(board.columns[1].id).toBe(quoted.id)
+    expect(await saveBoardDraft('no-such-board', { name: 'x', background: null, showOnSites: false, columns: [] })).toBeNull()
+  })
+
+  it('makes a new board from a draft, at the end of the tabs', async () => {
+    const id = await saveBoardDraft(null, { name: TAG, background: null, showOnSites: false, columns: [{ id: null, status: 'LEAD', title: 'Anfragen', rule: null, color: 'amber' }] })
+    const boards = await getBoards()
+    expect(boards.at(-1)?.id).toBe(id)
+    expect(boards.at(-1)?.columns.map((c) => [c.title, c.color])).toEqual([['Anfragen', 'amber']])
+  })
+
+  it('gives a list a colour from its menu, and takes it off again', async () => {
+    const column = (await getBoards()).find((b) => b.id === boardId)!.columns[0]
+    expect(await setBoardColumnColor(column.id, 'violet')).toBe(boardId)
+    expect((await getBoards()).find((b) => b.id === boardId)!.columns[0].color).toBe('violet')
+    expect(await setBoardColumnColor(column.id, null)).toBe(boardId)
+    expect((await getBoards()).find((b) => b.id === boardId)!.columns[0].color).toBeNull()
+    expect(await setBoardColumnColor('no-such-column', 'violet')).toBeNull()
   })
 })

@@ -12,6 +12,9 @@ import { NavHistory } from '@/components/nav-history'
 import { Suspense } from 'react'
 import { syncProjectsInProgress } from '@/lib/project-lifecycle'
 import { SIDEBAR_COOKIE, isSidebarCollapsed } from '@/lib/sidebar'
+import { AssistantPanel } from '@/components/assistant-panel'
+import { assistantConfigured } from '@/lib/assistant'
+import { SearchPalette } from '@/components/search-palette'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff()
@@ -60,6 +63,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
         {/* Who has been named in a comment: the bell in the corner. */}
         <Mentions user={user} area="admin" />
+        {/* The assistant above it: talk to the app; changes are confirmed before they run. */}
+        <AssistantPanel configured={assistantConfigured()} />
+        {/* The search window: ⌘K anywhere here, or the magnifier in the sidebar and the bars. */}
+        <Suspense fallback={null}>
+          <SearchPalette username={user.username} role={user.role} />
+        </Suspense>
       </div>
     </PricesHiddenProvider>
   )
